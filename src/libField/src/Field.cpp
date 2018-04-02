@@ -3,6 +3,7 @@
 #include <RoSy/RoSy.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <vector>
 
 //#define TRACE  1
 
@@ -15,10 +16,7 @@ Field::~Field( ) {
 }
 
 
-/**
- * Construct the field using a graph builder and some elements
- */
-Field::Field( const GraphBuilder * const graph_builder, const std::vector<Element>& elements ) {
+void Field::init( const GraphBuilder * const graph_builder, const std::vector<Element>& elements ) {
 	m_graph = graph_builder->build_graph_for_elements( elements );
 
 	// Initialise field tangents to random values
@@ -30,6 +28,28 @@ Field::Field( const GraphBuilder * const graph_builder, const std::vector<Elemen
 		random = random.cross( fe->m_normal ).normalized( );
 		fe->m_tangent = random;
 	}
+}
+
+
+/**
+ * Construct the field using a graph builder and some elements
+ */
+Field::Field( const GraphBuilder * const graph_builder, const std::vector<Element>& elements ) {
+	init( graph_builder, elements);
+}
+
+/**
+ * Construct from a point cloud
+ */
+Field::Field( const PointCloud * const pcl ) {
+	std::vector<Element> e;
+	for( int i=0; i<pcl->size(); ++i ) {
+		Point p = pcl->point( i );
+		Element el{ p.location, p.normal };
+		e.push_back( el );
+	}
+	NearestNeighbourGraphBuilder *ngb = new NearestNeighbourGraphBuilder( 5 );
+	init( ngb, e );
 }
 
 /**

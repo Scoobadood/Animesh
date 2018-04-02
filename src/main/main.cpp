@@ -13,6 +13,7 @@
 #include <Field/MatlabFieldExporter.h>
 #include <PointCloud/PointCloud.h>
 #include <Args/Args.h>
+#include <vector>
 
 using namespace Eigen;
 
@@ -45,22 +46,25 @@ int main( int argc, char * argv[] ) {
 
 	Field * field = nullptr;
 
-	switch( args.default_shape()	 ) {
-		case Args::SPHERE:
-			field = Field::spherical_field( args.radius(), args.theta_steps(), args.phi_steps(), make_field_fixed );
-			std::cout << "sphere" << std::endl;
-			break;
+	// switch( args.default_shape()	 ) {
+	// 	case Args::SPHERE:
+	// 		field = Field::spherical_field( args.radius(), args.theta_steps(), args.phi_steps(), make_field_fixed );
+	// 		std::cout << "sphere" << std::endl;
+	// 		break;
 
-		case Args::CUBE: 
-			field = Field::cubic_field( args.cube_size(), make_field_fixed );
-			std::cout << "cube" << std::endl;
-			break;
+	// 	case Args::CUBE: 
+	// 		field = Field::cubic_field( args.cube_size(), make_field_fixed );
+	// 		std::cout << "cube" << std::endl;
+	// 		break;
 
-		case Args::PLANE:
-			field = Field::planar_field( args.plane_x(), args.plane_y(), args.grid_spacing(), make_field_fixed );
-			std::cout << "planar" << std::endl;
-			break;
-	}
+	// 	case Args::PLANE:
+	// 		field = Field::planar_field( args.plane_x(), args.plane_y(), args.grid_spacing(), make_field_fixed );
+	// 		std::cout << "planar" << std::endl;
+	// 		break;
+	// }
+
+	PointCloud * pcl = PointCloud::load_from_file( "../data/bunny.pcd");
+	field = new Field( pcl );
 
 	field->enable_tracing( args.tracing_enabled() );
 

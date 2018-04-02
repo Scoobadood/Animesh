@@ -19,10 +19,10 @@ PointCloud * PointCloud::load_from_file( const std::string& file_name ) {
               << " "    << cloud->points[i].z << std::endl;
 
     PointCloud * pc = new PointCloud( cloud );
+    pc->compute_normals();
 
     return pc;
 }
-
 
 /**
  * @return the size of the point cloud (number of points).
@@ -45,7 +45,7 @@ void PointCloud::add_point( Eigen::Vector3f point ) {
  */
 const Point PointCloud::point( size_t index ) const {
     return Point{
-        Eigen::Vector3f{ points->points[index].x, points->points[index].y, points->points[index].z},
+        Eigen::Vector3f{ points->points[index].x * 100, points->points[index].y * 100, points->points[index].z * 100},
         Eigen::Vector3f{ normals->points[index].normal_x, normals->points[index].normal_y, normals->points[index].normal_z},
     };
 }

@@ -4,6 +4,7 @@
 #include <Graph/GraphBuilder.h>
 #include <Graph/GridGraphBuilder.h>
 #include <Graph/NearestNeighbourGraphBuilder.h>
+#include <PointCloud/PointCloud.h>
 
 class Field {
 public:
@@ -11,6 +12,11 @@ public:
 	 * Construct the field using a graph builder and some elements
 	 */
 	Field( const GraphBuilder * const graph_builder, const std::vector<Element>& elements );
+
+	/**
+	 * Construct from a point cloud
+	 */
+	Field( const PointCloud * const pcl );
 
 	~Field( );
 
@@ -82,6 +88,8 @@ private:
 
 	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
+	void init( const GraphBuilder * const graph_builder, const std::vector<Element>& elements );
+
 
 
 	/**

@@ -1,3 +1,6 @@
+
+#include <string>
+
 class Args {
 public:
 	 Args( int &argc, char **argv);
@@ -39,6 +42,9 @@ public:
 
 	 bool inline tracing_enabled() const { return m_tracing_enabled; }
 
+	 bool inline load_from_pointcloud() const { return m_load_from_pointcloud; }
+	 std::string inline pcd_file_name() const { return m_pcd_file_name; }
+
 private:
 	bool m_should_fix_tangents;
 
@@ -58,6 +64,9 @@ private:
 	int m_cube_size;
 
 	bool m_tracing_enabled;
+
+	bool m_load_from_pointcloud;
+	std::string	m_pcd_file_name;
 
 	Shape m_default_shape;
 };

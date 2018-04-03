@@ -52,6 +52,11 @@ Args::Args( int &argc, char **argv) {
 		// Cube
 		ValueArg<int> cube_size("c","cube_size","Dimensions of cube",false, CUBE_SIZE, "int", cmd);
 
+		// Load from point cloud
+		SwitchArg load_from_pcd_file("l","","Load from file", cmd, false);
+		ValueArg<std::string> pcd_file_name("n","file","PCD File name.",false, "", "string", cmd);
+
+
 		// Parse the argv array.
 		cmd.parse( argc, argv );
 
@@ -59,28 +64,32 @@ Args::Args( int &argc, char **argv) {
 		m_should_fix_tangents      = make_fixed.getValue();
 		m_should_dump_field        = dump_field.getValue();
 		m_tracing_enabled          = tracing_enabled.getValue();
+		m_load_from_pointcloud     = load_from_pcd_file.getValue();
 
-		if( shape.getValue() == "plane") {
-			m_default_shape = PLANE;
-			m_plane_x = plane_x.getValue();
-			m_plane_y = plane_y.getValue();
-			m_grid_spacing = grid_spacing.getValue();
-		} else if( shape.getValue() == "sphere") {
-			m_default_shape = SPHERE;
-			m_radius = radius.getValue();
-			m_theta_steps = theta.getValue();
-			m_phi_steps   = phi.getValue();
-		} else if( shape.getValue() == "cube") {
-			m_default_shape = CUBE;
-			m_cube_size = cube_size.getValue();
+		if( m_load_from_pointcloud) {
+			m_pcd_file_name = pcd_file_name.getValue();
 		} else {
-			std::cerr << "Not a value shape :" << shape.getValue() << std::endl;
-			m_default_shape = PLANE;
-			m_plane_x = plane_x.getValue();
-			m_plane_y = plane_y.getValue();
-			m_grid_spacing = grid_spacing.getValue();
+			if( shape.getValue() == "plane") {
+				m_default_shape = PLANE;
+				m_plane_x = plane_x.getValue();
+				m_plane_y = plane_y.getValue();
+				m_grid_spacing = grid_spacing.getValue();
+			} else if( shape.getValue() == "sphere") {
+				m_default_shape = SPHERE;
+				m_radius = radius.getValue();
+				m_theta_steps = theta.getValue();
+				m_phi_steps   = phi.getValue();
+			} else if( shape.getValue() == "cube") {
+				m_default_shape = CUBE;
+				m_cube_size = cube_size.getValue();
+			} else {
+				std::cerr << "Not a value shape :" << shape.getValue() << std::endl;
+				m_default_shape = PLANE;
+				m_plane_x = plane_x.getValue();
+				m_plane_y = plane_y.getValue();
+				m_grid_spacing = grid_spacing.getValue();
+			}
 		}
-
 	} catch (TCLAP::ArgException &e) { // catch any exceptions
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; 
 	}

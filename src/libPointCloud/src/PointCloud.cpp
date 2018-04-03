@@ -67,7 +67,7 @@ void PointCloud::compute_normals( ) {
     ne.setSearchMethod (tree);
 
     // Use all neighbors in a sphere of radius 3cm
-    ne.setRadiusSearch (0.2f);
+    ne.setRadiusSearch (0.03f);
 
     // Compute the features
     ne.compute (*normals);

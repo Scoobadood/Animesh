@@ -39,6 +39,7 @@ public:
 	 int inline phi_steps() const { return m_phi_steps; }
 
 	 int inline cube_size( ) const { return m_cube_size; }
+	 int inline k( ) const { return m_k; }
 
 	 bool inline tracing_enabled() const { return m_tracing_enabled; }
 
@@ -62,6 +63,8 @@ private:
 	float m_grid_spacing;
 
 	int m_cube_size;
+
+	int m_k;
 
 	bool m_tracing_enabled;
 

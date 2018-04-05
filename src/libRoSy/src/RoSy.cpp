@@ -11,16 +11,20 @@ const float EPSILON = 1e-6;
 float angle_between_vectors( Eigen::Vector3f v1, Eigen::Vector3f v2 ) {
 	using namespace Eigen;
 
-	if( (v1[0] == 0.0f && v1[1] == 0.0f && v1[2] == 0.0f ) ||
-		(v2[0] == 0.0f && v2[1] == 0.0f && v2[2] == 0.0f ) ) {
-		throw std::invalid_argument( "Vector may not be zero length" );
-	}
+	// if( (v1[0] == 0.0f && v1[1] == 0.0f && v1[2] == 0.0f ) ||
+	// 	(v2[0] == 0.0f && v2[1] == 0.0f && v2[2] == 0.0f ) ) {
+	// 	throw std::invalid_argument( "Vector may not be zero length" );
+	// }
 
 
-	Vector3f reference{ -1.0f, -2.0f, 3.0f };
-	Vector3f      c = v1.cross(v2);
-    float     angle = std::atan2(c.norm(), v1.dot(v2));
-    return c.dot(reference) < 0.0f ? (2 * M_PI -angle) : angle;
+	// Vector3f reference{ -1.0f, -2.0f, 3.0f };
+	// Vector3f      c = v1.cross(v2);
+ //    float     angle = std::atan2(c.norm(), v1.dot(v2));
+ //    return c.dot(reference) < 0.0f ? (2 * M_PI -angle) : angle;
+
+
+    return std::acos(std::min(1.0f, v1.dot(v2))) * 180 / M_PI;
+
 
 	/*
 		Code below was replaced by the arccos and triple product code

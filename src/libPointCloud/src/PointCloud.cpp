@@ -65,9 +65,10 @@ void PointCloud::compute_normals( ) {
     // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
     search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ> ());
     ne.setSearchMethod (tree);
+    ne.setViewPoint( 0.0f, 0.0f, 10.0f );
 
-    // Use all neighbors in a sphere of radius 3cm
-    ne.setRadiusSearch (0.03f);
+    // Use 10 neghbours
+    ne.setKSearch (10);
 
     // Compute the features
     ne.compute (*normals);

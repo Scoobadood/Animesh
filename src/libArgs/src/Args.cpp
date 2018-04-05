@@ -48,6 +48,7 @@ Args::Args( int &argc, char **argv) {
 		ValueArg<float> radius("r","radius","Radius of sphere",false, RADIUS, "float", cmd);
 		ValueArg<int> theta("t","theta_steps","Number of steps around sphere",false, SPHERE_THETA_STEPS, "float", cmd);
 		ValueArg<int> phi("p","phi_steps","Number of steps vertically on sphere",false, SPHERE_PHI_STEPS, "float", cmd);
+		ValueArg<int> k("k","k","Number of nearest neighbours",false, SPHERE_PHI_STEPS, "float", cmd);
 
 		// Cube
 		ValueArg<int> cube_size("c","cube_size","Dimensions of cube",false, CUBE_SIZE, "int", cmd);
@@ -64,6 +65,7 @@ Args::Args( int &argc, char **argv) {
 		m_should_fix_tangents      = make_fixed.getValue();
 		m_should_dump_field        = dump_field.getValue();
 		m_tracing_enabled          = tracing_enabled.getValue();
+		m_k						   = k.getValue();
 		m_load_from_pointcloud     = load_from_pcd_file.getValue();
 
 		if( m_load_from_pointcloud) {

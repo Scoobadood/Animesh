@@ -41,14 +41,14 @@ Field::Field( const GraphBuilder * const graph_builder, const std::vector<Elemen
 /**
  * Construct from a point cloud
  */
-Field::Field( const PointCloud * const pcl ) {
+Field::Field( const PointCloud * const pcl, int k ) {
 	std::vector<Element> e;
 	for( int i=0; i<pcl->size(); ++i ) {
 		Point p = pcl->point( i );
 		Element el{ p.location, p.normal };
 		e.push_back( el );
 	}
-	NearestNeighbourGraphBuilder *ngb = new NearestNeighbourGraphBuilder( 5 );
+	NearestNeighbourGraphBuilder *ngb = new NearestNeighbourGraphBuilder( k );
 	init( ngb, e );
 }
 
@@ -97,7 +97,7 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
  * @param phi_steps The number of steps in the Y direction
  * @param make_fixed If true, set the field tangents to the lowest energy/solved position
  */
-Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, bool make_fixed ) {
+Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed ) {
 	using namespace Eigen;
 
 	float maxTheta = 2 * M_PI;
@@ -120,8 +120,12 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 			elements.push_back( e );
 		}
 	}
+	Vector3f location { radius * sin(maxPhi) * cos(maxTheta),   radius * cos( maxPhi ), radius * sin(maxPhi) * sin(maxTheta) };
+	Vector3f normal = location.normalized();
+	Element e{ location, normal };
+	elements.push_back( e );
 
-	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( 4 );
+	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( k );
 	Field * field = new Field( gb, elements );
 	delete gb;
 
@@ -257,8 +261,6 @@ Field * Field::cubic_field( std::size_t cube_size, bool make_fixed) {
 	return field;
 }
 
-
-
 /**
  * @return the size of the ifled
  */
@@ -266,26 +268,25 @@ std::size_t Field::size() const {
 	return m_graph->m_data_to_node_map.size();
 }
 
-
 /**
  * @return the smoothness of the entire Field
  */
-float Field::smoothness( ) const {
+float Field::error( ) const {
 	// E(O, k) :=      (oi, Rso (oji, ni, kij ))
 	// For each node
-	float smoothness = 0.0f;
+	float error = 0.0f;
 	for( auto map_iter = m_graph->m_data_to_node_map.begin(); map_iter != m_graph->m_data_to_node_map.end(); ++map_iter ) {
 		GraphNode * g = (*map_iter).second;
-		smoothness += get_smoothness_for_node( g );
+		error += get_error_for_node( g );
 	}
-	return smoothness;
+	return error;
 }
 
 /**
  * @return the smoothness of one node
  */
-float Field::get_smoothness_for_node( const GraphNode* gn ) const {
-	float smoothness = 0.0f;
+float Field::get_error_for_node( const GraphNode* gn ) const {
+	float error = 0.0f;
 	FieldElement * this_fe = (FieldElement *) gn->m_data;
 	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
 		const GraphNode * neighbouring_node = std::get<2>(*edge_iter);
@@ -298,9 +299,9 @@ float Field::get_smoothness_for_node( const GraphNode* gn ) const {
 			neighbour_fe->m_normal);
 
 		float theta = angle_between_vectors( result.first, result.second );
-		smoothness += (theta*theta);
+		error += (theta*theta);
 	}
-	return smoothness;
+	return error;
 }
 
 

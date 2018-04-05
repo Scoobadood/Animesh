@@ -48,11 +48,11 @@ int main( int argc, char * argv[] ) {
 
 	if( args.load_from_pointcloud() ) {
 		PointCloud * pcl = PointCloud::load_from_file( args.pcd_file_name() );
-		field = new Field( pcl );
+		field = new Field( pcl, args.k() );
 	} else {
 		switch( args.default_shape()	 ) {
 			case Args::SPHERE:
-				field = Field::spherical_field( args.radius(), args.theta_steps(), args.phi_steps(), make_field_fixed );
+				field = Field::spherical_field( args.radius(), args.theta_steps(), args.phi_steps(), args.k(), make_field_fixed );
 				std::cout << "sphere" << std::endl;
 				break;
 
@@ -81,9 +81,9 @@ int main( int argc, char * argv[] ) {
 	int frame_index = 0;
 	for( int i=0; i< args.num_iterations(); ++i ) {
 		field->smooth_once( );
-		float smoo = field->smoothness();
-		std::cout << smoo << std::endl;
-		if( smoo < 1 ) break;
+		float err = field->error();
+		std::cout << err << std::endl;
+		if( err < 1 ) break;
 
 		if( i % EXPORT_FRAMES == 0 )
 			write_matlab_file( field, frame_index++ );

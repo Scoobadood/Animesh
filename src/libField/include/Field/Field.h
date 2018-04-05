@@ -16,7 +16,7 @@ public:
 	/**
 	 * Construct from a point cloud
 	 */
-	Field( const PointCloud * const pcl );
+	Field( const PointCloud * const pcl, int k );
 
 	~Field( );
 
@@ -41,7 +41,7 @@ public:
 	 * @param phi_steps The number of steps in the Y direction
 	 * @param make_fixed If true, set the field tangents to the lowest energy/solved position
 	 */
-	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, bool make_fixed);
+	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed);
 	
 	static Field * triangular_field( float tri_radius);
 	static Field * cubic_field(std::size_t cube_size, bool make_fixed);
@@ -77,7 +77,7 @@ public:
 	/**
 	 * @return the smoothness
 	 */
-	float smoothness( ) const;
+	float error( ) const;
 
 private:
 	/** The Graph - helps us get neighbours */
@@ -95,5 +95,5 @@ private:
 	/**
  	 * @return the smoothness of one node
 	 */
-	float get_smoothness_for_node( const GraphNode * gn ) const;
+	float get_error_for_node( const GraphNode * gn ) const;
 };

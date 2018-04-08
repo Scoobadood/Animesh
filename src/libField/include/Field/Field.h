@@ -35,6 +35,16 @@ public:
 	static Field * planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed );
 
 	/**
+	 * Construct a curved field centred at (0,0,0). THe field is defined by z=1-\frac{1}{10}\left( x^{2}+y^{2} \right)
+	 * with grid neighbourhod
+	 * @param dim_x The number of points in the X plane
+	 * @param dim_y The number of points in the Y plane
+	 * @param grid_spacing The space between grid points
+	 * @param make_fixed If true, set the field tangents to the lowest energy/solved position
+	 */
+	static Field * polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed );
+
+	/**
 	 * Construct a spherical field centred at (0,0,0)
 	 * @param radius The radius of the sphere to be constructed
 	 * @param theta_steps The number of steps around the sphere (in XZ plane)
@@ -42,9 +52,9 @@ public:
 	 * @param make_fixed If true, set the field tangents to the lowest energy/solved position
 	 */
 	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed);
-	
 	static Field * triangular_field( float tri_radius);
 	static Field * cubic_field(std::size_t cube_size, bool make_fixed);
+	static Field * circular_field( float radius );
 
 	/**
 	 * Smooth the field once, applying smoothing to each node

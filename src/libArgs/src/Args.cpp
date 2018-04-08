@@ -32,6 +32,8 @@ Args::Args( int &argc, char **argv) {
 		allowed_shapes.push_back("plane");
 		allowed_shapes.push_back("cube");
 		allowed_shapes.push_back("sphere");
+		allowed_shapes.push_back("circle");
+		allowed_shapes.push_back("polynomial");
 		ValuesConstraint<std::string> allowed_constraint( allowed_shapes );
 		ValueArg<std::string> shape("s","shape","Field shape to use. plane, cube or sphere",false, "plane", &allowed_constraint, cmd);
 
@@ -71,11 +73,14 @@ Args::Args( int &argc, char **argv) {
 		if( m_load_from_pointcloud) {
 			m_pcd_file_name = pcd_file_name.getValue();
 		} else {
-			if( shape.getValue() == "plane") {
+			if( shape.getValue() == "plane" || shape.getValue() == "polynomial" ){
 				m_default_shape = PLANE;
 				m_plane_x = plane_x.getValue();
 				m_plane_y = plane_y.getValue();
 				m_grid_spacing = grid_spacing.getValue();
+				if( shape.getValue() == "polynomial" ) {
+					m_default_shape = POLYNOMIAL;
+				}
 			} else if( shape.getValue() == "sphere") {
 				m_default_shape = SPHERE;
 				m_radius = radius.getValue();
@@ -84,6 +89,9 @@ Args::Args( int &argc, char **argv) {
 			} else if( shape.getValue() == "cube") {
 				m_default_shape = CUBE;
 				m_cube_size = cube_size.getValue();
+			} else if( shape.getValue() == "circle") {
+				m_default_shape = CIRCLE;
+				m_radius = radius.getValue();
 			} else {
 				std::cerr << "Not a value shape :" << shape.getValue() << std::endl;
 				m_default_shape = PLANE;

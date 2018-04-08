@@ -91,6 +91,54 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
 }
 
 /**
+ * Construct a curved field centred at (0,0,0). THe field is defined by z=1-\frac{1}{10}\left( x^{2}+y^{2} \right)
+ * with grid neighbourhod
+ * @param dim_x The number of points in the X plane
+ * @param dim_y The number of points in the Y plane
+ * @param grid_spacing The space between grid points
+ * @param make_fixed If true, set the field tangents to the lowest energy/solved position
+ */
+Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed ) {
+	using namespace Eigen;
+
+	std::vector<Element> elements;
+	int minx = -dim_x/2, maxx = minx+dim_x-1;
+	int miny = -dim_y/2, maxy = miny+dim_y-1;
+	for( int y = miny; y <= maxy; y++ ) {
+		for( int x = minx; x <= maxx; x++ ) {
+			float z = 1 - (x*x+y*y)/10.0f;
+			Vector3f location { x, y, z };
+
+			// Normals is (dz/dx, dz/dy, -1)
+			Vector3f normal{ 0.2f * x, 0.2f * y, 1.0f };
+			normal.normalize();
+			Element e{location, normal };
+			elements.push_back( e );
+		}
+	}
+
+	GridGraphBuilder * ggb = new GridGraphBuilder( grid_spacing );
+	Field * field = new Field( ggb, elements );
+	delete ggb;
+
+	// Make a set of planar tangents
+	if( make_fixed ) {
+		std::vector< const Eigen::Vector3f > good_tangents;
+		for( std::size_t i=0; i< field->size(); ++i ) {
+			float noise = random( );
+			good_tangents.push_back( Eigen::Vector3f{ 0.0f, 1.0f, 0.0f } );
+		}
+
+		field->set_tangents( good_tangents );
+	}
+
+	return field;
+}
+
+
+
+
+/**
  * Construct a spherical field centred at (0,0,0)
  * @param radius The radius of the sphere to be constructed
  * @param theta_steps The number of steps around the sphere (in XZ plane)
@@ -107,7 +155,7 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 
 	std::vector<Element> elements;
 	for( float theta = 0.0f; theta < maxTheta; theta +=  deltaTheta) {
-		for( float phi = deltaPhi; phi<maxPhi; phi += deltaPhi ) {
+		for( float phi = maxPhi; phi>=0; phi -= deltaPhi ) {
 
 			Vector3f location { radius * sin(phi) * cos(theta),   radius * cos( phi ), radius * sin(phi) * sin(theta) };
 			// Force random location on sphere
@@ -183,6 +231,33 @@ Field * Field::triangular_field( float tri_radius ) {
 
 	return field;
 }
+
+Field * Field::circular_field( float radius ) {
+	using namespace Eigen;
+	std::vector<Element> elements;
+
+	float theta = 0.0f;
+	for( int i = 0; i<40; i++ ) {
+		float x = radius * std::cos( theta );
+		float z = radius * std::sin( theta );
+
+		Vector3f location{ x, 0.0f, z};
+		Vector3f normal{ 0, 1, 0 };
+		Element e{ location, normal };
+		elements.push_back( e );
+
+		theta += (2 * M_PI / 40 );
+	}
+
+	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( 2 );
+	Field * field = new Field( gb, elements );
+
+	delete gb;
+
+	return field;
+}
+
+
 
 Field * Field::cubic_field( std::size_t cube_size, bool make_fixed) {
 	using namespace Eigen;

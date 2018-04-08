@@ -45,6 +45,15 @@ public:
 	void compute_normals( );
 
 private:
+	static PointCloud * load_from_pcd_file( const std::string& file_name );
+	static PointCloud * load_from_obj_file( const std::string& file_name );
+
 	pcl::PointCloud<pcl::PointXYZ>::Ptr points;
 	pcl::PointCloud<pcl::Normal>::Ptr normals;
 };
+
+/*
+ * Case Insensitive Implementation of endsWith()
+ * It checks if the string 'mainStr' ends with given string 'toMatch'
+ */
+bool ends_with_case_insensitive(const std::string& main_str, const std::string& to_match);

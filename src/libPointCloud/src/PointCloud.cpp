@@ -1,11 +1,50 @@
 #include <PointCloud/PointCloud.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/io/obj_io.h>
+#include <pcl/PCLPointCloud2.h>
+#include <string>
 
 PointCloud * PointCloud::load_from_file( const std::string& file_name ) {
+    if( ends_with_case_insensitive( file_name, "pcd") ) {
+        return load_from_pcd_file( file_name );
+    } else if ( ends_with_case_insensitive( file_name, "obj" ) ) {
+        return load_from_obj_file( file_name );
+    }
+    return nullptr;
+}
+
+
+
+PointCloud * PointCloud::load_from_obj_file( const std::string& file_name ) {
+    // pcl::OBJReader or = new ObjReader();
+    // PCLPointCloud2 cloud2;
+    // if( or.read ( file_name, cloud2) == -1 ) {
+    //     PCL_ERROR ("Couldn't read OBJ file\n");
+    //     return nullptr;
+    // }
+
+    // pcl::PointCloud cloud = fromPCLPointCloud2(cloud2);
+    // std::cout << "Loaded "
+    //         << cloud.width * cloud.height
+    //         << " data points from test_pcd.pcd with the following fields: "
+    //         << std::endl;
+    // for (size_t i = 0; i < cloud.points.size (); ++i)
+    // std::cout << "    " << cloud.points[i].x
+    //           << " "    << cloud.points[i].y
+    //           << " "    << cloud.points[i].z << std::endl;
+
+    throw std::logic_error("Not Implemented");
+    PointCloud * pc = new PointCloud( nullptr);
+    pc->compute_normals();
+
+    return pc;
+}
+
+PointCloud * PointCloud::load_from_pcd_file( const std::string& file_name ) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
     if ( pcl::io::loadPCDFile<pcl::PointXYZ> (file_name, *cloud) == -1) {
-        PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
+        PCL_ERROR ("Couldn't read PCD file.pcd \n");
         return nullptr;
     }
 
@@ -75,3 +114,15 @@ void PointCloud::compute_normals( ) {
 }
 
 
+/*
+ * Case Insensitive Implementation of endsWith()
+ * It checks if the string 'mainStr' ends with given string 'toMatch'
+ */
+bool ends_with_case_insensitive(const std::string& main_str, const std::string& to_match)
+{
+    auto it = to_match.begin();
+    return main_str.size() >= to_match.size() &&
+            std::all_of(std::next(main_str.begin(),main_str.size() - to_match.size()), main_str.end(), [&it](const char & c){
+                return ::tolower(c) == ::tolower(*(it++))  ;
+    } );
+}

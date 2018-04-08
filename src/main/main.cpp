@@ -61,9 +61,19 @@ int main( int argc, char * argv[] ) {
 				std::cout << "cube" << std::endl;
 				break;
 
+			case Args::CIRCLE: 
+				field = Field::circular_field( args.radius() );
+				std::cout << "circle" << std::endl;
+				break;
+
 			case Args::PLANE:
 				field = Field::planar_field( args.plane_x(), args.plane_y(), args.grid_spacing(), make_field_fixed );
 				std::cout << "planar" << std::endl;
+				break;
+
+			case Args::POLYNOMIAL:
+				field = Field::polynomial_field( args.plane_x(), args.plane_y(), args.grid_spacing(), make_field_fixed );
+				std::cout << "polynomial" << std::endl;
 				break;
 		}
 	}

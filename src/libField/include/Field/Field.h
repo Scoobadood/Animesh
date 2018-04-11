@@ -2,8 +2,6 @@
 
 #include <Graph/Graph.h>
 #include <Graph/GraphBuilder.h>
-#include <Graph/GridGraphBuilder.h>
-#include <Graph/NearestNeighbourGraphBuilder.h>
 #include <PointCloud/PointCloud.h>
 
 class Field {
@@ -54,7 +52,7 @@ public:
 	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed);
 	static Field * triangular_field( float tri_radius);
 	static Field * cubic_field(std::size_t cube_size, bool make_fixed);
-	static Field * circular_field( float radius );
+	static Field * circular_field( float radius, int k, bool make_fixed );
 
 	/**
 	 * Smooth the field once, applying smoothing to each node

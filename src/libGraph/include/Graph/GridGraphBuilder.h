@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Graph/GraphBuilder.h>
+#include "GraphBuilder.h"
 
 /*
  * GridGraphBuilder builds graphs based on a grid layout. Elements which have a 

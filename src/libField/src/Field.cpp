@@ -4,6 +4,9 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <vector>
+#include <Graph/GridGraphBuilder.h>
+#include <Graph/NearestNeighbourGraphBuilder.h>
+#include <Graph/ExplicitGraphBuilder.h>
 
 //#define TRACE  1
 
@@ -117,20 +120,23 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
 		}
 	}
 
-	GridGraphBuilder * ggb = new GridGraphBuilder( grid_spacing );
-	Field * field = new Field( ggb, elements );
-	delete ggb;
-
-	// Make a set of planar tangents
-	if( make_fixed ) {
-		std::vector< const Eigen::Vector3f > good_tangents;
-		for( std::size_t i=0; i< field->size(); ++i ) {
-			float noise = random( );
-			good_tangents.push_back( Eigen::Vector3f{ 0.0f, 1.0f, 0.0f } );
+	// Explicitly set neighbours
+	std::map<int,std::vector<int>> adjacency_map{};
+	int idx = 0;
+	for( int y = miny; y <= maxy; y++ ) {
+		for( int x = minx; x <= maxx; x++ ) {
+			std::vector<int> neighbours;
+			if( x > minx ) neighbours.push_back( y * dim_x + x - 1 );
+			if( x < maxx ) neighbours.push_back( y * dim_x + x + 1 );
+			if( y > miny ) neighbours.push_back( y * dim_x - dim_x + x );
+			if( y < maxy ) neighbours.push_back( y * dim_x + dim_x + x );
+			adjacency_map[idx] = neighbours;
 		}
-
-		field->set_tangents( good_tangents );
 	}
+
+	ExplicitGraphBuilder * egb = new ExplicitGraphBuilder( adjacency_map );
+	Field * field = new Field( egb, elements );
+	delete egb;
 
 	return field;
 }
@@ -148,7 +154,7 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
 Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed ) {
 	using namespace Eigen;
 
-	float maxTheta = 2 * M_PI;
+	float maxTheta = M_PI;
 	float maxPhi = M_PI / 2.0f;
 	float deltaTheta = maxTheta / theta_steps;
 	float deltaPhi   = maxPhi / phi_steps;
@@ -232,27 +238,39 @@ Field * Field::triangular_field( float tri_radius ) {
 	return field;
 }
 
-Field * Field::circular_field( float radius ) {
+Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 	using namespace Eigen;
 	std::vector<Element> elements;
 
-	float theta = 0.0f;
-	for( int i = 0; i<40; i++ ) {
-		float x = radius * std::cos( theta );
-		float z = radius * std::sin( theta );
+	for ( int i=0; i<2; ++i) {
+		float theta = 0.0f;
+		for( int i = 0; i<40; i++ ) {
+			float x = radius * std::cos( theta );
+			float y = radius * std::sin( theta );
 
-		Vector3f location{ x, 0.0f, z};
-		Vector3f normal{ 0, 1, 0 };
-		Element e{ location, normal };
-		elements.push_back( e );
+			Vector3f location{ x, y, 0.0f};
+			Vector3f normal{ 0, 0, 1 };
+			Element e{ location, normal };
+			elements.push_back( e );
 
-		theta += (2 * M_PI / 40 );
+			theta += (2 * M_PI / 40 );
+		}
+		radius -= 1.0f;
 	}
 
-	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( 2 );
+	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( k );
 	Field * field = new Field( gb, elements );
-
 	delete gb;
+
+	// Make a set of planar tangents
+	if( make_fixed ) {
+		std::vector< const Eigen::Vector3f > good_tangents;
+		for( std::size_t i=0; i< field->size(); ++i ) {
+			good_tangents.push_back( Eigen::Vector3f{ 0.0f, 1.0f, 0.0f } );
+		}
+
+		field->set_tangents( good_tangents );
+	}
 
 	return field;
 }

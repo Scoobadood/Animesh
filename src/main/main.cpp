@@ -62,7 +62,7 @@ int main( int argc, char * argv[] ) {
 				break;
 
 			case Args::CIRCLE: 
-				field = Field::circular_field( args.radius() );
+				field = Field::circular_field( args.radius(), args.k(), make_field_fixed );
 				std::cout << "circle" << std::endl;
 				break;
 

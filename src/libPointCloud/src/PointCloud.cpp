@@ -4,6 +4,11 @@
 #include <pcl/PCLPointCloud2.h>
 #include <string>
 
+/**
+ * Load a PointCloud from any supported file
+ * @file_name The name of the file.
+ * @return The PointCloud
+ */
 PointCloud * PointCloud::load_from_file( const std::string& file_name ) {
     if( ends_with_case_insensitive( file_name, "pcd") ) {
         return load_from_pcd_file( file_name );
@@ -40,6 +45,11 @@ PointCloud * PointCloud::load_from_obj_file( const std::string& file_name ) {
     return pc;
 }
 
+/**
+ * Load a PointCloud from a PCD file
+ * @file_name The name of the file.
+ * @return The a pointer to the PointCloud or nullptr
+ */
 PointCloud * PointCloud::load_from_pcd_file( const std::string& file_name ) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -61,6 +71,16 @@ PointCloud * PointCloud::load_from_pcd_file( const std::string& file_name ) {
     pc->compute_normals();
 
     return pc;
+}
+
+/**
+ * Propagate normal orientation
+ */
+void PointCloud::propagate_normal_orientation( ) {
+    // Pick a normal 
+    // Find neighbours 
+    // Flip them to match the current normal
+
 }
 
 /**

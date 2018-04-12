@@ -275,8 +275,6 @@ Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 	return field;
 }
 
-
-
 Field * Field::cubic_field( std::size_t cube_size, bool make_fixed) {
 	using namespace Eigen;
 

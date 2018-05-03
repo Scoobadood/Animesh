@@ -1,0 +1,6 @@
+# An OBJ file containing no vertex data
+# Just a couple of comment lines
+
+v 1.0 2.0 3.0
+v 4.0 3.0 2.0
+v 1.1 2.2 3.3 5.6

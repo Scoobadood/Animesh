@@ -38,13 +38,11 @@ void write_matlab_file( Field * field, int index ) {
 	write_matlab_file( field, oss.str());
 }
 
-int main( int argc, char * argv[] ) {
-	Args args{ argc, argv};
+Field * load_field( const Args& args) {
+	Field * field = nullptr;
 
 	bool make_field_fixed = args.should_fix_tangents();
 	bool dump_field = args.should_dump_field();
-
-	Field * field = nullptr;
 
 	if( args.load_from_pointcloud() ) {
 		PointCloud * pcl = PointCloud::load_from_file( args.pcd_file_name() );
@@ -80,12 +78,10 @@ int main( int argc, char * argv[] ) {
 
 
 	field->enable_tracing( args.tracing_enabled() );
+	return field;
+}
 
-
-	// PointCloud * pc = PointCloud::load_from_file( "" );
-	// Field * field = build_field_from_point_cloud( pc );
-	// delete pc;
-
+void save_field( const Args& args, Field * field ) {
 	write_matlab_file( field, "initial.mat" );
 
 	int frame_index = 0;
@@ -100,7 +96,18 @@ int main( int argc, char * argv[] ) {
 	}
 	
 	write_matlab_file( field, "final.mat" );
+}
 
+/**
+ * Main entry point
+ */
+int main( int argc, char * argv[] ) {
+	Args args{ argc, argv};
+
+	Field * field = load_field( args );
+	save_field( args, field );
 	delete field;
+
+
     return 0;
 }

@@ -19,6 +19,8 @@ struct Point {
 class PointCloud {
 public:
 	static PointCloud * load_from_file( const std::string& file_name );
+	static PointCloud * load_from_pcd_file( const std::string& file_name );
+	static PointCloud * load_from_obj_file( const std::string& file_name );
 
 	PointCloud() : points {new pcl::PointCloud<pcl::PointXYZ>}, normals {new pcl::PointCloud<pcl::Normal>} {}
 
@@ -45,9 +47,6 @@ public:
 	void compute_normals( );
 
 private:
-	static PointCloud * load_from_pcd_file( const std::string& file_name );
-	static PointCloud * load_from_obj_file( const std::string& file_name );
-
 	pcl::PointCloud<pcl::PointXYZ>::Ptr points;
 	pcl::PointCloud<pcl::Normal>::Ptr normals;
 };

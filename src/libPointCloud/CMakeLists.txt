@@ -18,10 +18,10 @@ target_include_directories(PointCloud
 
 # Depend on a library that we defined in the top-level file
 target_link_libraries(PointCloud
+	FileUtils
 	${PCL_COMMON_LIBRARIES}
 	${PCL_FEATURES_LIBRARIES}
 	${PCL_IO_LIBRARIES} )
-
 
 
 # This makes the project importable from the build directory
@@ -43,6 +43,7 @@ add_executable( testPointCloud
 
 target_link_libraries( testPointCloud 
 	PointCloud
+	FileUtils
 	${PCL_COMMON_LIBRARIES}
 	${PCL_FEATURES_LIBRARIES}
 	${PCL_IO_LIBRARIES} 

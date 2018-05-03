@@ -25,7 +25,7 @@ add_subdirectory( libElement )
 add_subdirectory( libField )
 add_subdirectory( libPointCloud )
 add_subdirectory( libArgs )
-add_subdirectory( libFileUtil )
+add_subdirectory( libFileUtils )
 
 
 # Download and unpack googletest at configure time

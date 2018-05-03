@@ -12,14 +12,21 @@ file(GLOB SOURCES "*.cpp")
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
+# Need vtk
+find_package(VTK REQUIRED NO_MODULE) 
+include_directories(${VTK_USE_FILE})
+include(${VTK_USE_FILE})
+
 # Building the executable
 add_executable(Animesh ${SOURCES})
+
 
 target_link_libraries(Animesh 
 	RoSy
 	Graph
 	Element
 	Field
-	Args )
+	Args
+	${VTK_LIBRARIES} )
 
 target_compile_features(Animesh PUBLIC cxx_std_11)

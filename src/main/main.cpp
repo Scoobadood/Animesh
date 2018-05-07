@@ -15,6 +15,22 @@
 #include <Args/Args.h>
 #include <vector>
 
+#include "vtkActor.h"
+#include "vtkRenderer.h"
+#include "vtkCylinderSource.h"
+#include "vtkRenderWindow.h"
+#include "vtkRenderWindowInteractor.h"
+#include "vtkPolyDataMapper.h"
+#include "vtkFloatArray.h"
+#include "vtkPointData.h"
+#include "vtkCellArray.h"
+#include "vtkProperty.h"
+#include "vtkLine.h"
+
+// For sleep
+#include <chrono> // std::chrono::microseconds
+#include <thread> // std::this_thread::sleep_for;
+
 using namespace Eigen;
 
 const int TRI_RADIUS = 4;
@@ -99,15 +115,107 @@ void save_field( const Args& args, Field * field ) {
 }
 
 /**
+ * Convert the field to a set of points for rendering
+ */
+vtkSmartPointer<vtkPolyData> field_to_poly( const Field * const field ) {
+	using namespace Eigen;
+
+	vtkSmartPointer<vtkPoints>     	pts  = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkPolyData>	poly = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkCellArray>	verts = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkCellArray>	lines = vtkSmartPointer<vtkCellArray>::New();
+
+    const std::vector<const FieldElement *> elements = field->elements();
+    for (auto it = elements.begin(); it != elements.end(); ++it ) {
+    	const FieldElement * const fe = *it;
+
+    	Vector3f location = fe->m_location;
+    	Vector3f tangent = fe->m_tangent;
+    	Vector3f normal = fe->m_normal;
+
+    	// Add the field node
+    	vtkIdType pid[5];
+
+    	// Add location
+  		pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z() );
+
+        // Add tangent points
+        Vector3f p1 = location + tangent;
+        pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
+
+        // Add opposite tangent points
+        Vector3f p2 = location - tangent;
+        pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
+
+        // Compute 90 tangent
+        Vector3f ninety = tangent.cross( normal );
+        Vector3f p3 = location + ninety;
+        pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
+        Vector3f p4 = location - ninety;
+        pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
+
+		verts->InsertNextCell(5, pid);
+
+    	vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+		for( int i=0; i<4; i++ ) {
+			line->GetPointIds()->SetId(0,pid[0]);
+			line->GetPointIds()->SetId(1,pid[i + 1]);
+			lines->InsertNextCell(line);
+		}
+
+        // // Add opposite tangent points
+        // pts->InsertNextPoint(
+        // 	fe->m_location[0] - fe->m_normal[0],
+        // 	fe->m_location[1] - fe->m_normal[1], 
+        // 	fe->m_location[2] - fe->m_normal[2]);
+    }
+    poly->SetPoints(pts);
+    poly->SetVerts(verts);
+	poly->SetLines(lines);
+    
+	return poly;
+}
+
+void render_field( const Field * const field ) {
+	std::cout << "Getting polydata" << std::endl;
+	vtkSmartPointer<vtkPolyData> polydata = field_to_poly( field );
+
+	std::cout << "Creating Mapper" << std::endl;
+	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	mapper->SetInputData(polydata);
+
+	std::cout << "Creating Actor" << std::endl;
+	vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+  	actor->SetMapper(mapper);
+  	actor->GetProperty()->SetPointSize(3); 
+
+  	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
+	renderer->AddActor(actor);
+
+  	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+  	renderWindow->AddRenderer(renderer);
+
+  	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+  	renderWindowInteractor->SetRenderWindow(renderWindow);
+ 
+	renderWindow->Render();
+	renderWindowInteractor->Start();
+	std::cout << "Renderer started" << std::endl;
+}
+
+/**
  * Main entry point
  */
 int main( int argc, char * argv[] ) {
 	Args args{ argc, argv};
 
 	Field * field = load_field( args );
-	save_field( args, field );
+
+	for( int i=0; i<30; i++ ) 
+		field->smooth_once();
+
+	render_field( field );
+	std::cout << "Done" << std::endl;
 	delete field;
-
-
     return 0;
 }

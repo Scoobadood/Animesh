@@ -4,7 +4,7 @@
 const int DEFAULT_SMOOTH_ITERATIONS = 50;
 const int DIM_X = 20;
 const int DIM_Y = 20;
-const float GRID_SPACING = 1.0f;
+const float GRID_SPACING = 5.0f;
 const float RADIUS = 10.0f;
 const int SPHERE_THETA_STEPS = 30;
 const int SPHERE_PHI_STEPS = 15;

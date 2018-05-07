@@ -68,7 +68,7 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
 	std::vector<Element> elements;
 	for( int y = 0; y<dim_y; y++ ) {
 		for( int x = 0; x<dim_x; x++ ) {
-			Vector3f location { x, y, 0.0f };
+			Vector3f location { x * grid_spacing, y * grid_spacing, 0.0f };
 			Vector3f normal{ 0.0f, 0.0f, 1.0f };
 			Element e{location, normal };
 			elements.push_back( e );
@@ -110,7 +110,7 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
 	for( int y = miny; y <= maxy; y++ ) {
 		for( int x = minx; x <= maxx; x++ ) {
 			float z = 1 - (x*x+y*y)/10.0f;
-			Vector3f location { x, y, z };
+			Vector3f location { x * grid_spacing, y * grid_spacing, z * grid_spacing };
 
 			// Normals is (dz/dx, dz/dy, -1)
 			Vector3f normal{ 0.2f * x, 0.2f * y, 1.0f };

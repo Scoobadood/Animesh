@@ -24,12 +24,24 @@
 #include "vtkFloatArray.h"
 #include "vtkPointData.h"
 #include "vtkCellArray.h"
+#include "vtkCellData.h"
 #include "vtkProperty.h"
+#include "vtkDataArray.h"
 #include "vtkLine.h"
+#include "vtkUnsignedCharArray.h"
+#include "vtkButtonWidget.h"
+#include "vtkCoordinate.h"
+#include "vtkTexturedButtonRepresentation2D.h"
+#include "vtkCallbackCommand.h"
 
 // For sleep
 #include <chrono> // std::chrono::microseconds
 #include <thread> // std::this_thread::sleep_for;
+
+void CallbackFunction(vtkObject* caller,
+                long unsigned int eventId,
+                void* clientData, void* callData );
+
 
 using namespace Eigen;
 
@@ -172,13 +184,98 @@ vtkSmartPointer<vtkPolyData> field_to_poly( const Field * const field ) {
     poly->SetPoints(pts);
     poly->SetVerts(verts);
 	poly->SetLines(lines);
+
+	// Add colour data
+	unsigned char red[] = {255, 0, 0};
+	unsigned char green[] = {0, 255, 0};
+	vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+	colours->SetNumberOfComponents(3);
+	colours->SetName("Colours");
+	for( int i=0; i<field->size() * 4; ++i ) {
+		colours->InsertNextValue(green[0]);
+		colours->InsertNextValue(green[1]);
+		colours->InsertNextValue(green[2]);
+	}
+	poly->GetCellData()->AddArray(colours);
     
 	return poly;
 }
 
-void render_field( const Field * const field ) {
+void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPolyData> polydata ) {
+	using namespace Eigen;
+
+	vtkSmartPointer<vtkPoints>     	pts  = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray>	verts = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkCellArray>	lines = vtkSmartPointer<vtkCellArray>::New();
+
+    polydata->Reset();
+    const std::vector<const FieldElement *> elements = field->elements();
+    for (auto it = elements.begin(); it != elements.end(); ++it ) {
+    	const FieldElement * const fe = *it;
+
+    	Vector3f location = fe->m_location;
+    	Vector3f tangent = fe->m_tangent;
+    	Vector3f normal = fe->m_normal;
+
+    	// Add the field node
+    	vtkIdType pid[5];
+
+    	// Add location
+  		pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z() );
+
+        // Add tangent points
+        Vector3f p1 = location + tangent;
+        pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
+
+        // Add opposite tangent points
+        Vector3f p2 = location - tangent;
+        pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
+
+        // Compute 90 tangent
+        Vector3f ninety = tangent.cross( normal );
+        Vector3f p3 = location + ninety;
+        pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
+        Vector3f p4 = location - ninety;
+        pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
+
+		verts->InsertNextCell(5, pid);
+
+    	vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+		for( int i=0; i<4; i++ ) {
+			line->GetPointIds()->SetId(0,pid[0]);
+			line->GetPointIds()->SetId(1,pid[i + 1]);
+			lines->InsertNextCell(line);
+		}
+
+        // // Add opposite tangent points
+        // pts->InsertNextPoint(
+        // 	fe->m_location[0] - fe->m_normal[0],
+        // 	fe->m_location[1] - fe->m_normal[1], 
+        // 	fe->m_location[2] - fe->m_normal[2]);
+    }
+    polydata->SetPoints(pts);
+    polydata->SetVerts(verts);
+	polydata->SetLines(lines);
+
+	// Add colour data
+	unsigned char red[] = {255, 0, 0};
+	unsigned char green[] = {0, 255, 0};
+	vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+	colours->SetNumberOfComponents(3);
+	colours->SetName("Colours");
+	for( int i=0; i<field->size() * 4; ++i ) {
+		colours->InsertNextValue(green[0]);
+		colours->InsertNextValue(green[1]);
+		colours->InsertNextValue(green[2]);
+	}
+	polydata->GetCellData()->AddArray(colours);
+}
+
+
+vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
 	std::cout << "Getting polydata" << std::endl;
-	vtkSmartPointer<vtkPolyData> polydata = field_to_poly( field );
+
+	vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
 
 	std::cout << "Creating Mapper" << std::endl;
 	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -193,14 +290,62 @@ void render_field( const Field * const field ) {
 	renderer->AddActor(actor);
 
   	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+  	renderWindow->SetSize(1240, 960);
   	renderWindow->AddRenderer(renderer);
 
   	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
   	renderWindowInteractor->SetRenderWindow(renderWindow);
- 
+
+
+
+  	vtkSmartPointer<vtkCallbackCommand> callback = vtkSmartPointer<vtkCallbackCommand>::New();
+  	callback->SetCallback(CallbackFunction);
+  	callback->SetClientData((void *)field);
+	renderWindowInteractor->AddObserver(vtkCommand::UserEvent, callback );
+
 	renderWindow->Render();
+
+	// Place button here
+	vtkSmartPointer<vtkTexturedButtonRepresentation2D> buttonRepresentation = vtkSmartPointer<vtkTexturedButtonRepresentation2D>::New();
+	buttonRepresentation->SetNumberOfStates(2);
+  	vtkSmartPointer<vtkButtonWidget> buttonWidget = vtkSmartPointer<vtkButtonWidget>::New();
+	buttonWidget->SetInteractor(renderWindowInteractor);
+	buttonWidget->SetRepresentation(buttonRepresentation); 
+	vtkSmartPointer<vtkCoordinate> upperRight = vtkSmartPointer<vtkCoordinate>::New();
+	upperRight->SetCoordinateSystemToNormalizedDisplay();
+	upperRight->SetValue(1.0, 1.0);
+
+	double bds[6];
+	double sz = 50.0;
+	bds[0] = upperRight->GetComputedDisplayValue(renderer)[0] - sz;
+	bds[1] = bds[0] + sz;
+	bds[2] = upperRight->GetComputedDisplayValue(renderer)[1] - sz;
+	bds[3] = bds[2] + sz;
+	bds[4] = bds[5] = 0.0;
+
+	// Scale to 1, default is .5
+	buttonRepresentation->SetPlaceFactor(1);
+	buttonRepresentation->PlaceWidget(bds);
+
+	buttonWidget->On();
+
+	populate_poly_from_field( field, polydata);
+
 	renderWindowInteractor->Start();
 	std::cout << "Renderer started" << std::endl;
+}
+
+void CallbackFunction(vtkObject* caller,
+                long unsigned int eventId,
+                void* clientData, 
+                void* callData ) {
+
+  std::cout << "CallbackFunction called." << std::endl;
+  Field * field = reinterpret_cast<Field*>(clientData);
+  field->smooth_once( );
+  caller->Modified();
+  caller->Render();
+
 }
 
 /**
@@ -211,11 +356,9 @@ int main( int argc, char * argv[] ) {
 
 	Field * field = load_field( args );
 
-	for( int i=0; i<30; i++ ) 
-		field->smooth_once();
+	set_up_render_field( field );
 
-	render_field( field );
 	std::cout << "Done" << std::endl;
 	delete field;
-    return 0;
+    return EXIT_SUCCESS;
 }

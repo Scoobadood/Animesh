@@ -111,11 +111,13 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
 		for( int x = minx; x <= maxx; x++ ) {
 			float xc = x * grid_spacing;
 			float yc = y * grid_spacing;
-			float zc = 1 - (xc*xc+yc*yc)/10.0f;
+			float divisor = (10.0f * grid_spacing * grid_spacing);
+			float zc = 1 - (xc*xc+yc*yc)/divisor;
+
 			Vector3f location { xc, yc, zc };
 
 			// Normals is (dz/dx, dz/dy, -1)
-			Vector3f normal{ 0.2f * xc, 0.2f * yc, 1.0f };
+			Vector3f normal{ (2 * xc) / divisor, (2 * yc) / divisor, 1.0f };
 			normal.normalize();
 			Element e{location, normal };
 			elements.push_back( e );

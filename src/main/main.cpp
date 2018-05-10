@@ -33,15 +33,22 @@
 #include "vtkCoordinate.h"
 #include "vtkTexturedButtonRepresentation2D.h"
 #include "vtkCallbackCommand.h"
+#include "vtkCamera.h"
+#include "vtkNamedColors.h"
 
 // For sleep
 #include <chrono> // std::chrono::microseconds
 #include <thread> // std::this_thread::sleep_for;
 
-void CallbackFunction(vtkObject* caller,
+
+/**
+ * Forwad declaration for the field
+ */
+void update_field_callback(vtkObject* caller,
                 long unsigned int eventId,
                 void* clientData, void* callData );
 
+Field * g_field;
 
 using namespace Eigen;
 
@@ -66,6 +73,9 @@ void write_matlab_file( Field * field, int index ) {
 	write_matlab_file( field, oss.str());
 }
 
+/**
+ * Construct a field
+ */
 Field * load_field( const Args& args) {
 	Field * field = nullptr;
 
@@ -109,6 +119,9 @@ Field * load_field( const Args& args) {
 	return field;
 }
 
+/**
+ * Write the field to Matlab
+ */
 void save_field( const Args& args, Field * field ) {
 	write_matlab_file( field, "initial.mat" );
 
@@ -127,88 +140,21 @@ void save_field( const Args& args, Field * field ) {
 }
 
 /**
- * Convert the field to a set of points for rendering
+ * Reconstruct the given polydata from the field
  */
-vtkSmartPointer<vtkPolyData> field_to_poly( const Field * const field ) {
-	using namespace Eigen;
-
-	vtkSmartPointer<vtkPoints>     	pts  = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkPolyData>	poly = vtkSmartPointer<vtkPolyData>::New();
-    vtkSmartPointer<vtkCellArray>	verts = vtkSmartPointer<vtkCellArray>::New();
-    vtkSmartPointer<vtkCellArray>	lines = vtkSmartPointer<vtkCellArray>::New();
-
-    const std::vector<const FieldElement *> elements = field->elements();
-    for (auto it = elements.begin(); it != elements.end(); ++it ) {
-    	const FieldElement * const fe = *it;
-
-    	Vector3f location = fe->m_location;
-    	Vector3f tangent = fe->m_tangent;
-    	Vector3f normal = fe->m_normal;
-
-    	// Add the field node
-    	vtkIdType pid[5];
-
-    	// Add location
-  		pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z() );
-
-        // Add tangent points
-        Vector3f p1 = location + tangent;
-        pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
-
-        // Add opposite tangent points
-        Vector3f p2 = location - tangent;
-        pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
-
-        // Compute 90 tangent
-        Vector3f ninety = tangent.cross( normal );
-        Vector3f p3 = location + ninety;
-        pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
-        Vector3f p4 = location - ninety;
-        pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-
-		verts->InsertNextCell(5, pid);
-
-    	vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-		for( int i=0; i<4; i++ ) {
-			line->GetPointIds()->SetId(0,pid[0]);
-			line->GetPointIds()->SetId(1,pid[i + 1]);
-			lines->InsertNextCell(line);
-		}
-
-        // // Add opposite tangent points
-        // pts->InsertNextPoint(
-        // 	fe->m_location[0] - fe->m_normal[0],
-        // 	fe->m_location[1] - fe->m_normal[1], 
-        // 	fe->m_location[2] - fe->m_normal[2]);
-    }
-    poly->SetPoints(pts);
-    poly->SetVerts(verts);
-	poly->SetLines(lines);
-
-	// Add colour data
-	unsigned char red[] = {255, 0, 0};
-	unsigned char green[] = {0, 255, 0};
-	vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
-	colours->SetNumberOfComponents(3);
-	colours->SetName("Colours");
-	for( int i=0; i<field->size() * 4; ++i ) {
-		colours->InsertNextValue(green[0]);
-		colours->InsertNextValue(green[1]);
-		colours->InsertNextValue(green[2]);
-	}
-	poly->GetCellData()->AddArray(colours);
-    
-	return poly;
-}
-
 void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPolyData> polydata ) {
 	using namespace Eigen;
 
 	vtkSmartPointer<vtkPoints>     	pts  = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray>	verts = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray>	lines = vtkSmartPointer<vtkCellArray>::New();
 
-    polydata->Reset();
+
+	// Create a vtkUnsignedCharArray container and store the colors in it
+	vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+	vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+	colours->SetNumberOfComponents(3);
+
+    polydata->Initialize();
     const std::vector<const FieldElement *> elements = field->elements();
     for (auto it = elements.begin(); it != elements.end(); ++it ) {
     	const FieldElement * const fe = *it;
@@ -218,7 +164,7 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
     	Vector3f normal = fe->m_normal;
 
     	// Add the field node
-    	vtkIdType pid[5];
+    	vtkIdType pid[6];
 
     	// Add location
   		pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z() );
@@ -237,44 +183,45 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
         pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
         Vector3f p4 = location - ninety;
         pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
+        Vector3f p5 = location + normal;
+        pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
 
-		verts->InsertNextCell(5, pid);
-
+		// Main tangent
     	vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-		for( int i=0; i<4; i++ ) {
+		line->GetPointIds()->SetId(0,pid[0]);
+		line->GetPointIds()->SetId(1,pid[1]);
+		lines->InsertNextCell(line);
+		colours->InsertNextTypedTuple(named_colours->GetColor3ub("Red").GetData());
+
+		// Secondary tangents
+		for( int i=0; i<3; ++i ) {
+	    	line = vtkSmartPointer<vtkLine>::New();
 			line->GetPointIds()->SetId(0,pid[0]);
-			line->GetPointIds()->SetId(1,pid[i + 1]);
+			line->GetPointIds()->SetId(1,pid[i + 2]);
 			lines->InsertNextCell(line);
+			colours->InsertNextTypedTuple(named_colours->GetColor3ub("Pink").GetData());
 		}
 
-        // // Add opposite tangent points
-        // pts->InsertNextPoint(
-        // 	fe->m_location[0] - fe->m_normal[0],
-        // 	fe->m_location[1] - fe->m_normal[1], 
-        // 	fe->m_location[2] - fe->m_normal[2]);
+		// Normal
+    	line = vtkSmartPointer<vtkLine>::New();
+		line->GetPointIds()->SetId(0,pid[0]);
+		line->GetPointIds()->SetId(1,pid[5]);
+		lines->InsertNextCell(line);
+		colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
     }
     polydata->SetPoints(pts);
-    polydata->SetVerts(verts);
 	polydata->SetLines(lines);
 
-	// Add colour data
-	unsigned char red[] = {255, 0, 0};
-	unsigned char green[] = {0, 255, 0};
-	vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
-	colours->SetNumberOfComponents(3);
-	colours->SetName("Colours");
-	for( int i=0; i<field->size() * 4; ++i ) {
-		colours->InsertNextValue(green[0]);
-		colours->InsertNextValue(green[1]);
-		colours->InsertNextValue(green[2]);
-	}
-	polydata->GetCellData()->AddArray(colours);
+	vtkCellData * cd = polydata->GetCellData();
+ 	polydata->GetCellData()->SetScalars(colours);
 }
 
 
+/**
+ * Draw the field
+ */
 vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
 	std::cout << "Getting polydata" << std::endl;
-
 	vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
 
 	std::cout << "Creating Mapper" << std::endl;
@@ -288,6 +235,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
 
   	vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
 	renderer->AddActor(actor);
+	renderer->GetActiveCamera()->Dolly( 2.0f );
 
   	vtkSmartPointer<vtkRenderWindow> renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
   	renderWindow->SetSize(1240, 960);
@@ -296,38 +244,12 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
   	vtkSmartPointer<vtkRenderWindowInteractor> renderWindowInteractor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
   	renderWindowInteractor->SetRenderWindow(renderWindow);
 
-
-
   	vtkSmartPointer<vtkCallbackCommand> callback = vtkSmartPointer<vtkCallbackCommand>::New();
-  	callback->SetCallback(CallbackFunction);
-  	callback->SetClientData((void *)field);
+  	callback->SetCallback(update_field_callback);
+  	callback->SetClientData((void *)polydata);
 	renderWindowInteractor->AddObserver(vtkCommand::UserEvent, callback );
 
 	renderWindow->Render();
-
-	// Place button here
-	vtkSmartPointer<vtkTexturedButtonRepresentation2D> buttonRepresentation = vtkSmartPointer<vtkTexturedButtonRepresentation2D>::New();
-	buttonRepresentation->SetNumberOfStates(2);
-  	vtkSmartPointer<vtkButtonWidget> buttonWidget = vtkSmartPointer<vtkButtonWidget>::New();
-	buttonWidget->SetInteractor(renderWindowInteractor);
-	buttonWidget->SetRepresentation(buttonRepresentation); 
-	vtkSmartPointer<vtkCoordinate> upperRight = vtkSmartPointer<vtkCoordinate>::New();
-	upperRight->SetCoordinateSystemToNormalizedDisplay();
-	upperRight->SetValue(1.0, 1.0);
-
-	double bds[6];
-	double sz = 50.0;
-	bds[0] = upperRight->GetComputedDisplayValue(renderer)[0] - sz;
-	bds[1] = bds[0] + sz;
-	bds[2] = upperRight->GetComputedDisplayValue(renderer)[1] - sz;
-	bds[3] = bds[2] + sz;
-	bds[4] = bds[5] = 0.0;
-
-	// Scale to 1, default is .5
-	buttonRepresentation->SetPlaceFactor(1);
-	buttonRepresentation->PlaceWidget(bds);
-
-	buttonWidget->On();
 
 	populate_poly_from_field( field, polydata);
 
@@ -335,17 +257,19 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
 	std::cout << "Renderer started" << std::endl;
 }
 
-void CallbackFunction(vtkObject* caller,
-                long unsigned int eventId,
-                void* clientData, 
-                void* callData ) {
+/**
+ * Update the field by smoothing and redraw it.
+ */
+void update_field_callback(vtkObject* caller, long unsigned int eventId, void * clientData, void * callData ) {
+  std::cout << "update_field_callback called." << std::endl;
+  g_field->smooth_once();
+  vtkPolyData* polydatap = reinterpret_cast<vtkPolyData*>(clientData);
+  vtkSmartPointer<vtkPolyData> polydata = polydatap;
+  populate_poly_from_field( g_field, polydata);
 
-  std::cout << "CallbackFunction called." << std::endl;
-  Field * field = reinterpret_cast<Field*>(clientData);
-  field->smooth_once( );
-  caller->Modified();
-  caller->Render();
-
+  vtkRenderWindowInteractor * rwi = (vtkRenderWindowInteractor *)caller;
+  vtkRenderWindow * rw = rwi->GetRenderWindow();
+  rw->Render();
 }
 
 /**
@@ -354,11 +278,10 @@ void CallbackFunction(vtkObject* caller,
 int main( int argc, char * argv[] ) {
 	Args args{ argc, argv};
 
-	Field * field = load_field( args );
+	g_field = load_field( args );
 
 	set_up_render_field( field );
 
-	std::cout << "Done" << std::endl;
-	delete field;
+	delete g_field;
     return EXIT_SUCCESS;
 }

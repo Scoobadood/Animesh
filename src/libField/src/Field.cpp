@@ -12,7 +12,8 @@
 
 #include <iostream>
 
-const float EPSILON = 1e-4;
+// Changed this on repo
+const float EPSILON = 1e-3;
 
 Field::~Field( ) {
 	delete m_graph;

@@ -1,0 +1,15 @@
+# Blend Shapes
+We need to establish neighbourhood across time.  We have already got a correspondence between the frames so our input should be either 
+* a 4D array of (x, y, z, t) ; OR
+* an array of arrays of 3D points (x, y, z)
+
+We may need to generate this format (array of arrays) as we may start with a blend shape in a weird format.
+
+We then need to be able to specify both spatial and temporal neighbours
+
+We need to be able to render the blendshape at any point in time
+* We need to be able to adjust each of the blendshape parameters (sliders?)
+* We need to render the cross field at that point in time too
+
+We need to modify the input to read OBJ files properly; because that's what we will end up working with.
+We need to include the normals in the OBJ file

@@ -66,6 +66,53 @@ PointCloud * PointCloud::load_from_file( const std::string& file_name ) {
 
 
 
+// PointCloud * PointCloud::load_from_obj_file2( const std::string& file_name ) {
+//     using namespace std;
+//     using namespace pcl;
+
+//     if( file_name.size() == 0 ) 
+//         throw std::invalid_argument( "Missing file name" );
+
+//     bool is_directory;
+//     if (!file_exists(file_name, is_directory ) )
+//         throw std::runtime_error( "File not found: " + file_name );
+
+//     vector<Eigen::Vector3f> raw_points;
+//     vector<Eigen::Vector3f> raw_normals;
+//     pcl::PointCloud<PointXYZ>::Ptr  points(new pcl::PointCloud<PointXYZ>);
+//     pcl::PointCloud<Normal>::Ptr    normals(new pcl::PointCloud<Normal>);
+//     process_file_by_lines( file_name, [&points, &normals, &raw_points, &raw_normals](std::string line) {
+//         if( line[0] == 'v' ) {
+//             if( line[1] == ' ' ) {
+//                 parse_v_line( line, raw_points );
+//             } else if( line[1] == 'n' ) {
+//                 parse_vn_line( line, raw_normals );
+//             }
+//         } else if ( line[0] == 'f' ) {
+//             parse_f_line( line, raw_points, raw_normals, points, normals);
+//         }
+//     });
+
+//     std::cout << "Read data. Processing" << std::endl;
+
+//     // If no points found, that's a problem
+//     if( points->size() == 0 ) 
+//         throw std::runtime_error( "No vertices in: " + file_name );
+
+//     // Otherwise construct a pointcloud and either
+//     // provide normals if we found any or else compute them
+//     // if we didn't
+//     PointCloud * pc= new PointCloud(points);
+//     std::cout << "Made point cloud" << std::endl;
+//     if( normals->size() == 0 ) {
+//         pc->compute_normals();
+//     } else {
+//         pc->normals = normals;
+//     }
+//     std::cout << "Computed Normals" << std::endl;
+//     return pc;
+// }
+
 PointCloud * PointCloud::load_from_obj_file( const std::string& file_name ) {
     using namespace std;
     using namespace pcl;
@@ -77,38 +124,26 @@ PointCloud * PointCloud::load_from_obj_file( const std::string& file_name ) {
     if (!file_exists(file_name, is_directory ) )
         throw std::runtime_error( "File not found: " + file_name );
 
-    vector<Eigen::Vector3f> raw_points;
-    vector<Eigen::Vector3f> raw_normals;
-    pcl::PointCloud<PointXYZ>::Ptr  points(new pcl::PointCloud<PointXYZ>);
-    pcl::PointCloud<Normal>::Ptr    normals(new pcl::PointCloud<Normal>);
-    process_file_by_lines( file_name, [&points, &normals, &raw_points, &raw_normals](std::string line) {
-        if( line[0] == 'v' ) {
-            if( line[1] == ' ' ) {
-                parse_v_line( line, raw_points );
-            } else if( line[1] == 'n' ) {
-                parse_vn_line( line, raw_normals );
-            }
-        } else if ( line[0] == 'f' ) {
-            parse_f_line( line, raw_points, raw_normals, points, normals);
-        }
-    });
 
-    // If no points found, that's a problem
-    if( points->size() == 0 ) 
-        throw std::runtime_error( "No vertices in: " + file_name );
-
-    // Otherwise construct a pointcloud and either
-    // provide normals if we found any or else compute them
-    // if we didn't
-    PointCloud * pc= new PointCloud(points);
-    if( normals->size() == 0 ) {
-        pc->compute_normals();
-    } else {
-        pc->normals = normals;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    if( pcl::io::loadOBJFile<pcl::PointXYZ> (file_name, *cloud) == -1) {
+        PCL_ERROR ("Couldn't read OBJ file.pcd \n");
+        return nullptr;
     }
-    
+
+    std::cout << "Loaded "
+            << cloud->width * cloud->height
+            << " data points from test_pcd.pcd with the following fields: "
+            << std::endl;
+
+    PointCloud * pc = new PointCloud( cloud );
+    pc->compute_normals();
+
+
+
     return pc;
 }
+
 
 /**
  * Load a PointCloud from a PCD file

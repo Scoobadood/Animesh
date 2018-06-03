@@ -139,8 +139,6 @@ PointCloud * PointCloud::load_from_obj_file( const std::string& file_name ) {
     PointCloud * pc = new PointCloud( cloud );
     pc->compute_normals();
 
-
-
     return pc;
 }
 

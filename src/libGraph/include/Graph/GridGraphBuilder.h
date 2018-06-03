@@ -12,7 +12,7 @@ public:
 	GridGraphBuilder( float grid_spacing ) : m_grid_spacing{ grid_spacing }{}
 
 	Graph * build_graph_for_elements( const std::vector<Element>& elements ) const;
-	
+
 	void check_build_edges( const void * first, const void * second, bool& build_fwd_edge, float& fwd_weight, bool& build_bwd_edge, float& bwd_weight ) const;
 
 

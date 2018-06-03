@@ -31,6 +31,7 @@ Graph * GridGraphBuilder::build_graph_for_elements( const std::vector<Element>& 
 	}
 	return graph;
 }
+
 /**
  * first The first item
  * second The second item

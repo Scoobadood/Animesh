@@ -29,6 +29,79 @@ void write_matlab_file( Field * field, int index ) {
 	write_matlab_file( field, oss.str());
 }
 
+
+/**
+ * Load an obj file into a point cloud
+ */
+pcl::PointCloud<pcl::PointXYZ>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
+    if( file_name.size() == 0 ) 
+        throw std::invalid_argument( "Missing file name" );
+
+    bool is_directory;
+    if (!file_exists(file_name, is_directory ) )
+        throw std::runtime_error( "File not found: " + file_name );
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    if( pcl::io::loadOBJFile(file_name, *cloud) == -1) {
+        PCL_ERROR ("Couldn't read file\n");
+        return nullptr;
+    }
+    return cloud;
+}
+
+/**
+ * Construct a field from an OBJ file
+ */
+Field * load_field_from_obj_file( const Args& args ) {
+	std::string file_name = args.pcd_file_name();
+	int k = args.k();
+
+	// Load the point cloud from file
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = load_pointcloud_from_obj(file_name);
+	if( !cloud ) 
+		return nullptr;
+
+	// Now construct a graph
+    // Iterate through all points and find K nearest neighbours. Create edges
+    Graph * graph = new Graph();
+
+    // For each point in the cloud, add a FieldElement node to the graph
+    for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
+    	pcl::PointXYZ point = *it;
+    	FieldElement * fe = new FieldElement( 
+    		Eigen::Vector3f{ point[0], point[1], point[2]},
+    		Eigen::Vector3f{ 0.0f, 0.0f, 0.0f},
+    		Eigen::Vector3f::Zero);
+
+        graph->add_node( fe );
+    }
+
+    // Make a KD-tree for the point cloud
+    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    kdtree.setInputCloud (cloud);
+
+    // Vectors to store found points
+    std::vector<int> pointIdxNKNSearch(k);
+    std::vector<float> pointNKNSquaredDistance(k);
+    float weight = 1.0f;
+
+    // Now iterate over all field elements and find K neighbours
+    for( auto it = graph->begin(); it != graph->end(); ++it ) {
+    	FieldElement * fe = *it;
+        pcl::PointXYZ point{ fe->m_location[0], fe->m_location[1], fe->m_location[2] };
+        // Search
+        if ( kdtree.nearestKSearch (point, k, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ) {
+            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i)
+                graph->add_edge( point, &(cloud->points[ pointIdxNKNSearch[i] ]), weight, nullptr );
+        }
+    }
+
+    // Graph is built
+    std::cout << "Done" << std::endl;
+}
+
+
+
 /**
  * Construct a field
  */
@@ -39,8 +112,7 @@ Field * load_field( const Args& args) {
 	bool dump_field = args.should_dump_field();
 
 	if( args.load_from_pointcloud() ) {
-		PointCloud * pcl = PointCloud::load_from_file( args.pcd_file_name() );
-		field = new Field( pcl, args.k() );
+		field = load_field_from_obj_file( args );
 	} else {
 		switch( args.default_shape()	 ) {
 			case Args::SPHERE:

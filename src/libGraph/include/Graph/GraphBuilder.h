@@ -26,7 +26,6 @@ public:
 	 */
 	virtual ~GraphBuilder( ) {};
 
-
 	/**
 	 * Build a graph given the input vector of Elements
 	 */

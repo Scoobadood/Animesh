@@ -61,7 +61,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
     std::vector<float> pointNKNSquaredDistance(k);
     float weight = 1.0f;
 
-    // Keep a map of points to FEs; provide my own comparator since PointXYZ doesn't have one
+    // Keep a map of points to FEs; provide my own comparator since PointNormal doesn't have one
 	struct cmpPointNormal {
     	bool operator()(const pcl::PointNormal& a, const pcl::PointNormal& b) const {
     		if( a.x != b.x) return a.x<b.x;
@@ -83,6 +83,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
 			FieldElement * fe = field_element_from_point(point);
         	m_graph->add_node(fe);
         	point_to_fe_map[point] = fe;
+//        	std::cout << "Added point : " << point << " in it's own right" << std::endl;
 
         	// Now find neighbours
         	pointIdxNKNSearch.clear();
@@ -98,7 +99,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
 						neighbour_fe = find_it->second;
 					} 
 					else {
-				    	neighbour_fe = field_element_from_point(point);
+				    	neighbour_fe = field_element_from_point(neighbour);
 			        	m_graph->add_node( neighbour_fe );
 			        	point_to_fe_map[neighbour] = neighbour_fe;
 		            }

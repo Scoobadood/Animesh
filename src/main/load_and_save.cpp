@@ -3,8 +3,11 @@
 #include <stdlib.h>
 #include <iostream>
 
+#include <pcl/io/obj_io.h>
+
 #include "load_and_save.h"
 
+#include <FileUtils/FileUtils.h>
 #include <Field/FieldExporter.h>
 #include <Field/MatlabFieldExporter.h>
 
@@ -49,55 +52,19 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr load_pointcloud_from_obj( const std::string&
     return cloud;
 }
 
+
 /**
  * Construct a field from an OBJ file
  */
 Field * load_field_from_obj_file( const Args& args ) {
 	std::string file_name = args.pcd_file_name();
-	int k = args.k();
 
 	// Load the point cloud from file
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = load_pointcloud_from_obj(file_name);
 	if( !cloud ) 
 		return nullptr;
 
-	// Now construct a graph
-    // Iterate through all points and find K nearest neighbours. Create edges
-    Graph * graph = new Graph();
-
-    // For each point in the cloud, add a FieldElement node to the graph
-    for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
-    	pcl::PointXYZ point = *it;
-    	FieldElement * fe = new FieldElement( 
-    		Eigen::Vector3f{ point[0], point[1], point[2]},
-    		Eigen::Vector3f{ 0.0f, 0.0f, 0.0f},
-    		Eigen::Vector3f::Zero);
-
-        graph->add_node( fe );
-    }
-
-    // Make a KD-tree for the point cloud
-    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
-    kdtree.setInputCloud (cloud);
-
-    // Vectors to store found points
-    std::vector<int> pointIdxNKNSearch(k);
-    std::vector<float> pointNKNSquaredDistance(k);
-    float weight = 1.0f;
-
-    // Now iterate over all field elements and find K neighbours
-    for( auto it = graph->begin(); it != graph->end(); ++it ) {
-    	FieldElement * fe = *it;
-        pcl::PointXYZ point{ fe->m_location[0], fe->m_location[1], fe->m_location[2] };
-        // Search
-        if ( kdtree.nearestKSearch (point, k, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ) {
-            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i)
-                graph->add_edge( point, &(cloud->points[ pointIdxNKNSearch[i] ]), weight, nullptr );
-        }
-    }
-
-    // Graph is built
-    std::cout << "Done" << std::endl;
+	return new Field( cloud, args.k() );
 }
 
 

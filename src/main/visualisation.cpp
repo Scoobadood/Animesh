@@ -1,6 +1,5 @@
 #include <Field/Field.h>
 #include <vector>
-#include <Field/FieldBuilder.h>
 
 #include "vtkActor.h"
 #include "vtkRenderer.h"

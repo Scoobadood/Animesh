@@ -1,17 +1,15 @@
-file(GLOB SOURCES "src/*.cpp")
+add_library(Graph INTERFACE)
 
-add_library(Graph STATIC ${SOURCES})
-
-target_include_directories(
-	Graph PUBLIC 
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	${EIGEN3_INCLUDE_DIR}
-	PRIVATE src)
+target_include_directories(Graph 
+	INTERFACE 
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		${EIGEN3_INCLUDE_DIR})
 
 
 # Depend on a library that we defined in the top-level file
 target_link_libraries(Graph
-    Element)
+	INTERFACE 
+        Element)
 
 
 # This makes the project importable from the build directory

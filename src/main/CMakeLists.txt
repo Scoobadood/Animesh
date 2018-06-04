@@ -18,15 +18,18 @@ include_directories(${VTK_USE_FILE})
 include(${VTK_USE_FILE})
 
 # Building the executable
-add_executable(Animesh ${SOURCES})
+add_executable(Animesh 
+	${SOURCES})
 
 
 target_link_libraries(Animesh 
-	RoSy
-	Graph
+	Args
 	Element
 	Field
-	Args
-	${VTK_LIBRARIES} )
+	FileUtils
+	Graph
+	RoSy )
 
-target_compile_features(Animesh PUBLIC cxx_std_11)
+target_compile_features(Animesh 
+	PUBLIC 
+		cxx_std_11)

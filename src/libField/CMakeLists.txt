@@ -6,6 +6,10 @@ add_library(Field STATIC ${SOURCES})
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
+# PCL
+find_package(PCL 1.3 REQUIRED)
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 target_include_directories(
 	Field PUBLIC 
@@ -18,7 +22,9 @@ target_link_libraries( Field
 	Element 
 	RoSy
 	Graph
-	PointCloud)
+	${PCL_COMMON_LIBRARIES}
+	${PCL_FEATURES_LIBRARIES}
+	${PCL_IO_LIBRARIES} )
 
 # This makes the project importable from the build directory
 export(

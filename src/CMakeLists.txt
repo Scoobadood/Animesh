@@ -20,12 +20,10 @@ enable_testing( )
 # Add libraries
 add_subdirectory( main )
 add_subdirectory( make_poly )
-add_subdirectory( pcl_graph )
 add_subdirectory( libRoSy )
 add_subdirectory( libGraph )
 add_subdirectory( libElement )
 add_subdirectory( libField )
-add_subdirectory( libPointCloud )
 add_subdirectory( libArgs )
 add_subdirectory( libFileUtils )
 

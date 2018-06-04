@@ -14,7 +14,7 @@ TEST_F(TestField, SizeAccuatelyReportsSize) {
 	elements.push_back( el_1_1_2 );
 	elements.push_back( el_1_1_3 );
 
-	GraphBuilder * gb = new GridGraphBuilder( 1.0f );
+	GraphBuilder<void *> * gb = new GridGraphBuilder<void *>( 1.0f );
 	Field * field = new Field( gb, elements );
 
 	// Hard set tangents

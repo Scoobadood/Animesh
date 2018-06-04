@@ -2,19 +2,20 @@
 
 #include <Graph/Graph.h>
 #include <Graph/GraphBuilder.h>
-#include <PointCloud/PointCloud.h>
+#include <pcl/point_types.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 class Field {
 public:
 	/**
 	 * Construct the field using a graph builder and some elements
 	 */
-	Field( const GraphBuilder * const graph_builder, const std::vector<Element>& elements );
+	Field( const GraphBuilder<void *> * const graph_builder, const std::vector<Element>& elements );
 
 	/**
-	 * Construct from a point cloud
+	 * Construct from a PCL PointCloud
 	 */
-	Field( const PointCloud * const pcl, int k );
+	Field( const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int k );
 
 	~Field( );
 
@@ -64,7 +65,7 @@ public:
 	 * Smooth the specified node (and neighbours)
 	 * @return The new vector.
 	 */
-	void smooth_node( const GraphNode * const gn ) const;
+	void smooth_node( const GraphNode<FieldElement *, void*> * const gn ) const;
 
 	/**
 	 * @return vector of elements 
@@ -89,19 +90,19 @@ public:
 
 private:
 	/** The Graph - helps us get neighbours */
-	Graph *  	m_graph;
+	Graph<FieldElement *, void*> *  	m_graph;
 
 	/** Flag to determine if we should trace field moothing */
 	bool 		m_tracing_enabled;
 
 	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
-	void init( const GraphBuilder * const graph_builder, const std::vector<Element>& elements );
+	void init( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements );
 
 
 
 	/**
  	 * @return the smoothness of one node
 	 */
-	float get_error_for_node( const GraphNode * gn ) const;
+	float get_error_for_node( const GraphNode<FieldElement *, void*> * gn ) const;
 };

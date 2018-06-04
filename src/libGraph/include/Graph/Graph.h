@@ -8,13 +8,19 @@
 /**
  * A node in the graph
  */
+template<class NodeData, class EdgeData>
 struct GraphNode {
 	// For each adjacent node we store cost, an edge payload and the node
-    typedef std::tuple<float, void *, GraphNode*> 	Edge;		// weight, edge data, next node
-    std::vector<Edge>					 			m_edges;
-    const void * 									m_data;
+	typedef std::tuple<float, EdgeData, GraphNode<NodeData, EdgeData>*> Edge;
+    std::vector<Edge>	m_edges;// weight, edge data, next node
+    const NodeData		m_data;
 
-    GraphNode( const void * data) : m_data{ data } {}
+    GraphNode( const NodeData data) : m_data{ data } {}
+
+    void add_edge(float weight, EdgeData edge_data, 
+    	GraphNode<NodeData, EdgeData> * to_node) {
+    	m_edges.push_back(std::make_tuple(weight, edge_data, to_node));
+    }
 };
 
 /*
@@ -25,6 +31,7 @@ struct GraphNode {
  * an individual node.
  */
 
+template <class NodeData, class EdgeData>
 class Graph {
 public:
 
@@ -34,14 +41,46 @@ public:
 	 * We check this by doing a direct point comparison rather than a more sophisticated
 	 * equality test.
 	 */
-	GraphNode * add_node( const void * data );
+	GraphNode<NodeData, EdgeData> * add_node( const NodeData data );
 
 	/**
 	 * Add an edge to the graph connecting two existing nodes
 	 */
-	void add_edge( const void * from_data, const void * to_data, float weight, void * edge_data);
+	void add_edge( const NodeData from_data, const NodeData to_data, float weight, EdgeData edge_data);
 
 	/**  Map from data pointer to the node */
-	typedef std::map<const void *, GraphNode *> DataNodeMap;
+	typedef std::map<const NodeData, GraphNode<NodeData, EdgeData> *> DataNodeMap;
 	DataNodeMap m_data_to_node_map;
 };
+
+
+template <class NodeData, class EdgeData>
+GraphNode<NodeData, EdgeData> * Graph<NodeData, EdgeData>::add_node ( const NodeData data  ) {
+    typename DataNodeMap::iterator itr = m_data_to_node_map.find(data);
+    if (itr == m_data_to_node_map.end()) {
+        GraphNode<NodeData, EdgeData> * gn = new GraphNode<NodeData, EdgeData>( data );
+        m_data_to_node_map[data] = gn;
+        return gn;
+    }
+    throw std::invalid_argument( "GraphNode already exists" );
+}
+
+/**
+ * Add an edge to the graph connecting two existing nodes
+ */
+template <class NodeData, class EdgeData>
+void Graph<NodeData, EdgeData>::add_edge( const NodeData from_data, const NodeData to_data, float weight, EdgeData edge_data) {
+    using namespace std;
+
+    typename DataNodeMap::iterator from_itr = m_data_to_node_map.find(from_data);
+    if( from_itr == m_data_to_node_map.end())
+        throw std::invalid_argument( "Can't find from node in graph" );
+
+    typename DataNodeMap::iterator to_itr = m_data_to_node_map.find(to_data);
+    if( to_itr == m_data_to_node_map.end())
+        throw std::invalid_argument( "Can't find to node in graph" );
+
+    GraphNode<NodeData, EdgeData> * from_node  = from_itr->second;
+    GraphNode<NodeData, EdgeData> * to_node    = to_itr->second;
+    from_node->add_edge(weight, edge_data, to_node);
+}

@@ -29,7 +29,7 @@ TEST_F(TestMatlabFieldExporter, ExportField) {
     elements.push_back( el_3_1_2 );
     elements.push_back( el_3_1_3 );
 
-    GridGraphBuilder * gb = new GridGraphBuilder( 1.0f );
+    GridGraphBuilder<void *> * gb = new GridGraphBuilder<void *>( 1.0f );
     Field field{ gb, elements };
     delete gb;
 

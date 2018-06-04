@@ -7,19 +7,18 @@
 #include <Graph/GridGraphBuilder.h>
 #include <Graph/NearestNeighbourGraphBuilder.h>
 #include <Graph/ExplicitGraphBuilder.h>
+#include <pcl/kdtree/kdtree_flann.h>
 
 //#define TRACE  1
 
 #include <iostream>
-
-const float EPSILON = 1e-6;
 
 Field::~Field( ) {
 	delete m_graph;
 }
 
 
-void Field::init( const GraphBuilder * const graph_builder, const std::vector<Element>& elements ) {
+void Field::init( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements ) {
 	m_graph = graph_builder->build_graph_for_elements( elements );
 
 	// Initialise field tangents to random values
@@ -37,22 +36,84 @@ void Field::init( const GraphBuilder * const graph_builder, const std::vector<El
 /**
  * Construct the field using a graph builder and some elements
  */
-Field::Field( const GraphBuilder * const graph_builder, const std::vector<Element>& elements ) {
+Field::Field( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements ) {
 	init( graph_builder, elements);
 }
 
-/**
- * Construct from a point cloud
- */
-Field::Field( const PointCloud * const pcl, int k ) {
-	std::vector<Element> e;
-	for( int i=0; i<pcl->size(); ++i ) {
-		Point p = pcl->point( i );
-		Element el{ p.location, p.normal };
-		e.push_back( el );
+Field::Field( const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int k ) {
+    // Make a KD-tree for the point cloud
+    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    kdtree.setInputCloud (cloud);
+
+	// Now construct a graph
+    m_graph = new Graph<FieldElement*, void*>();
+
+    // Vectors to store found points
+    std::vector<int> pointIdxNKNSearch(k);
+    std::vector<float> pointNKNSquaredDistance(k);
+    float weight = 1.0f;
+
+    // Keep a map of points to FEs; provide my own comparator since PointXYZ doesn't have one
+	struct cmpPointXYZ {
+    	bool operator()(const pcl::PointXYZ& a, const pcl::PointXYZ& b) const {
+    		if( a.x != b.x) return a.x<b.x;
+    		if( a.y != b.y) return a.y<b.y;
+    		return a.z < b.z;
+	    }
+	};
+	std::map<pcl::PointXYZ, FieldElement*, cmpPointXYZ> point_to_fe_map;
+
+    // For each point in the cloud, add a FieldElement node to the graph
+    for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
+    	pcl::PointXYZ point = *it;
+
+    	// If we haven't added this point, do so
+		if( point_to_fe_map.find(point) == point_to_fe_map.end() ) {
+	    	FieldElement * fe = new FieldElement( 
+    			Eigen::Vector3f{ point.x, point.y, point.z},
+    			Eigen::Vector3f{ 0.0f, 0.0f, 0.0f},
+    			Eigen::Vector3f::Zero());
+        	m_graph->add_node( fe );
+        	point_to_fe_map[point] = fe;
+
+        	// Now find neighbours
+        	pointIdxNKNSearch.clear();
+        	pointNKNSquaredDistance.clear();
+	        if ( kdtree.nearestKSearch (point, k, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ) {
+
+	        	// and add them too
+	            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i) {
+	            	pcl::PointXYZ neighbour = cloud->points[ pointIdxNKNSearch[i] ];
+					FieldElement * neighbour_fe;
+					auto find_it = point_to_fe_map.find(neighbour);
+					if( find_it != point_to_fe_map.end() ) {
+						neighbour_fe = find_it->second;
+					} 
+					else {
+				    	neighbour_fe = new FieldElement( 
+			    			Eigen::Vector3f{ point.x, point.y, point.z},
+			    			Eigen::Vector3f{ 0.0f, 0.0f, 0.0f},
+			    			Eigen::Vector3f::Zero());
+			        	m_graph->add_node( neighbour_fe );
+			        	point_to_fe_map[neighbour] = neighbour_fe;
+		            }
+            	    m_graph->add_edge( fe, neighbour_fe, weight, nullptr );
+            	}
+	        }
+        }
+    }
+
+    // Graph is built
+    std::cout << "Done" << std::endl;
+
+	// Initialise field tangents to random values
+	for( auto node_iter = m_graph->m_data_to_node_map.begin(); node_iter != m_graph->m_data_to_node_map.end(); ++node_iter ) {
+		FieldElement * fe = (FieldElement *) (*node_iter).first;
+
+		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
+		random = random.cross( fe->m_normal ).normalized( );
+		fe->m_tangent = random;
 	}
-	NearestNeighbourGraphBuilder *ngb = new NearestNeighbourGraphBuilder( k );
-	init( ngb, e );
 }
 
 /**
@@ -75,7 +136,7 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
 		}
 	}
 
-	GridGraphBuilder * ggb = new GridGraphBuilder( grid_spacing );
+	GridGraphBuilder<void*> * ggb = new GridGraphBuilder<void*>( grid_spacing );
 	Field * field = new Field( ggb, elements );
 	delete ggb;
 
@@ -138,7 +199,7 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
 		}
 	}
 
-	ExplicitGraphBuilder * egb = new ExplicitGraphBuilder( adjacency_map );
+	ExplicitGraphBuilder<void*> * egb = new ExplicitGraphBuilder<void*>( adjacency_map );
 	Field * field = new Field( egb, elements );
 	delete egb;
 
@@ -183,7 +244,7 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 	Element e{ location, normal };
 	elements.push_back( e );
 
-	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( k );
+	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( k );
 	Field * field = new Field( gb, elements );
 	delete gb;
 
@@ -234,7 +295,7 @@ Field * Field::triangular_field( float tri_radius ) {
 		Element e{ location, normal };
 		elements.push_back( e );
 	}
-	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( 8 );
+	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( 8 );
 	Field * field = new Field( gb, elements );
 
 	delete gb;
@@ -262,7 +323,7 @@ Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 		radius -= 1.0f;
 	}
 
-	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( k );
+	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( k );
 	Field * field = new Field( gb, elements );
 	delete gb;
 
@@ -325,7 +386,7 @@ Field * Field::cubic_field( std::size_t cube_size, bool make_fixed) {
 		}
 	}
 
-	NearestNeighbourGraphBuilder * gb = new NearestNeighbourGraphBuilder( 8 );
+	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( 8 );
 	Field * field = new Field( gb, elements );
 	delete gb;
 
@@ -371,7 +432,7 @@ float Field::error( ) const {
 	// For each node
 	float error = 0.0f;
 	for( auto map_iter = m_graph->m_data_to_node_map.begin(); map_iter != m_graph->m_data_to_node_map.end(); ++map_iter ) {
-		GraphNode * g = (*map_iter).second;
+		GraphNode<FieldElement *, void*> * g = (*map_iter).second;
 		error += get_error_for_node( g );
 	}
 	return error;
@@ -380,11 +441,11 @@ float Field::error( ) const {
 /**
  * @return the smoothness of one node
  */
-float Field::get_error_for_node( const GraphNode* gn ) const {
+float Field::get_error_for_node( const GraphNode<FieldElement *, void*>* gn ) const {
 	float error = 0.0f;
 	FieldElement * this_fe = (FieldElement *) gn->m_data;
 	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
-		const GraphNode * neighbouring_node = std::get<2>(*edge_iter);
+		const GraphNode<FieldElement *, void*> * neighbouring_node = std::get<2>(*edge_iter);
 		FieldElement * neighbour_fe = (FieldElement *) neighbouring_node->m_data;
 
 		std::pair<Eigen::Vector3f, Eigen::Vector3f> result = best_rosy_vector_pair( 
@@ -413,7 +474,7 @@ void Field::smooth_once( ) {
 
 	// For each graphnode, compute the smoothed tangent
 	for( auto map_iter = m_graph->m_data_to_node_map.begin(); map_iter != m_graph->m_data_to_node_map.end(); ++map_iter ) {
-		GraphNode * g = (*map_iter).second;
+		GraphNode<FieldElement *, void*> * g = (*map_iter).second;
 		smooth_node( g );
 	}
 }
@@ -423,7 +484,7 @@ void Field::smooth_once( ) {
  * Smooth the specified node (and neighbours)
  * @return The new vector.
  */
-void Field::smooth_node( const GraphNode * const gn ) const {
+void Field::smooth_node( const GraphNode<FieldElement *, void*> * const gn ) const {
 	using namespace Eigen;
 
 	FieldElement * this_fe = (FieldElement *) gn->m_data;
@@ -436,7 +497,7 @@ void Field::smooth_node( const GraphNode * const gn ) const {
 	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
 
 		// Get the adjacenty FieldElement
-		const GraphNode * neighbouring_node = std::get<2>(*edge_iter);
+		const GraphNode<FieldElement *, void*> * neighbouring_node = std::get<2>(*edge_iter);
 		FieldElement * neighbour_fe = (FieldElement *) neighbouring_node->m_data;
 		if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
 
@@ -489,7 +550,7 @@ void Field::dump(  ) const {
 		      ++pair_iter ) {
 
 		FieldElement *fe = (FieldElement *)((*pair_iter).first);
-		GraphNode *gn    = (GraphNode*)    ((*pair_iter).second);
+		GraphNode<FieldElement *, void*> *gn    = (GraphNode<FieldElement *, void*>*)    ((*pair_iter).second);
 
 		std::cout << "locn    (" << fe->m_location[0] << "," << fe->m_location[1] << "," << fe->m_location[2] << ")" << std::endl;
 		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
@@ -497,7 +558,7 @@ void Field::dump(  ) const {
 		for( auto edge_iter  = gn->m_edges.begin();
 			      edge_iter != gn->m_edges.end();
 			      ++edge_iter ) {
-			GraphNode * gn = std::get<2>(*edge_iter);
+			GraphNode<FieldElement *, void*> * gn = std::get<2>(*edge_iter);
 			FieldElement * fe_n = (FieldElement *) (gn->m_data);
 
 			std::cout << "      " << fe_n->m_location[0] << "," << fe_n->m_location[1] << "," << fe_n->m_location[2] << std::endl;

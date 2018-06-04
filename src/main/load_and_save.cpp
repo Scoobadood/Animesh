@@ -36,7 +36,7 @@ void write_matlab_file( Field * field, int index ) {
 /**
  * Load an obj file into a point cloud
  */
-pcl::PointCloud<pcl::PointXYZ>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
+pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
     if( file_name.size() == 0 ) 
         throw std::invalid_argument( "Missing file name" );
 
@@ -44,7 +44,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr load_pointcloud_from_obj( const std::string&
     if (!file_exists(file_name, is_directory ) )
         throw std::runtime_error( "File not found: " + file_name );
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
     if( pcl::io::loadOBJFile(file_name, *cloud) == -1) {
         PCL_ERROR ("Couldn't read file\n");
         return nullptr;
@@ -60,7 +60,7 @@ Field * load_field_from_obj_file( const Args& args ) {
 	std::string file_name = args.pcd_file_name();
 
 	// Load the point cloud from file
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = load_pointcloud_from_obj(file_name);
+	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
 	if( !cloud ) 
 		return nullptr;
 

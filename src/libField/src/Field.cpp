@@ -40,9 +40,17 @@ Field::Field( const GraphBuilder<void*> * const graph_builder, const std::vector
 	init( graph_builder, elements);
 }
 
-Field::Field( const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int k ) {
+FieldElement * field_element_from_point( const pcl::PointNormal& point ) {
+	FieldElement * fe = new FieldElement( 
+		Eigen::Vector3f{ point.x * 100, point.y * 100, point.z * 100},
+		Eigen::Vector3f{ point.normal_x, point.normal_y, point.normal_z},
+		Eigen::Vector3f::Zero());
+	return fe;
+}
+
+Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
     // Make a KD-tree for the point cloud
-    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
     kdtree.setInputCloud (cloud);
 
 	// Now construct a graph
@@ -54,26 +62,26 @@ Field::Field( const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int k ) {
     float weight = 1.0f;
 
     // Keep a map of points to FEs; provide my own comparator since PointXYZ doesn't have one
-	struct cmpPointXYZ {
-    	bool operator()(const pcl::PointXYZ& a, const pcl::PointXYZ& b) const {
+	struct cmpPointNormal {
+    	bool operator()(const pcl::PointNormal& a, const pcl::PointNormal& b) const {
     		if( a.x != b.x) return a.x<b.x;
     		if( a.y != b.y) return a.y<b.y;
-    		return a.z < b.z;
+    		if( a.z != b.z) return a.z<b.z;
+    		if( a.normal_x != b.normal_x) return a.normal_x<b.normal_x;
+    		if( a.normal_y != b.normal_y) return a.normal_y<b.normal_y;
+    		return a.normal_z < b.normal_z;
 	    }
 	};
-	std::map<pcl::PointXYZ, FieldElement*, cmpPointXYZ> point_to_fe_map;
+	std::map<pcl::PointNormal, FieldElement*, cmpPointNormal> point_to_fe_map;
 
     // For each point in the cloud, add a FieldElement node to the graph
     for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
-    	pcl::PointXYZ point = *it;
+    	pcl::PointNormal point = *it;
 
     	// If we haven't added this point, do so
 		if( point_to_fe_map.find(point) == point_to_fe_map.end() ) {
-	    	FieldElement * fe = new FieldElement( 
-    			Eigen::Vector3f{ point.x, point.y, point.z},
-    			Eigen::Vector3f{ 0.0f, 0.0f, 0.0f},
-    			Eigen::Vector3f::Zero());
-        	m_graph->add_node( fe );
+			FieldElement * fe = field_element_from_point(point);
+        	m_graph->add_node(fe);
         	point_to_fe_map[point] = fe;
 
         	// Now find neighbours
@@ -83,17 +91,14 @@ Field::Field( const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int k ) {
 
 	        	// and add them too
 	            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i) {
-	            	pcl::PointXYZ neighbour = cloud->points[ pointIdxNKNSearch[i] ];
+	            	pcl::PointNormal neighbour = cloud->points[ pointIdxNKNSearch[i] ];
 					FieldElement * neighbour_fe;
 					auto find_it = point_to_fe_map.find(neighbour);
 					if( find_it != point_to_fe_map.end() ) {
 						neighbour_fe = find_it->second;
 					} 
 					else {
-				    	neighbour_fe = new FieldElement( 
-			    			Eigen::Vector3f{ point.x, point.y, point.z},
-			    			Eigen::Vector3f{ 0.0f, 0.0f, 0.0f},
-			    			Eigen::Vector3f::Zero());
+				    	neighbour_fe = field_element_from_point(point);
 			        	m_graph->add_node( neighbour_fe );
 			        	point_to_fe_map[neighbour] = neighbour_fe;
 		            }

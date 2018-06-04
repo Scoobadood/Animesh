@@ -15,7 +15,7 @@ public:
 	/**
 	 * Construct from a PCL PointCloud
 	 */
-	Field( const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int k );
+	Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k );
 
 	~Field( );
 

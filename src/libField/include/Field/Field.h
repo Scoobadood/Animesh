@@ -65,7 +65,7 @@ public:
 	 * Smooth the specified node (and neighbours)
 	 * @return The new vector.
 	 */
-	void smooth_node( const GraphNode<FieldElement *, void*> * const gn ) const;
+	Eigen::Vector3f smooth_node( const GraphNode<FieldElement *, void*> * const gn ) const;
 
 	/**
 	 * @return vector of elements 

@@ -181,6 +181,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
 
 	renderWindowInteractor->Start();
 	std::cout << "Renderer started" << std::endl;
+  return polydata;
 }
 
 /**

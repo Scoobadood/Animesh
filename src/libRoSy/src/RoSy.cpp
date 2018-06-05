@@ -11,34 +11,7 @@ const float EPSILON = 1e-6;
 float angle_between_vectors( Eigen::Vector3f v1, Eigen::Vector3f v2 ) {
 	using namespace Eigen;
 
-	// if( (v1[0] == 0.0f && v1[1] == 0.0f && v1[2] == 0.0f ) ||
-	// 	(v2[0] == 0.0f && v2[1] == 0.0f && v2[2] == 0.0f ) ) {
-	// 	throw std::invalid_argument( "Vector may not be zero length" );
-	// }
-
-
-	// Vector3f reference{ -1.0f, -2.0f, 3.0f };
-	// Vector3f      c = v1.cross(v2);
- //    float     angle = std::atan2(c.norm(), v1.dot(v2));
- //    return c.dot(reference) < 0.0f ? (2 * M_PI -angle) : angle;
-
-
     return std::acos(std::min(1.0f, v1.dot(v2))) * 180 / M_PI;
-
-
-	/*
-		Code below was replaced by the arccos and triple product code
-		On the basis of this:
-		https://www.gamedev.net/forums/topic/503639-angle-between-3d-vectors/
-
-	// Compute the angle between the vectors using 
-	// θ=2 atan2(|| ||v||u−||u||v ||, || ||v||u+||u||v ||)
-	Eigen::Vector3f vu = v1.norm() * v2;
-	Eigen::Vector3f uv = v2.norm() * v1;
-	float theta = 2 * atan2( (vu - uv).norm(), (vu + uv).norm() );	
-
-	return theta;
-	*/
 }
 
 /**
@@ -59,11 +32,7 @@ float angle_between_vectors( Eigen::Vector3f v1, Eigen::Vector3f v2 ) {
  	if( fabs( n.norm() - 1.0f ) > EPSILON )
  		throw std::invalid_argument( "Normal must be unit vector" );
 
- 	float angle = k * 0.5f * M_PI;
- 	AngleAxis<float> aa{ angle , n };
- 	Quaternionf q{ aa };
-
-	return q * o;
+    return ((k & 1) ? (n.cross(o)) : o) * (k < 2 ? 1.0f : -1.0f);
  } 
 
 /**
@@ -82,7 +51,8 @@ Eigen::Vector3f reproject_to_tangent_space( const Eigen::Vector3f& v, const Eige
 
 
 /**
- * Return vector of elements */
+ * Return vector of elements
+ */
 const std::vector<const FieldElement *> Field::elements( ) const {
 	std::vector<const FieldElement *> elements;
 	for( auto node_iter = m_graph->m_data_to_node_map.begin(); node_iter != m_graph->m_data_to_node_map.end(); ++node_iter ) {
@@ -91,68 +61,6 @@ const std::vector<const FieldElement *> Field::elements( ) const {
 		elements.push_back( fe );
 	}
 	return elements;
-}
-
-/**
- * @param targetVector The vector we're trying to match
- * @param normal The normal about which to rotate the sourceVector
- * @param sourceVector the vector to be matched
- * @return the best fitting vector (i.e. best multiple of PI/2 + angle)
- * 
- */
-Eigen::Vector3f best_dp_rosy_vector_for( const Eigen::Vector3f& targetVector, 
-									  const Eigen::Vector3f& targetNormal, 
-									  int targetK, 
-									  const Eigen::Vector3f& sourceVector, 
-									  const Eigen::Vector3f& sourceNormal ) {
-	using namespace Eigen;
-
-	Vector3f effectiveTarget = vector_by_rotating_around_n( targetVector, targetNormal, targetK );
-	Vector3f best{ sourceVector };
-	float bestDotProduct = effectiveTarget.dot( sourceVector );
-
-	for( int k=1; k<4; ++k ) {
-		Vector3f testVector = vector_by_rotating_around_n( sourceVector, sourceNormal, k );
-
-		float dp = effectiveTarget.dot( testVector );
-		if( dp > bestDotProduct) {
-			bestDotProduct = dp;
-			best = testVector;
-		}
-	}
-	return best;
-}
-
-/**
- * @param targetVector The vector we're trying to match
- * @param normal The normal about which to rotate the sourceVector
- * @param sourceVector the vector to be matched
- * @return the best fitting vector (i.e. best multiple of PI/2 + angle)
- * 
- */
-Eigen::Vector3f best_rosy_vector_for( const Eigen::Vector3f& target_vector, 
-									  const Eigen::Vector3f& target_normal, 
-									  const Eigen::Vector3f& source_vector, 
-									  const Eigen::Vector3f& source_normal,
-									  int& k_ij) {
-	using namespace Eigen;
-
-	Vector3f best_vector = source_vector;
-	float best_theta = angle_between_vectors( target_vector, source_vector );
-	int best_k = 0;
-
-	for( int k=1; k<4; ++k ) {
-		Vector3f test_vector = vector_by_rotating_around_n( source_vector, source_normal, k );
-		float theta = angle_between_vectors( target_vector, test_vector );
-
-		if( theta < best_theta ) {
-			best_theta = theta;
-			best_vector = test_vector;
-			best_k = k;
-		}
-	}
-	k_ij = best_k;
-	return best_vector;
 }
 
 /**

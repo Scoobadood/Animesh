@@ -12,6 +12,8 @@
 //#define TRACE  1
 
 #include <iostream>
+#include <queue>
+#include <set>
 
 Field::~Field( ) {
 	delete m_graph;
@@ -57,76 +59,105 @@ bool operator == (const pcl::PointNormal& point1, const pcl::PointNormal& point2
 		(point1.normal_z == point2.normal_z);
 }
 
-Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
-    // Make a KD-tree for the point cloud
-    pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
-    kdtree.setInputCloud (cloud);
+/*
+ * Comparator for pcl::PointNormal instances
+ */
+struct cmpPointNormal {
+	bool operator()(const pcl::PointNormal& a, const pcl::PointNormal& b) const {
 
-	// Now construct a graph
+		float v1x = (a.x + a.normal_x);
+		float v1y = (a.y + a.normal_y);
+		float v1z = (a.z + a.normal_z);
+
+		float v2x = (b.x + b.normal_x);
+		float v2y = (b.y + b.normal_y);
+		float v2z = (b.z + b.normal_z);
+
+		return (v1x*v1x+v1y*v1y+v1z*v1z) < (v2x*v2x+v2y*v2y+v2z*v2z);
+    }
+};
+
+FieldElement * find_element_or_throw( const std::map<pcl::PointNormal, FieldElement*, cmpPointNormal>& map, const pcl::PointNormal& point ) {
+	auto find_it = map.find(point);
+	if( find_it == map.end() )
+		throw std::runtime_error( "No FE found for point" );
+	return find_it->second;
+}
+
+
+/**
+ * Construct a field given a point cloud
+ */
+Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
+
+	// First make an empty Graph
     m_graph = new Graph<FieldElement*, void*>();
 
-    // Vectors to store found points
-    std::vector<int> pointIdxNKNSearch(k);
-    std::vector<float> pointNKNSquaredDistance(k);
-    float weight = 1.0f;
 
-    // Keep a map of points to FEs; provide my own comparator since PointNormal doesn't have one
-	struct cmpPointNormal {
-    	bool operator()(const pcl::PointNormal& a, const pcl::PointNormal& b) const {
-    		if( a.x != b.x) return a.x<b.x;
-    		if( a.y != b.y) return a.y<b.y;
-    		if( a.z != b.z) return a.z<b.z;
-    		if( a.normal_x != b.normal_x) return a.normal_x<b.normal_x;
-    		if( a.normal_y != b.normal_y) return a.normal_y<b.normal_y;
-    		return a.normal_z < b.normal_z;
-	    }
-	};
+	// Next add all the points to it
 	std::map<pcl::PointNormal, FieldElement*, cmpPointNormal> point_to_fe_map;
-
-	std::cout<< "Adding "<<cloud->points.size()<<" points to graph" <<std::endl;
 	size_t points_added = 0;
-
-    // For each point in the cloud, add a FieldElement node to the graph
     for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
     	pcl::PointNormal point = *it;
+		FieldElement * fe = field_element_from_point( point );
+		m_graph->add_node( fe );
 
-    	// If we haven't added this point, do so
-		if( point_to_fe_map.find(point) == point_to_fe_map.end() ) {
-			FieldElement * fe = field_element_from_point(point);
-        	m_graph->add_node(fe);
-        	point_to_fe_map[point] = fe;
+		// Keep a mapping from point to FE
+		point_to_fe_map[ point ] = fe;
 
-        	++points_added;
-			std::cout<< "  Added "<<point << " (" << points_added << ")" << std::endl;
+		++points_added;
+	}
+	if( m_tracing_enabled )
+		std::cout<< "Added " << points_added << " points" << std::endl;
 
-        	// Now find neighbours
-        	pointIdxNKNSearch.clear();
-        	pointNKNSquaredDistance.clear();
-	        if ( kdtree.nearestKSearch (point, k, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ) {
 
-	        	// and add them too
-	            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i) {
-	            	pcl::PointNormal neighbour = cloud->points[ pointIdxNKNSearch[i] ];
-	            	if( ! (neighbour == point ) ){
-						FieldElement * neighbour_fe;
-						auto find_it = point_to_fe_map.find(neighbour);
-						if( find_it != point_to_fe_map.end() ) {
-							neighbour_fe = find_it->second;
-							std::cout<< "    Found neighbour "<<neighbour <<std::endl;
-						} 
-						else {
-					    	neighbour_fe = field_element_from_point(neighbour);
-				        	m_graph->add_node( neighbour_fe );
-				        	point_to_fe_map[neighbour] = neighbour_fe;
-				        	++points_added;
-							std::cout<< "    Added neighbour "<<neighbour << " (" << points_added << ")" << std::endl;
-			            }
-	            	    m_graph->add_edge( fe, neighbour_fe, weight, nullptr );
-	            	}
+
+    // Set up for kNN
+    pcl::KdTreeFLANN<pcl::PointNormal> kdtree;
+    kdtree.setInputCloud (cloud);
+    std::vector<int> pointIdxNKNSearch(k);
+    std::vector<float> pointNKNSquaredDistance(k);
+
+
+	// Keep track of points visited
+	std::set<pcl::PointNormal, cmpPointNormal> visited;
+
+	// For each point, construct edges
+    for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
+    	pcl::PointNormal this_point = *it;
+		if( m_tracing_enabled )
+			std::cout<< "Processing point " << this_point << std::endl;
+
+		// Look up FE
+		FieldElement * this_fe = find_element_or_throw( point_to_fe_map, this_point);
+
+    	// Now find neighbours
+    	pointIdxNKNSearch.clear();
+    	pointNKNSquaredDistance.clear();
+        if ( kdtree.nearestKSearch (this_point, k, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ) {
+
+        	// ... and add edges to them
+			if( m_tracing_enabled )
+				std::cout<< "  Looking at neighbours" << std::endl;
+
+            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i) {
+            	pcl::PointNormal neighbour_point = cloud->points[ pointIdxNKNSearch[i] ];
+
+            	// Provided the eighbour isn't this point
+            	if( ! (neighbour_point == this_point ) ){
+					FieldElement * neighbour_fe = find_element_or_throw( point_to_fe_map, neighbour_point);
+
+            	    m_graph->add_edge( this_fe, neighbour_fe, 1.0f, nullptr );
+					if( m_tracing_enabled )
+						std::cout<< "    Add neighbour " << neighbour_point << std::endl;
             	}
-	        }
+            	else {
+					if( m_tracing_enabled )
+						std::cout<< "    Ignoring me as my own neighbour" << std::endl;
+            	}
+        	}
         }
-    }
+	}
 
     // Graph is built
     std::cout << "Done" << std::endl;

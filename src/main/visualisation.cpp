@@ -223,7 +223,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
  */
 void update_field_callback(vtkObject* caller, long unsigned int eventId, void * clientData, void * callData ) {
   std::cout << "update_field_callback called (smooth 10)" << std::endl;
-  for( int i=0; i<10; ++i)
+  // for( int i=0; i<100; ++i)
     g_field->smooth_once();
   vtkPolyData* polydatap = reinterpret_cast<vtkPolyData*>(clientData);
   vtkSmartPointer<vtkPolyData> polydata = polydatap;

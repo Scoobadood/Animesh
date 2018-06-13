@@ -531,8 +531,7 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 	FieldElement * this_fe = (FieldElement *) gn->m_data;
 	if( m_tracing_enabled ) trace_node( "get_smoothed_tangent_data_for_node", this_fe);
 
-	Vector3f sum = this_fe->m_tangent;
-	float weight_sum = 0.0f;
+	Vector3f sum = Vector3f::Zero();
 
 	// For each edge from this node
 	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
@@ -544,18 +543,16 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 
 		// Find best matching rotation
 		std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( 
-			sum,
+			this_fe->m_tangent,
 			this_fe->m_normal,
 			neighbour_fe->m_tangent, 
 			neighbour_fe->m_normal);
 
 		// Update the computed new tangent
-		float weight = std::get<0>(*edge_iter);
-		sum = result.first * weight_sum + result.second * weight;
-		weight_sum += weight;
-		sum = reproject_to_tangent_space( result.second, this_fe->m_normal );
-		sum.normalize();
+		sum = sum + result.second;
 	}
+	sum = reproject_to_tangent_space( sum, this_fe->m_normal );
+	sum.normalize();
 	return sum;
 }
 

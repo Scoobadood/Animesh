@@ -325,40 +325,6 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 	return field;
 }
 
-Field * Field::triangular_field( float tri_radius ) {
-	using namespace Eigen;
-
-	Vector3f v1{ 0.0f, 0.0f, tri_radius };
-	Vector3f v2{ tri_radius * -0.866f, 0.0f, tri_radius * -0.5f };
-	Vector3f v3{ tri_radius *  0.866f, 0.0f, tri_radius * -0.5f };
-
-	Vector3f vv1 = v3 - v2;
-	Vector3f vv2 = v1 - v2;
-
-	std::vector<Element> elements;
-	for( int i=0; i<200; i++ ) {
-
-		float c1 = rand() %100 / 100.0f;
-		float c2 = rand() %100 / 100.0f;
-
-		if( c1 + c2 >= 1 ) {
-			c1 = 1.0f - c1;
-			c2 = 1.0f - c2;
-		}
-
-		Vector3f location  = v1 + c1 * vv1 + c2 * vv2;
-		Vector3f normal{ 0, 1, 0 };
-		Element e{ location, normal };
-		elements.push_back( e );
-	}
-	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( 8 );
-	Field * field = new Field( gb, elements );
-
-	delete gb;
-
-	return field;
-}
-
 Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 	using namespace Eigen;
 	std::vector<Element> elements;
@@ -530,19 +496,27 @@ void Field::smooth_once( ) {
 
 	vector<const Vector3f> new_tangents;
 
-	// For each graphnode, compute the smoothed tangent
-	for( auto map_iter = m_graph->m_data_to_node_map.begin(); map_iter != m_graph->m_data_to_node_map.end(); ++map_iter ) {
-		GraphNode<FieldElement *, void*> * g = (*map_iter).second;
+	// Extract map keys into vector
+	std::vector<FieldElement *> map_keys;
+  	for (auto const& element : m_graph->m_data_to_node_map) {
+    	map_keys.push_back(element.first);
+  	}
+
+	// Permute map_keys
+	random_shuffle ( map_keys.begin(), map_keys.end() ); 
+
+	// Iterate over permute, look up key, lookup fe and smooth
+	for( auto key_iter = map_keys.begin(); key_iter != map_keys.end(); ++key_iter ) {
+		auto key = *key_iter;
+		GraphNode<FieldElement *, void*> * g = m_graph->m_data_to_node_map[key];
 		Vector3f new_tangent = smooth_node( g );
 		new_tangents.push_back( new_tangent );
 	}
 
 	// Now update all of the nodes
-	size_t vi = 0;
-	for(auto map_iter = m_graph->m_data_to_node_map.begin();  map_iter != m_graph->m_data_to_node_map.end(); ++map_iter, ++vi ) {
-		GraphNode<FieldElement *, void*> * g = (*map_iter).second;
-
-		((FieldElement *) g->m_data)->m_tangent = new_tangents[vi];
+	auto tan_iter = new_tangents.begin();
+	for(auto key_iter = map_keys.begin();  key_iter != map_keys.end(); ++key_iter, ++tan_iter ) {
+		(*key_iter)->m_tangent = (*tan_iter);
 	}
 }
 

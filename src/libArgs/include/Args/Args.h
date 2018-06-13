@@ -9,7 +9,6 @@ public:
 	 	PLANE,
 	 	CUBE,
 	 	SPHERE,
-	 	TRIANGLE,
 	 	CIRCLE,
 	 	POLYNOMIAL
 	 };

@@ -58,12 +58,23 @@ pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::stri
  */
 Field * load_field_from_obj_file( const Args& args ) {
 	std::string file_name = args.file_name();
+	std::cout << "Loading from file " << file_name << std::endl;
 
 	// Load the point cloud from file
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
 	if( !cloud ) 
 		return nullptr;
 
+	// Scale points
+	std::cout << "scaling points by " << args.scale() << std::endl;
+	float scale = args.scale();
+	for( auto iter = cloud->points.begin(); iter != cloud->points.end(); ++iter ) {
+		(*iter).x *= scale;
+		(*iter).y *= scale;
+		(*iter).z *= scale;
+	}
+
+	std::cout << "building graph with " << args.k() << " nearest neighbours." << std::endl;
 	return new Field( cloud, args.k() );
 }
 

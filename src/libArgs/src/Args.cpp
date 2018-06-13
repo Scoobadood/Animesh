@@ -242,7 +242,7 @@ Args::Args( int &argc, char **argv) {
 				m_plane_x = prefab.getValue().size_x();
 				m_plane_y = prefab.getValue().size_y();
 				m_grid_spacing = prefab.getValue().grid_spacing();
-				if( prefab.getValue().name() == "polynomial" ) {
+				if( prefab.getValue().name() == "poly" ) {
 					m_default_shape = POLYNOMIAL;
 				}
 			} else if( prefab.getValue().name() == "sphere") {

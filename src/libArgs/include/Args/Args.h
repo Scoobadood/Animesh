@@ -46,32 +46,36 @@ public:
 	 bool inline tracing_enabled() const { return m_tracing_enabled; }
 
 	 bool inline load_from_pointcloud() const { return m_load_from_pointcloud; }
-	 std::string inline pcd_file_name() const { return m_pcd_file_name; }
+	 std::string inline file_name() const { return m_file_name; }
+
+	 float inline scale( ) const { return m_scale; }
 
 private:
-	bool m_should_fix_tangents;
+	bool 			m_should_fix_tangents;
 
-	bool m_should_dump_field;
+	bool 			m_should_dump_field;
 
-	int m_num_smoothing_iterations;
+	int 			m_num_smoothing_iterations;
 
-	int m_phi_steps;
-	int m_theta_steps;
+	int 			m_phi_steps;
+	int 			m_theta_steps;
 
-	float m_radius;
+	float 			m_radius;
 
-	int m_plane_x;
-	int m_plane_y;
-	float m_grid_spacing;
+	int 			m_plane_x;
+	int 			m_plane_y;
+	float 			m_grid_spacing;
 
-	int m_cube_size;
+	int 			m_cube_size;
 
-	int m_k;
+	int 			m_k;
 
-	bool m_tracing_enabled;
+	bool 			m_tracing_enabled;
 
-	bool m_load_from_pointcloud;
-	std::string	m_pcd_file_name;
+	bool 			m_load_from_pointcloud;
+	std::string		m_file_name;
 
-	Shape m_default_shape;
+	Shape 			m_default_shape;
+
+	float 			m_scale;
 };

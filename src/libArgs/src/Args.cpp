@@ -1,5 +1,6 @@
 #include <Args/Args.h>
 #include <tclap/CmdLine.h>
+#include <tclap/ArgException.h>
 
 const int DEFAULT_SMOOTH_ITERATIONS = 50;
 const int DIM_X = 20;
@@ -9,6 +10,179 @@ const float RADIUS = 10.0f;
 const int SPHERE_THETA_STEPS = 30;
 const int SPHERE_PHI_STEPS = 15;
 const int CUBE_SIZE = 3;
+
+std::vector<std::string> split( const std::string& str, char token )  {
+	std::vector<std::string> strings;
+
+	std::istringstream f(str);
+    std::string s;    
+	while (getline(f, s, token)) {		
+		 strings.push_back(s);
+	}
+	return strings;
+}
+
+
+class Prefab {
+
+private:
+	std::string   	m_name;
+	float			m_grid_spacing;
+	int 			m_dim1;
+	int 			m_dim2;
+	int 			m_dim3;
+
+protected:
+	Prefab( const std::string& name, float grid_spacing, int dim1, int dim2, int dim3) : m_name{ name } {
+		m_grid_spacing = grid_spacing;
+		m_dim1 = dim1;
+		m_dim2 = dim2;
+		m_dim3 = dim3;
+	}
+
+	Prefab( const std::string& name, float grid_spacing, int dim1, int dim2) : m_name{ name } {
+		m_grid_spacing = grid_spacing;
+		m_dim1 = dim1;
+		m_dim2 = dim2;
+	}
+
+	Prefab( const std::string& name, float grid_spacing, int dim1) : m_name{ name } {
+		m_grid_spacing = grid_spacing;
+		m_dim1 = dim1;
+	}
+
+public:
+	std::string name() const {
+		return m_name;
+	}
+
+	float radius( ) const {
+		if( m_name == "sphere" || m_name == "circle" ) {
+			return m_grid_spacing;
+		}
+		throw std::domain_error( "Radius is only valid for circle or sphere");
+	}
+
+	float grid_spacing( ) const {
+		if( m_name != "sphere" || m_name != "circle" ) {
+			return m_grid_spacing;
+		}
+		throw std::domain_error( "Grid spacing is not valid for circle or sphere");
+	}
+
+	int theta_steps( ) const {
+		if( m_name == "sphere" || m_name == "circle" ) {
+			return m_dim1;
+		}
+		throw std::domain_error( "Theta steps is only valid for circle or sphere");
+	}
+
+	int phi_steps( ) const {
+		if( m_name == "sphere" ) {
+			return m_dim2;
+		}
+		throw std::domain_error( "Phi steps is only valid for sphere");
+	}
+
+	int size_x( ) const {
+		if( m_name == "plane" || m_name == "poly" || m_name == "cube" ) {
+			return m_dim1;
+		}
+		throw std::domain_error( "size_x is only valid for poly, plane or cube");
+	}
+
+	int size_y( ) const {
+		if( m_name == "plane" || m_name == "poly" || m_name == "cube" ) {
+			return m_dim2;
+		}
+		throw std::domain_error( "size_y is only valid for poly, plane or cube");
+	}
+
+	int size_z( ) const {
+		if( m_name == "cube" ) {
+			return m_dim3;
+		}
+		throw std::domain_error( "size_z is only valid for cube");
+	}
+
+	static Prefab from_string( const std::string& value ) {
+		using namespace TCLAP;
+
+		// Break the string into chunks at commas
+		std::vector<std::string> chunks = split( value, ',');
+		if( chunks[0] == "cube") {
+			if( chunks.size() != 5 )
+				throw ArgException( "Cube args should be grid_size, dim_x, dim_y, dim_z" );
+			return cube_prefab( chunks );
+		} 
+		else if( chunks[0] == "sphere") {
+			return sphere_prefab( chunks );
+		}
+		else if( chunks[0] == "poly") {
+			return poly_prefab( chunks );
+		}
+		else if( chunks[0] == "plane") {
+			return plane_prefab( chunks );
+		}
+		else if( chunks[0] == "circle") {
+			return circle_prefab( chunks );
+		}
+		else 
+			throw std::invalid_argument("Unknown prefab type " + chunks[0]);
+	}
+
+	static Prefab sphere_prefab( const std::vector<std::string>& chunks ) {
+		// Expect radius, theta_step, phi_step and K
+		float radius 		= std::stof(chunks[1]);
+		int   theta_steps   = std::stoi(chunks[2]);
+		int   phi_steps     = std::stoi(chunks[3]);
+		return Prefab{ "sphere", radius, theta_steps, phi_steps};
+	}
+
+	static Prefab cube_prefab( const std::vector<std::string>& chunks ) {
+		// Expect grid_spacing, x dim, y dim, z dim
+		float grid_spacing 		= std::stof(chunks[1]);
+		int   x_dim   			= std::stoi(chunks[2]);
+		int   y_dim			    = std::stoi(chunks[3]);
+		int   z_dim 		    = std::stoi(chunks[4]);
+		return Prefab{ "cube", grid_spacing, x_dim, y_dim, z_dim};
+	}
+
+	static Prefab plane_prefab( const std::vector<std::string>& chunks ) {
+		// Expect grid_spacing, x dim, y dim, z dim
+		float grid_spacing 		= std::stof(chunks[1]);
+		int   x_dim   			= std::stoi(chunks[2]);
+		int   y_dim			    = std::stoi(chunks[3]);
+		return Prefab{ "plane", grid_spacing, x_dim, y_dim};
+	}
+
+	static Prefab plane_prefab( float grid_spacing, int x_dim, int y_dim ) {
+		return Prefab{ "plane", grid_spacing, x_dim, y_dim};
+	}
+
+	static Prefab poly_prefab( const std::vector<std::string>& chunks ) {
+		// Expect grid_spacing, x dim, y dim, z dim
+		float grid_spacing 		= std::stof(chunks[1]);
+		int   x_dim   			= std::stoi(chunks[2]);
+		int   y_dim			    = std::stoi(chunks[3]);
+		return Prefab{ "poly", grid_spacing, x_dim, y_dim};
+	}
+
+	static Prefab circle_prefab( const std::vector<std::string>& chunks ) {
+		// Expect grid_spacing, x dim, y dim, z dim
+		float radius 		= std::stof(chunks[1]);
+		int   num_steps		= std::stoi(chunks[2]);
+		return Prefab{ "circle", radius, num_steps};
+	}
+};
+
+std::istream& operator>> (std::istream& is, Prefab& p) {  
+	std::string s;
+	is>> s;  
+	p = Prefab::from_string(s);
+	return is;  
+}
+
 
 Args::Args( int &argc, char **argv) {
 	using namespace TCLAP;
@@ -25,39 +199,27 @@ Args::Args( int &argc, char **argv) {
 		// Define a value argument and add it to the command line.
 		// A value arg defines a flag and a type of value that it expects,
 		// such as "-n Bishop".
-		ValueArg<int> iterations("i","iter","Number of smoothing iterations to run",false, DEFAULT_SMOOTH_ITERATIONS, "int", cmd);
+		ValueArg<int> iterations("i","iter","Number of smoothing iterations to run per click",false, DEFAULT_SMOOTH_ITERATIONS, "num_iters", cmd);
 
+		// Shapes are all strings and must be one of 
+		// Cube,dimx,dimy,dimz,spacing
+		// Plane,dimx,dimy,spacing
+		// Polynomial,dimx,dimy,spacing
+		// Sphere,radius,theta_steps,phi_steps
+		// Circle,radius,theta_steps
+		Prefab simple_plane = Prefab::plane_prefab( 1.0f, 10, 10);
+		ValueArg<Prefab> prefab("p","prefab","Use a prefab field shape. plane, cube,polynomial, circle or sphere", true, simple_plane, "prefab");
+		ValueArg<std::string> file_name("n","file","OBJ File name.",true, "", "filename");
+        cmd.xorAdd( prefab, file_name );
 
-		std::vector<std::string> allowed_shapes;
-		allowed_shapes.push_back("plane");
-		allowed_shapes.push_back("cube");
-		allowed_shapes.push_back("sphere");
-		allowed_shapes.push_back("circle");
-		allowed_shapes.push_back("polynomial");
-		ValuesConstraint<std::string> allowed_constraint( allowed_shapes );
-		ValueArg<std::string> shape("s","shape","Field shape to use. plane, cube or sphere",false, "plane", &allowed_constraint, cmd);
+		ValueArg<int> k("k","knear","Specify k nearest neighbours to use when building graph", false, 5, "num", cmd);
 
 		SwitchArg make_fixed("f","fix","Make initial field tangents fixed", cmd, false);
 		SwitchArg dump_field("d","dump","Dump the field in it's initial state", cmd, false);
 		SwitchArg tracing_enabled("v","verbose","Output lots of diagnostics", cmd, false);
 
-		// Plane
-		ValueArg<float> grid_spacing("g","grid","Spacing of grid. Only valid with plane",false, GRID_SPACING, "float", cmd);
-		ValueArg<int> plane_x("x","plane_x","X dimension of plane",false, DIM_X, "int", cmd);
-		ValueArg<int> plane_y("y","plane_y","Y dimension of plane",false, DIM_Y, "int", cmd);
-
-		// Sphere
-		ValueArg<float> radius("r","radius","Radius of sphere",false, RADIUS, "float", cmd);
-		ValueArg<int> theta("t","theta_steps","Number of steps around sphere",false, SPHERE_THETA_STEPS, "float", cmd);
-		ValueArg<int> phi("p","phi_steps","Number of steps vertically on sphere",false, SPHERE_PHI_STEPS, "float", cmd);
-		ValueArg<int> k("k","k","Number of nearest neighbours",false, SPHERE_PHI_STEPS, "float", cmd);
-
-		// Cube
-		ValueArg<int> cube_size("c","cube_size","Dimensions of cube",false, CUBE_SIZE, "int", cmd);
-
-		// Load from point cloud
-		SwitchArg load_from_pcd_file("l","","Load from file", cmd, false);
-		ValueArg<std::string> pcd_file_name("n","file","PCD File name.",false, "", "string", cmd);
+		// Scale - byy which to multiply coords
+		ValueArg<float> scale("s","scale","Multiplier for point coordinates",false, 1.0f, "scale", cmd);
 
 
 		// Parse the argv array.
@@ -68,37 +230,39 @@ Args::Args( int &argc, char **argv) {
 		m_should_dump_field        = dump_field.getValue();
 		m_tracing_enabled          = tracing_enabled.getValue();
 		m_k						   = k.getValue();
-		m_load_from_pointcloud     = load_from_pcd_file.getValue();
+		m_scale					   = scale.getValue();
 
-		if( m_load_from_pointcloud) {
-			m_pcd_file_name = pcd_file_name.getValue();
-		} else {
-			if( shape.getValue() == "plane" || shape.getValue() == "polynomial" ){
+
+		if( file_name.isSet() ) {
+			m_file_name = file_name.getValue();
+			m_load_from_pointcloud = true;
+		} else if ( prefab.isSet() ) {
+			if( prefab.getValue().name() == "plane" || prefab.getValue().name() == "poly" ){
 				m_default_shape = PLANE;
-				m_plane_x = plane_x.getValue();
-				m_plane_y = plane_y.getValue();
-				m_grid_spacing = grid_spacing.getValue();
-				if( shape.getValue() == "polynomial" ) {
+				m_plane_x = prefab.getValue().size_x();
+				m_plane_y = prefab.getValue().size_y();
+				m_grid_spacing = prefab.getValue().grid_spacing();
+				if( prefab.getValue().name() == "polynomial" ) {
 					m_default_shape = POLYNOMIAL;
 				}
-			} else if( shape.getValue() == "sphere") {
+			} else if( prefab.getValue().name() == "sphere") {
 				m_default_shape = SPHERE;
-				m_radius = radius.getValue();
-				m_theta_steps = theta.getValue();
-				m_phi_steps   = phi.getValue();
-			} else if( shape.getValue() == "cube") {
+				m_radius = prefab.getValue().radius();
+				m_theta_steps = prefab.getValue().theta_steps();
+				m_phi_steps   = prefab.getValue().phi_steps( );
+			} else if( prefab.getValue().name() == "cube") {
 				m_default_shape = CUBE;
-				m_cube_size = cube_size.getValue();
-			} else if( shape.getValue() == "circle") {
+				m_cube_size = prefab.getValue().size_x();
+			} else if( prefab.getValue().name() == "circle") {
 				m_default_shape = CIRCLE;
-				m_radius = radius.getValue();
+				m_radius = prefab.getValue().radius( );
+				m_theta_steps = prefab.getValue().theta_steps( );
 			} else {
-				std::cerr << "Not a value shape :" << shape.getValue() << std::endl;
-				m_default_shape = PLANE;
-				m_plane_x = plane_x.getValue();
-				m_plane_y = plane_y.getValue();
-				m_grid_spacing = grid_spacing.getValue();
+				throw("Very bad things...");
 			}
+		} else {
+			// No prefab or file: Shold never get here because TCLAP should have handled it
+			throw("Very bad things...");
 		}
 	} catch (TCLAP::ArgException &e) { // catch any exceptions
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; 

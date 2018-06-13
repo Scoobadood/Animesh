@@ -57,7 +57,7 @@ pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::stri
  * Construct a field from an OBJ file
  */
 Field * load_field_from_obj_file( const Args& args ) {
-	std::string file_name = args.pcd_file_name();
+	std::string file_name = args.file_name();
 
 	// Load the point cloud from file
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
@@ -88,7 +88,7 @@ Field * load_field( const Args& args) {
 				break;
 
 			case Args::CUBE: 
-				field = Field::cubic_field( args.cube_size(), make_field_fixed );
+				field = Field::cubic_field( args.cube_size(), args.scale(), make_field_fixed );
 				std::cout << "cube" << std::endl;
 				break;
 

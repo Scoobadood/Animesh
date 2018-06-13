@@ -396,47 +396,47 @@ Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 	return field;
 }
 
-Field * Field::cubic_field( std::size_t cube_size, bool make_fixed) {
+Field * Field::cubic_field( std::size_t cube_size, float scale, bool make_fixed) {
 	using namespace Eigen;
 
-	float minVal = 0.5f - ( cube_size / 2.0f );
-	float maxVal = ( cube_size / 2.0f ) - 0.5f;
+	float minVal = (0.5f - ( cube_size / 2.0f )) * scale;
+	float maxVal = (( cube_size / 2.0f ) - 0.5f) * scale;
 
 	std::vector<Element> elements;
 
 	Vector3f normalZ{ 0, 0, 1 };
-	for( float x = minVal; x <= maxVal; x +=  1.0f) {
-		for( float y = minVal; y <= maxVal; y+= 1.0f ) {
+	for( float x = minVal; x <= maxVal; x +=  scale) {
+		for( float y = minVal; y <= maxVal; y+= scale ) {
 
-			Vector3f location { x, y, minVal - 0.5f };
+			Vector3f location { x, y, minVal - (scale / 2.0f) };
 			Element e{ location, -normalZ };
 			elements.push_back( e );
 
-			Vector3f location2 { x, y, maxVal + 0.5f };
+			Vector3f location2 { x, y, maxVal + (scale / 2.0f) };
 			Element e2{ location2, normalZ };
 			elements.push_back( e2 );
 		}
 	}
 	Vector3f normalY{ 0, 1, 0 };
-	for( float x = minVal; x <= maxVal; x +=  1.0f) {
-		for( float z = minVal; z <= maxVal; z+= 1.0f ) {
-			Vector3f location { x, minVal - 0.5f, z };
+	for( float x = minVal; x <= maxVal; x +=  scale) {
+		for( float z = minVal; z <= maxVal; z+= scale ) {
+			Vector3f location { x, minVal - (scale / 2.0f), z };
 			Element e{ location, -normalY };
 			elements.push_back( e );
 
-			Vector3f location2 { x, maxVal + 0.5f, z };
+			Vector3f location2 { x, maxVal + (scale / 2.0f), z };
 			Element e2 {location2, normalY };
 			elements.push_back( e2 );
 		}
 	}
 	Vector3f normalX{ 1, 0, 0 };
-	for( float z = minVal; z <= maxVal; z +=  1.0f) {
-		for( float y = minVal; y <= maxVal; y+= 1.0f ) {
-			Vector3f location { minVal - 0.5f, y, z };
+	for( float z = minVal; z <= maxVal; z +=  scale) {
+		for( float y = minVal; y <= maxVal; y+= scale ) {
+			Vector3f location { minVal - (scale / 2.0f), y, z };
 			Element e{ location, -normalX };
 			elements.push_back( e );
 
-			Vector3f location2 { maxVal + 0.5f, y, z };
+			Vector3f location2 { maxVal + (scale / 2.0f), y, z };
 			Element e2{location2, normalX };
 			elements.push_back( e2 );
 		}

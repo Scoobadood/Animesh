@@ -28,7 +28,8 @@ target_link_libraries(Animesh
 	Field
 	FileUtils
 	Graph
-	RoSy )
+	RoSy
+	${VTK_LIBRARIES} )
 
 target_compile_features(Animesh 
 	PUBLIC 

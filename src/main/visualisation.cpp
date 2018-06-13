@@ -25,19 +25,48 @@
 #include "vtkTextActor.h"
 #include "vtkTextProperty.h"
 #include "vtkTextRepresentation.h"
-
+#include "vtkInteractorStyleTrackballCamera.h"
+#include "vtkAbstractPicker.h"
+#include "vtkPointPicker.h"
+#include "vtkRendererCollection.h"
 
 
 // Global field declaration
 static Field * g_field;
 
+
+// Define interaction style
+class MouseInteractorStylePP : public vtkInteractorStyleTrackballCamera
+{
+  public:
+    static MouseInteractorStylePP* New();
+    vtkTypeMacro(MouseInteractorStylePP, vtkInteractorStyleTrackballCamera);
+ 
+    virtual void OnLeftButtonDown() 
+    {
+      std::cout << "Picking pixel: " << this->Interactor->GetEventPosition()[0] << " " << this->Interactor->GetEventPosition()[1] << std::endl;
+      this->Interactor->GetPicker()->Pick(this->Interactor->GetEventPosition()[0], 
+                         this->Interactor->GetEventPosition()[1], 
+                         0,  // always zero.
+                         this->Interactor->GetRenderWindow()->GetRenderers()->GetFirstRenderer());
+      double picked[3];
+      this->Interactor->GetPicker()->GetPickPosition(picked);
+      vtkIdType pointId = reinterpret_cast<vtkPointPicker *>(this->Interactor->GetPicker())->GetPointId();
+      std::cout << "Picked value: " << picked[0] << " " << picked[1] << " " << picked[2] << "(Point: " << pointId << ")" << std::endl;
+      // Forward events
+      vtkInteractorStyleTrackballCamera::OnLeftButtonDown();
+    }
+ 
+};
+
+vtkStandardNewMacro(MouseInteractorStylePP);
+
 /**
- * Forwad declaration for the field
+ * Forward declaration for the field
  */
 void update_field_callback(vtkObject* caller,
                 long unsigned int eventId,
                 void* clientData, void* callData );
-
 
 /**
  * Create a text widget to act as a button for incremental smoothing
@@ -45,13 +74,13 @@ void update_field_callback(vtkObject* caller,
 vtkSmartPointer<vtkTextWidget> add_smooth_button( vtkSmartPointer<vtkRenderWindowInteractor> interactor ) {
  // Create the widget
   vtkSmartPointer<vtkTextActor> textActor = vtkSmartPointer<vtkTextActor>::New();
-  textActor->SetInput("Smooth Once");
+  textActor->SetInput("");
   textActor->GetTextProperty()->SetColor( 0.0, 1.0, 0.0 );
 
   vtkSmartPointer<vtkTextWidget> textWidget = vtkSmartPointer<vtkTextWidget>::New();
   vtkSmartPointer<vtkTextRepresentation> textRepresentation = vtkSmartPointer<vtkTextRepresentation>::New();
-  textRepresentation->GetPositionCoordinate()->SetValue( .15, .15 );
-  textRepresentation->GetPosition2Coordinate()->SetValue( .7, .2 );
+  textRepresentation->GetPositionCoordinate()->SetValue( 0, 0 );
+  textRepresentation->GetPosition2Coordinate()->SetValue( .01, .01 );
   textWidget ->SetRepresentation( textRepresentation );
 
   textWidget->SetInteractor(interactor);
@@ -60,7 +89,6 @@ vtkSmartPointer<vtkTextWidget> add_smooth_button( vtkSmartPointer<vtkRenderWindo
 
   return textWidget;
 }
-
 
 /**
  * Reconstruct the given polydata from the field
@@ -92,25 +120,25 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
     	// Add location
   		pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z() );
 
-        // Add tangent points
-        Vector3f p1 = location + tangent;
-        pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
+      // Add tangent points
+      Vector3f p1 = location + tangent;
+      pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
 
-        // Add opposite tangent points
-        Vector3f p2 = location - tangent;
-        pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
+      // Add opposite tangent points
+      Vector3f p2 = location - tangent;
+      pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
 
-        // Compute 90 tangent
-        Vector3f ninety = tangent.cross( normal );
-        Vector3f p3 = location + ninety;
-        pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
-        Vector3f p4 = location - ninety;
-        pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-        Vector3f p5 = location + normal;
-        pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
+      // Compute 90 tangent
+      Vector3f ninety = tangent.cross( normal );
+      Vector3f p3 = location + ninety;
+      pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
+      Vector3f p4 = location - ninety;
+      pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
+      Vector3f p5 = location + (normal * 0.1f);
+      pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
 
 		// Main tangent
-    	vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+  	vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
 		line->GetPointIds()->SetId(0,pid[0]);
 		line->GetPointIds()->SetId(1,pid[1]);
 		lines->InsertNextCell(line);
@@ -163,6 +191,12 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
   actor->SetMapper(mapper);
   actor->GetProperty()->SetPointSize(3); 
 	renderer->AddActor(actor);
+
+  // Add mouse handler
+  vtkSmartPointer<vtkPointPicker> pointPicker = vtkSmartPointer<vtkPointPicker>::New();
+  renderWindowInteractor->SetPicker( pointPicker );
+  vtkSmartPointer<MouseInteractorStylePP> style = vtkSmartPointer<MouseInteractorStylePP>::New();
+  renderWindowInteractor->SetInteractorStyle( style );
 
 
   //  Handle Callback

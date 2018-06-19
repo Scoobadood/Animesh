@@ -3,8 +3,6 @@
 #include <map>
 #include <vector>
 
-#include <Element/Element.h>
-
 /**
  * A node in the graph
  */

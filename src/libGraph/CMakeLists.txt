@@ -25,16 +25,31 @@ find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 
-file( GLOB TEST_SOURCES "tests/*.cpp" )
 add_executable(
 	testGraph
-    ${TEST_SOURCES})
+    "tests/main.cpp"
+    "tests/TestGraph.cpp")
 
 target_link_libraries(
 	testGraph 
 	Graph 
 	gtest gmock
 	${CMAKE_THREAD_LIBS_INIT} )
+
+add_executable(
+	testHGraph
+    "tests/main.cpp"
+    "tests/TestHierarchicalGraph.cpp")
+
+target_link_libraries(
+	testHGraph 
+	Graph 
+	gtest gmock
+	${CMAKE_THREAD_LIBS_INIT}
+ )
+
+
+
 
 add_test( NAME TestGraphAddElementShouldMakeSizeLargerByOne COMMAND testGraph --gtest_filter=TestGraph.AddElementShouldMakeSizeLargerByOne)
 add_test( NAME TestGraphNullEdgeManagerShouldThrow COMMAND testGraph --gtest_filter=TestGraph.NullEdgeManagerShouldThrow)

@@ -494,21 +494,17 @@ void Field::smooth_once( ) {
 	if( m_tracing_enabled )
 		cout << "smooth_once" << endl;
 
-	vector<const Vector3f> new_tangents;
-
-	// Extract map keys into vector
+	// Extract map keys into vector and shuffle
 	std::vector<FieldElement *> map_keys;
   	for (auto const& element : m_graph->m_data_to_node_map) {
     	map_keys.push_back(element.first);
   	}
-
-	// Permute map_keys
 	random_shuffle ( map_keys.begin(), map_keys.end() ); 
 
 	// Iterate over permute, look up key, lookup fe and smooth
+	vector<const Vector3f> new_tangents;
 	for( auto key_iter = map_keys.begin(); key_iter != map_keys.end(); ++key_iter ) {
-		auto key = *key_iter;
-		GraphNode<FieldElement *, void*> * g = m_graph->m_data_to_node_map[key];
+		GraphNode<FieldElement *, void*> * g = m_graph->m_data_to_node_map[ *key_iter ];
 		Vector3f new_tangent = smooth_node( g );
 		new_tangents.push_back( new_tangent );
 	}
@@ -529,9 +525,11 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 	using namespace Eigen;
 
 	FieldElement * this_fe = (FieldElement *) gn->m_data;
-	if( m_tracing_enabled ) trace_node( "get_smoothed_tangent_data_for_node", this_fe);
+	if( m_tracing_enabled ) 
+		trace_node( "smooth_node", this_fe);
 
-	Vector3f sum = Vector3f::Zero();
+	Vector3f sum = this_fe->m_tangent;
+	float weight = 0;
 
 	// For each edge from this node
 	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
@@ -543,16 +541,18 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 
 		// Find best matching rotation
 		std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( 
-			this_fe->m_tangent,
+			sum,
 			this_fe->m_normal,
 			neighbour_fe->m_tangent, 
 			neighbour_fe->m_normal);
 
 		// Update the computed new tangent
-		sum = sum + result.second;
+		float edge_weight = std::get<0>(*edge_iter);
+		sum = (result.first * weight) + (result.second * edge_weight);
+		weight += edge_weight;
+		sum = reproject_to_tangent_space( sum, this_fe->m_normal );
+		sum.normalize();
 	}
-	sum = reproject_to_tangent_space( sum, this_fe->m_normal );
-	sum.normalize();
 	return sum;
 }
 

@@ -1,0 +1,83 @@
+
+Graph g
+for each vertex  in OBJ file
+	make a field element with the same position and normal
+
+	set the field element's tangent to a random unit vector perp. to normal
+
+	make a GraphNode for this element and add to the Graph
+end
+
+for each gn in Graph 
+	for k nearest spatial neighbours of gn
+		add an edge from gn to neighbour with weight 1
+	end
+end
+
+new_tangents = empty list of Vector3f
+
+
+// Smooth the whole graph
+random_nodes = nodes of Graph g in randomised sequence
+for each gn in random_nodes
+	tangent = smooth_one_node(gn)
+	append tangent to new_tangents list
+end
+
+for each gn in random_nodes
+	update gn tangent from new_tangents list
+end
+
+
+// Smooth a single node
+function smooth_one_node( gn )
+
+	total_weight = 0
+    new_tangent = tangent for gn
+
+	for each edge from gn
+		neighbour = edge.node
+		weight = edge.weight
+
+		(best_this, best_neighbour) = compute closest 4-rosy vectors(new_tangent, neighbour.tangent)
+
+		new_tangent = (best_this * total_weight) + (best_neighbour * edge_weight)
+		total_weight = total_weight + edge_weight
+		reproject new_tangent to be perp to gn.normal
+		normalise new_tangent to unit length
+	end
+	return new_tangent
+
+
+// Compute best 4-RoSy vector pair given two vectors and their normals
+function best_4RoSy_pair( source_vector, source_normal, target_vector, target_normal ) 
+
+	// Compute and compare target and source with target and source rotated by 90 degrees
+	target_candidates = [ target_vector, target_normal.cross( target_vector ) ]
+	source_candidates = [ source_vector, source_normal.cross( source_vector ) ]
+
+	best_dot_product = -infinity
+	best_target = target_vector
+	best_source = source_vector
+
+	for ti = 0 to 2 
+		for si = 0 to 2
+			dp = target_candidates[ti] .dot( source_candidates[ si ] )
+			if dp > best_dot_product
+				best_dot_product = dp
+				best_source = source_candidates[ si ]
+				best_target = target_candidates[ ti ]
+			end
+		end
+	end
+
+
+	dp =  best_target.dot( best_source )
+	if dp > 0
+		return (best_target, best_source)
+	else
+		return (best_target, -best_source)
+	end
+
+
+

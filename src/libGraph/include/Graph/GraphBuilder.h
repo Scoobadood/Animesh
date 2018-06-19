@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include "Element/Element.h"
 #include "Graph.h"
 
 struct FieldElement {

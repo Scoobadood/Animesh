@@ -1,0 +1,63 @@
+Construct from a Graph
+
+In addition to basi cgraph operations it has an up and down layer
+
+We should be able to call build_hierarchy( Graph ) and get a HieraarchicalGraph back
+
+build_hierarchy should iterate over the graph finding pairs of neighbours and replace each pair with a new node, connected to all the old nodes
+
+
+
+o----o----o--o
+     |      /
+     |     /
+     o----o
+
+The term for this is edge contraction where an edge is removed and a new vertex formed from the formed end points of that edge
+
+We need to do two things; 
+* Ensure we hit each edge in the graph
+* Ensure we hit each edge only ONCE
+* Ensure that all new nodes are at the same level
+* Maintain pointers to the two nodes in the original graph which were collapsed
+
+So the new node must maintain
+* Old node1 pointer
+* Old node2 pointer
+* Graph hierarch level
+* Merged data from nodes 1 and 2
+
+
+
+Get list of all nodes
+Create emty set of visited nodes
+If there are more nodes in the list
+	Take next node in list
+	If this node not in visited nodes
+		If there are edges left
+			Get node for next edge
+			If this node is not in visited set
+				Create new Node
+				Set data as merge of sourc nodes
+				Set node 1 pointer and node 2 pointer 
+				For each neighbour of node 1
+					If neighbour is visited
+						Create edge from new node to neighbours new node
+					Else
+						Create edge from new node to neighbour
+					End
+				End
+				For each neighbour of node 1
+					If neighbour is visited
+						Create edge from new node to neighbours new node
+					Else
+						Create edge from new node to neighbour
+					End
+				End
+			End
+		End
+		Add this node to visited nodes
+	End
+End
+
+

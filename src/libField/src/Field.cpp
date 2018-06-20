@@ -96,7 +96,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
 	using GraphNode = animesh::Graph<FieldElement *, void*>::GraphNode;
 
 	// First make an empty Graph
-    m_graph = new animesh::Graph<FieldElement*, void*>( mergeFieldElements);
+    m_graph = new animesh::Graph<FieldElement*, void*>( FieldElement::mergeFieldElements);
 
 
 	// Next add all the points to it
@@ -589,6 +589,19 @@ void Field::set_tangents( const std::vector<const Eigen::Vector3f>& new_tangents
 		const Vector3f new_tangent = (*tan_iter);
 		fe->m_tangent = new_tangent; //(0.5 * fe->m_tangent + 0.5 * new_tangent).normalized();
 	}
+}
+
+/**
+ * Return vector of elements
+ */
+const std::vector<const FieldElement *> Field::elements( ) const {
+	std::vector<const FieldElement *> elements;
+	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
+		const FieldElement * fe = (*node_iter)->data();
+
+		elements.push_back( fe );
+	}
+	return elements;
 }
 
 /**

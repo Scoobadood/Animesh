@@ -51,7 +51,7 @@ animesh::Graph<FieldElement *, EdgeData> * NearestNeighbourGraphBuilder<EdgeData
 	using Graph = typename animesh::Graph<FieldElement *, EdgeData>;
 	using GraphNode = typename animesh::Graph<FieldElement *, EdgeData>::GraphNode;
 
-	Graph * graph = new Graph( mergeFieldElements);
+	Graph * graph = new Graph( FieldElement::mergeFieldElements);
 
 	for( auto& element : elements ) {
 		Vector3f tan{0.0f, 0.0f, 0.0f};

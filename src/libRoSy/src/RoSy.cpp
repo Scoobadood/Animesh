@@ -51,19 +51,6 @@ Eigen::Vector3f reproject_to_tangent_space( const Eigen::Vector3f& v, const Eige
 
 
 /**
- * Return vector of elements
- */
-const std::vector<const FieldElement *> Field::elements( ) const {
-	std::vector<const FieldElement *> elements;
-	for( auto node_iter = m_graph->m_data_to_node_map.begin(); node_iter != m_graph->m_data_to_node_map.end(); ++node_iter ) {
-		const FieldElement * fe = (FieldElement *) (*node_iter).first;
-
-		elements.push_back( fe );
-	}
-	return elements;
-}
-
-/**
  * @param targetVector The vector we're trying to match
  * @param normal The normal about which to rotate the sourceVector
  * @param sourceVector the vector to be matched

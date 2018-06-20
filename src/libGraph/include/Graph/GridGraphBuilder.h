@@ -30,7 +30,7 @@ animesh::Graph<FieldElement *, EdgeData> * GridGraphBuilder<EdgeData>::build_gra
 	using Graph = typename animesh::Graph<FieldElement *, EdgeData>;
 	using GraphNode = typename animesh::Graph<FieldElement *, EdgeData>::GraphNode;
 
-	Graph * graph = new Graph( mergeFieldElements );
+	Graph * graph = new Graph( FieldElement::mergeFieldElements );
 
 	for( auto& element : elements ) {
 		Eigen::Vector3f tan{0.0f, 0.0f, 0.0f};

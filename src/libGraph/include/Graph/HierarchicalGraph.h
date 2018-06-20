@@ -192,10 +192,9 @@ public:
         return edge;
     }
 
-    void remove_edge(  GraphNode * from_node, GraphNode * to_node, float weight, const EdgeData& edge_data) {
+    void remove_edge(  GraphNode * from_node, GraphNode * to_node) {
         if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
         if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
-        if ( weight < 0 ) throw std::invalid_argument( "weight must be positive" );
         if ( std::find( m_nodes.begin(), m_nodes.end(), from_node ) == m_nodes.end() ) throw std::invalid_argument( "from node is unknown" );
         if ( std::find( m_nodes.begin(), m_nodes.end(), to_node ) == m_nodes.end() ) throw std::invalid_argument( "to node is unknown" );
 
@@ -207,10 +206,18 @@ public:
         }
 
         // TODO: Perform actual delete
-        m_adjacency[from_node].remove( to_node );
+        m_adjacency.erase(from_node);
 
-        Edge * edge = new Edge( from_node, to_node, weight, edge_data);
-        m_edges.push_back( edge );
+        auto edge_iter = m_edges.begin();
+        for ( ; edge_iter != m_edges.end(); ) {
+            if( ( (*edge_iter)->from_node() == from_node ) &&
+                ( (*edge_iter)->to_node() == to_node ) ) {
+
+                edge_iter = m_edges.erase(edge_iter);
+            } else {
+                ++edge_iter;
+            }
+        }
     }
 
     /**

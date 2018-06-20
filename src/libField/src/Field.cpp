@@ -24,13 +24,10 @@ void Field::init( const GraphBuilder<void*> * const graph_builder, const std::ve
 	m_graph = graph_builder->build_graph_for_elements( elements );
 
 	// Initialise field tangents to random values
-	for( auto node_iter = m_graph->m_data_to_node_map.begin(); node_iter != m_graph->m_data_to_node_map.end(); ++node_iter ) {
-		FieldElement * fe = (FieldElement *) (*node_iter).first;
-
-
+	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
 		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
-		random = random.cross( fe->m_normal ).normalized( );
-		fe->m_tangent = random;
+		random = random.cross( (*node_iter)->data()->m_normal ).normalized( );
+		(*node_iter)->data()->m_tangent = random;
 	}
 }
 
@@ -77,10 +74,16 @@ struct cmpPointNormal {
     }
 };
 
-FieldElement * find_element_or_throw( const std::map<pcl::PointNormal, FieldElement*, cmpPointNormal>& map, const pcl::PointNormal& point ) {
-	auto find_it = map.find(point);
-	if( find_it == map.end() )
-		throw std::runtime_error( "No FE found for point" );
+/**
+ * Find the GN corresponding to a point 
+ * or else throw an exception
+ */
+animesh::Graph<FieldElement *, void *>::GraphNode * find_node_or_throw( const std::map<pcl::PointNormal, 
+	typename animesh::Graph<FieldElement *, void *>::GraphNode*, cmpPointNormal>& map, 
+	const pcl::PointNormal& point ) {
+		auto find_it = map.find(point);
+		if( find_it == map.end() )
+			throw std::runtime_error( "No FE found for point" );
 	return find_it->second;
 }
 
@@ -90,20 +93,22 @@ FieldElement * find_element_or_throw( const std::map<pcl::PointNormal, FieldElem
  */
 Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
 
+	using GraphNode = animesh::Graph<FieldElement *, void*>::GraphNode;
+
 	// First make an empty Graph
-    m_graph = new Graph<FieldElement*, void*>();
+    m_graph = new animesh::Graph<FieldElement*, void*>( mergeFieldElements);
 
 
 	// Next add all the points to it
-	std::map<pcl::PointNormal, FieldElement*, cmpPointNormal> point_to_fe_map;
+	std::map<pcl::PointNormal, GraphNode*, cmpPointNormal> point_to_gn_map;
 	size_t points_added = 0;
     for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
     	pcl::PointNormal point = *it;
 		FieldElement * fe = field_element_from_point( point );
-		m_graph->add_node( fe );
+		GraphNode * gn = m_graph->add_node( fe );
 
-		// Keep a mapping from point to FE
-		point_to_fe_map[ point ] = fe;
+		// Keep a mapping from point to gn
+		point_to_gn_map[ point ] = gn;
 
 		++points_added;
 	}
@@ -118,7 +123,6 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
     std::vector<int> pointIdxNKNSearch(k);
     std::vector<float> pointNKNSquaredDistance(k);
 
-
 	// Keep track of points visited
 	std::set<pcl::PointNormal, cmpPointNormal> visited;
 
@@ -128,8 +132,8 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
 		if( m_tracing_enabled )
 			std::cout<< "Processing point " << this_point << std::endl;
 
-		// Look up FE
-		FieldElement * this_fe = find_element_or_throw( point_to_fe_map, this_point);
+		// Look up GN
+		GraphNode * this_gn = find_node_or_throw( point_to_gn_map, this_point);
 
     	// Now find neighbours
     	pointIdxNKNSearch.clear();
@@ -145,9 +149,10 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
 
             	// Provided the eighbour isn't this point
             	if( ! (neighbour_point == this_point ) ){
-					FieldElement * neighbour_fe = find_element_or_throw( point_to_fe_map, neighbour_point);
+            		// If the neighbour GN is not found... throw
+					GraphNode * neighbour_gn = find_node_or_throw( point_to_gn_map, neighbour_point);
 
-            	    m_graph->add_edge( this_fe, neighbour_fe, 1.0f, nullptr );
+            	    m_graph->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
 					if( m_tracing_enabled )
 						std::cout<< "    Add neighbour " << neighbour_point << std::endl;
             	}
@@ -163,12 +168,12 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
     std::cout << "Done" << std::endl;
 
 	// Initialise field tangents to random values
-	for( auto node_iter = m_graph->m_data_to_node_map.begin(); node_iter != m_graph->m_data_to_node_map.end(); ++node_iter ) {
-		FieldElement * fe = (FieldElement *) (*node_iter).first;
+	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
+		GraphNode * gn = *node_iter;
 
 		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
-		random = random.cross( fe->m_normal ).normalized( );
-		fe->m_tangent = random;
+		random = random.cross( gn->data()->m_normal ).normalized( );
+		gn->data()->m_tangent = random;
 	}
 }
 
@@ -305,11 +310,11 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 	delete gb;
 
 	if( make_fixed ) {
-		for( auto pair_iter = field->m_graph->m_data_to_node_map.begin();
-			      pair_iter != field->m_graph->m_data_to_node_map.end();
-			      ++pair_iter ) {
+		for( auto node_iter = field->m_graph->nodes().begin();
+			      node_iter != field->m_graph->nodes().end();
+			      ++node_iter ) {
 
-			FieldElement *fe = (FieldElement *)((*pair_iter).first);
+			FieldElement *fe = (*node_iter)->data();
 
 			// Find cross product of normal and vertical
 			Vector3f v{0.0f, 1.0f, 0.0f };
@@ -414,11 +419,11 @@ Field * Field::cubic_field( std::size_t cube_size, float scale, bool make_fixed)
 
 
 	if( make_fixed ) {
-		for( auto pair_iter = field->m_graph->m_data_to_node_map.begin();
-			      pair_iter != field->m_graph->m_data_to_node_map.end();
-			      ++pair_iter ) {
+		for( auto node_iter = field->m_graph->nodes().begin();
+			      node_iter != field->m_graph->nodes().end();
+			      ++node_iter ) {
 
-			FieldElement *fe = (FieldElement *)((*pair_iter).first);
+			FieldElement *fe = (*node_iter)->data();
 
 			if( fabsf(fe->m_tangent[0]) < EPSILON && 
 				fabsf(fe->m_tangent[1]) < EPSILON && 
@@ -443,7 +448,7 @@ Field * Field::cubic_field( std::size_t cube_size, float scale, bool make_fixed)
  * @return the size of the ifled
  */
 std::size_t Field::size() const {
-	return m_graph->m_data_to_node_map.size();
+	return m_graph->num_nodes();
 }
 
 /**
@@ -453,9 +458,11 @@ float Field::error( ) const {
 	// E(O, k) :=      (oi, Rso (oji, ni, kij ))
 	// For each node
 	float error = 0.0f;
-	for( auto map_iter = m_graph->m_data_to_node_map.begin(); map_iter != m_graph->m_data_to_node_map.end(); ++map_iter ) {
-		GraphNode<FieldElement *, void*> * g = (*map_iter).second;
-		error += get_error_for_node( g );
+	for( auto node_iter = m_graph->nodes().begin(); 
+		node_iter != m_graph->nodes().end(); 
+		++node_iter ) {
+
+		error += get_error_for_node( *node_iter );
 	}
 	return error;
 }
@@ -463,12 +470,18 @@ float Field::error( ) const {
 /**
  * @return the smoothness of one node
  */
-float Field::get_error_for_node( const GraphNode<FieldElement *, void*>* gn ) const {
+float Field::get_error_for_node( 
+	animesh::Graph<FieldElement *, void*>::GraphNode* gn ) const {
+	using GraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 	float error = 0.0f;
-	FieldElement * this_fe = (FieldElement *) gn->m_data;
-	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
-		const GraphNode<FieldElement *, void*> * neighbouring_node = std::get<2>(*edge_iter);
-		FieldElement * neighbour_fe = (FieldElement *) neighbouring_node->m_data;
+
+	FieldElement * this_fe = (FieldElement *) gn->data();
+
+	std::vector<GraphNode *> neighbours = m_graph->neighbours( gn );
+
+	for( auto n = neighbours.begin(); n != neighbours.end(); ++n ) {
+
+		FieldElement * neighbour_fe = (*n)->data();
 
 		std::pair<Eigen::Vector3f, Eigen::Vector3f> result = best_rosy_vector_pair( 
 			this_fe->m_tangent,
@@ -490,29 +503,26 @@ float Field::get_error_for_node( const GraphNode<FieldElement *, void*>* gn ) co
 void Field::smooth_once( ) {
 	using namespace Eigen;
 	using namespace std;
+	using GraphNode = animesh::Graph<FieldElement *, void *>::GraphNode;
 
 	if( m_tracing_enabled )
 		cout << "smooth_once" << endl;
 
 	// Extract map keys into vector and shuffle
-	std::vector<FieldElement *> map_keys;
-  	for (auto const& element : m_graph->m_data_to_node_map) {
-    	map_keys.push_back(element.first);
-  	}
-	random_shuffle ( map_keys.begin(), map_keys.end() ); 
+	std::vector<GraphNode *> nodes = m_graph->nodes();
+	random_shuffle ( nodes.begin(), nodes.end() ); 
 
 	// Iterate over permute, look up key, lookup fe and smooth
 	vector<const Vector3f> new_tangents;
-	for( auto key_iter = map_keys.begin(); key_iter != map_keys.end(); ++key_iter ) {
-		GraphNode<FieldElement *, void*> * g = m_graph->m_data_to_node_map[ *key_iter ];
-		Vector3f new_tangent = smooth_node( g );
+	for( auto node_iter = nodes.begin(); node_iter != nodes.end(); ++node_iter ) {
+		Vector3f new_tangent = smooth_node( *node_iter );
 		new_tangents.push_back( new_tangent );
 	}
 
 	// Now update all of the nodes
 	auto tan_iter = new_tangents.begin();
-	for(auto key_iter = map_keys.begin();  key_iter != map_keys.end(); ++key_iter, ++tan_iter ) {
-		(*key_iter)->m_tangent = (*tan_iter);
+	for( auto node_iter = nodes.begin(); node_iter != nodes.end(); ++node_iter ) {
+		(*node_iter)->data()->m_tangent = (*tan_iter);
 	}
 }
 
@@ -521,10 +531,11 @@ void Field::smooth_once( ) {
  * Smooth the specified node (and neighbours)
  * @return The new vector.
  */
-Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * const gn ) const {
+Eigen::Vector3f Field::smooth_node( animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const {
 	using namespace Eigen;
+	using GraphNode = animesh::Graph<FieldElement *, void *>::GraphNode;
 
-	FieldElement * this_fe = (FieldElement *) gn->m_data;
+	FieldElement * this_fe = (FieldElement *) gn->data();
 	if( m_tracing_enabled ) 
 		trace_node( "smooth_node", this_fe);
 
@@ -532,11 +543,11 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 	float weight = 0;
 
 	// For each edge from this node
-	for( auto edge_iter = gn->m_edges.begin(); edge_iter != gn->m_edges.end(); ++edge_iter ) {
+	std::vector<GraphNode *> neighbours = m_graph->neighbours( gn );
+	for( auto neighbour_iter = neighbours.begin(); neighbour_iter != neighbours.end(); ++neighbour_iter ) {
 
 		// Get the adjacent FieldElement
-		const GraphNode<FieldElement *, void*> * neighbouring_node = std::get<2>(*edge_iter);
-		FieldElement * neighbour_fe = (FieldElement *) neighbouring_node->m_data;
+		FieldElement * neighbour_fe = (*neighbour_iter)->data();
 		if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
 
 		// Find best matching rotation
@@ -547,7 +558,8 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 			neighbour_fe->m_normal);
 
 		// Update the computed new tangent
-		float edge_weight = std::get<0>(*edge_iter);
+		// TODO: Manage weights better
+		float edge_weight = 1.0f;
 		sum = (result.first * weight) + (result.second * edge_weight);
 		weight += edge_weight;
 		sum = reproject_to_tangent_space( sum, this_fe->m_normal );
@@ -555,7 +567,6 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 	}
 	return sum;
 }
-
 
 /**
  * Set all the tangents in the field to specific values.
@@ -565,12 +576,14 @@ Eigen::Vector3f Field::smooth_node( const GraphNode<FieldElement *, void*> * con
 void Field::set_tangents( const std::vector<const Eigen::Vector3f>& new_tangents ) {
 	using namespace Eigen;
 
-	if( new_tangents.size() != m_graph->m_data_to_node_map.size() ) 
+	if( new_tangents.size() != m_graph->num_nodes() ) 
 		throw std::invalid_argument( "Must be one tangent for each node");
 
 	auto tan_iter = new_tangents.begin();
-	for( auto map_iter = m_graph->m_data_to_node_map.begin(); map_iter != m_graph->m_data_to_node_map.end(); ++map_iter, ++tan_iter ) {
-		FieldElement * fe = (FieldElement *) (*map_iter).first;
+	for( auto	node_iter = m_graph->nodes().begin(); 
+				node_iter != m_graph->nodes().end(); ++
+				node_iter, ++tan_iter ) {
+		FieldElement * fe = (*node_iter)->data();
 
 		const Vector3f current_tangent = fe->m_tangent;
 		const Vector3f new_tangent = (*tan_iter);
@@ -583,22 +596,24 @@ void Field::set_tangents( const std::vector<const Eigen::Vector3f>& new_tangents
  * and the field tangent
  */
 void Field::dump(  ) const {
-	for( auto pair_iter = m_graph->m_data_to_node_map.begin();
-		      pair_iter != m_graph->m_data_to_node_map.end();
-		      ++pair_iter ) {
+	for( auto node_iter = m_graph->nodes().begin();
+		      node_iter != m_graph->nodes().end();
+		      ++node_iter ) {
 
-		FieldElement *fe = (FieldElement *)((*pair_iter).first);
-		GraphNode<FieldElement *, void*> *gn    = (GraphNode<FieldElement *, void*>*)    ((*pair_iter).second);
+		using GraphNode = animesh::Graph<FieldElement *, void*>::GraphNode;
+
+		GraphNode    *gn = (*node_iter);
+		FieldElement *fe = gn->data();
 
 		std::cout << "locn    (" << fe->m_location[0] << "," << fe->m_location[1] << "," << fe->m_location[2] << ")" << std::endl;
 		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
 		std::cout << "neighbours " << std::endl;
-		for( auto edge_iter  = gn->m_edges.begin();
-			      edge_iter != gn->m_edges.end();
-			      ++edge_iter ) {
-			GraphNode<FieldElement *, void*> * gn = std::get<2>(*edge_iter);
-			FieldElement * fe_n = (FieldElement *) (gn->m_data);
 
+		std::vector<GraphNode *> neighbours = m_graph->neighbours( gn );
+		for( auto neighbour_iter  = neighbours.begin();
+			      neighbour_iter != neighbours.end();
+			      ++neighbour_iter ) {
+			FieldElement * fe_n = (*neighbour_iter)->data();
 			std::cout << "      " << fe_n->m_location[0] << "," << fe_n->m_location[1] << "," << fe_n->m_location[2] << std::endl;
 		}
 	}

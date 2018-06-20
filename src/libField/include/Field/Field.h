@@ -1,6 +1,5 @@
 #pragma once 
 
-#include <Graph/Graph.h>
 #include <Graph/GraphBuilder.h>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -65,7 +64,7 @@ public:
 	 * Smooth the specified node (and neighbours)
 	 * @return The new vector.
 	 */
-	Eigen::Vector3f smooth_node( const GraphNode<FieldElement *, void*> * const gn ) const;
+	Eigen::Vector3f smooth_node( animesh::Graph<FieldElement *, void*>::GraphNode * const gn ) const;
 
 	/**
 	 * @return vector of elements 
@@ -90,7 +89,7 @@ public:
 
 private:
 	/** The Graph - helps us get neighbours */
-	Graph<FieldElement *, void*> *  	m_graph;
+	animesh::Graph<FieldElement *, void*> *  	m_graph;
 
 	/** Flag to determine if we should trace field moothing */
 	bool 		m_tracing_enabled;
@@ -104,5 +103,5 @@ private:
 	/**
  	 * @return the smoothness of one node
 	 */
-	float get_error_for_node( const GraphNode<FieldElement *, void*> * gn ) const;
+	float get_error_for_node( animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
 };

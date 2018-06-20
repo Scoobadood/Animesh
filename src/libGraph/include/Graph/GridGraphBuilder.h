@@ -12,9 +12,12 @@ class GridGraphBuilder : public GraphBuilder<EdgeData> {
 public:
 	GridGraphBuilder( float grid_spacing ) : m_grid_spacing{ grid_spacing }{}
 
-	Graph<FieldElement *, EdgeData> * build_graph_for_elements( const std::vector<Element>& elements ) const;
+	animesh::Graph<FieldElement *, EdgeData> * build_graph_for_elements( const std::vector<Element>& elements ) const;
 
-	void check_build_edges( const void * first, const void * second, bool& build_fwd_edge, float& fwd_weight, bool& build_bwd_edge, float& bwd_weight ) const;
+	void check_build_edges( FieldElement * fe1, FieldElement * fe2, bool& build_fwd_edge, 
+													float& fwd_weight, 
+													bool& build_bwd_edge, 
+													float& bwd_weight ) const;
 
 private:
 	float 			m_grid_spacing;
@@ -23,30 +26,34 @@ private:
 const float EPSILON = 1e-6;
 
 template<class EdgeData>
-Graph<FieldElement *, EdgeData> * GridGraphBuilder<EdgeData>::build_graph_for_elements( const std::vector<Element>& elements ) const {
-	Graph<FieldElement *, EdgeData> * graph = new Graph<FieldElement *, EdgeData>( );
+animesh::Graph<FieldElement *, EdgeData> * GridGraphBuilder<EdgeData>::build_graph_for_elements( const std::vector<Element>& elements ) const {
+	using Graph = typename animesh::Graph<FieldElement *, EdgeData>;
+	using GraphNode = typename animesh::Graph<FieldElement *, EdgeData>::GraphNode;
+
+	Graph * graph = new Graph( mergeFieldElements );
 
 	for( auto& element : elements ) {
 		Eigen::Vector3f tan{0.0f, 0.0f, 0.0f};
 		FieldElement * fe = new FieldElement( element.location(), element.normal(), tan );
-		graph->add_node( fe );
+
+		GraphNode * gn = graph->add_node( fe );
 
 		// For all existing nodes, check if there should be an edge
-		for( auto& pair : graph->m_data_to_node_map ) {
-			if( pair.first != fe ) {
-				// Check edge building
+		for( auto 	node_iter = graph->nodes().begin();
+					node_iter != graph->nodes().end();
+					++node_iter) {
+			if( (*node_iter) != gn ) {
 				bool fwd_edge = false;
 				bool bwd_edge = false;
 				float fwd_weight = 1.0f;
 				float bwd_weight = 1.0f;
 
-
-				check_build_edges( fe, pair.first, fwd_edge, fwd_weight, bwd_edge, bwd_weight );
+				check_build_edges( gn->data(), (*node_iter)->data(), fwd_edge, fwd_weight, bwd_edge, bwd_weight );
 				if( fwd_edge )
-					graph->add_edge( fe, pair.first, fwd_weight, nullptr );
+					graph->add_edge( gn, (*node_iter), fwd_weight, nullptr );
 
 				if( bwd_edge )
-					graph->add_edge( pair.first, fe, bwd_weight, nullptr );
+					graph->add_edge( gn, (*node_iter), bwd_weight, nullptr );
 			}
 		}
 	}
@@ -60,11 +67,13 @@ Graph<FieldElement *, EdgeData> * GridGraphBuilder<EdgeData>::build_graph_for_el
  * @return true if an edge should exist between the specified items.
  */
 template<class EdgeData>
-void GridGraphBuilder<EdgeData>::check_build_edges( const void * first, const void * second, bool& build_fwd_edge, float& fwd_weight, bool& build_bwd_edge, float& bwd_weight ) const {
+void GridGraphBuilder<EdgeData>::check_build_edges( FieldElement * fe1, 
+													FieldElement * fe2, 
+													bool& build_fwd_edge, 
+													float& fwd_weight, 
+													bool& build_bwd_edge, 
+													float& bwd_weight ) const {
 	using namespace Eigen;
-
-	FieldElement * fe1 = (FieldElement *) first;
-	FieldElement * fe2 = (FieldElement *) second;
 
 	Vector3f delta = fe1->m_location - fe2->m_location;
 

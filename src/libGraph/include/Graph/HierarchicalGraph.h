@@ -192,6 +192,27 @@ public:
         return edge;
     }
 
+    void remove_edge(  GraphNode * from_node, GraphNode * to_node, float weight, const EdgeData& edge_data) {
+        if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
+        if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
+        if ( weight < 0 ) throw std::invalid_argument( "weight must be positive" );
+        if ( std::find( m_nodes.begin(), m_nodes.end(), from_node ) == m_nodes.end() ) throw std::invalid_argument( "from node is unknown" );
+        if ( std::find( m_nodes.begin(), m_nodes.end(), to_node ) == m_nodes.end() ) throw std::invalid_argument( "to node is unknown" );
+
+        // If edge does not exists (throw)
+        if ( m_adjacency[from_node].size() != 0 ) {
+            if( std::find( m_adjacency[from_node].begin(), m_adjacency[from_node].end(), to_node ) == m_adjacency[from_node].end() ) {
+                throw std::invalid_argument( "no such edge");
+            }
+        }
+
+        // TODO: Perform actual delete
+        m_adjacency[from_node].remove( to_node );
+
+        Edge * edge = new Edge( from_node, to_node, weight, edge_data);
+        m_edges.push_back( edge );
+    }
+
     /**
      * @return the number of nodes in this graph
      */
@@ -206,11 +227,9 @@ public:
      * @return a vector of the neghbours of a given node
      */
     std::vector<GraphNode *> neighbours( GraphNode * node )  {
-        std::vector<GraphNode *> ret;
-        // Check that we have an entry and copy from it or make one
-        std::copy(m_adjacency[node].begin(), m_adjacency[node].end(),
-              std::back_inserter(ret));
-        return   ret;
+        std::vector<GraphNode *> ret = m_adjacency[node];
+
+        return ret;
     }
 
     /**
@@ -219,6 +238,13 @@ public:
     bool has_edge( GraphNode * node_a, GraphNode * node_b ) {
         std::vector<GraphNode *> neighbours = m_adjacency[node_a];
         return (std::find( neighbours.begin(), neighbours.end(), node_b ) != neighbours.end());
+    }
+
+    /**
+     * @return the nodes of this graph
+     */
+    std::vector<animesh::Graph<NodeData, EdgeData>::GraphNode *>& nodes( ) {
+      return m_nodes;
     }
 
     /**

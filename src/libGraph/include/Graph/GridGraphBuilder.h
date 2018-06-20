@@ -2,6 +2,8 @@
 
 #include "GraphBuilder.h"
 
+const float EPSILON = 1e-6;
+
 /*
  * GridGraphBuilder builds graphs based on a grid layout. Elements which have a 
  * difference in X, Y or Z coordinate of a fixed amount (the grid spacing) are 
@@ -9,51 +11,59 @@
  */
 template <class EdgeData>
 class GridGraphBuilder : public GraphBuilder<EdgeData> {
+	using Graph = animesh::Graph<FieldElement *, EdgeData>;
+	using GraphNode = typename animesh::Graph<FieldElement *, EdgeData>::GraphNode;
+
 public:
+	/**
+	 * Construct with given spacing
+	 */
 	GridGraphBuilder( float grid_spacing ) : m_grid_spacing{ grid_spacing }{}
 
-	animesh::Graph<FieldElement *, EdgeData> * build_graph_for_elements( const std::vector<Element>& elements ) const;
+	/**
+	 * Build the graph
+	 */
+	Graph * 
+	build_graph_for_elements( const std::vector<Element>& elements ) const;
 
-	void check_build_edges( FieldElement * fe1, FieldElement * fe2, bool& build_fwd_edge, 
-													float& fwd_weight, 
-													bool& build_bwd_edge, 
-													float& bwd_weight ) const;
+	/**
+	 * Determine whether two vertices should be connected by edges
+	 */
+	void 
+	check_build_edges( GraphNode * gn1, GraphNode * gn2, 
+						bool& build_fwd_edge, float& fwd_weight, 
+						bool& build_bwd_edge,  float& bwd_weight ) const;
 
 private:
 	float 			m_grid_spacing;
 };
 
-const float EPSILON = 1e-6;
 
 template<class EdgeData>
-animesh::Graph<FieldElement *, EdgeData> * GridGraphBuilder<EdgeData>::build_graph_for_elements( const std::vector<Element>& elements ) const {
-	using Graph = typename animesh::Graph<FieldElement *, EdgeData>;
-	using GraphNode = typename animesh::Graph<FieldElement *, EdgeData>::GraphNode;
-
+animesh::Graph<FieldElement *, EdgeData> * 
+GridGraphBuilder<EdgeData>::build_graph_for_elements( const std::vector<Element>& elements ) const {
 	Graph * graph = new Graph( FieldElement::mergeFieldElements );
 
 	for( auto& element : elements ) {
+		// Make a graph node for each element
 		Eigen::Vector3f tan{0.0f, 0.0f, 0.0f};
 		FieldElement * fe = new FieldElement( element.location(), element.normal(), tan );
-
 		GraphNode * gn = graph->add_node( fe );
 
-		// For all existing nodes, check if there should be an edge
-		for( auto 	node_iter = graph->nodes().begin();
-					node_iter != graph->nodes().end();
-					++node_iter) {
+		// For all existing nodes in graph, check if there should be an edge
+		for( auto node_iter = graph->nodes().begin(); node_iter != graph->nodes().end(); ++node_iter) {
 			if( (*node_iter) != gn ) {
 				bool fwd_edge = false;
 				bool bwd_edge = false;
 				float fwd_weight = 1.0f;
 				float bwd_weight = 1.0f;
 
-				check_build_edges( gn->data(), (*node_iter)->data(), fwd_edge, fwd_weight, bwd_edge, bwd_weight );
+				check_build_edges( gn, (*node_iter), fwd_edge, fwd_weight, bwd_edge, bwd_weight );
 				if( fwd_edge )
 					graph->add_edge( gn, (*node_iter), fwd_weight, nullptr );
 
 				if( bwd_edge )
-					graph->add_edge( gn, (*node_iter), bwd_weight, nullptr );
+					graph->add_edge( (*node_iter), gn, bwd_weight, nullptr );
 			}
 		}
 	}
@@ -67,13 +77,12 @@ animesh::Graph<FieldElement *, EdgeData> * GridGraphBuilder<EdgeData>::build_gra
  * @return true if an edge should exist between the specified items.
  */
 template<class EdgeData>
-void GridGraphBuilder<EdgeData>::check_build_edges( FieldElement * fe1, 
-													FieldElement * fe2, 
-													bool& build_fwd_edge, 
-													float& fwd_weight, 
-													bool& build_bwd_edge, 
-													float& bwd_weight ) const {
+void GridGraphBuilder<EdgeData>::check_build_edges( GraphNode * gn1, GraphNode * gn2, 
+													bool& build_fwd_edge,  float& fwd_weight, 
+													bool& build_bwd_edge,  float& bwd_weight ) const {
 	using namespace Eigen;
+	FieldElement * fe1 = gn1->data();
+	FieldElement * fe2 = gn2->data();
 
 	Vector3f delta = fe1->m_location - fe2->m_location;
 

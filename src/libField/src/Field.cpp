@@ -15,6 +15,9 @@
 #include <queue>
 #include <set>
 
+using Graph = animesh::Graph<FieldElement *, void *>;
+using GraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
+
 Field::~Field( ) {
 	delete m_graph;
 }
@@ -78,9 +81,9 @@ struct cmpPointNormal {
  * Find the GN corresponding to a point 
  * or else throw an exception
  */
-animesh::Graph<FieldElement *, void *>::GraphNode * find_node_or_throw( const std::map<pcl::PointNormal, 
-	typename animesh::Graph<FieldElement *, void *>::GraphNode*, cmpPointNormal>& map, 
+GraphNode * find_node_or_throw( const std::map<pcl::PointNormal, GraphNode *, cmpPointNormal>& map, 
 	const pcl::PointNormal& point ) {
+
 		auto find_it = map.find(point);
 		if( find_it == map.end() )
 			throw std::runtime_error( "No FE found for point" );
@@ -91,13 +94,12 @@ animesh::Graph<FieldElement *, void *>::GraphNode * find_node_or_throw( const st
 /**
  * Construct a field given a point cloud
  */
-Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
+Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled ) {
 
-	using GraphNode = animesh::Graph<FieldElement *, void*>::GraphNode;
-
+	m_tracing_enabled = tracing_enabled;
+	
 	// First make an empty Graph
-    m_graph = new animesh::Graph<FieldElement*, void*>( FieldElement::mergeFieldElements);
-
+    m_graph = new Graph( FieldElement::mergeFieldElements );
 
 	// Next add all the points to it
 	std::map<pcl::PointNormal, GraphNode*, cmpPointNormal> point_to_gn_map;
@@ -167,6 +169,35 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k ) {
     // Graph is built
     std::cout << "Done" << std::endl;
 
+    randomise_tangents( );
+
+    generate_hierarchy( 20 );
+}
+
+/**
+ * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
+ */
+void Field::generate_hierarchy( size_t max_nodes ) {
+	if( m_tracing_enabled )
+		std::cout<< "Generating graph hierarchy. Starting at " << m_graph->num_nodes() << " and going to " << max_nodes << " nodes maximum" << std::endl;
+
+	bool done = false;
+	while ( !done && (m_graph->num_nodes( ) > max_nodes ) ) {
+		if( m_tracing_enabled )
+			std::cout<< "    Now " << m_graph->num_nodes() << " nodes" << std::endl;
+		Graph * next_graph = m_graph->simplify( );
+		if( next_graph == nullptr) {
+			done = true;
+		}
+		else {
+			m_graph = next_graph;
+		}
+	}
+	if( m_tracing_enabled )
+		std::cout<< "    Final nodes :  " << m_graph->num_nodes() << std::endl;
+}
+
+void Field::randomise_tangents( ) {
 	// Initialise field tangents to random values
 	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
 		GraphNode * gn = *node_iter;

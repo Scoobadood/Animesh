@@ -38,11 +38,13 @@ public:
         GraphNode( GraphNode * node_a, GraphNode * node_b, std::function<NodeData(const NodeData&, const NodeData&)> node_merge_function) {
             if( node_a == nullptr ) throw std::invalid_argument( "first node may not be null" );
             if( node_b == nullptr ) throw std::invalid_argument( "second node may not be null" );
+
             m_data = node_merge_function( node_a->m_data, node_b->m_data );
             m_children.push_back( node_a );
             m_children.push_back( node_b );
             node_a->m_parent_node = this;
             node_b->m_parent_node = this;
+            m_parent_node = nullptr;
         }
 
         /**
@@ -50,8 +52,10 @@ public:
          */
         GraphNode( GraphNode * node ) {
             if( node == nullptr ) throw std::invalid_argument( "node may not be null" );
+
             m_data = node->m_data;
             m_children.push_back( node );
+            m_parent_node = nullptr;
             node->m_parent_node = this;
         }
 
@@ -266,26 +270,30 @@ public:
         if( m_edges.size() == 0 )
             return nullptr;
 
+        // Make the up graph
+        m_up_graph = new animesh::Graph<NodeData, EdgeData>( m_node_merge_function );
+        m_up_graph->m_down_graph = this;
+
+
         /*
-            add a new upper graph
             for each edge in the lower graph
                 if neither end node has a parent in upper graph
-                    create a new merged node, parent of end nodes
+                    create a new merged node, parent of both end nodes
                     add to upper graph
                 end
             end
          */        
-        m_up_graph = new animesh::Graph<NodeData, EdgeData>( m_node_merge_function );
         for( auto edge_iter = m_edges.begin( ); edge_iter != m_edges.end(); ++edge_iter) {
-            if( edge_has_no_parent(*edge_iter) ) {
-                GraphNode * new_node = create_parent_node( (*edge_iter)->from_node(), (*edge_iter)->to_node() );
+            Edge * edge = *edge_iter;
+            if( edge_has_no_parent(edge) ) {
+                GraphNode * new_node = create_parent_node( edge->from_node(), edge->to_node() );
                 m_up_graph->add_node( new_node );                
             }
         }
 
 
         /*
-            for each node
+            for each node in this graph
                 if node has no parent
                     create new single node, parent of this node
                     add to upper graph
@@ -293,8 +301,10 @@ public:
             end
         */
         for( auto node_iter = m_nodes.begin(); node_iter != m_nodes.end(); ++node_iter) {
-            if( (*node_iter)->parent() == nullptr ) {
-                GraphNode * new_node = create_parent_node( *node_iter );
+            GraphNode * node = (*node_iter);
+
+            if( node->parent() == nullptr ) {
+                GraphNode * new_node = create_parent_node( node );
                 m_up_graph->add_node( new_node );                
             }
         }
@@ -328,17 +338,18 @@ public:
                         ++child_iter ) {
 
                 GraphNode * child = *child_iter;
-                std::vector<GraphNode *> child_neghbours = m_up_graph->neighbours( child );
+                std::vector<GraphNode *> child_neghbours = this->neighbours( child );
                 for( auto   neighbour_iter = child_neghbours.begin();
                             neighbour_iter != child_neghbours.end();
                             ++neighbour_iter ) {
-                    GraphNode * neighbour = *neighbour_iter;
-                    GraphNode * neighbour_parent = neighbour->parent();
 
-                    if( neighbour_parent != upper_node ) {
-                        if( neighbours.find( neighbour_parent ) == neighbours.end() ) {
-                            neighbours.insert( neighbour_parent );
-                        }
+                    GraphNode * neighbour_parent = (*neighbour_iter)->parent();
+
+                    if( neighbour_parent == upper_node )
+                        continue;
+
+                    if( neighbours.find( neighbour_parent ) == neighbours.end() ) {
+                        neighbours.insert( neighbour_parent );
                     }
                 }
             }
@@ -353,7 +364,7 @@ public:
             for( auto   neighbour_iter = neighbours.begin();
                         neighbour_iter != neighbours.end();
                         ++neighbour_iter) {
-                if( ! m_up_graph->has_edge( *neighbour_iter, upper_node ) ) {
+                if( ! m_up_graph->has_edge( upper_node, *neighbour_iter ) ) {
                     m_up_graph->add_edge( upper_node, *neighbour_iter, 1.0f, nullptr );
                 }
             }

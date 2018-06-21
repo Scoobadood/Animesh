@@ -14,7 +14,7 @@ public:
 	/**
 	 * Construct from a PCL PointCloud
 	 */
-	Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k );
+	Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled = false );
 
 	~Field( );
 
@@ -88,6 +88,12 @@ public:
 	float error( ) const;
 
 private:
+	void randomise_tangents( );
+	/**
+	 * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
+	 */
+	void generate_hierarchy( size_t max_nodes );
+
 	/** The Graph - helps us get neighbours */
 	animesh::Graph<FieldElement *, void*> *  	m_graph;
 

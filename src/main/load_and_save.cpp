@@ -75,7 +75,7 @@ Field * load_field_from_obj_file( const Args& args ) {
 	}
 
 	std::cout << "building graph with " << args.k() << " nearest neighbours." << std::endl;
-	return new Field( cloud, args.k() );
+	return new Field( cloud, args.k(), true );
 }
 
 

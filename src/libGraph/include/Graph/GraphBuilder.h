@@ -21,11 +21,10 @@ struct FieldElement {
 			(fe1->m_normal + fe2->m_normal) / 2.0,
 			Eigen::Vector3f::Zero());
 
-		Eigen::Vector3f tang = (fe1->m_tangent + fe2->m_tangent);
-		Eigen::Vector3f error = tang.dot( fe->m_normal ) * fe->m_normal;
-		tang = tang - error;
-		tang.normalize();
-		fe->m_tangent = tang;
+		fe->m_normal.normalize();
+
+		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
+		fe->m_tangent = random.cross( fe->m_normal ).normalized( );
 		return fe;
 	}
 };

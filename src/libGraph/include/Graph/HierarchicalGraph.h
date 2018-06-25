@@ -138,8 +138,10 @@ private:
        **                                                                            **
        ********************************************************************************/
 public:
-    Graph( std::function<NodeData(const NodeData&, const NodeData&)> node_merge_function ) {
+    Graph( std::function<NodeData(const NodeData&, const NodeData&)> node_merge_function,
+           std::function<NodeData(NodeData, NodeData)> node_propagate_function  ) {
         m_node_merge_function = node_merge_function;
+        m_node_propagate_function = node_propagate_function;
         m_up_graph = nullptr;
         m_down_graph = nullptr;
     }
@@ -271,7 +273,7 @@ public:
             return nullptr;
 
         // Make the up graph
-        m_up_graph = new animesh::Graph<NodeData, EdgeData>( m_node_merge_function );
+        m_up_graph = new animesh::Graph<NodeData, EdgeData>( m_node_merge_function, m_node_propagate_function );
         m_up_graph->m_down_graph = this;
 
 
@@ -369,12 +371,37 @@ public:
                 }
             }
         }
-
         return m_up_graph;
+    }
+
+    bool can_propagate_down( ) const {
+        return (m_down_graph != nullptr);
+    }
+
+
+    Graph<NodeData, EdgeData> * propagate_down( ) {
+        if( m_down_graph == nullptr )
+            throw std::invalid_argument("can't propagate down");
+
+        /*
+            for each node in the graph
+                for each child
+                    compute the new child value given the parent
+                end
+            end
+         */
+        for( auto& node : m_nodes ) {
+            for( auto&  child : node->children() ) {
+                m_node_propagate_function( node->data(), child->data() );
+            }
+        }
+
+        return m_down_graph;
     }
 
 private:
     std::function<NodeData(const NodeData&, const NodeData&)> m_node_merge_function;
+    std::function<NodeData(NodeData, NodeData)> m_node_propagate_function;
     std::vector<GraphNode *>    m_nodes;
     std::vector<Edge *>         m_edges;
     Graph *                     m_up_graph;

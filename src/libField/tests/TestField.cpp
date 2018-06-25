@@ -28,7 +28,7 @@ TEST_F(TestField, SizeAccuatelyReportsSize) {
 	std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
 
 	for( int i=0; i<3; i++ ) {
-		field->smooth_once( );
+		field->smooth( );
 		std::cout << "tan{"<<i+2<<"} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
 		std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
 		std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;

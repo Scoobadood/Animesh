@@ -22,7 +22,7 @@ ExplicitGraphBuilder<EdgeData>::build_graph_for_elements( const std::vector<Elem
 	using Graph = typename animesh::Graph<FieldElement *, EdgeData>;
 	using GraphNode = typename animesh::Graph<FieldElement *, EdgeData>::GraphNode;
 
-	Graph * graph = new Graph( FieldElement::mergeFieldElements);
+	Graph * graph = new Graph( FieldElement::mergeFieldElements, FieldElement::propagateFieldElements);
 
 	// Add all elements to graph
 	std::vector<GraphNode *> nodes;

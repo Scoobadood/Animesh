@@ -8,6 +8,9 @@ std::string merge_strings( const std::string& s1, const std::string& s2 ) {
     return s1+s2;
 }
 
+std::string propagate_strings( std::string s1, std::string s2 ){
+    return s1;
+}
 
 void TestHierarchicalGraph::SetUp( ){
     using namespace animesh;

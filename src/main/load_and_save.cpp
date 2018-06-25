@@ -131,16 +131,7 @@ Field * load_field( const Args& args) {
 void save_field( const Args& args, Field * field ) {
 	write_matlab_file( field, "initial.mat" );
 
-	int frame_index = 0;
-	for( int i=0; i< args.num_iterations(); ++i ) {
-		field->smooth_once( );
-		float err = field->error();
-		std::cout << err << std::endl;
-		if( err < 1 ) break;
-
-		if( i % EXPORT_FRAMES == 0 )
-			write_matlab_file( field, frame_index++ );
-	}
+	field->smooth( );
 	
 	write_matlab_file( field, "final.mat" );
 }

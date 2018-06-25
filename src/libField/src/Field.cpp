@@ -22,6 +22,7 @@ Field::~Field( ) {
 
 void Field::init( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements ) {
 	m_graph = graph_builder->build_graph_for_elements( elements );
+	m_top_graph = m_graph;
 
 	// Initialise field tangents to random values
 	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
@@ -96,7 +97,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 	m_tracing_enabled = tracing_enabled;
 	
 	// First make an empty Graph
-    m_graph = new Graph( FieldElement::mergeFieldElements );
+    m_graph = new Graph( FieldElement::mergeFieldElements, FieldElement::propagateFieldElements );
 
 	// Next add all the points to it
 	std::map<pcl::PointNormal, GraphNode*, cmpPointNormal> point_to_gn_map;
@@ -167,31 +168,39 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     std::cout << "Done" << std::endl;
 
     randomise_tangents( );
+    m_top_graph = m_graph;
+    generate_hierarchy( 100 );
 
-    generate_hierarchy( 20 );
 }
 
 /**
  * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
  */
 void Field::generate_hierarchy( size_t max_nodes ) {
-	if( m_tracing_enabled )
-		std::cout<< "Generating graph hierarchy. Starting at " << m_graph->num_nodes() << " and going to " << max_nodes << " nodes maximum" << std::endl;
+	if( m_graph != m_top_graph)
+		throw std::runtime_error( "Hierarchy already generated" );
+
+	if( m_tracing_enabled ) {
+		std::cout<< "Generating graph hierarchy, max "  << max_nodes << " nodes" << std::endl;
+		std::cout<< "  Start :"  << m_graph->num_nodes() << " nodes, " << m_graph->num_edges() << " edges" << std::endl;
+	}
 
 	bool done = false;
-	while ( !done && (m_graph->num_nodes( ) > max_nodes ) ) {
-		if( m_tracing_enabled )
-			std::cout<< "    Now " << m_graph->num_nodes() << " nodes" << std::endl;
-		Graph * next_graph = m_graph->simplify( );
+	while ( !done && (m_top_graph->num_nodes( ) > max_nodes ) ) {
+		Graph * next_graph = m_top_graph->simplify( );
 		if( next_graph == nullptr) {
 			done = true;
 		}
 		else {
-			m_graph = next_graph;
+			m_top_graph = next_graph;
 		}
+
+		if( m_tracing_enabled )
+			std::cout<< "  Nodes :"  << next_graph->num_nodes() << ", Edges :" << next_graph->num_edges() << std::endl;
 	}
-	if( m_tracing_enabled )
-		std::cout<< "    Final nodes :  " << m_graph->num_nodes() << std::endl;
+	if( m_tracing_enabled ) {
+		std::cout<< "  Final :"  << m_graph->num_nodes() << " nodes, " << m_graph->num_edges() << " edges" << std::endl;
+	}
 }
 
 void Field::randomise_tangents( ) {
@@ -216,15 +225,12 @@ std::size_t Field::size() const {
 /**
  * @return the smoothness of the entire Field
  */
-float Field::error( ) const {
+float Field::calculate_error( Graph * tier ) const {
 	// E(O, k) :=      (oi, Rso (oji, ni, kij ))
 	// For each node
 	float error = 0.0f;
-	for( auto node_iter = m_graph->nodes().begin(); 
-		node_iter != m_graph->nodes().end(); 
-		++node_iter ) {
-
-		error += get_error_for_node( *node_iter );
+	for( auto node_iter = tier->nodes().begin(); node_iter != tier->nodes().end(); ++node_iter ) {
+		error += calculate_error_for_node( tier, *node_iter );
 	}
 	return error;
 }
@@ -232,14 +238,12 @@ float Field::error( ) const {
 /**
  * @return the smoothness of one node
  */
-float Field::get_error_for_node( 
-	animesh::Graph<FieldElement *, void*>::GraphNode* gn ) const {
-	using GraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
+float Field::calculate_error_for_node( Graph * tier, GraphNode * gn ) const {
 	float error = 0.0f;
 
 	FieldElement * this_fe = (FieldElement *) gn->data();
 
-	std::vector<GraphNode *> neighbours = m_graph->neighbours( gn );
+	std::vector<GraphNode *> neighbours = tier->neighbours( gn );
 
 	for( auto n = neighbours.begin(); n != neighbours.end(); ++n ) {
 
@@ -259,13 +263,69 @@ float Field::get_error_for_node(
 
 
 /**
+ * Smooth the field
+ */
+void Field::smooth( ) {
+	if( m_tracing_enabled ) 
+		std::cout << "Smothing" << std::endl;
+
+	Graph * current_tier = m_top_graph;
+	int i = 1;
+
+	do {
+		if( m_tracing_enabled ) 
+			std::cout << "  Level " << i << std::endl;
+		smooth_tier( current_tier );
+		if( current_tier != m_graph ) {
+			current_tier = current_tier->propagate_down();
+			i++;
+		} else {
+			break;
+		}
+	} while( true );
+}
+
+/**
+ * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
+ * significantly.
+ */
+void Field::smooth_tier( Graph * tier ) {
+	float total_error	= calculate_error( tier );
+	float error_per_node = total_error / tier->num_nodes();
+	float total_pct = 0.0f;
+	float per_node_pct = 0.0f;
+	if( m_tracing_enabled ) {
+		std::cout << "    Total Error : " << total_error << std::endl;
+		std::cout << "    Error per node : " << error_per_node << std::endl;
+	}
+
+	do {
+		smooth_once( tier );
+		float new_error = calculate_error( tier );
+		float delta = std::abs(total_error - new_error);
+
+		float prop = delta / total_error;
+		total_pct = std::floor( prop * 1000.f) / 10.f;
+		per_node_pct = std::floor( prop/tier->num_nodes() * 1000.f) / 10.f;
+
+		total_error = new_error;
+		error_per_node = total_error / tier->num_nodes();
+		if( m_tracing_enabled ) {
+			std::cout << "    Total Error : " << total_error << std::endl;
+			std::cout << "    Error per node : " << error_per_node << std::endl;
+			std::cout << "    Pct Change : " << total_pct << std::endl;
+			std::cout << "    Pct Per Node : " << per_node_pct << std::endl;
+		}
+	} while( total_pct > 0.05 );
+}
+
+/**
  * Smooth the field once, applying smoothing to each node
  * @return the largest error in tangent
  */
-void Field::smooth_once( ) {
+void Field::smooth_once( Graph * tier ) {
 	using namespace Eigen;
 	using namespace std;
-	using GraphNode = animesh::Graph<FieldElement *, void *>::GraphNode;
 
 	if( m_tracing_enabled )
 		cout << "smooth_once" << endl;
@@ -277,7 +337,7 @@ void Field::smooth_once( ) {
 	// Iterate over permute, look up key, lookup fe and smooth
 	vector<const Vector3f> new_tangents;
 	for( auto node_iter = nodes.begin(); node_iter != nodes.end(); ++node_iter ) {
-		Vector3f new_tangent = smooth_node( *node_iter );
+		Vector3f new_tangent = calculate_smoothed_node( tier, *node_iter );
 		new_tangents.push_back( new_tangent );
 	}
 
@@ -293,24 +353,23 @@ void Field::smooth_once( ) {
  * Smooth the specified node (and neighbours)
  * @return The new vector.
  */
-Eigen::Vector3f Field::smooth_node( animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const {
+Eigen::Vector3f Field::calculate_smoothed_node( Graph * tier, GraphNode * gn ) const {
 	using namespace Eigen;
-	using GraphNode = animesh::Graph<FieldElement *, void *>::GraphNode;
 
 	FieldElement * this_fe = (FieldElement *) gn->data();
-	if( m_tracing_enabled ) 
-		trace_node( "smooth_node", this_fe);
+	// if( m_tracing_enabled ) 
+	// 	trace_node( "smooth_node", this_fe);
 
 	Vector3f sum = this_fe->m_tangent;
 	float weight = 0;
 
 	// For each edge from this node
-	std::vector<GraphNode *> neighbours = m_graph->neighbours( gn );
+	std::vector<GraphNode *> neighbours = tier->neighbours( gn );
 	for( auto neighbour_iter = neighbours.begin(); neighbour_iter != neighbours.end(); ++neighbour_iter ) {
 
 		// Get the adjacent FieldElement
 		FieldElement * neighbour_fe = (*neighbour_iter)->data();
-		if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
+		// if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
 
 		// Find best matching rotation
 		std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( 

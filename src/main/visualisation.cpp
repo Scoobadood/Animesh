@@ -134,7 +134,7 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
       pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
       Vector3f p4 = location - ninety;
       pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-      Vector3f p5 = location + (normal * 0.1f);
+      Vector3f p5 = location + (normal );
       pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
 
 		// Main tangent
@@ -158,7 +158,7 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
 		line->GetPointIds()->SetId(0,pid[0]);
 		line->GetPointIds()->SetId(1,pid[5]);
 		lines->InsertNextCell(line);
-		colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+		colours->InsertNextTypedTuple(named_colours->GetColor3ub("Yellow").GetData());
     }
     polydata->SetPoints(pts);
 	polydata->SetLines(lines);
@@ -224,7 +224,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
 void update_field_callback(vtkObject* caller, long unsigned int eventId, void * clientData, void * callData ) {
   std::cout << "update_field_callback called (smooth 10)" << std::endl;
   // for( int i=0; i<100; ++i)
-    g_field->smooth_once();
+    g_field->smooth();
   vtkPolyData* polydatap = reinterpret_cast<vtkPolyData*>(clientData);
   vtkSmartPointer<vtkPolyData> polydata = polydatap;
   populate_poly_from_field( g_field, polydata);

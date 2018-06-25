@@ -41,16 +41,14 @@ public:
 	const std::vector<const FieldElement *> elements( ) const;
 
 	/**
-	 * Smooth the field once, applying smoothing to each node
-	 * @return the largest error in tangent
+	 * Smooth the field
 	 */
-	void smooth_once( );
+	void smooth( );
 
 	/**
-	 * Smooth the specified node (and neighbours)
-	 * @return The new vector.
+	 * @return the smoothness of the entire Field
 	 */
-	Eigen::Vector3f smooth_node( animesh::Graph<FieldElement *, void*>::GraphNode * const gn ) const;
+	float calculate_error( animesh::Graph<FieldElement *, void*> * tier ) const;
 
 	/**
 	 * Set all the tangents in the field to specific values.
@@ -63,12 +61,32 @@ public:
 
 	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}
 
-	/**
-	 * @return the smoothness
-	 */
-	float error( ) const;
-
 private:
+	// Smoothing
+	/**
+	 * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
+	 * significantly.
+	 */
+	void smooth_tier( animesh::Graph<FieldElement *, void*> * tier );
+
+	/**
+	 * Smooth the field once, applying smoothing to each node
+	 * @return the largest error in tangent
+	 */
+	void smooth_once( animesh::Graph<FieldElement *, void*> * tier );
+
+	/**
+	 * Smooth the specified node (and neighbours)
+	 * @return The new vector.
+	 */
+	Eigen::Vector3f calculate_smoothed_node( animesh::Graph<FieldElement *, void*> * tier, 
+								 			 animesh::Graph<FieldElement *, void*>::GraphNode * const gn ) const;
+	/**
+	 * @return the smoothness of one node
+	 */
+	float error_for_node( animesh::Graph<FieldElement *, void*> * tier, 
+						  animesh::Graph<FieldElement *, void*>::GraphNode * const gn ) const;
+
 	void randomise_tangents( );
 	/**
 	 * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
@@ -77,10 +95,14 @@ private:
 	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
 	void init( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements );
-	float get_error_for_node( animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
+	float calculate_error_for_node( animesh::Graph<FieldElement *, void*> * tier, 
+		animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
 
 	/** The Graph - helps us get neighbours */
 	animesh::Graph<FieldElement *, void*> *  	m_graph;
+
+	/** The top of hierarchy Graph */
+	animesh::Graph<FieldElement *, void*> *  	m_top_graph;
 
 	/** Flag to determine if we should trace field moothing */
 	bool 		m_tracing_enabled;

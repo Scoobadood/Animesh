@@ -42,7 +42,7 @@ private:
 template<class EdgeData>
 animesh::Graph<FieldElement *, EdgeData> * 
 GridGraphBuilder<EdgeData>::build_graph_for_elements( const std::vector<Element>& elements ) const {
-	Graph * graph = new Graph( FieldElement::mergeFieldElements );
+	Graph * graph = new Graph( FieldElement::mergeFieldElements, FieldElement::propagateFieldElements );
 
 	for( auto& element : elements ) {
 		// Make a graph node for each element

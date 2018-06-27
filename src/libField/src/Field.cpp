@@ -229,8 +229,8 @@ float Field::calculate_error( Graph * tier ) const {
 	// E(O, k) :=      (oi, Rso (oji, ni, kij ))
 	// For each node
 	float error = 0.0f;
-	for( auto node_iter = tier->nodes().begin(); node_iter != tier->nodes().end(); ++node_iter ) {
-		error += calculate_error_for_node( tier, *node_iter );
+	for( auto node : tier->nodes() ) {
+		error += calculate_error_for_node( tier, node );
 	}
 	return error;
 }
@@ -245,9 +245,9 @@ float Field::calculate_error_for_node( Graph * tier, GraphNode * gn ) const {
 
 	std::vector<GraphNode *> neighbours = tier->neighbours( gn );
 
-	for( auto n = neighbours.begin(); n != neighbours.end(); ++n ) {
+	for( auto n : neighbours ) {
 
-		FieldElement * neighbour_fe = (*n)->data();
+		FieldElement * neighbour_fe = n->data();
 
 		std::pair<Eigen::Vector3f, Eigen::Vector3f> result = best_rosy_vector_pair( 
 			this_fe->m_tangent,

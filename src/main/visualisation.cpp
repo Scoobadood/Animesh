@@ -134,7 +134,7 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
       pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
       Vector3f p4 = location - ninety;
       pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-      Vector3f p5 = location + (normal );
+      Vector3f p5 = location + (normal * 0.1);
       pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
 
 		// Main tangent

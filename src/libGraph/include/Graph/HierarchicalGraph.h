@@ -311,66 +311,19 @@ public:
             }
         }
 
+        // For each edge in lower level
+        // Find parents of end nodes in upper level
+        // Add edge between parents if not existing
+        // otherwise possibly increase weight
+        for( auto edge : m_edges ) {
+            GraphNode * gn1 = edge->from_node()->parent();
+            GraphNode * gn2 = edge->to_node()->parent();
 
-        /*
-            for each upper graph node gn
-        */
-        for( auto   upper_node_iter = m_up_graph->m_nodes.begin();
-                    upper_node_iter != m_up_graph->m_nodes.end();
-                    ++upper_node_iter) {
-
-            /*
-                n -> empty set of neighbours
-                for each child c of gn
-                    for each neighbour c_n of c
-                        p ->c_n.parent
-                        if p is not gn
-                            if n does not contain p
-                                add p to n
-                            end
-                        end
-                    end
-                end
-            */
-            GraphNode * upper_node = *upper_node_iter;
-
-            std::set<GraphNode *> neighbours;
-            for( auto   child_iter = upper_node->children().begin(); 
-                        child_iter != upper_node->children().end(); 
-                        ++child_iter ) {
-
-                GraphNode * child = *child_iter;
-                std::vector<GraphNode *> child_neghbours = this->neighbours( child );
-                for( auto   neighbour_iter = child_neghbours.begin();
-                            neighbour_iter != child_neghbours.end();
-                            ++neighbour_iter ) {
-
-                    GraphNode * neighbour_parent = (*neighbour_iter)->parent();
-
-                    if( neighbour_parent == upper_node )
-                        continue;
-
-                    if( neighbours.find( neighbour_parent ) == neighbours.end() ) {
-                        neighbours.insert( neighbour_parent );
-                    }
-                }
-            }
-
-            /*
-                for each node en in n
-                    if no edge from en to gn
-                        add edge from gn to en
-                    end
-                end
-             */
-            for( auto   neighbour_iter = neighbours.begin();
-                        neighbour_iter != neighbours.end();
-                        ++neighbour_iter) {
-                if( ! m_up_graph->has_edge( upper_node, *neighbour_iter ) ) {
-                    m_up_graph->add_edge( upper_node, *neighbour_iter, 1.0f, nullptr );
-                }
+            if( ( gn1 != gn2 ) && !m_up_graph->has_edge( gn1, gn2) ) {
+                m_up_graph->add_edge( gn1, gn2, 1.0f, nullptr );
             }
         }
+
         return m_up_graph;
     }
 

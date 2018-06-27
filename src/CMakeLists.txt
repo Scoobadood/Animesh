@@ -18,6 +18,7 @@ set(CMAKE_CXX_STANDARD 11)
 enable_testing( )
 
 # Add libraries
+add_subdirectory( QtMain )
 add_subdirectory( main )
 add_subdirectory( make_poly )
 add_subdirectory( libRoSy )

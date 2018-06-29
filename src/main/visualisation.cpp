@@ -190,7 +190,8 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
   vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
   actor->SetMapper(mapper);
   actor->GetProperty()->SetPointSize(3); 
-	renderer->AddActor(actor);
+  actor->GetProperty()->SetLineWidth(3);
+ 	renderer->AddActor(actor);
 
   // Add mouse handler
   vtkSmartPointer<vtkPointPicker> pointPicker = vtkSmartPointer<vtkPointPicker>::New();
@@ -222,9 +223,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
  * Update the field by smoothing and redraw it.
  */
 void update_field_callback(vtkObject* caller, long unsigned int eventId, void * clientData, void * callData ) {
-  std::cout << "update_field_callback called (smooth 10)" << std::endl;
-  // for( int i=0; i<100; ++i)
-    g_field->smooth();
+  g_field->smooth_completely();
   vtkPolyData* polydatap = reinterpret_cast<vtkPolyData*>(clientData);
   vtkSmartPointer<vtkPolyData> polydata = polydatap;
   populate_poly_from_field( g_field, polydata);

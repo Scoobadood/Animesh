@@ -46,6 +46,11 @@ public:
 	void smooth( );
 
 	/**
+	* Smooth the field
+	*/
+	void smooth_completely();
+
+	/**
 	 * @return the smoothness of the entire Field
 	 */
 	float calculate_error( animesh::Graph<FieldElement *, void*> * tier ) const;
@@ -66,14 +71,15 @@ private:
 	/**
 	 * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
 	 * significantly.
+	 * @return true if the tier has converged
 	 */
-	void smooth_tier( animesh::Graph<FieldElement *, void*> * tier );
+	bool smooth_tier( animesh::Graph<FieldElement *, void*> * tier );
 
 	/**
 	 * Smooth the field once, applying smoothing to each node
-	 * @return the largest error in tangent
+	 * @return the total residual
 	 */
-	void smooth_once( animesh::Graph<FieldElement *, void*> * tier );
+	float smooth_once( animesh::Graph<FieldElement *, void*> * tier );
 
 	/**
 	 * Smooth the specified node (and neighbours)
@@ -106,4 +112,11 @@ private:
 
 	/** Flag to determine if we should trace field moothing */
 	bool 		m_tracing_enabled;
+
+	/** Smoothing in progress */
+	bool									m_smoothing;
+	bool									m_new_tier;
+	float									m_last_error;
+	int 									m_tier_index;
+	animesh::Graph<FieldElement *, void*> *	m_current_tier;
 };

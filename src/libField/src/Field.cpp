@@ -261,96 +261,136 @@ float Field::calculate_error_for_node( Graph * tier, GraphNode * gn ) const {
 	return error;
 }
 
+/**
+ * Smooth the field
+ */
+void Field::smooth_completely() {
+	m_current_tier = m_top_graph;
+	m_tier_index = 1;
+	m_new_tier = true;
+	m_last_error = calculate_error( m_current_tier );
+	m_smoothing = true;
+	if( m_tracing_enabled ) 
+		std::cout << "Starting smooth. Error : " << m_last_error << std::endl;
+
+	do {
+
+		// If we're starting a new tier...
+		if( m_new_tier ) {
+			if( m_tracing_enabled ) 
+				std::cout << "  Level " << m_tier_index << std::endl;
+
+			m_new_tier = false;
+		}
+
+		if( smooth_tier( m_current_tier ) ) {
+			// Converged. If there's another tier, do it
+			if( m_current_tier != m_graph ) {
+				m_current_tier = m_current_tier -> propagate_down( );
+				m_tier_index ++;
+				m_new_tier = true;
+			}
+
+			// Otherwise, done
+			else {
+				m_smoothing = false;
+			}
+		}
+	} while( m_smoothing );
+}
 
 /**
  * Smooth the field
  */
-void Field::smooth( ) {
-	if( m_tracing_enabled ) 
-		std::cout << "Smothing" << std::endl;
-
-	Graph * current_tier = m_top_graph;
-	int i = 1;
-
-	do {
+void Field::smooth() {
+	// If not smoothing, start
+	if( ! m_smoothing ) {
+		m_smoothing = true;
+		m_current_tier = m_top_graph;
+		m_tier_index = 1;
+		m_new_tier = true;
+		m_last_error = calculate_error( m_current_tier );
 		if( m_tracing_enabled ) 
-			std::cout << "  Level " << i << std::endl;
-		smooth_tier( current_tier );
-		if( current_tier != m_graph ) {
-			current_tier = current_tier->propagate_down();
-			i++;
-		} else {
-			break;
+			std::cout << "Starting smooth. Error : " << m_last_error << std::endl;
+	}
+
+	// If we're starting a new tier...
+	if( m_new_tier ) {
+		if( m_tracing_enabled ) 
+			std::cout << "  Level " << m_tier_index << std::endl;
+
+		m_new_tier = false;
+	}
+
+	if( smooth_tier( m_current_tier ) ) {
+		// Converged. If there's another tier, do it
+		if( m_current_tier != m_graph ) {
+			m_current_tier = m_current_tier -> propagate_down( );
+			m_tier_index ++;
+			m_new_tier = true;
 		}
-	} while( true );
+
+		// Otherwise, done
+		else {
+			m_smoothing = false;
+		}
+	}
 }
 
 /**
  * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
  * significantly.
  */
-void Field::smooth_tier( Graph * tier ) {
-	float total_error	= calculate_error( tier );
-	float error_per_node = total_error / tier->num_nodes();
-	float total_pct = 0.0f;
-	float per_node_pct = 0.0f;
+bool Field::smooth_tier( Graph * tier ) {
+
+	float new_error = smooth_once( tier );
+	float delta = m_last_error - new_error;
+	float pct = delta / m_last_error;
+	float display_pct = std::floor( pct * 1000.0f) / 10.0f;
+	m_last_error = new_error;
+
+	bool converged = ( display_pct >= 0.0f && display_pct < 1.0f );
 	if( m_tracing_enabled ) {
-		std::cout << "    Total Error : " << total_error << std::endl;
-		std::cout << "    Error per node : " << error_per_node << std::endl;
+		std::cout << "      New Error : " << new_error << " (" << delta << ") : " << display_pct << "%" << std::endl;
 	}
-
-	do {
-		smooth_once( tier );
-		float new_error = calculate_error( tier );
-		float delta = std::abs(total_error - new_error);
-
-		float prop = delta / total_error;
-		total_pct = std::floor( prop * 1000.f) / 10.f;
-		per_node_pct = std::floor( prop/tier->num_nodes() * 1000.f) / 10.f;
-
-		total_error = new_error;
-		error_per_node = total_error / tier->num_nodes();
-		if( m_tracing_enabled ) {
-			std::cout << "    Total Error : " << total_error << std::endl;
-			std::cout << "    Error per node : " << error_per_node << std::endl;
-			std::cout << "    Pct Change : " << total_pct << std::endl;
-			std::cout << "    Pct Per Node : " << per_node_pct << std::endl;
-		}
-	} while( total_pct > 0.05 );
+	return converged;
 }
 
 /**
  * Smooth the field once, applying smoothing to each node
  * @return the largest error in tangent
  */
-void Field::smooth_once( Graph * tier ) {
+float Field::smooth_once( Graph * tier ) {
 	using namespace Eigen;
 	using namespace std;
 
 	if( m_tracing_enabled )
-		cout << "smooth_once" << endl;
+		cout << "    smooth_once" << endl;
 
 	// Extract map keys into vector and shuffle
-	std::vector<GraphNode *> nodes = m_graph->nodes();
+	std::vector<GraphNode *> nodes = tier->nodes();
 	random_shuffle ( nodes.begin(), nodes.end() ); 
 
 	// Iterate over permute, look up key, lookup fe and smooth
 	vector<const Vector3f> new_tangents;
-	for( auto node_iter = nodes.begin(); node_iter != nodes.end(); ++node_iter ) {
-		Vector3f new_tangent = calculate_smoothed_node( tier, *node_iter );
-		new_tangents.push_back( new_tangent );
+	for( auto node : nodes ) {
+		new_tangents.push_back( calculate_smoothed_node( tier, node ) );
 	}
 
 	// Now update all of the nodes
 	auto tan_iter = new_tangents.begin();
-	for( auto node_iter = nodes.begin(); node_iter != nodes.end(); ++node_iter ) {
-		(*node_iter)->data()->m_tangent = (*tan_iter);
+	for( auto node : nodes ) {
+		node->data()->m_tangent = (*tan_iter);
+		++tan_iter;
 	}
+
+	// Get the new error
+	return calculate_error( tier );
 }
 
 
 /**
- * Smooth the specified node (and neighbours)
+ * Smooth the specified node
  * @return The new vector.
  */
 Eigen::Vector3f Field::calculate_smoothed_node( Graph * tier, GraphNode * gn ) const {

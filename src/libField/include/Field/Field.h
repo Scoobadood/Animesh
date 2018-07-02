@@ -66,6 +66,8 @@ public:
 
 	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}
 
+	friend std::ostream& operator<<( std::ostream&, const FieldElement&);
+
 private:
 	// Smoothing
 	/**
@@ -120,3 +122,5 @@ private:
 	int 									m_tier_index;
 	animesh::Graph<FieldElement *, void*> *	m_current_tier;
 };
+
+std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& fe);

@@ -494,21 +494,27 @@ void Field::dump(  ) const {
 }
 
 void Field::trace_node( const std::string& prefix, const FieldElement * this_fe ) const {
-	std::cout << prefix 
-		<< "( l=( " 
-		<< this_fe->m_location[0] << ", "   
-	 	<< this_fe->m_location[1] << ", "   
-	 	<< this_fe->m_location[2] << "), t=(" 
-		<< this_fe->m_tangent[0] << ", "   
-	 	<< this_fe->m_tangent[1] << ", "   
-	 	<< this_fe->m_tangent[2] << ")" 
-	 	<< std::endl;
+	std::cout << prefix << this_fe << std::endl;
 }
 
 void Field::trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const {
-	std::cout << prefix  
-		<< vector[0] << ", "   
+	std::cout << prefix << vector << std::endl;
+}
+
+std::ostream& operator<<( std::ostream& os, const FieldElement& fe) {
+	os	<< "( l=( " 
+		<< fe.m_location[0] << ", "   
+ 		<< fe.m_location[1] << ", "   
+ 		<< fe.m_location[2] << "), t=(" 
+		<< fe.m_tangent[0] << ", "   
+ 		<< fe.m_tangent[1] << ", "   
+ 		<< fe.m_tangent[2] << ")";
+ 	return os;
+}
+
+std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& vector) {
+	os  << vector[0] << ", "   
 	 	<< vector[1] << ", "   
-	 	<< vector[2] << ") " 
-	 	<< std::endl;
+	 	<< vector[2] << ")";
+ 	return os;
 }

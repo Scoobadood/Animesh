@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 
+
 /**
  * Construct a curved field centred at (0,0,0). THe field is defined by z=1-\frac{1}{10}\left( x^{2}+y^{2} \right)
  * with grid neighbourhod

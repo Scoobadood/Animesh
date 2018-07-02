@@ -107,55 +107,42 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
 Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed ) {
 	using namespace Eigen;
 
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
+
 	float maxTheta = M_PI;
 	float maxPhi = M_PI / 2.0f;
 	float deltaTheta = maxTheta / theta_steps;
 	float deltaPhi   = maxPhi / phi_steps;
 
 	std::vector<Element> elements;
+
+	// Add top and bottom points
+	pcl::PointNormal point;
+	point.normal_y = 1.0f;
+	point.y = radius;
+	cloud->push_back( point );
+
+	point.normal_y = -1.0f;
+	point.y = -radius;
+	cloud->push_back( point );
+
 	for( float theta = 0.0f; theta < maxTheta; theta +=  deltaTheta) {
-		for( float phi = maxPhi; phi>=0; phi -= deltaPhi ) {
+		for( float phi = maxPhi-deltaPhi; phi>-maxPhi; phi -= deltaPhi ) {
 
-			Vector3f location { radius * sin(phi) * cos(theta),   radius * cos( phi ), radius * sin(phi) * sin(theta) };
-			// Force random location on sphere
-			// location = Vector3f::Random();
-			// location = location.normalized() * radius;
-
-			Vector3f normal = location.normalized();
-
-			Element e{ location, normal };
-			elements.push_back( e );
-		}
-	}
-	Vector3f location { radius * sin(maxPhi) * cos(maxTheta),   radius * cos( maxPhi ), radius * sin(maxPhi) * sin(maxTheta) };
-	Vector3f normal = location.normalized();
-	Element e{ location, normal };
-	elements.push_back( e );
-
-	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( k );
-	Field * field = new Field( gb, elements );
-	delete gb;
-
-	if( make_fixed ) {
-		for( auto node_iter = field->m_graph->nodes().begin();
-			      node_iter != field->m_graph->nodes().end();
-			      ++node_iter ) {
-
-			FieldElement *fe = (*node_iter)->data();
-
-			// Find cross product of normal and vertical
-			Vector3f v{0.0f, 1.0f, 0.0f };
-			if( std::fabs( fe->m_normal[1] - 1.0f ) < EPSILON ) {
-				v = Vector3f{1.0f, 0.0f, 0.0f };
-			}
-			Vector3f hor_tan = v.cross( fe->m_normal );
-			Vector3f ver_tan = hor_tan.cross(fe->m_normal);
-			fe->m_tangent    = ver_tan.normalized( );
+			pcl::PointNormal point;
+			point.normal_x = sin(phi) * cos(theta);
+			point.normal_y = cos( phi );
+			point.normal_z = sin(phi) * sin(theta);
+			point.x = radius * point.x;
+			point.y = radius * point.y;
+			point.z = radius * point.z;
+			cloud->push_back( point );
 		}
 	}
 
-	return field;
+	return new Field( cloud, k, false );
 }
+
 
 Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 	using namespace Eigen;

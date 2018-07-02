@@ -105,6 +105,13 @@ public:
 		throw std::domain_error( "size_z is only valid for cube");
 	}
 
+	int k() const {
+		if( m_name == "sphere" ) {
+			return m_dim3;
+		}
+		throw std::domain_error( "k is only valid for cube");
+	}
+
 	static Prefab from_string( const std::string& value ) {
 		using namespace TCLAP;
 
@@ -116,6 +123,8 @@ public:
 			return cube_prefab( chunks );
 		} 
 		else if( chunks[0] == "sphere") {
+			if( chunks.size() != 5 )
+				throw ArgException( "Sphere args should be radius, theta steps, phi steps, k" );
 			return sphere_prefab( chunks );
 		}
 		else if( chunks[0] == "poly") {
@@ -136,7 +145,8 @@ public:
 		float radius 		= std::stof(chunks[1]);
 		int   theta_steps   = std::stoi(chunks[2]);
 		int   phi_steps     = std::stoi(chunks[3]);
-		return Prefab{ "sphere", radius, theta_steps, phi_steps};
+		int   k 			= std::stoi(chunks[4]);
+		return Prefab{ "sphere", radius, theta_steps, phi_steps, k};
 	}
 
 	static Prefab cube_prefab( const std::vector<std::string>& chunks ) {
@@ -250,6 +260,7 @@ Args::Args( int &argc, char **argv) {
 				m_radius = prefab.getValue().radius();
 				m_theta_steps = prefab.getValue().theta_steps();
 				m_phi_steps   = prefab.getValue().phi_steps( );
+				m_k = prefab.getValue().k();
 			} else if( prefab.getValue().name() == "cube") {
 				m_default_shape = CUBE;
 				m_cube_size = prefab.getValue().size_x();

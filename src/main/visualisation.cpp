@@ -223,7 +223,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
  * Update the field by smoothing and redraw it.
  */
 void update_field_callback(vtkObject* caller, long unsigned int eventId, void * clientData, void * callData ) {
-  g_field->smooth_completely();
+  g_field->smooth();
   vtkPolyData* polydatap = reinterpret_cast<vtkPolyData*>(clientData);
   vtkSmartPointer<vtkPolyData> polydata = polydatap;
   populate_poly_from_field( g_field, polydata);

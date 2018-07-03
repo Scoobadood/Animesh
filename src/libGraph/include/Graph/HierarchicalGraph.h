@@ -3,7 +3,7 @@
 #include <map>
 #include <vector>
 #include <set>
-
+#include <iostream>
 
 namespace animesh {
 
@@ -177,6 +177,7 @@ public:
      * Add an edge to the graph connecting two existing nodes
      */
     Edge * add_edge( GraphNode * from_node, GraphNode * to_node, float weight, const EdgeData& edge_data) {
+        std::cout << "      add edge from " << from_node << " to " << to_node << std::endl;
         if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
         if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
         if ( weight < 0 ) throw std::invalid_argument( "weight must be positive" );

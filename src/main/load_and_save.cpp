@@ -98,7 +98,7 @@ Field * load_field( const Args& args) {
 				break;
 
 			case Args::CUBE: 
-				field = Field::cubic_field( args.cube_size(), args.scale(), args.k() );
+				field = Field::cubic_field( args.cube_x(), args.cube_y(), args.cube_z(), args.scale(), args.k() );
 				std::cout << "cube" << std::endl;
 				break;
 

@@ -39,7 +39,9 @@ public:
 	 int inline theta_steps() const { return m_theta_steps; }
 	 int inline phi_steps() const { return m_phi_steps; }
 
-	 int inline cube_size( ) const { return m_cube_size; }
+	 int inline cube_x( ) const { return m_cube_x; }
+	 int inline cube_y( ) const { return m_cube_y; }
+	 int inline cube_z( ) const { return m_cube_z; }
 	 int inline k( ) const { return m_k; }
 
 	 bool inline tracing_enabled() const { return m_tracing_enabled; }
@@ -65,7 +67,9 @@ private:
 	int 			m_plane_y;
 	float 			m_grid_spacing;
 
-	int 			m_cube_size;
+	int 			m_cube_x;
+	int 			m_cube_y;
+	int 			m_cube_z;
 
 	int 			m_k;
 

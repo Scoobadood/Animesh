@@ -22,7 +22,7 @@ public:
 	 * Construct prefab fields 
 	 */
 	static Field * planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k );
-	static Field * cubic_field(std::size_t cube_size, float scale, int k);
+	static Field * cubic_field( int cube_x, int cube_y, int cube_z, float scale, int k);
 	static Field * polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k);
 	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k);
 	static Field * circular_field( float radius, int k );

@@ -42,7 +42,7 @@ Field::Field( const GraphBuilder<void*> * const graph_builder, const std::vector
 
 FieldElement * field_element_from_point( const pcl::PointNormal& point ) {
 	FieldElement * fe = new FieldElement( 
-		Eigen::Vector3f{ point.x * 100, point.y * 100, point.z * 100},
+		Eigen::Vector3f{ point.x, point.y, point.z},
 		Eigen::Vector3f{ point.normal_x, point.normal_y, point.normal_z},
 		Eigen::Vector3f::Zero());
 	return fe;
@@ -62,16 +62,20 @@ bool operator == (const pcl::PointNormal& point1, const pcl::PointNormal& point2
  */
 struct cmpPointNormal {
 	bool operator()(const pcl::PointNormal& a, const pcl::PointNormal& b) const {
+		if( a.x < b.x ) return true;
+		if( a.x > b.x ) return false;
+		if( a.y < b.y ) return true;
+		if( a.y > b.y ) return false;
+		if( a.z < b.z ) return true;
+		if( a.z > b.z ) return false;
 
-		float v1x = (a.x + a.normal_x);
-		float v1y = (a.y + a.normal_y);
-		float v1z = (a.z + a.normal_z);
+		if( a.normal_x < b.normal_x ) return true;
+		if( a.normal_x > b.normal_x ) return false;
+		if( a.normal_y < b.normal_y ) return true;
+		if( a.normal_y > b.normal_y ) return false;
+		if( a.normal_z < b.normal_z ) return true;
 
-		float v2x = (b.x + b.normal_x);
-		float v2y = (b.y + b.normal_y);
-		float v2z = (b.z + b.normal_z);
-
-		return (v1x*v1x+v1y*v1y+v1z*v1z) < (v2x*v2x+v2y*v2y+v2z*v2z);
+		return false;
     }
 };
 
@@ -102,8 +106,8 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 	// Next add all the points to it
 	std::map<pcl::PointNormal, GraphNode*, cmpPointNormal> point_to_gn_map;
 	size_t points_added = 0;
-    for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
-    	pcl::PointNormal point = *it;
+    for( auto point : *cloud ) {
+
 		FieldElement * fe = field_element_from_point( point );
 		GraphNode * gn = m_graph->add_node( fe );
 
@@ -127,8 +131,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 	std::set<pcl::PointNormal, cmpPointNormal> visited;
 
 	// For each point, construct edges
-    for( auto it = cloud->begin(); it != cloud->end(); ++it ) {
-    	pcl::PointNormal this_point = *it;
+    for( auto this_point : *cloud ) {
 		if( m_tracing_enabled )
 			std::cout<< "Processing point " << this_point << std::endl;
 
@@ -140,21 +143,32 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     	pointNKNSquaredDistance.clear();
         if ( kdtree.nearestKSearch (this_point, k, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ) {
 
+			if( m_tracing_enabled ) {
+				std::cout<< "  Found " << pointIdxNKNSearch.size() << " neighbours :" << std::endl;
+	            for ( size_t i : pointIdxNKNSearch ) {
+	            	pcl::PointNormal neighbour_point = cloud->points[ i ];
+					std::cout<< "    Point: " << neighbour_point << ";  GN " << find_node_or_throw( point_to_gn_map, neighbour_point) << std::endl;
+	            }
+			}
+
+
         	// ... and add edges to them
 			if( m_tracing_enabled )
 				std::cout<< "  Looking at neighbours" << std::endl;
 
-            for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i) {
-            	pcl::PointNormal neighbour_point = cloud->points[ pointIdxNKNSearch[i] ];
+            for ( size_t i : pointIdxNKNSearch ) {
+            	pcl::PointNormal neighbour_point = cloud->points[ i ];
+				if( m_tracing_enabled )
+					std::cout<< "    next point is " << neighbour_point << std::endl;
 
             	// Provided the eighbour isn't this point
-            	if( ! (neighbour_point == this_point ) ){
+            	if( ! (neighbour_point == this_point ) ) {
             		// If the neighbour GN is not found... throw
 					GraphNode * neighbour_gn = find_node_or_throw( point_to_gn_map, neighbour_point);
 
-            	    m_graph->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
 					if( m_tracing_enabled )
-						std::cout<< "    Add neighbour " << neighbour_point << std::endl;
+						std::cout<< "    Adding edge to " << neighbour_point << std::endl;
+            	    m_graph->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
             	}
             	else {
 					if( m_tracing_enabled )

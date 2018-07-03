@@ -14,50 +14,36 @@
  * @param dim_x The number of points in the X plane
  * @param dim_y The number of points in the Y plane
  * @param grid_spacing The space between grid points
- * @param make_fixed If true, set the field tangents to the lowest energy/solved position
+ * @param k The number of nearest neighbours to consider
  */
-Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed ) {
+Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k) {
 	using namespace Eigen;
 
-	std::vector<Element> elements;
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
+
 	int minx = -dim_x/2, maxx = minx+dim_x-1;
 	int miny = -dim_y/2, maxy = miny+dim_y-1;
+	float divisor = (10.0f * grid_spacing * grid_spacing);
 	for( int y = miny; y <= maxy; y++ ) {
 		for( int x = minx; x <= maxx; x++ ) {
-			float xc = x * grid_spacing;
-			float yc = y * grid_spacing;
-			float divisor = (10.0f * grid_spacing * grid_spacing);
-			float zc = 1 - (xc*xc+yc*yc)/divisor;
 
-			Vector3f location { xc, yc, zc };
 
-			// Normals is (dz/dx, dz/dy, -1)
-			Vector3f normal{ (2 * xc) / divisor, (2 * yc) / divisor, 1.0f };
+			pcl::PointNormal point;
+			point.x = x * grid_spacing;
+			point.y = y * grid_spacing;
+			point.z = 1 - (point.x*point.x+point.y*point.y)/divisor;
+
+			// Normal is (dz/dx, dz/dy, -1)
+			Eigen::Vector3f normal{ (2 * point.x) / divisor, (2 * point.y) / divisor, 1.0f };
 			normal.normalize();
-			Element e{location, normal };
-			elements.push_back( e );
+			point.normal_x = normal[0];
+			point.normal_y = normal[1];
+			point.normal_z = normal[2];
+			cloud->push_back( point );
 		}
 	}
 
-	// Explicitly set neighbours
-	std::map<int,std::vector<int>> adjacency_map{};
-	int idx = 0;
-	for( int y = miny; y <= maxy; y++ ) {
-		for( int x = minx; x <= maxx; x++ ) {
-			std::vector<int> neighbours;
-			if( x > minx ) neighbours.push_back( y * dim_x + x - 1 );
-			if( x < maxx ) neighbours.push_back( y * dim_x + x + 1 );
-			if( y > miny ) neighbours.push_back( y * dim_x - dim_x + x );
-			if( y < maxy ) neighbours.push_back( y * dim_x + dim_x + x );
-			adjacency_map[idx] = neighbours;
-		}
-	}
-
-	ExplicitGraphBuilder<void*> * egb = new ExplicitGraphBuilder<void*>( adjacency_map );
-	Field * field = new Field( egb, elements );
-	delete egb;
-
-	return field;		
+	return new Field( cloud, k, false );
 }
 
 /**
@@ -65,37 +51,30 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
  * @param dim_x The number of points in the X plane
  * @param dim_y The number of points in the Y plane
  * @param grid_spacing The space between grid points
- * @param make_fixed If true, set the field tangents to the lowest energy/solved position
+ * @param k The number of nearest neighbours to consider
  */
-Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed ) {
+Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k ) {
 	using namespace Eigen;
 
-	std::vector<Element> elements;
-	for( int y = 0; y<dim_y; y++ ) {
-		for( int x = 0; x<dim_x; x++ ) {
-			Vector3f location { x * grid_spacing, y * grid_spacing, 0.0f };
-			Vector3f normal{ 0.0f, 0.0f, 1.0f };
-			Element e{location, normal };
-			elements.push_back( e );
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
+
+	int minx = -dim_x/2, maxx = minx+dim_x-1;
+	int miny = -dim_y/2, maxy = miny+dim_y-1;
+	for( int y = miny; y <= maxy; y++ ) {
+		for( int x = minx; x <= maxx; x++ ) {
+
+			pcl::PointNormal point;
+			point.normal_x = 0.0f;
+			point.normal_y = 0.0f;
+			point.normal_z = 1.0f;
+			point.x = x * grid_spacing;
+			point.y = y * grid_spacing;
+			point.z = 0.0f;
+			cloud->push_back( point );
 		}
 	}
 
-	GridGraphBuilder<void*> * ggb = new GridGraphBuilder<void*>( grid_spacing );
-	Field * field = new Field( ggb, elements );
-	delete ggb;
-
-	// Make a set of planar tangents
-	if( make_fixed ) {
-		std::vector< const Eigen::Vector3f > good_tangents;
-		for( std::size_t i=0; i< field->size(); ++i ) {
-			float noise = random( );
-			good_tangents.push_back( Eigen::Vector3f{ 0.0f, 1.0f, 0.0f } );
-		}
-
-		field->set_tangents( good_tangents );
-	}
-
-	return field;
+	return new Field(cloud, k, false );
 }
 
 /**
@@ -103,9 +82,9 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
  * @param radius The radius of the sphere to be constructed
  * @param theta_steps The number of steps around the sphere (in XZ plane)
  * @param phi_steps The number of steps in the Y direction
- * @param make_fixed If true, set the field tangents to the lowest energy/solved position
+ * @param k The number of nearest neighbours to consider
  */
-Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed ) {
+Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k ) {
 	using namespace Eigen;
 
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
@@ -145,7 +124,7 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 }
 
 
-Field * Field::circular_field( float radius, int k, bool make_fixed ) {
+Field * Field::circular_field( float radius, int k ) {
 	using namespace Eigen;
 	std::vector<Element> elements;
 
@@ -169,20 +148,10 @@ Field * Field::circular_field( float radius, int k, bool make_fixed ) {
 	Field * field = new Field( gb, elements );
 	delete gb;
 
-	// Make a set of planar tangents
-	if( make_fixed ) {
-		std::vector< const Eigen::Vector3f > good_tangents;
-		for( std::size_t i=0; i< field->size(); ++i ) {
-			good_tangents.push_back( Eigen::Vector3f{ 0.0f, 1.0f, 0.0f } );
-		}
-
-		field->set_tangents( good_tangents );
-	}
-
 	return field;
 }
 
-Field * Field::cubic_field( std::size_t cube_size, float scale, bool make_fixed) {
+Field * Field::cubic_field( std::size_t cube_size, float scale, int k) {
 	using namespace Eigen;
 
 	float minVal = (0.5f - ( cube_size / 2.0f )) * scale;
@@ -231,30 +200,6 @@ Field * Field::cubic_field( std::size_t cube_size, float scale, bool make_fixed)
 	NearestNeighbourGraphBuilder<void*> * gb = new NearestNeighbourGraphBuilder<void*>( 8 );
 	Field * field = new Field( gb, elements );
 	delete gb;
-
-
-	if( make_fixed ) {
-		for( auto node_iter = field->m_graph->nodes().begin();
-			      node_iter != field->m_graph->nodes().end();
-			      ++node_iter ) {
-
-			FieldElement *fe = (*node_iter)->data();
-
-			if( fabsf(fe->m_tangent[0]) < EPSILON && 
-				fabsf(fe->m_tangent[1]) < EPSILON && 
-				fabsf(fe->m_tangent[2]) < EPSILON ) {
-				throw std::invalid_argument( "Found zero tangent for fe");
-			}
-
-			if( fe->m_normal[0] < -EPSILON || fe->m_normal[0] > EPSILON || fe->m_normal[2] < -EPSILON || fe->m_normal[2] > EPSILON ) {
-				fe->m_tangent = Vector3f{ 0.0f, 1.0f, 0.0f };
-			} else if ( fe->m_normal[1] < -EPSILON || fe->m_normal[1] > EPSILON ) {
-				fe->m_tangent = Vector3f{ 0.0f, 0.0f, 1.0f };
-			} else {
-				throw std::invalid_argument( "Unexpected normal in cubic_field");
-			}
-		}
-	}
 
 	return field;
 }

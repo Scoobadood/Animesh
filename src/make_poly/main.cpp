@@ -57,7 +57,7 @@ int main( int argc, char * argv[] ) {
 	std::size_t phi_steps = 20;
 	int k = 4;
 	bool make_fixed = false;
-	Field * field = Field::spherical_field( radius, theta_steps, phi_steps, k, make_fixed);
+	Field * field = Field::spherical_field( radius, theta_steps, phi_steps, k);
 	write_field_to_obj_file( "sphere.obj", field );
 
 	// Make plane

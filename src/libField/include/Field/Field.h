@@ -21,14 +21,11 @@ public:
 	/**
 	 * Construct prefab fields 
 	 */
-	static Field * planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed );
-	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k, bool make_fixed);
-	static Field * triangular_field( float tri_radius);
-	static Field * cubic_field(std::size_t cube_size, float scale, bool make_fixed);
-	static Field * circular_field( float radius, int k, bool make_fixed );
-	static Field * polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, bool make_fixed );
-
-
+	static Field * planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k );
+	static Field * cubic_field(std::size_t cube_size, float scale, int k);
+	static Field * polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k);
+	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k);
+	static Field * circular_field( float radius, int k );
 
 	/**
 	 * @return the size of the ifled

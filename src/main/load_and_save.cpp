@@ -86,7 +86,6 @@ Field * load_field_from_obj_file( const Args& args ) {
 Field * load_field( const Args& args) {
 	Field * field = nullptr;
 
-	bool make_field_fixed = args.should_fix_tangents();
 	bool dump_field = args.should_dump_field();
 
 	if( args.load_from_pointcloud() ) {
@@ -94,27 +93,27 @@ Field * load_field( const Args& args) {
 	} else {
 		switch( args.default_shape()	 ) {
 			case Args::SPHERE:
-				field = Field::spherical_field( args.radius(), args.theta_steps(), args.phi_steps(), args.k(), make_field_fixed );
+				field = Field::spherical_field( args.radius(), args.theta_steps(), args.phi_steps(), args.k() );
 				std::cout << "sphere" << std::endl;
 				break;
 
 			case Args::CUBE: 
-				field = Field::cubic_field( args.cube_size(), args.scale(), make_field_fixed );
+				field = Field::cubic_field( args.cube_size(), args.scale(), args.k() );
 				std::cout << "cube" << std::endl;
 				break;
 
 			case Args::CIRCLE: 
-				field = Field::circular_field( args.radius(), args.k(), make_field_fixed );
+				field = Field::circular_field( args.radius(), args.k() );
 				std::cout << "circle" << std::endl;
 				break;
 
 			case Args::PLANE:
-				field = Field::planar_field( args.plane_x(), args.plane_y(), args.grid_spacing(), make_field_fixed );
+				field = Field::planar_field( args.plane_x(), args.plane_y(), args.grid_spacing(), args.k() );
 				std::cout << "planar" << std::endl;
 				break;
 
 			case Args::POLYNOMIAL:
-				field = Field::polynomial_field( args.plane_x(), args.plane_y(), args.grid_spacing(), make_field_fixed );
+				field = Field::polynomial_field( args.plane_x(), args.plane_y(), args.grid_spacing(), args.k());
 				std::cout << "polynomial" << std::endl;
 				break;
 		}

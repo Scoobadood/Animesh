@@ -5,12 +5,18 @@
 #include <Eigen/Geometry>
 #include <vector>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/io/obj_io.h>
+#include <FileUtils/FileUtils.h>
+
 
 //#define TRACE  1
 
 #include <iostream>
 #include <queue>
 #include <set>
+
+const int MAX_ITERS_PER_TIER = 20;
+const float CONVERGENCE_THRESHOLD = 0.5f;
 
 using Graph = animesh::Graph<FieldElement *, void *>;
 using GraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
@@ -94,10 +100,52 @@ GraphNode * find_node_or_throw( const std::map<pcl::PointNormal, GraphNode *, cm
 
 
 /**
+ * Load an obj file into a point cloud
+ */
+pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
+    if( file_name.size() == 0 ) 
+        throw std::invalid_argument( "Missing file name" );
+
+    bool is_directory;
+    if (!file_exists(file_name, is_directory ) )
+        throw std::runtime_error( "File not found: " + file_name );
+
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
+    if( pcl::io::loadOBJFile(file_name, *cloud) == -1) {
+        PCL_ERROR ("Couldn't read file\n");
+        return nullptr;
+    }
+    return cloud;
+}
+
+
+/**
+ * Construct a field from an OBJ file
+ */
+Field * load_field_from_obj_file( const std::string& file_name, int k, float with_scaling, bool trace ) {
+	std::cout << "Loading from file " << file_name << std::endl;
+
+	// Load the point cloud from file
+	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
+	if( !cloud ) 
+		return nullptr;
+
+	// Scale points
+	std::cout << "scaling points by " << with_scaling << std::endl;
+	for( auto iter = cloud->points.begin(); iter != cloud->points.end(); ++iter ) {
+		(*iter).x *= with_scaling;
+		(*iter).y *= with_scaling;
+		(*iter).z *= with_scaling;
+	}
+
+	std::cout << "building graph with " << k<< " nearest neighbours." << std::endl;
+	return new Field( cloud, k, trace );
+}
+
+/**
  * Construct a field given a point cloud
  */
 Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled ) {
-
 	m_tracing_enabled = tracing_enabled;
 	
 	// First make an empty Graph
@@ -183,9 +231,8 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 
     randomise_tangents( );
     m_top_graph = m_graph;
-    generate_hierarchy( 100 );
+    generate_hierarchy( 100 );}
 
-}
 
 /**
  * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
@@ -200,6 +247,7 @@ void Field::generate_hierarchy( size_t max_nodes ) {
 	}
 
 	bool done = false;
+	m_num_tiers = 1;
 	while ( !done && (m_top_graph->num_nodes( ) > max_nodes ) ) {
 		Graph * next_graph = m_top_graph->simplify( );
 		if( next_graph == nullptr) {
@@ -207,13 +255,11 @@ void Field::generate_hierarchy( size_t max_nodes ) {
 		}
 		else {
 			m_top_graph = next_graph;
+			m_num_tiers ++;
 		}
 
 		if( m_tracing_enabled )
 			std::cout<< "  Nodes :"  << next_graph->num_nodes() << ", Edges :" << next_graph->num_edges() << std::endl;
-	}
-	if( m_tracing_enabled ) {
-		std::cout<< "  Final :"  << m_graph->num_nodes() << " nodes, " << m_graph->num_edges() << " edges" << std::endl;
 	}
 }
 
@@ -279,38 +325,39 @@ float Field::calculate_error_for_node( Graph * tier, GraphNode * gn ) const {
  * Smooth the field
  */
 void Field::smooth_completely() {
-	m_current_tier = m_top_graph;
-	m_tier_index = 1;
-	m_new_tier = true;
-	m_last_error = calculate_error( m_current_tier );
-	m_smoothing = true;
+	m_smoothing_current_tier = m_top_graph;
+	m_smoothing_tier_index = 1;
+	m_smoothing_started_new_tier = true;
+	m_smoothing_last_error = calculate_error( m_smoothing_current_tier );
+	m_is_smoothing = true;
 	if( m_tracing_enabled ) 
-		std::cout << "Starting smooth. Error : " << m_last_error << std::endl;
+		std::cout << "Starting smooth. Error : " << m_smoothing_last_error << std::endl;
 
 	do {
 
 		// If we're starting a new tier...
-		if( m_new_tier ) {
+		if( m_smoothing_started_new_tier ) {
 			if( m_tracing_enabled ) 
-				std::cout << "  Level " << m_tier_index << std::endl;
+				std::cout << "  Level " << m_smoothing_tier_index << std::endl;
 
-			m_new_tier = false;
+			m_smoothing_iterations_this_tier = 0;
+			m_smoothing_started_new_tier = false;
 		}
 
-		if( smooth_tier( m_current_tier ) ) {
+		if( smooth_tier( m_smoothing_current_tier ) ) {
 			// Converged. If there's another tier, do it
-			if( m_current_tier != m_graph ) {
-				m_current_tier = m_current_tier -> propagate_down( );
-				m_tier_index ++;
-				m_new_tier = true;
+			if( m_smoothing_current_tier != m_graph ) {
+				m_smoothing_current_tier = m_smoothing_current_tier -> propagate_down( );
+				m_smoothing_tier_index ++;
+				m_smoothing_started_new_tier = true;
 			}
 
 			// Otherwise, done
 			else {
-				m_smoothing = false;
+				m_is_smoothing = false;
 			}
 		}
-	} while( m_smoothing );
+	} while( m_is_smoothing );
 }
 
 /**
@@ -318,35 +365,37 @@ void Field::smooth_completely() {
  */
 void Field::smooth() {
 	// If not smoothing, start
-	if( ! m_smoothing ) {
-		m_smoothing = true;
-		m_current_tier = m_top_graph;
-		m_tier_index = 1;
-		m_new_tier = true;
-		m_last_error = calculate_error( m_current_tier );
+	if( ! m_is_smoothing ) {
+		m_is_smoothing = true;
+		m_smoothing_current_tier = m_top_graph;
+		m_smoothing_tier_index = 1;
+		m_smoothing_started_new_tier = true;
+		m_smoothing_last_error = calculate_error( m_smoothing_current_tier );
 		if( m_tracing_enabled ) 
-			std::cout << "Starting smooth. Error : " << m_last_error << std::endl;
+			std::cout << "Starting smooth. Error : " << m_smoothing_last_error << std::endl;
 	}
 
 	// If we're starting a new tier...
-	if( m_new_tier ) {
+	if( m_smoothing_started_new_tier ) {
 		if( m_tracing_enabled ) 
-			std::cout << "  Level " << m_tier_index << std::endl;
+			std::cout << "  Level " << m_smoothing_tier_index << std::endl;
 
-		m_new_tier = false;
+		m_smoothing_iterations_this_tier = 0;
+		m_smoothing_started_new_tier = false;
 	}
 
-	if( smooth_tier( m_current_tier ) ) {
+
+	if( smooth_tier( m_smoothing_current_tier ) ) {
 		// Converged. If there's another tier, do it
-		if( m_current_tier != m_graph ) {
-			m_current_tier = m_current_tier -> propagate_down( );
-			m_tier_index ++;
-			m_new_tier = true;
+		if( m_smoothing_current_tier != m_graph ) {
+			m_smoothing_current_tier = m_smoothing_current_tier -> propagate_down( );
+			m_smoothing_tier_index ++;
+			m_smoothing_started_new_tier = true;
 		}
 
 		// Otherwise, done
 		else {
-			m_smoothing = false;
+			m_is_smoothing = false;
 		}
 	}
 }
@@ -358,15 +407,31 @@ void Field::smooth() {
 bool Field::smooth_tier( Graph * tier ) {
 
 	float new_error = smooth_once( tier );
-	float delta = m_last_error - new_error;
-	float pct = delta / m_last_error;
-	float display_pct = std::floor( pct * 1000.0f) / 10.0f;
-	m_last_error = new_error;
+	m_smoothing_iterations_this_tier ++;
 
-	bool converged = ( display_pct >= 0.0f && display_pct < 1.0f );
+	float delta = m_smoothing_last_error - new_error;
+	float pct = delta / m_smoothing_last_error;
+	float display_pct = std::floor( pct * 1000.0f) / 10.0f;
+	m_smoothing_last_error = new_error;
+
+	bool converged = ( display_pct >= 0.0f && display_pct < CONVERGENCE_THRESHOLD );
 	if( m_tracing_enabled ) {
 		std::cout << "      New Error : " << new_error << " (" << delta << ") : " << display_pct << "%" << std::endl;
 	}
+
+	if( converged ) {
+		if( m_tracing_enabled ) {
+			std::cout << "      Converged" << std::endl;
+		}
+	} else {
+		if ( m_smoothing_iterations_this_tier == MAX_ITERS_PER_TIER ) {
+			converged = true;
+			if( m_tracing_enabled ) {
+				std::cout << "      Not converging. skip to next tier" << std::endl;
+			}
+		}
+	}
+
 	return converged;
 }
 

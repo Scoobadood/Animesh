@@ -261,6 +261,11 @@ public:
       return m_nodes;
     }
 
+
+    Graph<NodeData, EdgeData> *up_graph( ) {
+      return m_up_graph;
+    }    
+
     /**
      * Perform start contraction on this graph. The resultant graph
      * is set as the parent of this graph and nodes are mapped to their

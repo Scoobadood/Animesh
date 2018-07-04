@@ -3,11 +3,9 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include <pcl/io/obj_io.h>
 
 #include "load_and_save.h"
 
-#include <FileUtils/FileUtils.h>
 #include <Field/FieldExporter.h>
 #include <Field/MatlabFieldExporter.h>
 
@@ -32,51 +30,17 @@ void write_matlab_file( Field * field, int index ) {
 	write_matlab_file( field, oss.str());
 }
 
-
 /**
- * Load an obj file into a point cloud
+ * Write the field to Matlab
  */
-pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
-    if( file_name.size() == 0 ) 
-        throw std::invalid_argument( "Missing file name" );
+void save_field( const Args& args, Field * field ) {
+	write_matlab_file( field, "initial.mat" );
 
-    bool is_directory;
-    if (!file_exists(file_name, is_directory ) )
-        throw std::runtime_error( "File not found: " + file_name );
-
-    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
-    if( pcl::io::loadOBJFile(file_name, *cloud) == -1) {
-        PCL_ERROR ("Couldn't read file\n");
-        return nullptr;
-    }
-    return cloud;
+	field->smooth( );
+	
+	write_matlab_file( field, "final.mat" );
 }
 
-
-/**
- * Construct a field from an OBJ file
- */
-Field * load_field_from_obj_file( const Args& args ) {
-	std::string file_name = args.file_name();
-	std::cout << "Loading from file " << file_name << std::endl;
-
-	// Load the point cloud from file
-	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
-	if( !cloud ) 
-		return nullptr;
-
-	// Scale points
-	std::cout << "scaling points by " << args.scale() << std::endl;
-	float scale = args.scale();
-	for( auto iter = cloud->points.begin(); iter != cloud->points.end(); ++iter ) {
-		(*iter).x *= scale;
-		(*iter).y *= scale;
-		(*iter).z *= scale;
-	}
-
-	std::cout << "building graph with " << args.k() << " nearest neighbours." << std::endl;
-	return new Field( cloud, args.k(), args.tracing_enabled() );
-}
 
 
 
@@ -89,7 +53,7 @@ Field * load_field( const Args& args) {
 	bool dump_field = args.should_dump_field();
 
 	if( args.load_from_pointcloud() ) {
-		field = load_field_from_obj_file( args );
+		field = load_field_from_obj_file( args.file_name(), args.k(), args.scale(),args.tracing_enabled() );
 	} else {
 		switch( args.default_shape()	 ) {
 			case Args::SPHERE:
@@ -122,15 +86,4 @@ Field * load_field( const Args& args) {
 	std::cout << "Built field" << std::endl;
 	field->enable_tracing( args.tracing_enabled() );
 	return field;
-}
-
-/**
- * Write the field to Matlab
- */
-void save_field( const Args& args, Field * field ) {
-	write_matlab_file( field, "initial.mat" );
-
-	field->smooth( );
-	
-	write_matlab_file( field, "final.mat" );
 }

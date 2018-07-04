@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
 project( Animesh
          VERSION 0.1 
          LANGUAGES CXX )

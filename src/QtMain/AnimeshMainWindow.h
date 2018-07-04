@@ -4,6 +4,13 @@
 #include <QMainWindow>
 #include <Field/Field.h>
 
+
+#include "vtkObject.h"
+#include "vtkPolyData.h"
+#include "vtkRenderer.h"
+#include "vtkSmartPointer.h"
+
+
 namespace Ui {
 class AnimeshMainWindow;
 }
@@ -21,13 +28,31 @@ private:
     void loadFile( QString fileName );
     void setCurrentFile(const QString &fileName);
 
+    // VTK Handling
+	void update_poly_data( );
+	vtkSmartPointer<vtkRenderer> set_up_renderer( );
+
+    void set_field( Field * field );
+    void update_inspector();
+    void disable_inspector();
+	void update_view();
+    void view_changed();
+
+
 	// Field declaration
-	Field * m_field;
+	Field *    m_field;
+
+	// Poly data
+	vtkSmartPointer<vtkPolyData> m_polydata;
+
+    // Currently displayed level of the field graph hierarchy
+    int         m_current_tier;
 
 
 private slots:
-    void on_actionOpen_triggered();
-
+    void on_action_open_triggered();
+    void on_action_poly_triggered();
+    void on_sbGraphLevel_valueChanged(int new_graph_level);
 };
 
 #endif // ANIMESHMAINWINDOW_H

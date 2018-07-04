@@ -16,6 +16,8 @@ public:
 	 */
 	Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled = false );
 
+	Field( const std::string file_name, int k, bool tracing_enabled = false );
+
 	~Field( );
 
 	/**
@@ -65,6 +67,21 @@ public:
 
 	friend std::ostream& operator<<( std::ostream&, const FieldElement&);
 
+	int num_tiers( ) const { return m_num_tiers; }
+
+	// Return the nth graph in h=the hierarchy where 0 is base.
+	animesh::Graph<FieldElement *, void*> * graph_at_tier( int tier ) {
+		if( tier < 0 || tier >= m_num_tiers ) {
+			throw std::invalid_argument( "Tier index out of range");
+		}
+		animesh::Graph<FieldElement *, void*> *base = m_graph;
+		while( tier > 0 ) base = base->up_graph();
+
+		return base;
+	};
+
+
+
 private:
 	// Smoothing
 	/**
@@ -104,20 +121,34 @@ private:
 		animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
 
 	/** The Graph - helps us get neighbours */
-	animesh::Graph<FieldElement *, void*> *  	m_graph;
+	animesh::Graph<FieldElement *, void*> * m_graph;
 
 	/** The top of hierarchy Graph */
-	animesh::Graph<FieldElement *, void*> *  	m_top_graph;
+	animesh::Graph<FieldElement *, void*> * m_top_graph;
+
+	/** Number of levels in the graph */
+	int 									m_num_tiers;
 
 	/** Flag to determine if we should trace field moothing */
-	bool 		m_tracing_enabled;
+	bool 									m_tracing_enabled;
 
 	/** Smoothing in progress */
-	bool									m_smoothing;
-	bool									m_new_tier;
-	float									m_last_error;
-	int 									m_tier_index;
-	animesh::Graph<FieldElement *, void*> *	m_current_tier;
+	bool									m_is_smoothing;
+	bool									m_smoothing_started_new_tier;
+	float									m_smoothing_last_error;
+	int 									m_smoothing_iterations_this_tier;
+	int 									m_smoothing_tier_index;
+	animesh::Graph<FieldElement *, void*> *	m_smoothing_current_tier;
 };
 
 std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& fe);
+
+/**
+ * Load an obj file into a point cloud
+ */
+pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name );
+
+/**
+ * Construct a field from an OBJ file
+ */
+Field * load_field_from_obj_file( const std::string& file_name, int k = 5, float with_scaling = 1.0f, bool trace = false );

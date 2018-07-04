@@ -20,6 +20,7 @@ target_include_directories(
 
 target_link_libraries( Field 
 	Element 
+	FileUtils
 	RoSy
 	Graph
 	${PCL_COMMON_LIBRARIES}

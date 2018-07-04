@@ -69,28 +69,6 @@ void update_field_callback(vtkObject* caller,
                 void* clientData, void* callData );
 
 /**
- * Create a text widget to act as a button for incremental smoothing
- */
-vtkSmartPointer<vtkTextWidget> add_smooth_button( vtkSmartPointer<vtkRenderWindowInteractor> interactor ) {
- // Create the widget
-  vtkSmartPointer<vtkTextActor> textActor = vtkSmartPointer<vtkTextActor>::New();
-  textActor->SetInput("");
-  textActor->GetTextProperty()->SetColor( 0.0, 1.0, 0.0 );
-
-  vtkSmartPointer<vtkTextWidget> textWidget = vtkSmartPointer<vtkTextWidget>::New();
-  vtkSmartPointer<vtkTextRepresentation> textRepresentation = vtkSmartPointer<vtkTextRepresentation>::New();
-  textRepresentation->GetPositionCoordinate()->SetValue( 0, 0 );
-  textRepresentation->GetPosition2Coordinate()->SetValue( .01, .01 );
-  textWidget ->SetRepresentation( textRepresentation );
-
-  textWidget->SetInteractor(interactor);
-  textWidget->SetTextActor(textActor);
-  textWidget->SelectableOff();
-
-  return textWidget;
-}
-
-/**
  * Reconstruct the given polydata from the field
  */
 void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPolyData> polydata ) {
@@ -206,11 +184,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
   callback->SetClientData((void *)polydata);
   renderWindowInteractor->AddObserver(vtkCommand::UserEvent, callback );
 
-  vtkSmartPointer<vtkTextWidget> text = add_smooth_button(renderWindowInteractor);
-
   renderWindow->Render();
-
-  text->On();
 
 	populate_poly_from_field( field, polydata);
 
@@ -223,7 +197,7 @@ vtkSmartPointer<vtkPolyData> set_up_render_field( const Field * const field  ) {
  * Update the field by smoothing and redraw it.
  */
 void update_field_callback(vtkObject* caller, long unsigned int eventId, void * clientData, void * callData ) {
-  g_field->smooth();
+  g_field->smooth_completely();
   vtkPolyData* polydatap = reinterpret_cast<vtkPolyData*>(clientData);
   vtkSmartPointer<vtkPolyData> polydata = polydatap;
   populate_poly_from_field( g_field, polydata);

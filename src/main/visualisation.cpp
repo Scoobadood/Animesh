@@ -84,7 +84,7 @@ void populate_poly_from_field( const Field * const field, vtkSmartPointer<vtkPol
 	colours->SetNumberOfComponents(3);
 
     polydata->Initialize();
-    const std::vector<const FieldElement *> elements = field->elements();
+    const std::vector<const FieldElement *> elements = field->elements(0);
     for (auto it = elements.begin(); it != elements.end(); ++it ) {
     	const FieldElement * const fe = *it;
 

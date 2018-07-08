@@ -513,12 +513,12 @@ void Field::set_tangents( const std::vector<const Eigen::Vector3f>& new_tangents
 /**
  * Return vector of elements
  */
-const std::vector<const FieldElement *> Field::elements( ) const {
+const std::vector<const FieldElement *> Field::elements( int tier ) const {
 	std::vector<const FieldElement *> elements;
-	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
-		const FieldElement * fe = (*node_iter)->data();
 
-		elements.push_back( fe );
+	Graph * g = graph_at_tier(tier);
+	for( auto node : g->nodes() ) {
+		elements.push_back( node->data() );
 	}
 	return elements;
 }

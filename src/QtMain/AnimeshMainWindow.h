@@ -53,6 +53,8 @@ private slots:
     void on_action_open_triggered();
     void on_action_poly_triggered();
     void on_sbGraphLevel_valueChanged(int new_graph_level);
+    void on_btnSmoothCompletely_clicked();
+    void on_btnSmoothOnce_clicked();
 };
 
 #endif // ANIMESHMAINWINDOW_H

@@ -11,8 +11,10 @@
 #include "vtkCoordinate.h"
 #include "vtkCylinderSource.h"
 #include "vtkDataArray.h"
+#include "vtkDepthSortPolyData.h"
 #include "vtkFloatArray.h"
 #include "vtkInteractorStyleTrackballCamera.h"
+#include "vtkLight.h"
 #include "vtkLine.h"
 #include "vtkNamedColors.h"
 #include "vtkPointData.h"
@@ -39,7 +41,7 @@ AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(
     disable_inspector( );
 
     // VTK/Qt wedded
-    this->ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer( ));
+    ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer( ));
 
     // Set up action signals and slots
     connect(this->ui->action_exit, SIGNAL(triggered()), this, SLOT(slotExit()));
@@ -62,7 +64,7 @@ void AnimeshMainWindow::on_action_open_triggered()
 void AnimeshMainWindow::loadFile( QString fileName ) {
     setCurrentFile( fileName );
 
-    set_field( load_field_from_obj_file( fileName.toStdString() ) );
+    set_field( load_field_from_obj_file( fileName.toStdString(), 5, 100, true ) );
 
     statusBar()->showMessage(tr("File loaded"), 2000);
 }
@@ -121,6 +123,9 @@ void AnimeshMainWindow::disable_inspector( ) {
     this->ui->txtResidual->setText( "0" );
     this->ui->txtNodeCount->setText( "0" );
     this->ui->txtEdgeCount->setText( "0" );
+
+    this->ui->btnSmoothOnce->setEnabled( false );
+    this->ui->btnSmoothCompletely->setEnabled( false );
 }
 
 // Populate inspector
@@ -137,10 +142,25 @@ void AnimeshMainWindow::update_inspector(){
         return;
     }
 
+    this->ui->btnSmoothOnce->setEnabled( true );
+    this->ui->btnSmoothCompletely->setEnabled( true );
+
+
+    if( m_field->num_tiers( ) == 1 ) {
+        this->ui->sbGraphLevel->setEnabled( false );
+        this->ui->sbGraphLevel->setMaximum( 0 );
+    } else {
+        this->ui->sbGraphLevel->setEnabled( true );
+        this->ui->sbGraphLevel->setMaximum( m_field->num_tiers( ) - 1);
+    }
+
     std::cout << "New field has " <<  m_field->num_tiers( ) << " tiers" << std::endl;
-    this->ui->sbGraphLevel->setMaximum( m_field->num_tiers( ) - 1);
-    this->ui->sbGraphLevel->setEnabled( true );
     this->ui->sbGraphLevel->setValue( m_current_tier );
+
+    this->ui->txtNodeCount->setText( QString::number(m_field->graph_at_tier(m_current_tier)->num_nodes() ) );
+    this->ui->txtEdgeCount->setText( QString::number(m_field->graph_at_tier(m_current_tier)->num_edges() ) );
+
+    this->ui->txtResidual->setText( QString::number( m_field->current_error( m_current_tier) ) );
 }
 
 // Update render view
@@ -148,6 +168,8 @@ void AnimeshMainWindow::update_inspector(){
 // -- Update the render window
 void AnimeshMainWindow::update_view(){
     std::cout << "render view for graph at level: " << this->ui->sbGraphLevel->value( ) << std::endl;
+    update_poly_data( );
+    ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
 
@@ -167,7 +189,7 @@ void AnimeshMainWindow::update_poly_data( ) {
 
     m_polydata->Initialize();
     if( m_field != nullptr ) {
-        const std::vector<const FieldElement *> elements = m_field->elements();
+        const std::vector<const FieldElement *> elements = m_field->elements(m_current_tier);
         for (auto it = elements.begin(); it != elements.end(); ++it ) {
             const FieldElement * const fe = *it;
 
@@ -236,16 +258,49 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
 
     //  Make empty Polydata
     m_polydata = vtkSmartPointer<vtkPolyData>::New();
+    update_poly_data();
+
+
+// The dephSort object is set up to generate scalars representing
+// the sort depth.  A camera is assigned for the sorting. The camera
+// define the sort vector (position and focal point).
+    vtkSmartPointer<vtkDepthSortPolyData> depth_sort = vtkSmartPointer<vtkDepthSortPolyData>::New();
+    depth_sort->SetInputData(m_polydata);
+    depth_sort->SetDirectionToBackToFront();
+    depth_sort->SetVector(1, 1, 1);
+    depth_sort->SetCamera(renderer->GetActiveCamera());
+    depth_sort->SortScalarsOn();
+    depth_sort->Update();
+
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputData(m_polydata);
+    mapper->SetInputConnection(depth_sort->GetOutputPort());
+
+    mapper->SetScalarVisibility(true);
+    mapper->SetScalarRange(0, depth_sort->GetOutput()->GetNumberOfCells());
+    // mapper->SetInputData(m_polydata);
 
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     actor->SetMapper(mapper);
     actor->GetProperty()->SetPointSize(3); 
     actor->GetProperty()->SetLineWidth(3);
+    actor->GetProperty()->SetOpacity(0.5);
+    actor->GetProperty()->SetColor(1, 0, 0);
     renderer->AddActor(actor);
 
-    update_poly_data();
+
+    // vtkSmartPointer<vtkLight> light = vtkSmartPointer<vtkLight>::New();
+    // double lightPosition[3] = {0, 0, 1};
+    // double lightFocalPoint[3] = {0,0,0};
+    // light->SetLightTypeToSceneLight();
+    // light->SetPosition(lightPosition[0], lightPosition[1], lightPosition[2]);
+    // light->SetPositional(true); // required for vtkLightActor below
+    // light->SetConeAngle(10);
+    // light->SetFocalPoint(lightFocalPoint[0], lightFocalPoint[1], lightFocalPoint[2]);
+    // light->SetDiffuseColor(1,0,0);
+    // light->SetAmbientColor(0,1,0);
+    // light->SetSpecularColor(0,0,1);
+
+    // renderer->AddLight(light);
 
     return renderer;
 }
@@ -256,4 +311,20 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
 void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
     m_current_tier = new_graph_level;
     view_changed( );
+}
+
+void AnimeshMainWindow::on_btnSmoothCompletely_clicked()
+{
+    if( m_field ) {
+        m_field->smooth_completely();
+        view_changed();
+    }
+}
+
+void AnimeshMainWindow::on_btnSmoothOnce_clicked()
+{
+    if( m_field ) {
+        m_field->smooth();
+        view_changed();
+    }
 }

@@ -19,7 +19,7 @@ MatlabFieldExporter::~MatlabFieldExporter( ) {}
 void MatlabFieldExporter::exportField( const Field& field  ) const {
 	writeHeader( m_out );
 
-	std::vector<const FieldElement *> elements = field.elements( );
+	std::vector<const FieldElement *> elements = field.elements( 0 );
 
 	writeLocationData( m_out, elements );
 	writeNormalData( m_out, elements );

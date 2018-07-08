@@ -40,7 +40,6 @@ struct FieldElement {
 	}
 };
 
-
 class Field {
 public:
 	/**
@@ -67,9 +66,10 @@ public:
 	std::size_t size() const;
 
 	/**
+	 * @param tier The tier for which the elements should be returned
 	 * @return vector of elements 
 	 */
-	const std::vector<const FieldElement *> elements( ) const;
+	const std::vector<const FieldElement *> elements( int tier ) const;
 
 	/**
 	 * Smooth the field
@@ -82,9 +82,11 @@ public:
 	void smooth_completely();
 
 	/**
-	 * @return the smoothness of the entire Field
+	 * Current error in field
 	 */
-	float calculate_error( animesh::Graph<FieldElement *, void*> * tier ) const;
+	float current_error( int tier ) const {
+		return calculate_error( graph_at_tier( tier ) );
+	}
 
 	/**
 	 * Set all the tangents in the field to specific values.
@@ -102,12 +104,13 @@ public:
 	int num_tiers( ) const { return m_num_tiers; }
 
 	// Return the nth graph in h=the hierarchy where 0 is base.
-	animesh::Graph<FieldElement *, void*> * graph_at_tier( int tier ) {
+	animesh::Graph<FieldElement *, void*> * graph_at_tier( int tier ) const {
 		if( tier < 0 || tier >= m_num_tiers ) {
 			throw std::invalid_argument( "Tier index out of range");
 		}
 		animesh::Graph<FieldElement *, void*> *base = m_graph;
-		while( tier > 0 ) base = base->up_graph();
+		while( tier-- > 0 )
+			base = base->up_graph();
 
 		return base;
 	};
@@ -150,6 +153,12 @@ private:
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
 	float calculate_error_for_node( animesh::Graph<FieldElement *, void*> * tier, 
 		animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
+
+	/**
+	 * @return the smoothness of the entire Field
+	 */
+	float calculate_error( animesh::Graph<FieldElement *, void*> * tier ) const;
+
 
 	/** The Graph - helps us get neighbours */
 	animesh::Graph<FieldElement *, void*> * m_graph;

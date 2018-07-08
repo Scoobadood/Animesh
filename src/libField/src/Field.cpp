@@ -488,29 +488,6 @@ Eigen::Vector3f Field::calculate_smoothed_node( Graph * tier, GraphNode * gn ) c
 }
 
 /**
- * Set all the tangents in the field to specific values.
- * @param new_tangents The new tangents
- * @return The difference between the old and new values
- */
-void Field::set_tangents( const std::vector<const Eigen::Vector3f>& new_tangents ) {
-	using namespace Eigen;
-
-	if( new_tangents.size() != m_graph->num_nodes() ) 
-		throw std::invalid_argument( "Must be one tangent for each node");
-
-	auto tan_iter = new_tangents.begin();
-	for( auto	node_iter = m_graph->nodes().begin(); 
-				node_iter != m_graph->nodes().end(); ++
-				node_iter, ++tan_iter ) {
-		FieldElement * fe = (*node_iter)->data();
-
-		const Vector3f current_tangent = fe->m_tangent;
-		const Vector3f new_tangent = (*tan_iter);
-		fe->m_tangent = new_tangent; //(0.5 * fe->m_tangent + 0.5 * new_tangent).normalized();
-	}
-}
-
-/**
  * Return vector of elements
  */
 const std::vector<const FieldElement *> Field::elements( int tier ) const {

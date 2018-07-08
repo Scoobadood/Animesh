@@ -88,13 +88,6 @@ public:
 		return calculate_error( graph_at_tier( tier ) );
 	}
 
-	/**
-	 * Set all the tangents in the field to specific values.
-	 * @param new_tangents The new tangents
-	 * @return The difference between the old and new values
-	 */
-	void set_tangents( const std::vector<const Eigen::Vector3f>& new_tangents );
-
 	void dump( ) const;
 
 	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}

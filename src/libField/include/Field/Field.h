@@ -1,16 +1,48 @@
 #pragma once 
 
-#include <Graph/GraphBuilder.h>
+#include <Graph/HierarchicalGraph.h>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
+struct FieldElement {
+	Eigen::Vector3f		m_location;
+	Eigen::Vector3f		m_normal;
+	Eigen::Vector3f		m_tangent;
+
+	FieldElement( Eigen::Vector3f location, 
+				  Eigen::Vector3f normal,
+				  Eigen::Vector3f tangent ) : m_location{ location }, m_normal{ normal }, m_tangent{ tangent } {};
+	/**
+ 	 * Useful method for merging FieldElements
+	 */
+	static FieldElement * mergeFieldElements ( const FieldElement* fe1, const FieldElement* fe2 ) {
+		FieldElement *fe = new FieldElement(
+			(fe1->m_location + fe2->m_location) / 2.0,
+			(fe1->m_normal + fe2->m_normal).normalized(),
+			Eigen::Vector3f::Zero());
+
+		// randomize tangent
+		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
+		fe->m_tangent = random.cross( fe->m_normal ).normalized( );
+		return fe;
+	}
+
+	/**
+ 	 * Propagate field element changes down graph hierarch
+	 */
+	static FieldElement * propagateFieldElements ( FieldElement* parent, FieldElement* child ) {
+		// Take the tangent from the parent and reproject into the child's tangent space
+		// and normalise
+		Eigen::Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
+		Eigen::Vector3f child_tangent = parent->m_tangent - error;
+		child->m_tangent = child_tangent.normalized();
+		return child;
+	}
+};
+
+
 class Field {
 public:
-	/**
-	 * Construct the field using a graph builder and some elements
-	 */
-	Field( const GraphBuilder<void *> * const graph_builder, const std::vector<Element>& elements );
-
 	/**
 	 * Construct from a PCL PointCloud
 	 */
@@ -116,7 +148,6 @@ private:
 	void generate_hierarchy( size_t max_nodes );
 	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
-	void init( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements );
 	float calculate_error_for_node( animesh::Graph<FieldElement *, void*> * tier, 
 		animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
 

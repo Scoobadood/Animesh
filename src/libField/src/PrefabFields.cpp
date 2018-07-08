@@ -1,9 +1,6 @@
 
 #include <Field/Field.h>
 #include <Eigen/Core>
-#include <Graph/ExplicitGraphBuilder.h>
-#include <Graph/GridGraphBuilder.h>
-#include <Graph/NearestNeighbourGraphBuilder.h>
 #include <vector>
 #include <map>
 #include <iostream>
@@ -98,8 +95,6 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 	float maxPhi = M_PI;
 	float deltaTheta = maxTheta / theta_steps;
 	float deltaPhi   = maxPhi / phi_steps;
-
-	std::vector<Element> elements;
 
 	// Add top and bottom points
 	pcl::PointNormal point;

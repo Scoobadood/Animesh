@@ -25,27 +25,6 @@ Field::~Field( ) {
 	delete m_graph;
 }
 
-
-void Field::init( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements ) {
-	m_graph = graph_builder->build_graph_for_elements( elements );
-	m_top_graph = m_graph;
-
-	// Initialise field tangents to random values
-	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
-		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
-		random = random.cross( (*node_iter)->data()->m_normal ).normalized( );
-		(*node_iter)->data()->m_tangent = random;
-	}
-}
-
-
-/**
- * Construct the field using a graph builder and some elements
- */
-Field::Field( const GraphBuilder<void*> * const graph_builder, const std::vector<Element>& elements ) {
-	init( graph_builder, elements);
-}
-
 FieldElement * field_element_from_point( const pcl::PointNormal& point ) {
 	FieldElement * fe = new FieldElement( 
 		Eigen::Vector3f{ point.x, point.y, point.z},

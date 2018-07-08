@@ -1,39 +1,31 @@
 #include "TestField.h"
 
-#include <Graph/Graph.h>
-#include <Graph/GridGraphBuilder.h>
 #include <Field/Field.h>
 
 
 void TestField::SetUp( ) {}
 void TestField::TearDown( ) {}
 
-TEST_F(TestField, SizeAccuatelyReportsSize) { 
-	std::vector<Element> elements;
-	elements.push_back( el_1_1_1 );
-	elements.push_back( el_1_1_2 );
-	elements.push_back( el_1_1_3 );
+// TEST_F(TestField, SizeAccuatelyReportsSize) { 
+// 	Field * field = Field( gb, elements );
 
-	GraphBuilder<void *> * gb = new GridGraphBuilder<void *>( 1.0f );
-	Field * field = new Field( gb, elements );
+// 	// Hard set tangents
+// 	const std::vector<const FieldElement *> fes = field->elements( );
+// 	const_cast<FieldElement *>(fes[0])->m_tangent = Eigen::Vector3f{ -1.50f, 0.0f, 1.0f };
+// 	const_cast<FieldElement *>(fes[1])->m_tangent = Eigen::Vector3f{  0.0f, 0.0f, 1.0f };
+// 	const_cast<FieldElement *>(fes[2])->m_tangent = Eigen::Vector3f{  1.50f, 0.0f, 1.0f };
 
-	// Hard set tangents
-	const std::vector<const FieldElement *> fes = field->elements( );
-	const_cast<FieldElement *>(fes[0])->m_tangent = Eigen::Vector3f{ -1.50f, 0.0f, 1.0f };
-	const_cast<FieldElement *>(fes[1])->m_tangent = Eigen::Vector3f{  0.0f, 0.0f, 1.0f };
-	const_cast<FieldElement *>(fes[2])->m_tangent = Eigen::Vector3f{  1.50f, 0.0f, 1.0f };
+// 	std::cout << "tan{1} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
+// 	std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
+// 	std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
 
-	std::cout << "tan{1} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
-	std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
-	std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
-
-	for( int i=0; i<3; i++ ) {
-		field->smooth( );
-		std::cout << "tan{"<<i+2<<"} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
-		std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
-		std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
-	}
-}
+// 	for( int i=0; i<3; i++ ) {
+// 		field->smooth( );
+// 		std::cout << "tan{"<<i+2<<"} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
+// 		std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
+// 		std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
+// 	}
+// }
 
 
 // TEST_F(TestField, ShouldThrowWhenRequestingOutOfRangeItem) { 

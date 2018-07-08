@@ -24,18 +24,6 @@ export(
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
-
-add_executable(
-	testGraph
-    "tests/main.cpp"
-    "tests/TestGraph.cpp")
-
-target_link_libraries(
-	testGraph 
-	Graph 
-	gtest gmock
-	${CMAKE_THREAD_LIBS_INIT} )
-
 add_executable(
 	testHGraph
     "tests/main.cpp"
@@ -74,8 +62,5 @@ add_test( NAME TestNNEdgeManagerInsert_112_updates_115 COMMAND testGraph --gtest
 add_test( NAME TestNNEdgeManagerInsert_112_updates_112 COMMAND testGraph --gtest_filter=TestNNEdgeManager.insert_112_updates_112 )
 
 
-
-
-
 # Stash it
-install(TARGETS testGraph DESTINATION bin)
+install(TARGETS testHGraph DESTINATION bin)

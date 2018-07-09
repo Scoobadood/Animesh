@@ -14,7 +14,8 @@ target_include_directories(
 	PRIVATE src)
 
 target_link_libraries( RoSy 
-	Field)
+	Field
+	Geom)
 
 
 # This makes the project importable from the build directory

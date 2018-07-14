@@ -14,6 +14,11 @@ float angle_between_vectors( Eigen::Vector3f v1, Eigen::Vector3f v2 );
  */
 Eigen::Vector3f reproject_to_tangent_space( const Eigen::Vector3f& v, const Eigen::Vector3f& n);
 
+/**
+ * Construct the skew symmetric matrix correesponding to 
+ * the vector (v1,v2,v3)
+ */
+Eigen::Matrix3f skew_symmetrix_matrix_for( const Eigen::Vector3f& v );
 
 /**
  * Compute the vector v resulting from the rotation of vector o around normal n
@@ -37,4 +42,18 @@ Eigen::Vector3f reproject_to_tangent_space( const Eigen::Vector3f& v, const Eige
  									const Eigen::Vector3f& point2, 
  									const Eigen::Vector3f& normal3, 
  									const std::vector<Eigen::Vector3f>& neighbours2);
- 
+
+ /**
+ * Compute the matrix which rotates an arbitrary 3D vector onto another.
+ * @param v1 The first vector
+ * @param v2 The second vector
+ * @return The 3x3 rotation matrix
+ */
+Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eigen::Vector3f& v2 );
+
+/**
+ * Return a 3D vector perpendicular to the given 3D vector
+ * @param v The vector
+ * @retrun A vector perpendicular to it
+ */
+Eigen::Vector3f vector_perpendicular_to_vector( const Eigen::Vector3f& v1 );

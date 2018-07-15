@@ -36,6 +36,11 @@
 
 AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow)
 {
+    m_field = nullptr;
+    m_polydata = nullptr;
+    m_current_tier = 0;
+
+
     ui->setupUi(this);
 
     disable_inspector( );
@@ -172,7 +177,6 @@ void AnimeshMainWindow::update_view(){
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
-
 /**
  * Reconstruct the given polydata from the field
  */
@@ -254,14 +258,13 @@ void AnimeshMainWindow::update_poly_data( ) {
  */
 vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-    renderer->GetActiveCamera()->Dolly( 2.0f );
 
     //  Make empty Polydata
     m_polydata = vtkSmartPointer<vtkPolyData>::New();
     update_poly_data();
 
 
-// The dephSort object is set up to generate scalars representing
+// The depthSort object is set up to generate scalars representing
 // the sort depth.  A camera is assigned for the sorting. The camera
 // define the sort vector (position and focal point).
     vtkSmartPointer<vtkDepthSortPolyData> depth_sort = vtkSmartPointer<vtkDepthSortPolyData>::New();
@@ -286,22 +289,6 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
     actor->GetProperty()->SetOpacity(0.5);
     actor->GetProperty()->SetColor(1, 0, 0);
     renderer->AddActor(actor);
-
-
-    // vtkSmartPointer<vtkLight> light = vtkSmartPointer<vtkLight>::New();
-    // double lightPosition[3] = {0, 0, 1};
-    // double lightFocalPoint[3] = {0,0,0};
-    // light->SetLightTypeToSceneLight();
-    // light->SetPosition(lightPosition[0], lightPosition[1], lightPosition[2]);
-    // light->SetPositional(true); // required for vtkLightActor below
-    // light->SetConeAngle(10);
-    // light->SetFocalPoint(lightFocalPoint[0], lightFocalPoint[1], lightFocalPoint[2]);
-    // light->SetDiffuseColor(1,0,0);
-    // light->SetAmbientColor(0,1,0);
-    // light->SetSpecularColor(0,0,1);
-
-    // renderer->AddLight(light);
-
     return renderer;
 }
 

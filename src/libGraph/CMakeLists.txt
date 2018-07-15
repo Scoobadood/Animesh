@@ -7,9 +7,7 @@ target_include_directories(Graph
 
 
 # Depend on a library that we defined in the top-level file
-target_link_libraries(Graph
-	INTERFACE 
-        Element)
+target_link_libraries(Graph)
 
 
 # This makes the project importable from the build directory

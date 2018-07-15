@@ -30,7 +30,6 @@ add_executable(QtAnimesh
 
 target_link_libraries(QtAnimesh 
 	Args
-	Element
 	Field
 	FileUtils
 	Graph

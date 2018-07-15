@@ -24,7 +24,6 @@ add_executable(Animesh
 
 target_link_libraries(Animesh 
 	Args
-	Element
 	Field
 	FileUtils
 	Graph

@@ -19,7 +19,6 @@ target_include_directories(
 	PRIVATE src)
 
 target_link_libraries( Field 
-	Element 
 	FileUtils
 	RoSy
 	Graph

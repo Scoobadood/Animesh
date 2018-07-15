@@ -1,5 +1,4 @@
 #include <Field/Field.h>
-#include <Element/Element.h>
 #include <RoSy/RoSy.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>

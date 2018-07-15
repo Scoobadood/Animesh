@@ -26,7 +26,8 @@ target_link_libraries(
 
 
 # Stash it
-install(TARGETS testArgs DESTINATION bin)
+install(TARGETS testArgs 
+	DESTINATION bin)
 
 add_test( NAME TestElementZeroLengthVectorsShouldThrow COMMAND testArgs --gtest_filter=TestElement.ZeroLengthVectorsShouldThrow)
 

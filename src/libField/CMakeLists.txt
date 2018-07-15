@@ -34,12 +34,10 @@ export(
 # Tests
 file( GLOB TEST_SOURCES "tests/*.cpp" )
 
-add_executable(
-	testField
+add_executable( testField
     ${TEST_SOURCES})
 
-target_link_libraries(
-	testField
+target_link_libraries( testField
 	Field
 	Graph 
 	gtest gmock

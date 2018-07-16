@@ -1,5 +1,4 @@
 #include <Field/Field.h>
-#include <RoSy/RoSy.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -13,11 +12,42 @@
 
 //#define TRACE  1
 
-const int MAX_ITERS_PER_TIER = 20;
-const float CONVERGENCE_THRESHOLD = 0.5f;
+using FieldGraph = animesh::Graph<FieldElement *, void *>;
+using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 
-using Graph = animesh::Graph<FieldElement *, void *>;
-using GraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
+
+/**
+ * Merge FieldElements when simplifying a graph. Each FieldElement has a normal, tangent and location.
+ * When merging we do the following:
+ * Locations are averaged
+ * Normals are averaged
+ * Tangents are randomised, made perpendicular to the normal and unitised
+ */
+FieldElement * FieldElement::mergeFieldElements ( const FieldElement * const fe1, const FieldElement * const fe2 ) {
+	using namespace Eigen;
+
+	Vector3f new_location = (fe1->m_location + fe2->m_location) / 2.0;
+	Vector3f new_normal   = (fe1->m_normal + fe2->m_normal).normalized();
+	Vector3f new_tangent  = Eigen::Vector3f::Random().cross( new_normal ).normalized();
+
+	FieldElement *fe = new FieldElement( new_location, new_normal, new_tangent );
+	return fe;
+}
+
+/**
+ * When simplifying the graph, propagate the changes from parent to child.
+ * by just copying it.
+ */
+FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const parent, const FieldElement * const child ) {
+	using namespace Eigen;
+
+	// Take the tangent from the parent and reproject into the child's tangent space and normalise
+	Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
+	Vector3f new_tangent = (parent->m_tangent - error).normalized( );
+	return new FieldElement( child->m_location, child->m_normal, new_tangent );
+}
+
+
 
 Field::~Field( ) {
 	clear_up( );
@@ -69,7 +99,7 @@ struct cmpPointNormal {
  * Find the GN corresponding to a point 
  * or else throw an exception
  */
-GraphNode * find_node_or_throw( const std::map<pcl::PointNormal, GraphNode *, cmpPointNormal>& map, 
+FieldGraphNode * find_node_or_throw( const std::map<pcl::PointNormal, FieldGraphNode *, cmpPointNormal>& map, 
 	const pcl::PointNormal& point ) {
 
 		auto find_it = map.find(point);
@@ -97,7 +127,6 @@ pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::stri
     }
     return cloud;
 }
-
 
 /**
  * Construct a field from an OBJ file
@@ -146,16 +175,16 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 	// Clean up after last object if appropriate
 	clear_up( );
 	
-	// First make an empty Graph
-	m_graph_hierarchy.push_back( new Graph( ) );
+	// First make an empty FieldGraph
+	m_graph_hierarchy.push_back( new FieldGraph( ) );
 
 	// Next add all the points to it
-	std::map<pcl::PointNormal, GraphNode*, cmpPointNormal> point_to_gn_map;
+	std::map<pcl::PointNormal, FieldGraphNode*, cmpPointNormal> point_to_gn_map;
 	size_t points_added = 0;
     for( auto point : *cloud ) {
 
 		FieldElement * fe = field_element_from_point( point );
-		GraphNode * gn = m_graph_hierarchy[0] ->add_node( fe );
+		FieldGraphNode * gn = m_graph_hierarchy[0] ->add_node( fe );
 
 		// Keep a mapping from point to gn
 		point_to_gn_map[ point ] = gn;
@@ -182,7 +211,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 			std::cout<< "Processing point " << this_point << std::endl;
 
 		// Look up GN
-		GraphNode * this_gn = find_node_or_throw( point_to_gn_map, this_point);
+		FieldGraphNode * this_gn = find_node_or_throw( point_to_gn_map, this_point);
 
     	// Now find neighbours
     	pointIdxNKNSearch.clear();
@@ -210,7 +239,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
             	// Provided the eighbour isn't this point
             	if( ! (neighbour_point == this_point ) ) {
             		// If the neighbour GN is not found... throw
-					GraphNode * neighbour_gn = find_node_or_throw( point_to_gn_map, neighbour_point);
+					FieldGraphNode * neighbour_gn = find_node_or_throw( point_to_gn_map, neighbour_point);
 
 					if( m_tracing_enabled )
 						std::cout<< "    Adding edge to " << neighbour_point << std::endl;
@@ -224,7 +253,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
         }
 	}
 
-    // Graph is built
+    // FieldGraph is built
     std::cout << "Done" << std::endl;
 
     randomise_tangents( );
@@ -251,13 +280,13 @@ void Field::generate_hierarchy( size_t max_nodes ) {
 	bool done = false;
 
 	FieldGraphSimplifier * s = new FieldGraphSimplifier(FieldElement::mergeFieldElements, FieldElement::propagateFieldElements);
-	Graph * g = m_graph_hierarchy[0];
+	FieldGraph * g = m_graph_hierarchy[0];
 	while ( !done && (g->num_nodes( ) > max_nodes ) ) {
 		if (g->num_edges() == 0 ) {
 			done = true;
 		}
 		else {
-			std::pair<Graph *,FieldGraphMapping> p = s->simplify( g );
+			std::pair<FieldGraph *,FieldGraphMapping> p = s->simplify( g );
 			m_graph_hierarchy.push_back( p.first );
 			m_mapping_hierarchy.push_back( p.second );
 			g = p.first;
@@ -286,220 +315,6 @@ std::size_t Field::size() const {
 	return m_graph_hierarchy[0]->num_nodes();
 }
 
-/**
- * @return the smoothness of the entire Field
- */
-float Field::calculate_error( Graph * tier ) const {
-	// E(O, k) :=      (oi, Rso (oji, ni, kij ))
-	// For each node
-	float error = 0.0f;
-	for( auto node : tier->nodes() ) {
-		error += calculate_error_for_node( tier, node );
-	}
-	return error;
-}
-
-/**
- * @return the smoothness of one node
- */
-float Field::calculate_error_for_node( Graph * tier, GraphNode * gn ) const {
-	float error = 0.0f;
-
-	FieldElement * this_fe = (FieldElement *) gn->data();
-
-	std::vector<GraphNode *> neighbours = tier->neighbours( gn );
-
-	for( auto n : neighbours ) {
-
-		FieldElement * neighbour_fe = n->data();
-
-		std::pair<Eigen::Vector3f, Eigen::Vector3f> result = best_rosy_vector_pair( 
-			this_fe->m_tangent,
-			this_fe->m_normal,
-			neighbour_fe->m_tangent, 
-			neighbour_fe->m_normal);
-
-		float theta = angle_between_vectors( result.first, result.second );
-		error += (theta*theta);
-	}
-	return error;
-}
-
-
-/**
- * Start a brand ew smoothing session
- */
-void Field::start_smoothing( ) {
-	m_smoothing_tier_index = m_graph_hierarchy.size() - 1;;
-	m_smoothing_current_tier = m_graph_hierarchy[m_smoothing_tier_index];
-	m_smoothing_started_new_tier = true;
-	m_is_smoothing = true;
-
-	m_smoothing_last_error = calculate_error( m_smoothing_current_tier );
-	if( m_tracing_enabled ) 
-		std::cout << "Starting smooth. Error : " << m_smoothing_last_error << std::endl;
-}
-
-/**
- * Start a brand ew smoothing session
- */
-void Field::start_smoothing_tier( ) {
-	if( m_tracing_enabled ) 
-		std::cout << "  Level " << m_smoothing_tier_index << std::endl;
-
-	m_smoothing_iterations_this_tier = 0;
-	m_smoothing_started_new_tier = false;
-}
-
-/**
- * Smooth the field
- */
-void Field::smooth() {
-	// If not smoothing, start
-	if( ! m_is_smoothing ) {
-		start_smoothing( );
-	}
-
-	// If we're starting a new tier...
-	if( m_smoothing_started_new_tier ) {
-		start_smoothing_tier( );
-	}
-
-	// Smooth the tier, possible starting a new one
-	if( smooth_tier_once( m_smoothing_current_tier ) ) {
-		// Converged. If there's another tier, do it
-		if( m_smoothing_tier_index != 0 ) {
-
-			m_smoothing_tier_index --;
-			m_mapping_hierarchy[m_smoothing_tier_index].propagate();
-			m_smoothing_current_tier = m_graph_hierarchy[m_smoothing_tier_index];
-			m_smoothing_started_new_tier = true;
-		}
-
-		// Otherwise, done
-		else {
-			m_is_smoothing = false;
-		}
-	}
-}
-
-/**
- * Smooth the field
- */
-void Field::smooth_completely() {
-	// Debounce
-	if( m_is_smoothing )
-		return;
-
-	do {
-		smooth( );
-	} while( m_is_smoothing );
-}
-
-/**
- * @return true if the smoothing operation has converged
- * (or has iterated enough times)
- * otherwise return false
- */
-bool Field::check_convergence( float new_error ) {
-	float delta = m_smoothing_last_error - new_error;
-	float pct = delta / m_smoothing_last_error;
-	float display_pct = std::floor( pct * 1000.0f) / 10.0f;
-	m_smoothing_last_error = new_error;
-
-	bool converged = ( display_pct >= 0.0f && display_pct < CONVERGENCE_THRESHOLD );
-	if( m_tracing_enabled ) {
-		std::cout << "      New Error : " << new_error << " (" << delta << ") : " << display_pct << "%" << std::endl;
-	}
-
-	if( converged ) {
-		if( m_tracing_enabled ) {
-			std::cout << "      Converged" << std::endl;
-		}
-	} else {
-		if ( m_smoothing_iterations_this_tier == MAX_ITERS_PER_TIER ) {
-			converged = true;
-			if( m_tracing_enabled ) {
-				std::cout << "      Not converging. skip to next tier" << std::endl;
-			}
-		}
-	}
-	return converged;
-}
-
-/**
- * Smooth the current tier of the hierarchy bonce and return true if it converged
- */
-bool Field::smooth_tier_once ( Graph * tier ) {
-	using namespace Eigen;
-	using namespace std;
-
-	if( m_tracing_enabled )
-		cout << "    smooth_once" << endl;
-
-	// Extract map keys into vector and shuffle
-	std::vector<GraphNode *> nodes = tier->nodes();
-	random_shuffle ( nodes.begin(), nodes.end() ); 
-
-	// Iterate over permute, look up key, lookup fe and smooth
-	vector<const Vector3f> new_tangents;
-	for( auto node : nodes ) {
-		new_tangents.push_back( calculate_smoothed_node( tier, node ) );
-	}
-
-	// Now update all of the nodes
-	auto tan_iter = new_tangents.begin();
-	for( auto node : nodes ) {
-		node->data()->m_tangent = (*tan_iter);
-		++tan_iter;
-	}
-
-	// Get the new error
-	m_smoothing_iterations_this_tier ++;
-	float new_error = calculate_error( tier );
-	return check_convergence( new_error );
-}
-
-
-/**
- * Smooth the specified node
- * @return The new vector.
- */
-Eigen::Vector3f Field::calculate_smoothed_node( Graph * tier, GraphNode * gn ) const {
-	using namespace Eigen;
-
-	FieldElement * this_fe = (FieldElement *) gn->data();
-	// if( m_tracing_enabled ) 
-	// 	trace_node( "smooth_node", this_fe);
-
-	Vector3f sum = this_fe->m_tangent;
-	float weight = 0;
-
-	// For each edge from this node
-	std::vector<GraphNode *> neighbours = tier->neighbours( gn );
-	for( auto neighbour_iter = neighbours.begin(); neighbour_iter != neighbours.end(); ++neighbour_iter ) {
-
-		// Get the adjacent FieldElement
-		FieldElement * neighbour_fe = (*neighbour_iter)->data();
-		// if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
-
-		// Find best matching rotation
-		std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( 
-			sum,
-			this_fe->m_normal,
-			neighbour_fe->m_tangent, 
-			neighbour_fe->m_normal);
-
-		// Update the computed new tangent
-		// TODO: Manage weights better
-		float edge_weight = 1.0f;
-		sum = (result.first * weight) + (result.second * edge_weight);
-		weight += edge_weight;
-		sum = reproject_to_tangent_space( sum, this_fe->m_normal );
-		sum.normalize();
-	}
-	return sum;
-}
 
 /**
  * Return vector of elements
@@ -507,7 +322,7 @@ Eigen::Vector3f Field::calculate_smoothed_node( Graph * tier, GraphNode * gn ) c
 const std::vector<const FieldElement *> Field::elements( int tier ) const {
 	std::vector<const FieldElement *> elements;
 
-	Graph * g = graph_at_tier(tier);
+	FieldGraph * g = graph_at_tier(tier);
 	for( auto node : g->nodes() ) {
 		elements.push_back( node->data() );
 	}
@@ -515,12 +330,20 @@ const std::vector<const FieldElement *> Field::elements( int tier ) const {
 }
 
 /**
+ * @Return the nth graph in the hierarchy where 0 is base.
+ */
+FieldGraph * Field::graph_at_tier( size_t tier ) const {
+	return m_graph_hierarchy[tier];
+}
+
+
+
+/**
  * Dump the field to stdout. For each point in the field dump the neighbour locations
  * and the field tangent
  */
 void Field::dump(  ) const {
 	for( auto gn :  m_graph_hierarchy[0]->nodes()) {
-		using GraphNode = animesh::Graph<FieldElement *, void*>::GraphNode;
 
 		FieldElement *fe = gn->data();
 
@@ -528,7 +351,7 @@ void Field::dump(  ) const {
 		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
 		std::cout << "neighbours " << std::endl;
 
-		std::vector<GraphNode *> neighbours = m_graph_hierarchy[0]->neighbours( gn );
+		std::vector<FieldGraphNode *> neighbours = m_graph_hierarchy[0]->neighbours( gn );
 		for( auto neighbour_iter  = neighbours.begin();
 			      neighbour_iter != neighbours.end();
 			      ++neighbour_iter ) {

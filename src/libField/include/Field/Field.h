@@ -16,36 +16,26 @@ struct FieldElement {
 	/**
  	 * Useful method for merging FieldElements
 	 */
-	static FieldElement * mergeFieldElements ( const FieldElement* fe1, const FieldElement* fe2 ) {
-		FieldElement *fe = new FieldElement(
-			(fe1->m_location + fe2->m_location) / 2.0,
-			(fe1->m_normal + fe2->m_normal).normalized(),
-			Eigen::Vector3f::Zero());
-
-		// randomize tangent
-		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
-		fe->m_tangent = random.cross( fe->m_normal ).normalized( );
-		return fe;
-	}
+	static FieldElement * mergeFieldElements ( const FieldElement * const fe1, const FieldElement * const fe2 );
 
 	/**
  	 * Propagate field element changes down graph hierarch
 	 */
-	static FieldElement * propagateFieldElements ( FieldElement* parent, FieldElement* child ) {
-		// Take the tangent from the parent and reproject into the child's tangent space
-		// and normalise
-		Eigen::Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
-		Eigen::Vector3f child_tangent = parent->m_tangent - error;
-		child->m_tangent = child_tangent.normalized();
-		return child;
-	}
+	static FieldElement * propagateFieldElements ( const FieldElement * const parent, const FieldElement * const child );
 };
+
 
 class Field {
 	using FieldGraph = typename animesh::Graph<FieldElement *, void *>;
 	using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 	using FieldGraphSimplifier = typename animesh::GraphSimplifier<FieldElement *, void *>;
 	using FieldGraphMapping = typename animesh::GraphSimplifier<FieldElement *, void *>::GraphMapping;
+
+	/* ******************************************************************************************
+	 * *
+	 * *  Building Fields
+	 * * 
+	 * ******************************************************************************************/
 
 public:
 	/**
@@ -66,52 +56,40 @@ public:
 	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k);
 	static Field * circular_field( float radius, int k );
 
-	/**
-	 * @return the size of the ifled
-	 */
-	std::size_t size() const;
+	void randomise_tangents( );
 
 	/**
-	 * @param tier The tier for which the elements should be returned
-	 * @return vector of elements 
+	 * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
 	 */
-	const std::vector<const FieldElement *> elements( int tier ) const;
+	void generate_hierarchy( size_t max_nodes );
+
 
 	/**
-	 * Smooth the field
+	 * Clear all variables. Called prior to loading new object and on termination
+	 */
+	void clear_up( );
+
+
+	/* ******************************************************************************************
+	 * *
+	 * *  Smoothing Fields
+	 * * 
+	 * ******************************************************************************************/
+public:
+	/**
+	 * Smooth the field (once)
 	 */
 	void smooth( );
 
 	/**
-	* Smooth the field
+	* Smooth the field completelt
 	*/
 	void smooth_completely();
 
-	/**
-	 * Current error in field
-	 */
-	float current_error( int tier ) const {
-		return calculate_error( graph_at_tier( tier ) );
-	}
-
-	void dump( ) const;
-
-	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}
-
-	friend std::ostream& operator<<( std::ostream&, const FieldElement&);
-
-	int num_tiers( ) const { return m_graph_hierarchy.size(); }
-
-	// Return the nth graph in h=the hierarchy where 0 is base.
-	FieldGraph * graph_at_tier( size_t tier ) const {
-		return m_graph_hierarchy[tier];
-	}
-
-
-
 private:
+
 	/**
-	 * Start a brand ew smoothing session
+	 * Start a brand new smoothing session
 	 */
 	void start_smoothing( );
 
@@ -139,18 +117,25 @@ private:
 	 */
 	Eigen::Vector3f calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * const gn ) const;
 
+
+	/* ******************************************************************************************
+	 * *
+	 * *  Resdiduals
+	 * * 
+	 * ******************************************************************************************/
+public:
+
+	/**
+	 * Current error in field
+	 */
+	float current_error( int tier ) const;
+
+private:
+
 	/**
 	 * @return the smoothness of one node
 	 */
 	float error_for_node( FieldGraph * tier, FieldGraphNode * const gn ) const;
-
-	void randomise_tangents( );
-
-	/**
-	 * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
-	 */
-	void generate_hierarchy( size_t max_nodes );
-
 
 	float calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) const;
 
@@ -159,14 +144,45 @@ private:
 	 */
 	float calculate_error( FieldGraph * tier ) const;
 
-	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
-	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
+
+	/* ******************************************************************************************
+	 * *
+	 * *  Attributes
+	 * * 
+	 * ******************************************************************************************/
+public:
+	/**
+	 * @return the size of the ifled
+	 */
+	std::size_t size() const;
 
 	/**
-	 * Clear all variables. Called prior to loading new object and on termination
+	 * @param tier The tier for which the elements should be returned
+	 * @return vector of elements 
 	 */
-	void clear_up( );
+	const std::vector<const FieldElement *> elements( int tier ) const;
 
+	inline int num_tiers( ) const { return m_graph_hierarchy.size(); }
+
+	/**
+	 * @Return the nth graph in the hierarchy where 0 is base.
+	 */
+	FieldGraph * graph_at_tier( size_t tier ) const;
+
+	/* ******************************************************************************************
+	 * *
+	 * *  IO
+	 * * 
+	 * ******************************************************************************************/
+	void dump( ) const;
+
+	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}
+
+	friend std::ostream& operator<<( std::ostream&, const FieldElement&);
+
+private:
+	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
+	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
 
 	/** A hierarchy of graphs **/
 	std::vector<FieldGraph *>		m_graph_hierarchy;
@@ -175,6 +191,7 @@ private:
 	/** Flag to determine if we should trace field moothing */
 	bool 									m_tracing_enabled;
 
+	Field * m_field;
 	/** Smoothing in progress */
 	bool									m_is_smoothing;
 	bool									m_smoothing_started_new_tier;

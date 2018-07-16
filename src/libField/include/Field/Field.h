@@ -1,6 +1,7 @@
 #pragma once 
 
-#include <Graph/HierarchicalGraph.h>
+#include <Graph/Graph.h>
+#include <Graph/GraphSimplifier.h>
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
@@ -41,6 +42,11 @@ struct FieldElement {
 };
 
 class Field {
+	using FieldGraph = typename animesh::Graph<FieldElement *, void *>;
+	using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
+	using FieldGraphSimplifier = typename animesh::GraphSimplifier<FieldElement *, void *>;
+	using FieldGraphMapping = typename animesh::GraphSimplifier<FieldElement *, void *>::GraphMapping;
+
 public:
 	/**
 	 * Construct from a PCL PointCloud
@@ -94,73 +100,77 @@ public:
 
 	friend std::ostream& operator<<( std::ostream&, const FieldElement&);
 
-	int num_tiers( ) const { return m_num_tiers; }
+	int num_tiers( ) const { return m_graph_hierarchy.size(); }
 
 	// Return the nth graph in h=the hierarchy where 0 is base.
-	animesh::Graph<FieldElement *, void*> * graph_at_tier( int tier ) const {
-		if( tier < 0 || tier >= m_num_tiers ) {
-			throw std::invalid_argument( "Tier index out of range");
-		}
-		animesh::Graph<FieldElement *, void*> *base = m_graph;
-		while( tier-- > 0 )
-			base = base->up_graph();
-
-		return base;
-	};
+	FieldGraph * graph_at_tier( size_t tier ) const {
+		return m_graph_hierarchy[tier];
+	}
 
 
 
 private:
-	// Smoothing
+	/**
+	 * Start a brand ew smoothing session
+	 */
+	void start_smoothing( );
+
+	/**
+	 * Start a brand ew smoothing session
+	 */
+	void start_smoothing_tier( );
 	/**
 	 * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
 	 * significantly.
 	 * @return true if the tier has converged
 	 */
-	bool smooth_tier( animesh::Graph<FieldElement *, void*> * tier );
+	bool smooth_tier_once( FieldGraph * tier );
 
 	/**
-	 * Smooth the field once, applying smoothing to each node
-	 * @return the total residual
+	 * @return true if the smoothing operation has converged
+	 * (or has iterated enough times)
+	 * otherwise return false
 	 */
-	float smooth_once( animesh::Graph<FieldElement *, void*> * tier );
+	bool check_convergence( float new_error );
 
 	/**
 	 * Smooth the specified node (and neighbours)
 	 * @return The new vector.
 	 */
-	Eigen::Vector3f calculate_smoothed_node( animesh::Graph<FieldElement *, void*> * tier, 
-								 			 animesh::Graph<FieldElement *, void*>::GraphNode * const gn ) const;
+	Eigen::Vector3f calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * const gn ) const;
+
 	/**
 	 * @return the smoothness of one node
 	 */
-	float error_for_node( animesh::Graph<FieldElement *, void*> * tier, 
-						  animesh::Graph<FieldElement *, void*>::GraphNode * const gn ) const;
+	float error_for_node( FieldGraph * tier, FieldGraphNode * const gn ) const;
 
 	void randomise_tangents( );
+
 	/**
 	 * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
 	 */
 	void generate_hierarchy( size_t max_nodes );
-	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
-	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
-	float calculate_error_for_node( animesh::Graph<FieldElement *, void*> * tier, 
-		animesh::Graph<FieldElement *, void*>::GraphNode * gn ) const;
+
+
+	float calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) const;
 
 	/**
 	 * @return the smoothness of the entire Field
 	 */
-	float calculate_error( animesh::Graph<FieldElement *, void*> * tier ) const;
+	float calculate_error( FieldGraph * tier ) const;
+
+	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
+	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
+
+	/**
+	 * Clear all variables. Called prior to loading new object and on termination
+	 */
+	void clear_up( );
 
 
-	/** The Graph - helps us get neighbours */
-	animesh::Graph<FieldElement *, void*> * m_graph;
-
-	/** The top of hierarchy Graph */
-	animesh::Graph<FieldElement *, void*> * m_top_graph;
-
-	/** Number of levels in the graph */
-	int 									m_num_tiers;
+	/** A hierarchy of graphs **/
+	std::vector<FieldGraph *>		m_graph_hierarchy;
+	std::vector<FieldGraphMapping>	m_mapping_hierarchy;
 
 	/** Flag to determine if we should trace field moothing */
 	bool 									m_tracing_enabled;

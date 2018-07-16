@@ -1,0 +1,21 @@
+We currently maintain additional data including an upgraph and a down graph
+This complexificates the Graph
+Actually we should just be able to 
+* implement each layer as a separate Graph and
+* implement a 'graph mapping' entity which 
+	* has propagate from and to methods
+	* maintains the mapping between nodes in one graph and those in the other
+
+Such a mapping would need to :
+1. Be given an input Graph
+2. Be able to generate the output Graph (standalone) (using a rule about how to combine nodes)
+3. Be able to propagate changed data in the output graph back to the more complex graph
+4. The *process* of creating the output graph doesn't require any state to be stored; once the output graph is built, the builder can be destroyed.  A by-product however should be another class which enables changes in the simpler graph to be propagated back to the more complex one. This object must persist until explicitly destroyed.  It effectively will be calling an update method on graph nodes to change their data
+
+So 
+
+                              +------->GraphB
+            	              |
+GraphA ---->  GraphSimplifier-+
+                              |
+                              +------->GraphMapping

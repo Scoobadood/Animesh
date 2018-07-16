@@ -2,17 +2,16 @@
 #include <RoSy/RoSy.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <vector>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/io/obj_io.h>
 #include <FileUtils/FileUtils.h>
 
-
-//#define TRACE  1
-
 #include <iostream>
 #include <queue>
 #include <set>
+#include <vector>
+
+//#define TRACE  1
 
 const int MAX_ITERS_PER_TIER = 20;
 const float CONVERGENCE_THRESHOLD = 0.5f;
@@ -21,9 +20,12 @@ using Graph = animesh::Graph<FieldElement *, void *>;
 using GraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 
 Field::~Field( ) {
-	delete m_graph;
+	clear_up( );
 }
 
+/**
+ * Construct a FieldElement given a point
+ */
 FieldElement * field_element_from_point( const pcl::PointNormal& point ) {
 	FieldElement * fe = new FieldElement( 
 		Eigen::Vector3f{ point.x, point.y, point.z},
@@ -120,14 +122,32 @@ Field * load_field_from_obj_file( const std::string& file_name, int k, float wit
 	return new Field( cloud, k, trace );
 }
 
+void Field::clear_up( ) {
+	for( auto g : m_graph_hierarchy ) {
+		delete g;
+	}
+	m_graph_hierarchy.clear();
+	m_mapping_hierarchy.clear();
+	m_is_smoothing = false;
+	m_smoothing_started_new_tier = false;
+	m_smoothing_last_error = 0.0f;
+	m_smoothing_iterations_this_tier = 0;
+	m_smoothing_tier_index = 0;
+	m_smoothing_current_tier = nullptr;
+}
+
+
 /**
  * Construct a field given a point cloud
  */
 Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled ) {
 	m_tracing_enabled = tracing_enabled;
+
+	// Clean up after last object if appropriate
+	clear_up( );
 	
 	// First make an empty Graph
-    m_graph = new Graph( FieldElement::mergeFieldElements, FieldElement::propagateFieldElements );
+	m_graph_hierarchy.push_back( new Graph( ) );
 
 	// Next add all the points to it
 	std::map<pcl::PointNormal, GraphNode*, cmpPointNormal> point_to_gn_map;
@@ -135,7 +155,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     for( auto point : *cloud ) {
 
 		FieldElement * fe = field_element_from_point( point );
-		GraphNode * gn = m_graph->add_node( fe );
+		GraphNode * gn = m_graph_hierarchy[0] ->add_node( fe );
 
 		// Keep a mapping from point to gn
 		point_to_gn_map[ point ] = gn;
@@ -194,7 +214,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 
 					if( m_tracing_enabled )
 						std::cout<< "    Adding edge to " << neighbour_point << std::endl;
-            	    m_graph->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
+            	    m_graph_hierarchy[0]->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
             	}
             	else {
 					if( m_tracing_enabled )
@@ -208,43 +228,49 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     std::cout << "Done" << std::endl;
 
     randomise_tangents( );
-    m_top_graph = m_graph;
-    generate_hierarchy( 100 );}
+    generate_hierarchy( 100 );
+}
 
 
 /**
- * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
+ * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
+ * Stash the graphs and mappings into vectors.
  */
 void Field::generate_hierarchy( size_t max_nodes ) {
-	if( m_graph != m_top_graph)
+	if( m_graph_hierarchy.size() == 0 )
+		throw std::runtime_error( "No base graph to generate hierarchy" );
+	
+	if( m_graph_hierarchy.size() > 1 )
 		throw std::runtime_error( "Hierarchy already generated" );
 
 	if( m_tracing_enabled ) {
 		std::cout<< "Generating graph hierarchy, max "  << max_nodes << " nodes" << std::endl;
-		std::cout<< "  Start :"  << m_graph->num_nodes() << " nodes, " << m_graph->num_edges() << " edges" << std::endl;
+		std::cout<< "  Start :"  << m_graph_hierarchy[0]->num_nodes() << " nodes, " << m_graph_hierarchy[0]->num_edges() << " edges" << std::endl;
 	}
 
 	bool done = false;
-	m_num_tiers = 1;
-	while ( !done && (m_top_graph->num_nodes( ) > max_nodes ) ) {
-		Graph * next_graph = m_top_graph->simplify( );
-		if( next_graph == nullptr) {
+
+	FieldGraphSimplifier * s = new FieldGraphSimplifier(FieldElement::mergeFieldElements, FieldElement::propagateFieldElements);
+	Graph * g = m_graph_hierarchy[0];
+	while ( !done && (g->num_nodes( ) > max_nodes ) ) {
+		if (g->num_edges() == 0 ) {
 			done = true;
 		}
 		else {
-			m_top_graph = next_graph;
-			m_num_tiers ++;
+			std::pair<Graph *,FieldGraphMapping> p = s->simplify( g );
+			m_graph_hierarchy.push_back( p.first );
+			m_mapping_hierarchy.push_back( p.second );
+			g = p.first;
 		}
 
 		if( m_tracing_enabled )
-			std::cout<< "  Nodes :"  << next_graph->num_nodes() << ", Edges :" << next_graph->num_edges() << std::endl;
+			std::cout<< "  Nodes :"  << g->num_nodes() << ", Edges :" << g->num_edges() << std::endl;
 	}
 }
 
 void Field::randomise_tangents( ) {
 	// Initialise field tangents to random values
-	for( auto node_iter = m_graph->nodes().begin(); node_iter != m_graph->nodes().end(); ++node_iter ) {
-		GraphNode * gn = *node_iter;
+	for( auto gn : m_graph_hierarchy[0]->nodes() ) {
 
 		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
 		random = random.cross( gn->data()->m_normal ).normalized( );
@@ -257,7 +283,7 @@ void Field::randomise_tangents( ) {
  * @return the size of the ifled
  */
 std::size_t Field::size() const {
-	return m_graph->num_nodes();
+	return m_graph_hierarchy[0]->num_nodes();
 }
 
 /**
@@ -299,43 +325,30 @@ float Field::calculate_error_for_node( Graph * tier, GraphNode * gn ) const {
 	return error;
 }
 
+
 /**
- * Smooth the field
+ * Start a brand ew smoothing session
  */
-void Field::smooth_completely() {
-	m_smoothing_current_tier = m_top_graph;
-	m_smoothing_tier_index = 1;
+void Field::start_smoothing( ) {
+	m_smoothing_tier_index = m_graph_hierarchy.size() - 1;;
+	m_smoothing_current_tier = m_graph_hierarchy[m_smoothing_tier_index];
 	m_smoothing_started_new_tier = true;
-	m_smoothing_last_error = calculate_error( m_smoothing_current_tier );
 	m_is_smoothing = true;
+
+	m_smoothing_last_error = calculate_error( m_smoothing_current_tier );
 	if( m_tracing_enabled ) 
 		std::cout << "Starting smooth. Error : " << m_smoothing_last_error << std::endl;
+}
 
-	do {
+/**
+ * Start a brand ew smoothing session
+ */
+void Field::start_smoothing_tier( ) {
+	if( m_tracing_enabled ) 
+		std::cout << "  Level " << m_smoothing_tier_index << std::endl;
 
-		// If we're starting a new tier...
-		if( m_smoothing_started_new_tier ) {
-			if( m_tracing_enabled ) 
-				std::cout << "  Level " << m_smoothing_tier_index << std::endl;
-
-			m_smoothing_iterations_this_tier = 0;
-			m_smoothing_started_new_tier = false;
-		}
-
-		if( smooth_tier( m_smoothing_current_tier ) ) {
-			// Converged. If there's another tier, do it
-			if( m_smoothing_current_tier != m_graph ) {
-				m_smoothing_current_tier = m_smoothing_current_tier -> propagate_down( );
-				m_smoothing_tier_index ++;
-				m_smoothing_started_new_tier = true;
-			}
-
-			// Otherwise, done
-			else {
-				m_is_smoothing = false;
-			}
-		}
-	} while( m_is_smoothing );
+	m_smoothing_iterations_this_tier = 0;
+	m_smoothing_started_new_tier = false;
 }
 
 /**
@@ -344,30 +357,22 @@ void Field::smooth_completely() {
 void Field::smooth() {
 	// If not smoothing, start
 	if( ! m_is_smoothing ) {
-		m_is_smoothing = true;
-		m_smoothing_current_tier = m_top_graph;
-		m_smoothing_tier_index = 1;
-		m_smoothing_started_new_tier = true;
-		m_smoothing_last_error = calculate_error( m_smoothing_current_tier );
-		if( m_tracing_enabled ) 
-			std::cout << "Starting smooth. Error : " << m_smoothing_last_error << std::endl;
+		start_smoothing( );
 	}
 
 	// If we're starting a new tier...
 	if( m_smoothing_started_new_tier ) {
-		if( m_tracing_enabled ) 
-			std::cout << "  Level " << m_smoothing_tier_index << std::endl;
-
-		m_smoothing_iterations_this_tier = 0;
-		m_smoothing_started_new_tier = false;
+		start_smoothing_tier( );
 	}
 
-
-	if( smooth_tier( m_smoothing_current_tier ) ) {
+	// Smooth the tier, possible starting a new one
+	if( smooth_tier_once( m_smoothing_current_tier ) ) {
 		// Converged. If there's another tier, do it
-		if( m_smoothing_current_tier != m_graph ) {
-			m_smoothing_current_tier = m_smoothing_current_tier -> propagate_down( );
-			m_smoothing_tier_index ++;
+		if( m_smoothing_tier_index != 0 ) {
+
+			m_smoothing_tier_index --;
+			m_mapping_hierarchy[m_smoothing_tier_index].propagate();
+			m_smoothing_current_tier = m_graph_hierarchy[m_smoothing_tier_index];
 			m_smoothing_started_new_tier = true;
 		}
 
@@ -379,14 +384,24 @@ void Field::smooth() {
 }
 
 /**
- * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
- * significantly.
+ * Smooth the field
  */
-bool Field::smooth_tier( Graph * tier ) {
+void Field::smooth_completely() {
+	// Debounce
+	if( m_is_smoothing )
+		return;
 
-	float new_error = smooth_once( tier );
-	m_smoothing_iterations_this_tier ++;
+	do {
+		smooth( );
+	} while( m_is_smoothing );
+}
 
+/**
+ * @return true if the smoothing operation has converged
+ * (or has iterated enough times)
+ * otherwise return false
+ */
+bool Field::check_convergence( float new_error ) {
 	float delta = m_smoothing_last_error - new_error;
 	float pct = delta / m_smoothing_last_error;
 	float display_pct = std::floor( pct * 1000.0f) / 10.0f;
@@ -409,15 +424,13 @@ bool Field::smooth_tier( Graph * tier ) {
 			}
 		}
 	}
-
 	return converged;
 }
 
 /**
- * Smooth the field once, applying smoothing to each node
- * @return the largest error in tangent
+ * Smooth the current tier of the hierarchy bonce and return true if it converged
  */
-float Field::smooth_once( Graph * tier ) {
+bool Field::smooth_tier_once ( Graph * tier ) {
 	using namespace Eigen;
 	using namespace std;
 
@@ -442,7 +455,9 @@ float Field::smooth_once( Graph * tier ) {
 	}
 
 	// Get the new error
-	return calculate_error( tier );
+	m_smoothing_iterations_this_tier ++;
+	float new_error = calculate_error( tier );
+	return check_convergence( new_error );
 }
 
 
@@ -504,20 +519,16 @@ const std::vector<const FieldElement *> Field::elements( int tier ) const {
  * and the field tangent
  */
 void Field::dump(  ) const {
-	for( auto node_iter = m_graph->nodes().begin();
-		      node_iter != m_graph->nodes().end();
-		      ++node_iter ) {
-
+	for( auto gn :  m_graph_hierarchy[0]->nodes()) {
 		using GraphNode = animesh::Graph<FieldElement *, void*>::GraphNode;
 
-		GraphNode    *gn = (*node_iter);
 		FieldElement *fe = gn->data();
 
 		std::cout << "locn    (" << fe->m_location[0] << "," << fe->m_location[1] << "," << fe->m_location[2] << ")" << std::endl;
 		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
 		std::cout << "neighbours " << std::endl;
 
-		std::vector<GraphNode *> neighbours = m_graph->neighbours( gn );
+		std::vector<GraphNode *> neighbours = m_graph_hierarchy[0]->neighbours( gn );
 		for( auto neighbour_iter  = neighbours.begin();
 			      neighbour_iter != neighbours.end();
 			      ++neighbour_iter ) {

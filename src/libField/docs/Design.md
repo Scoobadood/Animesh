@@ -1,4 +1,40 @@
 #Design
+
+##Handle Frames
+
+The field spans multiple frames
+So we need to maintain all that we have for a single frame across multiple frames
+
+Smoothing is not an isue; it will refer to the same node each time
+
+But the graph hierarchies are.
+
+###Outline
+Load multiple frames
+
+We have :
+load first frame.
+build hierarchy
+smooth completely.
+
+For each other frame
+load frame
+build hierarchy
+smooth completely.
+find correspondences from nodes in F1 to this frame's nodes
+compute transforms for these nodes
+
+For each node in base
+collect transformed nodes in each frame
+merge
+project back to each frame
+
+If we want to minimise the direction field, then we need to move opertions out.  The hierarchical smoothing approach is fine but we don't want it in the data.
+
+We could even externalise all of the data into flat arrays; this will optimise performance away from objects
+so everything could depend on a bunch of in memory data structures. It may also make things simpler.
+
+
 ##Separate Smoothing
 
 ###Rationale

@@ -15,44 +15,11 @@
 using FieldGraph = animesh::Graph<FieldElement *, void *>;
 using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 
-
-/**
- * Merge FieldElements when simplifying a graph. Each FieldElement has a normal, tangent and location.
- * When merging we do the following:
- * Locations are averaged
- * Normals are averaged
- * Tangents are randomised, made perpendicular to the normal and unitised
- */
-FieldElement * FieldElement::mergeFieldElements ( const FieldElement * const fe1, const FieldElement * const fe2 ) {
-	using namespace Eigen;
-
-	Vector3f new_location = (fe1->m_location + fe2->m_location) / 2.0;
-	Vector3f new_normal   = (fe1->m_normal + fe2->m_normal).normalized();
-	Vector3f new_tangent  = Eigen::Vector3f::Random().cross( new_normal ).normalized();
-
-	FieldElement *fe = new FieldElement( new_location, new_normal, new_tangent );
-	return fe;
-}
-
-/**
- * When simplifying the graph, propagate the changes from parent to child.
- * by just copying it.
- */
-FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const parent, const FieldElement * const child ) {
-	using namespace Eigen;
-
-	// Take the tangent from the parent and reproject into the child's tangent space and normalise
-	Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
-	Vector3f new_tangent = (parent->m_tangent - error).normalized( );
-	return new FieldElement( child->m_location, child->m_normal, new_tangent );
-}
-
-
-
-Field::~Field( ) {
-	clear_up( );
-}
-
+/* ******************************************************************************************
+ * **
+ * **  Utility functions
+ * **
+ * ******************************************************************************************/
 /**
  * Construct a FieldElement given a point
  */
@@ -151,20 +118,50 @@ Field * load_field_from_obj_file( const std::string& file_name, int k, float wit
 	return new Field( cloud, k, trace );
 }
 
-void Field::clear_up( ) {
-	for( auto g : m_graph_hierarchy ) {
-		delete g;
-	}
-	m_graph_hierarchy.clear();
-	m_mapping_hierarchy.clear();
-	m_is_smoothing = false;
-	m_smoothing_started_new_tier = false;
-	m_smoothing_last_error = 0.0f;
-	m_smoothing_iterations_this_tier = 0;
-	m_smoothing_tier_index = 0;
-	m_smoothing_current_tier = nullptr;
+/* ******************************************************************************************
+ * **
+ * **  Field Element Methods
+ * **
+ * ******************************************************************************************/
+
+
+/**
+ * Merge FieldElements when simplifying a graph. Each FieldElement has a normal, tangent and location.
+ * When merging we do the following:
+ * Locations are averaged
+ * Normals are averaged
+ * Tangents are randomised, made perpendicular to the normal and unitised
+ */
+FieldElement * FieldElement::mergeFieldElements ( const FieldElement * const fe1, const FieldElement * const fe2 ) {
+	using namespace Eigen;
+
+	Vector3f new_location = (fe1->m_location + fe2->m_location) / 2.0;
+	Vector3f new_normal   = (fe1->m_normal + fe2->m_normal).normalized();
+	Vector3f new_tangent  = Eigen::Vector3f::Random().cross( new_normal ).normalized();
+
+	FieldElement *fe = new FieldElement( new_location, new_normal, new_tangent );
+	return fe;
 }
 
+/**
+ * When simplifying the graph, propagate the changes from parent to child.
+ * by just copying it.
+ */
+FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const parent, const FieldElement * const child ) {
+	using namespace Eigen;
+
+	// Take the tangent from the parent and reproject into the child's tangent space and normalise
+	Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
+	Vector3f new_tangent = (parent->m_tangent - error).normalized( );
+	return new FieldElement( child->m_location, child->m_normal, new_tangent );
+}
+
+
+/* ******************************************************************************************
+ * **
+ * **  
+ * **
+ * ******************************************************************************************/
 
 /**
  * Construct a field given a point cloud
@@ -260,6 +257,29 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     generate_hierarchy( 100 );
 }
 
+/**
+ * Destructor for fields
+ */
+Field::~Field( ) {
+	clear_up( );
+}
+
+
+
+void Field::clear_up( ) {
+	for( auto g : m_graph_hierarchy ) {
+		delete g;
+	}
+	m_graph_hierarchy.clear();
+	m_mapping_hierarchy.clear();
+	m_is_smoothing = false;
+	m_smoothing_started_new_tier = false;
+	m_smoothing_last_error = 0.0f;
+	m_smoothing_iterations_this_tier = 0;
+	m_smoothing_tier_index = 0;
+	m_smoothing_current_tier = nullptr;
+}
+
 
 /**
  * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
@@ -337,52 +357,3 @@ FieldGraph * Field::graph_at_tier( size_t tier ) const {
 }
 
 
-
-/**
- * Dump the field to stdout. For each point in the field dump the neighbour locations
- * and the field tangent
- */
-void Field::dump(  ) const {
-	for( auto gn :  m_graph_hierarchy[0]->nodes()) {
-
-		FieldElement *fe = gn->data();
-
-		std::cout << "locn    (" << fe->m_location[0] << "," << fe->m_location[1] << "," << fe->m_location[2] << ")" << std::endl;
-		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
-		std::cout << "neighbours " << std::endl;
-
-		std::vector<FieldGraphNode *> neighbours = m_graph_hierarchy[0]->neighbours( gn );
-		for( auto neighbour_iter  = neighbours.begin();
-			      neighbour_iter != neighbours.end();
-			      ++neighbour_iter ) {
-			FieldElement * fe_n = (*neighbour_iter)->data();
-			std::cout << "      " << fe_n->m_location[0] << "," << fe_n->m_location[1] << "," << fe_n->m_location[2] << std::endl;
-		}
-	}
-}
-
-void Field::trace_node( const std::string& prefix, const FieldElement * this_fe ) const {
-	std::cout << prefix << this_fe << std::endl;
-}
-
-void Field::trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const {
-	std::cout << prefix << vector << std::endl;
-}
-
-std::ostream& operator<<( std::ostream& os, const FieldElement& fe) {
-	os	<< "( l=( " 
-		<< fe.m_location[0] << ", "   
- 		<< fe.m_location[1] << ", "   
- 		<< fe.m_location[2] << "), t=(" 
-		<< fe.m_tangent[0] << ", "   
- 		<< fe.m_tangent[1] << ", "   
- 		<< fe.m_tangent[2] << ")";
- 	return os;
-}
-
-std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& vector) {
-	os  << vector[0] << ", "   
-	 	<< vector[1] << ", "   
-	 	<< vector[2] << ")";
- 	return os;
-}

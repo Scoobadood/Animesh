@@ -59,9 +59,16 @@ public:
 	void randomise_tangents( );
 
 	/**
-	 * Generate the hierarchical grah by repeatedly simplifying until there are e.g. less than 20 nodes
+	 * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
+	 * Stash the graphs and mappings into vectors.
+	 * Tries to respect the parameters provided. If multiple paramters are provided it will terminate at
+	 * the earliest.
+	 * @param max_edges >0 means keep iterating until only this number of edges remain. 0 means don't care.
+	 * @param max_nodes >0 means keep iterating until only this number of nodes remain. 0 means don't care.
+	 * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
+	 * 
 	 */
-	void generate_hierarchy( size_t max_nodes );
+	void generate_hierarchy( int max_tiers, int max_nodes, int max_edges );
 
 
 	/**

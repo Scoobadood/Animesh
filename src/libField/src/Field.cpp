@@ -169,9 +169,6 @@ FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const
 Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled ) {
 	m_tracing_enabled = tracing_enabled;
 
-	// Clean up after last object if appropriate
-	clear_up( );
-	
 	// First make an empty FieldGraph
 	m_graph_hierarchy.push_back( new FieldGraph( ) );
 
@@ -254,7 +251,6 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     std::cout << "Done" << std::endl;
 
     randomise_tangents( );
-    generate_hierarchy( 100 );
 }
 
 /**
@@ -280,42 +276,6 @@ void Field::clear_up( ) {
 	m_smoothing_current_tier = nullptr;
 }
 
-
-/**
- * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
- * Stash the graphs and mappings into vectors.
- */
-void Field::generate_hierarchy( size_t max_nodes ) {
-	if( m_graph_hierarchy.size() == 0 )
-		throw std::runtime_error( "No base graph to generate hierarchy" );
-	
-	if( m_graph_hierarchy.size() > 1 )
-		throw std::runtime_error( "Hierarchy already generated" );
-
-	if( m_tracing_enabled ) {
-		std::cout<< "Generating graph hierarchy, max "  << max_nodes << " nodes" << std::endl;
-		std::cout<< "  Start :"  << m_graph_hierarchy[0]->num_nodes() << " nodes, " << m_graph_hierarchy[0]->num_edges() << " edges" << std::endl;
-	}
-
-	bool done = false;
-
-	FieldGraphSimplifier * s = new FieldGraphSimplifier(FieldElement::mergeFieldElements, FieldElement::propagateFieldElements);
-	FieldGraph * g = m_graph_hierarchy[0];
-	while ( !done && (g->num_nodes( ) > max_nodes ) ) {
-		if (g->num_edges() == 0 ) {
-			done = true;
-		}
-		else {
-			std::pair<FieldGraph *,FieldGraphMapping> p = s->simplify( g );
-			m_graph_hierarchy.push_back( p.first );
-			m_mapping_hierarchy.push_back( p.second );
-			g = p.first;
-		}
-
-		if( m_tracing_enabled )
-			std::cout<< "  Nodes :"  << g->num_nodes() << ", Edges :" << g->num_edges() << std::endl;
-	}
-}
 
 void Field::randomise_tangents( ) {
 	// Initialise field tangents to random values

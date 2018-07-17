@@ -3,14 +3,19 @@
 
 const int MAX_ITERS_PER_TIER = 20;
 const float CONVERGENCE_THRESHOLD = 0.5f;
+const int SMOOTH_EDGES = 10;
+const int SMOOTH_NODES = 20;
+const int SMOOTH_TIERS = 10;
+
 
 using FieldGraph = animesh::Graph<FieldElement *, void *>;
 using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 
 /**
- * Start a brand ew smoothing session
+ * Start a brand new smoothing session
  */
 void Field::start_smoothing( ) {
+	generate_hierarchy( SMOOTH_EDGES, SMOOTH_NODES, SMOOTH_TIERS );
 	m_smoothing_tier_index = m_graph_hierarchy.size() - 1;;
 	m_smoothing_current_tier = m_graph_hierarchy[m_smoothing_tier_index];
 	m_smoothing_started_new_tier = true;
@@ -233,4 +238,63 @@ float Field::calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) 
 	return error;
 }
 
+/**
+ * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
+ * Stash the graphs and mappings into vectors.
+ * Tries to respect the parameters provided. If multiple paramters are provided it will terminate at
+ * the earliest.
+ * @param max_edges >0 means keep iterating until only this number of edges remain. 0 means don't care.
+ * @param max_nodes >0 means keep iterating until only this number of nodes remain. 0 means don't care.
+ * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
+ * 
+ */
+void Field::generate_hierarchy( int max_tiers, int max_nodes, int max_edges ) {
+	if( m_graph_hierarchy.size() == 0 )
+		throw std::runtime_error( "No base graph to generate hierarchy" );
+
+	if( m_graph_hierarchy.size() > 1 )
+		throw std::runtime_error( "Hierarchy already generated" );
+
+	// At least one of max_tiers, max_nodes and max_edges must be >0
+	if( max_edges <=0 && max_nodes <= 0 && max_tiers <= 0 ) {
+		throw std::invalid_argument( "Must specify terminating criteria for hierarchy generation" );
+	}
+
+	
+	if( m_tracing_enabled ) {
+		std::cout<< "Generating graph hierarchy. Teminating when one of ";
+		if( max_edges > 0 ) {
+			std::cout << " edges <= " << max_edges;
+		}
+		if( max_nodes > 0 ) {
+			std::cout << " nodes <= " << max_nodes;
+		}
+		if( max_tiers > 0 ) {
+			std::cout << " tiers <= " << max_tiers;
+		}
+		std::cout << " is true" << std::endl;
+		std::cout<< "  Start :"  << m_graph_hierarchy[0]->num_nodes() << " nodes, " << m_graph_hierarchy[0]->num_edges() << " edges" << std::endl;
+	}
+
+
+	bool done = false;
+	FieldGraph * current_tier = m_graph_hierarchy[0];
+	FieldGraphSimplifier * s = new FieldGraphSimplifier(FieldElement::mergeFieldElements, FieldElement::propagateFieldElements);
+
+	while ( !done ) {
+		done = done || ( (max_nodes > 0) && (current_tier->num_nodes() < max_nodes) );
+		done = done || ( (max_edges > 0) && (current_tier->num_edges() < max_edges) );
+		done = done || ( (max_tiers > 0) && (m_graph_hierarchy.size() == max_tiers) );
+
+		if( !done ) {
+			std::pair<FieldGraph *,FieldGraphMapping> simplify_results = s->simplify( current_tier );
+			m_graph_hierarchy.push_back( simplify_results.first );
+			m_mapping_hierarchy.push_back( simplify_results.second );
+			current_tier = simplify_results.first;
+		}
+
+		if( m_tracing_enabled )
+			std::cout<< "  Tier : " << m_graph_hierarchy.size()  << "Nodes :"  << current_tier->num_nodes() << ", Edges :" << current_tier->num_edges() << std::endl;
+	}
+}
 

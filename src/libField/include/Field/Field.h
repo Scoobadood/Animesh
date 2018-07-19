@@ -7,6 +7,7 @@
 
 namespace animesh {
 
+
 /**
  * FieldElement stores the location, normal and tangent for each
  * element of the directional field
@@ -39,7 +40,7 @@ struct FieldElement {
  */
 
 class Field {
-	using FieldGraph = typename Graph<FieldElement *, void *>;
+	using FieldGraph = Graph<FieldElement *, void *>;
 	using FieldGraphNode = typename Graph<FieldElement *, void *>::GraphNode;
 
 	/* ******************************************************************************************
@@ -98,12 +99,14 @@ public:
 
 	friend std::ostream& operator<<( std::ostream&, const FieldElement&);
 
+
+public:
+		/** The graph of the nodes */
+	FieldGraph *			m_graph;
+
 private:
 	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
-
-	/** The graph of the nodes */
-	FieldGraph *			m_graph;
 
 	/** Flag to determine if we should trace field moothing */
 	bool 					m_tracing_enabled;

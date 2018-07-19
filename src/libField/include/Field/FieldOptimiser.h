@@ -1,11 +1,12 @@
 #include <Field/Field.h>
+#include <Graph/GraphSimplifier.h>
 
 namespace animesh {
 
-using FieldGraph = animesh::Graph<FieldElement *, void *>;
-using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
-using FieldGraphSimplifier = typename animesh::GraphSimplifier<FieldElement *, void *>;
-using FieldGraphMapping = typename animesh::GraphSimplifier<FieldElement *, void *>::GraphMapping;
+using FieldGraph = Graph<FieldElement *, void *>;
+using FieldGraphNode = typename Graph<FieldElement *, void *>::GraphNode;
+using FieldGraphSimplifier = GraphSimplifier<FieldElement *, void *>;
+using FieldGraphMapping = GraphSimplifier<FieldElement *, void *>::GraphMapping;
 
 class FieldOptimiser {
 
@@ -26,7 +27,6 @@ public:
 	void optimise_once( );
 
 private:
-
 	/**
 	 * Start optimising.
 	 */
@@ -95,8 +95,6 @@ private:
 	 * @Return the nth graph in the hierarchy where 0 is base.
 	 */
 	FieldGraph * graph_at_tier( size_t tier ) const;
-
-
 
 	Field *    								m_field;
 

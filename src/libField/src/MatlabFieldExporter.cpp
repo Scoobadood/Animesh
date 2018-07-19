@@ -1,6 +1,8 @@
 #include <Field/MatlabFieldExporter.h>
 #include <string>
 
+namespace animesh {
+
 /** 
  * Constructor 
  */
@@ -19,7 +21,7 @@ MatlabFieldExporter::~MatlabFieldExporter( ) {}
 void MatlabFieldExporter::exportField( const Field& field  ) const {
 	writeHeader( m_out );
 
-	std::vector<const FieldElement *> elements = field.elements( 0 );
+	std::vector<const FieldElement *> elements = field.elements();
 
 	writeLocationData( m_out, elements );
 	writeNormalData( m_out, elements );
@@ -139,3 +141,4 @@ int MatlabFieldExporter::writeVectorsHeader( std::ostream& out, const char * con
 }
 
 
+}

@@ -4,6 +4,8 @@
 
 #include "FieldExporter.h"
 
+namespace animesh {
+
 class MatlabFieldExporter : public FieldExporter {
 public:
 	/** 
@@ -36,3 +38,5 @@ private:
 	/** Steram to write to */
 	std::ostream& 		m_out;
 };	
+
+}

@@ -2,6 +2,8 @@
 
 #include <Field/Field.h>
 
+namespace animesh {
+
 class FieldExporter {
 public:
 	/** 
@@ -15,3 +17,4 @@ public:
 	 */
 	virtual void exportField( const Field& field ) const =0;
 };
+}

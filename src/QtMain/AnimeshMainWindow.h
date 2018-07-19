@@ -11,9 +11,13 @@
 #include "vtkSmartPointer.h"
 
 
+namespace animesh {
+
 namespace Ui {
 class AnimeshMainWindow;
 }
+
+
 
 class AnimeshMainWindow : public QMainWindow
 {
@@ -56,5 +60,5 @@ private slots:
     void on_btnSmoothCompletely_clicked();
     void on_btnSmoothOnce_clicked();
 };
-
+}
 #endif // ANIMESHMAINWINDOW_H

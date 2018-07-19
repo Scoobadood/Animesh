@@ -32,6 +32,7 @@
 #include "vtkTextWidget.h"
 #include "vtkUnsignedCharArray.h"
 
+namespace animesh {
 
 
 AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow)
@@ -314,4 +315,6 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked()
         m_field->smooth();
         view_changed();
     }
+}
+
 }

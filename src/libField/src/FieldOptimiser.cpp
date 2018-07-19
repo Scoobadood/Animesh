@@ -15,7 +15,7 @@ namespace animesh {
  * Start optimising.
  */
 void FieldOptimiser::start_optimising( ) {
-	m_field->generate_hierarchy( SMOOTH_EDGES, SMOOTH_NODES, SMOOTH_TIERS );
+	generate_hierarchy( SMOOTH_EDGES, SMOOTH_NODES, SMOOTH_TIERS );
 
 	m_optimising_tier_index = m_graph_hierarchy.size() - 1;;
 	m_optimising_current_tier = m_graph_hierarchy[m_optimising_tier_index];
@@ -129,7 +129,7 @@ void FieldOptimiser::optimise() {
  * (or has iterated enough times)
  * otherwise return false
  */
-bool Field::check_convergence( float new_error ) {
+bool FieldOptimiser::check_convergence( float new_error ) {
 	float delta = m_optimising_last_error - new_error;
 	float pct = delta / m_optimising_last_error;
 	float display_pct = std::floor( pct * 1000.0f) / 10.0f;
@@ -155,16 +155,11 @@ bool Field::check_convergence( float new_error ) {
 	return converged;
 }
 
-
-
-
-
-
 /**
  * Smooth the specified node
  * @return The new vector.
  */
-Eigen::Vector3f Field::calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * gn ) const {
+Eigen::Vector3f FieldOptimiser::calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * gn ) const {
 	using namespace Eigen;
 
 	FieldElement * this_fe = (FieldElement *) gn->data();
@@ -207,7 +202,7 @@ Eigen::Vector3f Field::calculate_smoothed_node( FieldGraph * tier, FieldGraphNod
 /**
  * Current error in field
  */
-float Field::current_error( int tier ) const {
+float FieldOptimiser::current_error( int tier ) const {
 	return calculate_error( graph_at_tier( tier ) );
 }
 
@@ -215,7 +210,7 @@ float Field::current_error( int tier ) const {
 /**
  * @return the smoothness of the entire Field
  */
-float Field::calculate_error( FieldGraph * tier ) const {
+float FieldOptimiser::calculate_error( FieldGraph * tier ) const {
 	// E(O, k) :=      (oi, Rso (oji, ni, kij ))
 	// For each node
 	float error = 0.0f;
@@ -228,7 +223,7 @@ float Field::calculate_error( FieldGraph * tier ) const {
 /**
  * @return the smoothness of one node
  */
-float Field::calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) const {
+float FieldOptimiser::calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) const {
 	float error = 0.0f;
 
 	FieldElement * this_fe = (FieldElement *) gn->data();
@@ -261,18 +256,17 @@ float Field::calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) 
  * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
  * 
  */
-void Field::generate_hierarchy( int max_tiers, int max_nodes, int max_edges ) {
-	if( m_graph_hierarchy.size() == 0 )
-		throw std::runtime_error( "No base graph to generate hierarchy" );
-
-	if( m_graph_hierarchy.size() > 1 )
+void FieldOptimiser::generate_hierarchy( int max_tiers, int max_nodes, int max_edges ) {
+	if( m_graph_hierarchy.size() > 0 )
 		throw std::runtime_error( "Hierarchy already generated" );
+
+	// Copy the graph from the field into my hierarch
+	m_graph_hierarchy.push_back( m_field->m_graph );
 
 	// At least one of max_tiers, max_nodes and max_edges must be >0
 	if( max_edges <=0 && max_nodes <= 0 && max_tiers <= 0 ) {
 		throw std::invalid_argument( "Must specify terminating criteria for hierarchy generation" );
 	}
-
 	
 	if( m_tracing_enabled ) {
 		std::cout<< "Generating graph hierarchy. Teminating when one of ";

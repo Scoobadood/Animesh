@@ -170,7 +170,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 	m_tracing_enabled = tracing_enabled;
 
 	// First make an empty FieldGraph
-	m_graph_hierarchy.push_back( new FieldGraph( ) );
+	m_graph = new FieldGraph( );
 
 	// Next add all the points to it
 	std::map<pcl::PointNormal, FieldGraphNode*, cmpPointNormal> point_to_gn_map;
@@ -178,7 +178,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
     for( auto point : *cloud ) {
 
 		FieldElement * fe = field_element_from_point( point );
-		FieldGraphNode * gn = m_graph_hierarchy[0] ->add_node( fe );
+		FieldGraphNode * gn = m_graph->add_node( fe );
 
 		// Keep a mapping from point to gn
 		point_to_gn_map[ point ] = gn;
@@ -237,7 +237,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 
 					if( m_tracing_enabled )
 						std::cout<< "    Adding edge to " << neighbour_point << std::endl;
-            	    m_graph_hierarchy[0]->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
+            	    m_graph->add_edge( this_gn, neighbour_gn, 1.0f, nullptr );
             	}
             	else {
 					if( m_tracing_enabled )

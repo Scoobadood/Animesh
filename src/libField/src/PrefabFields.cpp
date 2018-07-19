@@ -5,6 +5,9 @@
 #include <map>
 #include <iostream>
 
+namespace animesh {
+
+
 /**
  * Construct a curved field centred at (0,0,0). THe field is defined by z=1-\frac{1}{10}\left( x^{2}+y^{2} \right)
  * with grid neighbourhod
@@ -219,4 +222,6 @@ Field * Field::cubic_field( int cube_x, int cube_y, int cube_z, float scale, int
 	}
 
 	return new Field( cloud, k, true );
+}
+
 }

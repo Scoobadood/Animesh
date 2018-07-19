@@ -1,7 +1,8 @@
-#include <FIeld/Field.h>
+#include <Field/Field.h>
 #include <vector>
 #include <iostream>
 
+namespace animesh {
 
 /* ******************************************************************************************
  * **
@@ -14,7 +15,7 @@
  * and the field tangent
  */
 void Field::dump(  ) const {
-	for( auto gn :  m_graph_hierarchy[0]->nodes()) {
+	for( auto gn :  m_graph->nodes()) {
 
 		FieldElement *fe = gn->data();
 
@@ -22,7 +23,7 @@ void Field::dump(  ) const {
 		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
 		std::cout << "neighbours " << std::endl;
 
-		std::vector<FieldGraphNode *> neighbours = m_graph_hierarchy[0]->neighbours( gn );
+		std::vector<FieldGraphNode *> neighbours = m_graph->neighbours( gn );
 		for( auto neighbour_iter  = neighbours.begin();
 			      neighbour_iter != neighbours.end();
 			      ++neighbour_iter ) {
@@ -64,3 +65,4 @@ std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& vector) {
  	return os;
 }
 
+}

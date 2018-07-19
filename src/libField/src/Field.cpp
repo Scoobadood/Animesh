@@ -10,7 +10,7 @@
 #include <set>
 #include <vector>
 
-//#define TRACE  1
+namespace animesh {
 
 using FieldGraph = animesh::Graph<FieldElement *, void *>;
 using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
@@ -159,7 +159,7 @@ FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const
 
 /* ******************************************************************************************
  * **
- * **  
+ * **  Constructor
  * **
  * ******************************************************************************************/
 
@@ -257,31 +257,15 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
  * Destructor for fields
  */
 Field::~Field( ) {
-	clear_up( );
+	delete m_graph;
 }
 
-
-
-void Field::clear_up( ) {
-	for( auto g : m_graph_hierarchy ) {
-		delete g;
-	}
-	m_graph_hierarchy.clear();
-	m_mapping_hierarchy.clear();
-	m_is_smoothing = false;
-	m_smoothing_started_new_tier = false;
-	m_smoothing_last_error = 0.0f;
-	m_smoothing_iterations_this_tier = 0;
-	m_smoothing_tier_index = 0;
-	m_smoothing_current_tier = nullptr;
-}
 
 
 void Field::randomise_tangents( ) {
 	// Initialise field tangents to random values
-	for( auto gn : m_graph_hierarchy[0]->nodes() ) {
-
-		Eigen::Vector3f random = Eigen::VectorXf::Random(3);
+	for( auto gn : m_graph->nodes() ) {
+		Eigen::Vector3f random = Eigen::Vector3f::Random();
 		random = random.cross( gn->data()->m_normal ).normalized( );
 		gn->data()->m_tangent = random;
 	}
@@ -292,28 +276,19 @@ void Field::randomise_tangents( ) {
  * @return the size of the ifled
  */
 std::size_t Field::size() const {
-	return m_graph_hierarchy[0]->num_nodes();
+	return m_graph->num_nodes();
 }
 
 
 /**
  * Return vector of elements
  */
-const std::vector<const FieldElement *> Field::elements( int tier ) const {
+const std::vector<const FieldElement *> Field::elements( ) const {
 	std::vector<const FieldElement *> elements;
 
-	FieldGraph * g = graph_at_tier(tier);
-	for( auto node : g->nodes() ) {
+	for( auto node : m_graph->nodes() ) {
 		elements.push_back( node->data() );
 	}
 	return elements;
 }
-
-/**
- * @Return the nth graph in the hierarchy where 0 is base.
- */
-FieldGraph * Field::graph_at_tier( size_t tier ) const {
-	return m_graph_hierarchy[tier];
 }
-
-

@@ -5,14 +5,22 @@
 #include <pcl/point_types.h>
 #include <pcl/kdtree/kdtree_flann.h>
 
+namespace animesh {
+
+/**
+ * FieldElement stores the location, normal and tangent for each
+ * element of the directional field
+ */
 struct FieldElement {
 	Eigen::Vector3f		m_location;
 	Eigen::Vector3f		m_normal;
 	Eigen::Vector3f		m_tangent;
 
-	FieldElement( Eigen::Vector3f location, 
-				  Eigen::Vector3f normal,
-				  Eigen::Vector3f tangent ) : m_location{ location }, m_normal{ normal }, m_tangent{ tangent } {};
+	/**
+	 * Construct with location normal and tangent
+	 */
+	FieldElement( Eigen::Vector3f location,  Eigen::Vector3f normal, Eigen::Vector3f tangent ) : m_location{ location }, m_normal{ normal }, m_tangent{ tangent } {};
+
 	/**
  	 * Useful method for merging FieldElements
 	 */
@@ -25,11 +33,14 @@ struct FieldElement {
 };
 
 
+/**
+ * A Field is the collection of FieldElements and their relationships
+ * including spatial neghbours and node correspondences across time
+ */
+
 class Field {
-	using FieldGraph = typename animesh::Graph<FieldElement *, void *>;
-	using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
-	using FieldGraphSimplifier = typename animesh::GraphSimplifier<FieldElement *, void *>;
-	using FieldGraphMapping = typename animesh::GraphSimplifier<FieldElement *, void *>::GraphMapping;
+	using FieldGraph = typename Graph<FieldElement *, void *>;
+	using FieldGraphNode = typename Graph<FieldElement *, void *>::GraphNode;
 
 	/* ******************************************************************************************
 	 * *
@@ -47,110 +58,18 @@ public:
 
 	~Field( );
 
-	/**
-	 * Construct prefab fields 
-	 */
+	void randomise_tangents( );
+
+	/* ******************************************************************************************
+	 * *
+	 * *  Construct prefab fields
+	 * * 
+	 * ******************************************************************************************/
 	static Field * planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k );
 	static Field * cubic_field( int cube_x, int cube_y, int cube_z, float scale, int k);
 	static Field * polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k);
 	static Field * spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k);
 	static Field * circular_field( float radius, int k );
-
-	void randomise_tangents( );
-
-	/**
-	 * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
-	 * Stash the graphs and mappings into vectors.
-	 * Tries to respect the parameters provided. If multiple paramters are provided it will terminate at
-	 * the earliest.
-	 * @param max_edges >0 means keep iterating until only this number of edges remain. 0 means don't care.
-	 * @param max_nodes >0 means keep iterating until only this number of nodes remain. 0 means don't care.
-	 * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
-	 * 
-	 */
-	void generate_hierarchy( int max_tiers, int max_nodes, int max_edges );
-
-
-	/**
-	 * Clear all variables. Called prior to loading new object and on termination
-	 */
-	void clear_up( );
-
-
-	/* ******************************************************************************************
-	 * *
-	 * *  Smoothing Fields
-	 * * 
-	 * ******************************************************************************************/
-public:
-	/**
-	 * Smooth the field (once)
-	 */
-	void smooth( );
-
-	/**
-	* Smooth the field completelt
-	*/
-	void smooth_completely();
-
-private:
-
-	/**
-	 * Start a brand new smoothing session
-	 */
-	void start_smoothing( );
-
-	/**
-	 * Start a brand ew smoothing session
-	 */
-	void start_smoothing_tier( );
-	/**
-	 * Smooth the current tier of the hierarchy by repeatedly smoothing until the error doesn't change
-	 * significantly.
-	 * @return true if the tier has converged
-	 */
-	bool smooth_tier_once( FieldGraph * tier );
-
-	/**
-	 * @return true if the smoothing operation has converged
-	 * (or has iterated enough times)
-	 * otherwise return false
-	 */
-	bool check_convergence( float new_error );
-
-	/**
-	 * Smooth the specified node (and neighbours)
-	 * @return The new vector.
-	 */
-	Eigen::Vector3f calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * const gn ) const;
-
-
-	/* ******************************************************************************************
-	 * *
-	 * *  Resdiduals
-	 * * 
-	 * ******************************************************************************************/
-public:
-
-	/**
-	 * Current error in field
-	 */
-	float current_error( int tier ) const;
-
-private:
-
-	/**
-	 * @return the smoothness of one node
-	 */
-	float error_for_node( FieldGraph * tier, FieldGraphNode * const gn ) const;
-
-	float calculate_error_for_node( FieldGraph * tier, FieldGraphNode * gn ) const;
-
-	/**
-	 * @return the smoothness of the entire Field
-	 */
-	float calculate_error( FieldGraph * tier ) const;
-
 
 	/* ******************************************************************************************
 	 * *
@@ -159,22 +78,14 @@ private:
 	 * ******************************************************************************************/
 public:
 	/**
-	 * @return the size of the ifled
+	 * @return the size of the field (number of FieldElements)
 	 */
 	std::size_t size() const;
 
 	/**
-	 * @param tier The tier for which the elements should be returned
 	 * @return vector of elements 
 	 */
-	const std::vector<const FieldElement *> elements( int tier ) const;
-
-	inline int num_tiers( ) const { return m_graph_hierarchy.size(); }
-
-	/**
-	 * @Return the nth graph in the hierarchy where 0 is base.
-	 */
-	FieldGraph * graph_at_tier( size_t tier ) const;
+	const std::vector<const FieldElement *> elements( ) const;
 
 	/* ******************************************************************************************
 	 * *
@@ -191,21 +102,12 @@ private:
 	void trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const;
 	void trace_node( const std::string& prefix, const FieldElement * this_fe ) const;
 
-	/** A hierarchy of graphs **/
-	std::vector<FieldGraph *>		m_graph_hierarchy;
-	std::vector<FieldGraphMapping>	m_mapping_hierarchy;
+	/** The graph of the nodes */
+	FieldGraph *			m_graph;
 
 	/** Flag to determine if we should trace field moothing */
-	bool 									m_tracing_enabled;
+	bool 					m_tracing_enabled;
 
-	Field * m_field;
-	/** Smoothing in progress */
-	bool									m_is_smoothing;
-	bool									m_smoothing_started_new_tier;
-	float									m_smoothing_last_error;
-	int 									m_smoothing_iterations_this_tier;
-	int 									m_smoothing_tier_index;
-	animesh::Graph<FieldElement *, void*> *	m_smoothing_current_tier;
 };
 
 std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& fe);
@@ -219,3 +121,4 @@ pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::stri
  * Construct a field from an OBJ file
  */
 Field * load_field_from_obj_file( const std::string& file_name, int k = 5, float with_scaling = 1.0f, bool trace = false );
+}

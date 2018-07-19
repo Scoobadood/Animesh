@@ -1,6 +1,7 @@
 #include <Field/Field.h>
 
 namespace animesh {
+
 using FieldGraph = animesh::Graph<FieldElement *, void *>;
 using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNode;
 using FieldGraphSimplifier = typename animesh::GraphSimplifier<FieldElement *, void *>;
@@ -9,6 +10,9 @@ using FieldGraphMapping = typename animesh::GraphSimplifier<FieldElement *, void
 class FieldOptimiser {
 
 public:
+	/**
+	 * Construct with a Field to be optimised
+	 */
 	FieldOptimiser( Field* field );
 
 	/**
@@ -17,7 +21,7 @@ public:
 	void optimise( );
 
 	/**
-	 * Optimize the field in one go
+	 * Perform one step of omptimisation
 	 */
 	void optimise_once( );
 

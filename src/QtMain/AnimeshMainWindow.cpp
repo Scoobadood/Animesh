@@ -35,12 +35,11 @@
 namespace animesh {
 
 
-AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow)
-{
+AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow) {
     m_field = nullptr;
+    m_field_optimiser = nullptr;
     m_polydata = nullptr;
     m_current_tier = 0;
-
 
     ui->setupUi(this);
 
@@ -53,13 +52,15 @@ AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(
     connect(this->ui->action_exit, SIGNAL(triggered()), this, SLOT(slotExit()));
 }
 
-AnimeshMainWindow::~AnimeshMainWindow()
-{
+AnimeshMainWindow::~AnimeshMainWindow() {
     delete ui;
 }
 
-void AnimeshMainWindow::on_action_open_triggered()
-{
+
+/**
+ * Handle the open file action
+ */
+void AnimeshMainWindow::on_action_open_triggered() {
     // Notify the app to load the file
     QString fileName = QFileDialog::getOpenFileName(this);
     if (!fileName.isEmpty()) {
@@ -67,23 +68,67 @@ void AnimeshMainWindow::on_action_open_triggered()
     }
 }
 
+//
+// On select prefab:
+// -- Create field
+// -- Populate inspector
+// -- update render view
+void AnimeshMainWindow::on_action_poly_triggered() {
+    set_field( Field::polynomial_field( 10, 10, 2.5, 5) );
+}
+
+void AnimeshMainWindow::on_action_plane_triggered() {
+    set_field( Field::planar_field( 10, 10, 2.5, 5) );
+}
+
+/** Up or down a level in the graph
+ */
+void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
+    m_current_tier = new_graph_level;
+    view_changed( );
+}
+
+void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
+    assert( m_field );
+    assert( m_field_optimiser );
+
+    m_field_optimiser->optimise();
+    view_changed();
+}
+
+void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
+    assert( m_field );
+    assert( m_field_optimiser );
+
+    m_field_optimiser->optimise_once();
+    view_changed();
+}
+
+/**
+ * Load a new file, setup all the stuff
+ */
 void AnimeshMainWindow::loadFile( QString fileName ) {
-    setCurrentFile( fileName );
-
     set_field( load_field_from_obj_file( fileName.toStdString(), 5, 100, true ) );
-
+    setWindowFilePath(fileName);
     statusBar()->showMessage(tr("File loaded"), 2000);
 }
 
-void AnimeshMainWindow::setCurrentFile(const QString &fileName)
-{
-    QString shownName = fileName;
-    if (fileName.isEmpty()) {
-        shownName = "untitled.txt";
-    }
-    setWindowFilePath(shownName);
-}
+/**
+ * Reset all old variables
+ * Set field to new variable
+ * Refresh the view
+ */
+void AnimeshMainWindow::set_field( Field * new_field ) {
+    if( m_field_optimiser != nullptr ) delete m_field_optimiser;
+    if( m_field != nullptr ) delete m_field;
+    m_polydata->Initialize();
 
+    // Set new values
+    int m_current_tier = 0;
+    m_field = new_field;
+    m_field_optimiser = new FieldOptimiser( m_field );
+    view_changed( );
+}
 
 //
 // View changed
@@ -95,29 +140,6 @@ void AnimeshMainWindow::view_changed()
     update_view();
 }
 
-//
-// On select prefab:
-// -- Create field
-// -- Populate inspector
-// -- update render view
-void AnimeshMainWindow::on_action_poly_triggered()
-{
-    set_field( Field::polynomial_field( 10, 10, 2.5, 5) );
-}
-
-void AnimeshMainWindow::on_action_plane_triggered()
-{
-    set_field( Field::planar_field( 10, 10, 2.5, 5) );
-}
-
-//
-// Update the field and redraw UI as approproiate
-void AnimeshMainWindow::set_field( Field * new_field ) {
-    m_field = new_field;
-    m_current_tier = 0;
-    view_changed( );
-}
-
 
 //
 // On load:
@@ -127,13 +149,19 @@ void AnimeshMainWindow::set_field( Field * new_field ) {
 
 
 
+/**
+ * Disable all the input fields and buttons in the inspector
+ */
 void AnimeshMainWindow::disable_inspector( ) {
     this->ui->sbGraphLevel->setMaximum( 0 );
     this->ui->sbGraphLevel->setValue( 0 );
     this->ui->sbGraphLevel->setEnabled( false );
     this->ui->txtResidual->setText( "0" );
+    this->ui->txtResidual->setEnabled( false );
     this->ui->txtNodeCount->setText( "0" );
+    this->ui->txtNodeCount->setEnabled( false );
     this->ui->txtEdgeCount->setText( "0" );
+    this->ui->txtEdgeCount->setEnabled( false );
 
     this->ui->btnSmoothOnce->setEnabled( false );
     this->ui->btnSmoothCompletely->setEnabled( false );
@@ -153,25 +181,28 @@ void AnimeshMainWindow::update_inspector(){
         return;
     }
 
-    this->ui->btnSmoothOnce->setEnabled( true );
-    this->ui->btnSmoothCompletely->setEnabled( true );
+    if( m_field_optimiser != nullptr ) {
+        this->ui->btnSmoothOnce->setEnabled( true );
+        this->ui->btnSmoothCompletely->setEnabled( true );
 
+        if( m_field_optimiser->num_tiers( ) <= 1 ) {
+            // Not yet optimising. Don't enable graph level
+            this->ui->sbGraphLevel->setEnabled( false );
+            this->ui->sbGraphLevel->setMaximum( 0 );
+        } else {
+            this->ui->sbGraphLevel->setEnabled( true );
+            this->ui->sbGraphLevel->setMaximum( m_field_optimiser->num_tiers( ) - 1);
+        }
 
-    if( m_field_optimiser->num_tiers( ) == 1 ) {
-        this->ui->sbGraphLevel->setEnabled( false );
-        this->ui->sbGraphLevel->setMaximum( 0 );
-    } else {
-        this->ui->sbGraphLevel->setEnabled( true );
-        this->ui->sbGraphLevel->setMaximum( m_field_optimiser->num_tiers( ) - 1);
+        std::cout << "New field has " <<  m_field_optimiser->num_tiers( ) << " tiers" << std::endl;
+        this->ui->sbGraphLevel->setValue( m_current_tier );
+
+        this->ui->txtNodeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes() ) );
+        this->ui->txtEdgeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges() ) );
+
+        this->ui->txtResidual->setText( QString::number( m_field_optimiser->current_error( m_current_tier) ) );
     }
 
-    std::cout << "New field has " <<  m_field_optimiser->num_tiers( ) << " tiers" << std::endl;
-    this->ui->sbGraphLevel->setValue( m_current_tier );
-
-    this->ui->txtNodeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes() ) );
-    this->ui->txtEdgeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges() ) );
-
-    this->ui->txtResidual->setText( QString::number( m_field_optimiser->current_error( m_current_tier) ) );
 }
 
 // Update render view
@@ -198,10 +229,10 @@ void AnimeshMainWindow::update_poly_data( ) {
     colours->SetNumberOfComponents(3);
 
     m_polydata->Initialize();
-    if( m_field != nullptr ) {
-        const std::vector<const FieldElement *> elements = m_field->elements();
-        for (auto it = elements.begin(); it != elements.end(); ++it ) {
-            const FieldElement * const fe = *it;
+    if( m_field_optimiser != nullptr ) {
+        FieldGraph * fg = m_field_optimiser->graph_at_tier( m_current_tier );
+        for (auto gn : fg->nodes( ) ) {
+            const FieldElement * const fe = gn->data();
 
             Vector3f location = fe->m_location;
             Vector3f tangent = fe->m_tangent;
@@ -299,30 +330,5 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
 }
 
 
-/** Up or down a level in the graph
- */
-void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
-    m_current_tier = new_graph_level;
-    view_changed( );
-}
-
-void AnimeshMainWindow::on_btnSmoothCompletely_clicked()
-{
-
-    if( m_field ) {
-        m_field_optimiser = new FieldOptimiser( m_field );
-        m_field_optimiser->optimise();
-        view_changed();
-    }
-}
-
-void AnimeshMainWindow::on_btnSmoothOnce_clicked()
-{
-    if( m_field ) {
-        m_field_optimiser = new FieldOptimiser( m_field );
-        m_field_optimiser->optimise_once();
-        view_changed();
-    }
-}
 
 }

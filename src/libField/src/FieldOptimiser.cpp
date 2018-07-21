@@ -16,6 +16,7 @@ namespace animesh {
 FieldOptimiser::FieldOptimiser( Field * field ) {
 	if( field == nullptr ) throw std::invalid_argument( "Field cannot be null" );
 	m_field = field;
+	m_graph_hierarchy.push_back( m_field->m_graph);
 }
 
 /**
@@ -273,11 +274,8 @@ FieldGraph * FieldOptimiser::graph_at_tier( std::size_t tier ) const {
  * 
  */
 void FieldOptimiser::generate_hierarchy( int max_tiers, int max_nodes, int max_edges ) {
-	if( m_graph_hierarchy.size() > 0 )
+	if( m_graph_hierarchy.size() > 1 )
 		throw std::runtime_error( "Hierarchy already generated" );
-
-	// Copy the graph from the field into my hierarch
-	m_graph_hierarchy.push_back( m_field->m_graph );
 
 	// At least one of max_tiers, max_nodes and max_edges must be >0
 	if( max_edges <=0 && max_nodes <= 0 && max_tiers <= 0 ) {

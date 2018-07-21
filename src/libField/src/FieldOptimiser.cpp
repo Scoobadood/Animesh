@@ -10,6 +10,13 @@ const int	SMOOTH_TIERS = 10;
 
 
 namespace animesh {
+/**
+ * Construct with a Field to be optimised
+ */
+FieldOptimiser::FieldOptimiser( Field * field ) {
+	if( field == nullptr ) throw std::invalid_argument( "Field cannot be null" );
+	m_field = field;
+}
 
 /**
  * Start optimising.
@@ -244,6 +251,15 @@ float FieldOptimiser::calculate_error_for_node( FieldGraph * tier, FieldGraphNod
 		error += (theta*theta);
 	}
 	return error;
+}
+
+
+/**
+ * @Return the nth graph in the hierarchy where 0 is base.
+ */
+FieldGraph * FieldOptimiser::graph_at_tier( std::size_t tier ) const {
+	if( tier >= m_graph_hierarchy.size() ) throw std::invalid_argument( "Tier out of range" );
+	return m_graph_hierarchy[tier];
 }
 
 /**

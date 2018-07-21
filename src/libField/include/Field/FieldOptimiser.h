@@ -26,6 +26,19 @@ public:
 	 */
 	void optimise_once( );
 
+	inline int num_tiers( ) const { return m_graph_hierarchy.size(); }
+
+	/**
+	 * Current error in field
+	 */
+	float current_error( int tier ) const;
+
+
+	/**
+	 * @Return the nth graph in the hierarchy where 0 is base.
+	 */
+	FieldGraph * graph_at_tier( size_t tier ) const;
+
 private:
 	/**
 	 * Start optimising.
@@ -62,12 +75,6 @@ private:
 	Eigen::Vector3f calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * gn ) const;
 
 	/**
-	 * Current error in field
-	 */
-	float current_error( int tier ) const;
-
-
-	/**
 	 * @return the smoothness of the entire Field
 	 */
 	float calculate_error( FieldGraph * tier ) const;
@@ -88,13 +95,6 @@ private:
 	 *
 	 */
 	void generate_hierarchy( int max_tiers, int max_nodes, int max_edges );
-
-	inline int num_tiers( ) const { return m_graph_hierarchy.size(); }
-
-	/**
-	 * @Return the nth graph in the hierarchy where 0 is base.
-	 */
-	FieldGraph * graph_at_tier( size_t tier ) const;
 
 	Field *    								m_field;
 

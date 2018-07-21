@@ -105,6 +105,11 @@ void AnimeshMainWindow::on_action_poly_triggered()
     set_field( Field::polynomial_field( 10, 10, 2.5, 5) );
 }
 
+void AnimeshMainWindow::on_action_plane_triggered()
+{
+    set_field( Field::planar_field( 10, 10, 2.5, 5) );
+}
+
 //
 // Update the field and redraw UI as approproiate
 void AnimeshMainWindow::set_field( Field * new_field ) {
@@ -152,21 +157,21 @@ void AnimeshMainWindow::update_inspector(){
     this->ui->btnSmoothCompletely->setEnabled( true );
 
 
-    if( m_field->num_tiers( ) == 1 ) {
+    if( m_field_optimiser->num_tiers( ) == 1 ) {
         this->ui->sbGraphLevel->setEnabled( false );
         this->ui->sbGraphLevel->setMaximum( 0 );
     } else {
         this->ui->sbGraphLevel->setEnabled( true );
-        this->ui->sbGraphLevel->setMaximum( m_field->num_tiers( ) - 1);
+        this->ui->sbGraphLevel->setMaximum( m_field_optimiser->num_tiers( ) - 1);
     }
 
-    std::cout << "New field has " <<  m_field->num_tiers( ) << " tiers" << std::endl;
+    std::cout << "New field has " <<  m_field_optimiser->num_tiers( ) << " tiers" << std::endl;
     this->ui->sbGraphLevel->setValue( m_current_tier );
 
-    this->ui->txtNodeCount->setText( QString::number(m_field->graph_at_tier(m_current_tier)->num_nodes() ) );
-    this->ui->txtEdgeCount->setText( QString::number(m_field->graph_at_tier(m_current_tier)->num_edges() ) );
+    this->ui->txtNodeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes() ) );
+    this->ui->txtEdgeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges() ) );
 
-    this->ui->txtResidual->setText( QString::number( m_field->current_error( m_current_tier) ) );
+    this->ui->txtResidual->setText( QString::number( m_field_optimiser->current_error( m_current_tier) ) );
 }
 
 // Update render view
@@ -194,7 +199,7 @@ void AnimeshMainWindow::update_poly_data( ) {
 
     m_polydata->Initialize();
     if( m_field != nullptr ) {
-        const std::vector<const FieldElement *> elements = m_field->elements(m_current_tier);
+        const std::vector<const FieldElement *> elements = m_field->elements();
         for (auto it = elements.begin(); it != elements.end(); ++it ) {
             const FieldElement * const fe = *it;
 
@@ -303,8 +308,10 @@ void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
 
 void AnimeshMainWindow::on_btnSmoothCompletely_clicked()
 {
+
     if( m_field ) {
-        m_field->smooth_completely();
+        m_field_optimiser = new FieldOptimiser( m_field );
+        m_field_optimiser->optimise();
         view_changed();
     }
 }
@@ -312,7 +319,8 @@ void AnimeshMainWindow::on_btnSmoothCompletely_clicked()
 void AnimeshMainWindow::on_btnSmoothOnce_clicked()
 {
     if( m_field ) {
-        m_field->smooth();
+        m_field_optimiser = new FieldOptimiser( m_field );
+        m_field_optimiser->optimise_once();
         view_changed();
     }
 }

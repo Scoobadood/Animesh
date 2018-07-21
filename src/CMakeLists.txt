@@ -21,7 +21,6 @@ enable_testing( )
 
 # Add libraries
 add_subdirectory( QtMain )
-add_subdirectory( main )
 add_subdirectory( libGeom )
 add_subdirectory( libRoSy )
 add_subdirectory( libGraph )

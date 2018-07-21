@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <Field/Field.h>
+#include <Field/FieldOptimiser.h>
 
 
 #include "vtkObject.h"
@@ -46,6 +47,9 @@ private:
 	// Field declaration
 	Field *    m_field;
 
+    // Optimiser
+    FieldOptimiser  * m_field_optimiser;
+
 	// Poly data
 	vtkSmartPointer<vtkPolyData> m_polydata;
 
@@ -56,6 +60,7 @@ private:
 private slots:
     void on_action_open_triggered();
     void on_action_poly_triggered();
+    void on_action_plane_triggered();
     void on_sbGraphLevel_valueChanged(int new_graph_level);
     void on_btnSmoothCompletely_clicked();
     void on_btnSmoothOnce_clicked();

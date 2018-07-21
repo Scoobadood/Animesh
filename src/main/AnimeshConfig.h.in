@@ -1,3 +1,0 @@
-// the configured options and settings for Animesh
-#define VERSION_MAJOR @Animesh_VERSION_MAJOR@
-#define VERSION_MINOR @Animesh_VERSION_MINOR@

@@ -40,6 +40,14 @@ void FieldOptimiser::start_optimising( ) {
  */
 void FieldOptimiser::stop_optimising() {
 	m_is_optimising = false;
+	size_t tier = m_graph_hierarchy.size() - 1;
+	while( tier > 0 ) {
+		delete m_graph_hierarchy[tier];
+		tier--;
+	}
+	m_graph_hierarchy.clear();
+	m_mapping_hierarchy.clear();
+	m_graph_hierarchy.push_back( m_field->m_graph );
 }
 
 /**
@@ -128,7 +136,7 @@ void FieldOptimiser::optimise() {
 		return;
 
 	do {
-		optimise( );
+		optimise_once( );
 	} while( m_is_optimising );
 }
 
@@ -318,5 +326,13 @@ void FieldOptimiser::generate_hierarchy( int max_tiers, int max_nodes, int max_e
 			std::cout<< "  Tier : " << m_graph_hierarchy.size()  << "Nodes :"  << current_tier->num_nodes() << ", Edges :" << current_tier->num_edges() << std::endl;
 	}
 }
+
+/**
+ * @Return the current tier being optimised or 0 if none
+ */
+size_t FieldOptimiser::optimising_tier_index( ) const {
+	return m_is_optimising ? m_optimising_tier_index : 0;
+}
+
 
 }

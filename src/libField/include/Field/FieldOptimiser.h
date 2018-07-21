@@ -39,6 +39,11 @@ public:
 	 */
 	FieldGraph * graph_at_tier( size_t tier ) const;
 
+	/**
+	 * @Return the current tier being optimised or 0 if none
+	 */
+	size_t optimising_tier_index( ) const;
+
 private:
 	/**
 	 * Start optimising.

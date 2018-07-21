@@ -93,6 +93,7 @@ void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
     assert( m_field_optimiser );
 
     m_field_optimiser->optimise();
+    m_current_tier = 0;
     view_changed();
 }
 
@@ -101,6 +102,7 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
     assert( m_field_optimiser );
 
     m_field_optimiser->optimise_once();
+    m_current_tier = m_field_optimiser->optimising_tier_index( );
     view_changed();
 }
 
@@ -108,9 +110,14 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
  * Load a new file, setup all the stuff
  */
 void AnimeshMainWindow::loadFile( QString fileName ) {
-    set_field( load_field_from_obj_file( fileName.toStdString(), 5, 100, true ) );
-    setWindowFilePath(fileName);
-    statusBar()->showMessage(tr("File loaded"), 2000);
+    Field * field = load_field_from_obj_file( fileName.toStdString(), 5, 100, true );
+    if( field ) {
+        set_field( field );
+        setWindowFilePath(fileName);
+        statusBar()->showMessage(tr("File loaded"), 2000);
+    } else {
+        statusBar()->showMessage(tr("Error loading file"), 2000);
+    }
 }
 
 /**
@@ -121,7 +128,6 @@ void AnimeshMainWindow::loadFile( QString fileName ) {
 void AnimeshMainWindow::set_field( Field * new_field ) {
     if( m_field_optimiser != nullptr ) delete m_field_optimiser;
     if( m_field != nullptr ) delete m_field;
-    m_polydata->Initialize();
 
     // Set new values
     int m_current_tier = 0;
@@ -185,14 +191,13 @@ void AnimeshMainWindow::update_inspector(){
         this->ui->btnSmoothOnce->setEnabled( true );
         this->ui->btnSmoothCompletely->setEnabled( true );
 
-        if( m_field_optimiser->num_tiers( ) <= 1 ) {
-            // Not yet optimising. Don't enable graph level
+        // FO->num_tiers cannot be 0 at this stage
+        if( m_field_optimiser->num_tiers( ) == 1 ) {
             this->ui->sbGraphLevel->setEnabled( false );
-            this->ui->sbGraphLevel->setMaximum( 0 );
         } else {
             this->ui->sbGraphLevel->setEnabled( true );
-            this->ui->sbGraphLevel->setMaximum( m_field_optimiser->num_tiers( ) - 1);
         }
+        this->ui->sbGraphLevel->setMaximum( m_field_optimiser->num_tiers( ) - 1);
 
         std::cout << "New field has " <<  m_field_optimiser->num_tiers( ) << " tiers" << std::endl;
         this->ui->sbGraphLevel->setValue( m_current_tier );

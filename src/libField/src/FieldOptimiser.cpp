@@ -84,7 +84,7 @@ bool FieldOptimiser::optimise_tier_once ( FieldGraph * tier ) {
 	// Now update all of the nodes
 	auto tan_iter = new_tangents.begin();
 	for( auto node : nodes ) {
-		node->data()->m_tangent = (*tan_iter);
+		node->data()->set_tangent(*tan_iter);
 		++tan_iter;
 	}
 
@@ -182,30 +182,30 @@ Eigen::Vector3f FieldOptimiser::calculate_smoothed_node( FieldGraph * tier, Fiel
 	// if( m_tracing_enabled ) 
 	// 	trace_node( "smooth_node", this_fe);
 
-	Vector3f sum = this_fe->m_tangent;
+	Vector3f sum = this_fe->tangent();
 	float weight = 0;
 
 	// For each edge from this node
 	std::vector<FieldGraphNode *> neighbours = tier->neighbours( gn );
-	for( auto neighbour_iter = neighbours.begin(); neighbour_iter != neighbours.end(); ++neighbour_iter ) {
+	for( auto neighbour : neighbours ) {
 
 		// Get the adjacent FieldElement
-		FieldElement * neighbour_fe = (*neighbour_iter)->data();
+		FieldElement * neighbour_fe = neighbour->data();
 		// if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
 
 		// Find best matching rotation
 		std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( 
 			sum,
-			this_fe->m_normal,
-			neighbour_fe->m_tangent, 
-			neighbour_fe->m_normal);
+			this_fe->normal(),
+			neighbour_fe->tangent(), 
+			neighbour_fe->normal());
 
 		// Update the computed new tangent
 		// TODO: Manage weights better
 		float edge_weight = 1.0f;
 		sum = (result.first * weight) + (result.second * edge_weight);
 		weight += edge_weight;
-		sum = reproject_to_tangent_space( sum, this_fe->m_normal );
+		sum = reproject_to_tangent_space( sum, this_fe->normal() );
 		sum.normalize();
 	}
 	return sum;
@@ -251,10 +251,10 @@ float FieldOptimiser::calculate_error_for_node( FieldGraph * tier, FieldGraphNod
 		FieldElement * neighbour_fe = n->data();
 
 		std::pair<Eigen::Vector3f, Eigen::Vector3f> result = best_rosy_vector_pair( 
-			this_fe->m_tangent,
-			this_fe->m_normal,
-			neighbour_fe->m_tangent, 
-			neighbour_fe->m_normal);
+			this_fe->tangent(),
+			this_fe->normal(),
+			neighbour_fe->tangent(), 
+			neighbour_fe->normal());
 
 		float theta = angle_between_vectors( result.first, result.second );
 		error += (theta*theta);

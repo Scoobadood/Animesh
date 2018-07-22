@@ -40,12 +40,24 @@ add_executable( testField
 target_link_libraries( testField
 	Field
 	Graph 
-	gtest gmock
+	gtest 
+	gmock
 	${CMAKE_THREAD_LIBS_INIT} )
 
 add_test( NAME TestFieldDataTangentVectorIsPerpendicularToNormal COMMAND testField --gtest_filter=TestFieldData.TangentVectorIsPerpendicularToNormal)
 add_test( NAME TestFieldDataTangentVectorIsUnit COMMAND testField --gtest_filter=TestFieldData.TangentVectorIsUnit )
 add_test( NAME TestFieldDataKIsZero COMMAND testField --gtest_filter=TestFieldData.KIsZero  )
+
+# FieldElement Tests
+add_test( NAME TestFieldElement_Pass COMMAND testField --gtest_filter=TestFieldElement.passingTest  )
+add_test( NAME TestFieldElement_twoArgConstructWithNonUnitNormalShouldThrow COMMAND testField --gtest_filter=TestFieldElement.twoArgConstructWithNonUnitNormalShouldThrow  )
+add_test( NAME TestFieldElement.twoArgConstructWithUnitNormalShouldGenerateUnitTangent COMMAND testField --gtest_filter=TestFieldElement.twoArgConstructWithUnitNormalShouldGenerateUnitTangent )
+add_test( NAME TestFieldElement.twoArgConstructWithUnitNormalShouldGeneratePerpTangent COMMAND testField --gtest_filter=TestFieldElement.twoArgConstructWithUnitNormalShouldGeneratePerpTangent )
+add_test( NAME TestFieldElement.threeArgConstructWithNonUnitNormalShouldThrow COMMAND testField --gtest_filter=TestFieldElement.threeArgConstructWithNonUnitNormalShouldThrow )
+add_test( NAME TestFieldElement.threeArgConstructWithNonUnitTangentShouldThrow COMMAND testField --gtest_filter=TestFieldElement.threeArgConstructWithNonUnitTangentShouldThrow )
+add_test( NAME TestFieldElement.threeArgConstructWithNonPerpTangentShouldThrow COMMAND testField --gtest_filter=TestFieldElement.threeArgConstructWithNonPerpTangentShouldThrow )
+
+
 # add_test( NAME  COMMAND testField --gtest_filter=  )
 
 

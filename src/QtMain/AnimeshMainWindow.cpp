@@ -241,9 +241,9 @@ void AnimeshMainWindow::update_poly_data( ) {
         for (auto gn : fg->nodes( ) ) {
             const FieldElement * const fe = gn->data();
 
-            Vector3f location = fe->m_location;
-            Vector3f tangent = fe->m_tangent;
-            Vector3f normal = fe->m_normal;
+            Vector3f location = fe->location( );
+            Vector3f tangent = fe->tangent();
+            Vector3f normal = fe->normal( );
 
             // Add the field node
             vtkIdType pid[6];

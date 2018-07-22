@@ -55,7 +55,7 @@ void MatlabFieldExporter::writeLocationData( std::ostream& out, std::vector<cons
 
 	int paddingLength = writeVectorsHeader( out, "location_matrix_", elements.size() );
 	for( auto element : elements ) {
-		writeVector3f( out, element->m_location );
+		writeVector3f( out, element->location( ) );
 	}
 	char padding[] = { (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0};
 	out.write( padding, paddingLength);
@@ -67,7 +67,7 @@ void MatlabFieldExporter::writeNormalData( std::ostream& out, std::vector<const 
 	
 	int paddingLength = writeVectorsHeader( out, "normal_matrix___", elements.size() );
 	for( auto element : elements ) {
-		writeVector3f( out, element->m_normal );
+		writeVector3f( out, element->normal() );
 	}
 	char padding[] = { (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0};
 	out.write( padding, paddingLength);
@@ -79,7 +79,7 @@ void MatlabFieldExporter::writeTangentData( std::ostream& out, std::vector<const
 	
 	int paddingLength = writeVectorsHeader( out, "tangent_matrix__", elements.size() );
 	for( auto element : elements ) {
-		writeVector3f( out, element->m_tangent );
+		writeVector3f( out, element->tangent() );
 	}
 	char padding[] = { (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0, (char) 0};
 	out.write( padding, paddingLength);

@@ -6,34 +6,9 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
+#include <Field/FieldElement.h>
+
 namespace animesh {
-
-
-/**
- * FieldElement stores the location, normal and tangent for each
- * element of the directional field
- */
-struct FieldElement {
-	Eigen::Vector3f		m_location;
-	Eigen::Vector3f		m_normal;
-	Eigen::Vector3f		m_tangent;
-
-	/**
-	 * Construct with location normal and tangent
-	 */
-	FieldElement( Eigen::Vector3f location,  Eigen::Vector3f normal, Eigen::Vector3f tangent ) : m_location{ location }, m_normal{ normal }, m_tangent{ tangent } {};
-
-	/**
- 	 * Useful method for merging FieldElements
-	 */
-	static FieldElement * mergeFieldElements ( const FieldElement * const fe1, const FieldElement * const fe2 );
-
-	/**
- 	 * Propagate field element changes down graph hierarch
-	 */
-	static FieldElement * propagateFieldElements ( const FieldElement * const parent, const FieldElement * const child );
-};
-
 
 /**
  * A Field is the collection of FieldElements and their relationships
@@ -59,9 +34,6 @@ public:
 	Field( const std::string file_name, int k, bool tracing_enabled = false );
 
 	~Field( );
-
-	void randomise_tangents( );
-
 
 	/* ******************************************************************************************
 	 * *

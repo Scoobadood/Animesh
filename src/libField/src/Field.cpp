@@ -1,4 +1,6 @@
 #include <Field/Field.h>
+#include <Field/FieldElement.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <pcl/kdtree/kdtree_flann.h>
@@ -18,17 +20,6 @@ using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNod
  * **  Utility functions
  * **
  * ******************************************************************************************/
-/**
- * Construct a FieldElement given a point
- */
-FieldElement * field_element_from_point( const pcl::PointNormal& point ) {
-	FieldElement * fe = new FieldElement( 
-		Eigen::Vector3f{ point.x, point.y, point.z},
-		Eigen::Vector3f{ point.normal_x, point.normal_y, point.normal_z},
-		Eigen::Vector3f::Zero());
-	return fe;
-}
-
 bool operator == (const pcl::PointNormal& point1, const pcl::PointNormal& point2 ) {
 	return (point1.x == point2.x) &&
 		(point1.y == point2.y) &&
@@ -76,44 +67,6 @@ FieldGraphNode * find_node_or_throw( const std::map<pcl::PointNormal, FieldGraph
 
 
 
-/* ******************************************************************************************
- * **
- * **  Field Element Methods
- * **
- * ******************************************************************************************/
-
-
-/**
- * Merge FieldElements when simplifying a graph. Each FieldElement has a normal, tangent and location.
- * When merging we do the following:
- * Locations are averaged
- * Normals are averaged
- * Tangents are randomised, made perpendicular to the normal and unitised
- */
-FieldElement * FieldElement::mergeFieldElements ( const FieldElement * const fe1, const FieldElement * const fe2 ) {
-	using namespace Eigen;
-
-	Vector3f new_location = (fe1->m_location + fe2->m_location) / 2.0;
-	Vector3f new_normal   = (fe1->m_normal + fe2->m_normal).normalized();
-	Vector3f new_tangent  = Eigen::Vector3f::Random().cross( new_normal ).normalized();
-
-	FieldElement *fe = new FieldElement( new_location, new_normal, new_tangent );
-	return fe;
-}
-
-/**
- * When simplifying the graph, propagate the changes from parent to child.
- * by just copying it.
- */
-FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const parent, const FieldElement * const child ) {
-	using namespace Eigen;
-
-	// Take the tangent from the parent and reproject into the child's tangent space and normalise
-	Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
-	Vector3f new_tangent = (parent->m_tangent - error).normalized( );
-	return new FieldElement( child->m_location, child->m_normal, new_tangent );
-}
-
 
 /* ******************************************************************************************
  * **
@@ -135,7 +88,7 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 	size_t points_added = 0;
     for( auto point : *cloud ) {
 
-		FieldElement * fe = field_element_from_point( point );
+		FieldElement * fe = FieldElement::from_point( point );
 		FieldGraphNode * gn = m_graph->add_node( fe );
 
 		// Keep a mapping from point to gn
@@ -207,8 +160,6 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 
     // FieldGraph is built
     std::cout << "Done" << std::endl;
-
-    randomise_tangents( );
 }
 
 /**
@@ -217,18 +168,6 @@ Field::Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tr
 Field::~Field( ) {
 	delete m_graph;
 }
-
-
-
-void Field::randomise_tangents( ) {
-	// Initialise field tangents to random values
-	for( auto gn : m_graph->nodes() ) {
-		Eigen::Vector3f random = Eigen::Vector3f::Random();
-		random = random.cross( gn->data()->m_normal ).normalized( );
-		gn->data()->m_tangent = random;
-	}
-}
-
 
 /**
  * @return the size of the ifled

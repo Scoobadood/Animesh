@@ -19,16 +19,12 @@ void Field::dump(  ) const {
 
 		FieldElement *fe = gn->data();
 
-		std::cout << "locn    (" << fe->m_location[0] << "," << fe->m_location[1] << "," << fe->m_location[2] << ")" << std::endl;
-		std::cout << "tangent (" << fe->m_tangent[0] << "," << fe->m_tangent[1] << "," << fe->m_tangent[2] << std::endl;
+		std::cout << fe << std::endl;
 		std::cout << "neighbours " << std::endl;
 
 		std::vector<FieldGraphNode *> neighbours = m_graph->neighbours( gn );
-		for( auto neighbour_iter  = neighbours.begin();
-			      neighbour_iter != neighbours.end();
-			      ++neighbour_iter ) {
-			FieldElement * fe_n = (*neighbour_iter)->data();
-			std::cout << "      " << fe_n->m_location[0] << "," << fe_n->m_location[1] << "," << fe_n->m_location[2] << std::endl;
+		for( auto neighbour : neighbours ) {
+			std::cout << "      " << neighbour->data()->location() << std::endl;
 		}
 	}
 }
@@ -39,20 +35,6 @@ void Field::trace_node( const std::string& prefix, const FieldElement * this_fe 
 
 void Field::trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const {
 	std::cout << prefix << vector << std::endl;
-}
-
-/**
- * Write a FieldElement to output stream;
- */
-std::ostream& operator<<( std::ostream& os, const FieldElement& fe) {
-	os	<< "( l=( " 
-		<< fe.m_location[0] << ", "   
- 		<< fe.m_location[1] << ", "   
- 		<< fe.m_location[2] << "), t=(" 
-		<< fe.m_tangent[0] << ", "   
- 		<< fe.m_tangent[1] << ", "   
- 		<< fe.m_tangent[2] << ")";
- 	return os;
 }
 
 /**

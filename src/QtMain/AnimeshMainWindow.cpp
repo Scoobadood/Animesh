@@ -1,6 +1,8 @@
 #include <QtWidgets>
 
 #include "AnimeshMainWindow.h"
+#include <Field/FieldFactory.h>
+
 #include "ui_AnimeshMainWindow.h"
 
 #include "vtkActor.h"
@@ -74,11 +76,11 @@ void AnimeshMainWindow::on_action_open_triggered() {
 // -- Populate inspector
 // -- update render view
 void AnimeshMainWindow::on_action_poly_triggered() {
-    set_field( Field::polynomial_field( 10, 10, 2.5, 5) );
+    set_field( FieldFactory::polynomial_field( 10, 10, 2.5, 5) );
 }
 
 void AnimeshMainWindow::on_action_plane_triggered() {
-    set_field( Field::planar_field( 10, 10, 2.5, 5) );
+    set_field( FieldFactory::planar_field( 10, 10, 2.5, 5) );
 }
 
 /** Up or down a level in the graph

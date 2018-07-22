@@ -1,12 +1,55 @@
-
+#include <Field/FieldFactory.h>
 #include <Field/Field.h>
+#include <FileUtils/FileUtils.h>
 #include <Eigen/Core>
 #include <vector>
 #include <map>
 #include <iostream>
+#include <pcl/io/obj_io.h>
 
 namespace animesh {
 
+/**
+ * Load an obj file into a point cloud
+ */
+pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
+    if( file_name.size() == 0 ) 
+        throw std::invalid_argument( "Missing file name" );
+
+    bool is_directory;
+    if (!file_exists(file_name, is_directory ) )
+        throw std::runtime_error( "File not found: " + file_name );
+
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
+    if( pcl::io::loadOBJFile(file_name, *cloud) == -1) {
+        PCL_ERROR ("Couldn't read file\n");
+        return nullptr;
+    }
+    return cloud;
+}
+
+/**
+ * Construct a field from an OBJ file
+ */
+Field * load_field_from_obj_file( const std::string& file_name, int k, float with_scaling, bool trace ) {
+	std::cout << "Loading from file " << file_name << std::endl;
+
+	// Load the point cloud from file
+	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
+	if( !cloud ) 
+		return nullptr;
+
+	// Scale points
+	std::cout << "scaling points by " << with_scaling << std::endl;
+	for( auto iter = cloud->points.begin(); iter != cloud->points.end(); ++iter ) {
+		(*iter).x *= with_scaling;
+		(*iter).y *= with_scaling;
+		(*iter).z *= with_scaling;
+	}
+
+	std::cout << "building graph with " << k<< " nearest neighbours." << std::endl;
+	return new Field( cloud, k, trace );
+}
 
 /**
  * Construct a curved field centred at (0,0,0). THe field is defined by z=1-\frac{1}{10}\left( x^{2}+y^{2} \right)
@@ -16,7 +59,7 @@ namespace animesh {
  * @param grid_spacing The space between grid points
  * @param k The number of nearest neighbours to consider
  */
-Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k) {
+Field * FieldFactory::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k) {
 	using namespace Eigen;
 
 	std::cout << "Plane x:" << dim_x << ", y:" << dim_y << ", sp:"<<grid_spacing << std::endl;
@@ -54,7 +97,7 @@ Field * Field::polynomial_field( std::size_t dim_x, std::size_t dim_y, float gri
  * @param grid_spacing The space between grid points
  * @param k The number of nearest neighbours to consider
  */
-Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k ) {
+Field * FieldFactory::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k ) {
 	using namespace Eigen;
 
 	std::cout << "Plane x:" << dim_x << ", y:" << dim_y << ", sp:"<<grid_spacing << std::endl;
@@ -87,7 +130,7 @@ Field * Field::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_sp
  * @param phi_steps The number of steps in the Y direction
  * @param k The number of nearest neighbours to consider
  */
-Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k ) {
+Field * FieldFactory::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k ) {
 	using namespace Eigen;
 
 	std::cout << "Sphere ra:" << radius << ", ts:" << theta_steps << ", ps:" << phi_steps << std::endl;
@@ -127,7 +170,7 @@ Field * Field::spherical_field( float radius, std::size_t theta_steps, std::size
 }
 
 
-Field * Field::circular_field( float radius, int k ) {
+Field * FieldFactory::circular_field( float radius, int k ) {
 	using namespace Eigen;
 
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
@@ -155,7 +198,7 @@ Field * Field::circular_field( float radius, int k ) {
 	return new Field( cloud, k, false );
 }
 
-Field * Field::cubic_field( int cube_x, int cube_y, int cube_z, float scale, int k) {
+Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, float scale, int k) {
 	using namespace Eigen;
 
 	std::cout << "Cube x:" << cube_x << ", y:" << cube_y << ", z:" << cube_z << ", sp:"<<scale << std::endl;

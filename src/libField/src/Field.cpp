@@ -2,8 +2,6 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/io/obj_io.h>
-#include <FileUtils/FileUtils.h>
 
 #include <iostream>
 #include <queue>
@@ -76,47 +74,7 @@ FieldGraphNode * find_node_or_throw( const std::map<pcl::PointNormal, FieldGraph
 }
 
 
-/**
- * Load an obj file into a point cloud
- */
-pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
-    if( file_name.size() == 0 ) 
-        throw std::invalid_argument( "Missing file name" );
 
-    bool is_directory;
-    if (!file_exists(file_name, is_directory ) )
-        throw std::runtime_error( "File not found: " + file_name );
-
-    pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
-    if( pcl::io::loadOBJFile(file_name, *cloud) == -1) {
-        PCL_ERROR ("Couldn't read file\n");
-        return nullptr;
-    }
-    return cloud;
-}
-
-/**
- * Construct a field from an OBJ file
- */
-Field * load_field_from_obj_file( const std::string& file_name, int k, float with_scaling, bool trace ) {
-	std::cout << "Loading from file " << file_name << std::endl;
-
-	// Load the point cloud from file
-	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
-	if( !cloud ) 
-		return nullptr;
-
-	// Scale points
-	std::cout << "scaling points by " << with_scaling << std::endl;
-	for( auto iter = cloud->points.begin(); iter != cloud->points.end(); ++iter ) {
-		(*iter).x *= with_scaling;
-		(*iter).y *= with_scaling;
-		(*iter).z *= with_scaling;
-	}
-
-	std::cout << "building graph with " << k<< " nearest neighbours." << std::endl;
-	return new Field( cloud, k, trace );
-}
 
 /* ******************************************************************************************
  * **

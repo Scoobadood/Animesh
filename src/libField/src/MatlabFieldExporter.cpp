@@ -45,8 +45,9 @@ void MatlabFieldExporter::writeHeader( std::ostream& out ) const {
 
 	writeShort( out, 0x0100 );
 
-	short mi = 'MI';
-	writeShort( out, mi );
+	// 'MI'
+	writeChar( out, 'M' );
+	writeChar( out, 'I' );
 }
 
 void MatlabFieldExporter::writeLocationData( std::ostream& out, std::vector<const FieldElement *>& elements ) const {
@@ -90,6 +91,9 @@ void MatlabFieldExporter::writeInt( std::ostream& out, int i ) const {
 }
 void MatlabFieldExporter::writeShort( std::ostream& out, short s ) const {
 	out.write( reinterpret_cast<char*>(&s), 2 );
+}
+void MatlabFieldExporter::writeChar( std::ostream& out, char c ) const {
+    out.write( reinterpret_cast<char*>(&c), 1 );
 }
 void MatlabFieldExporter::writeVector3f( std::ostream& out, const Eigen::Vector3f& vector ) const {
 	out.write( reinterpret_cast<const char*>( &(vector[0]) ), sizeof( float ) );

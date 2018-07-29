@@ -238,9 +238,12 @@ void AnimeshMainWindow::update_poly_data( ) {
     m_polydata->Initialize();
     if( m_field_optimiser != nullptr ) {
         FieldGraph * fg = m_field_optimiser->graph_at_tier( m_current_tier );
+        std::cout << "update view : " << fg->nodes().size() << " nodes" << std::endl;
+
         for (auto gn : fg->nodes( ) ) {
             const FieldElement * const fe = gn->data();
 
+            std::cout << " gn, fe : " << gn << fe << std::endl;
             Vector3f location = fe->location( );
             Vector3f tangent = fe->tangent();
             Vector3f normal = fe->normal( );

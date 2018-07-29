@@ -40,3 +40,28 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f> best_rosy_vector_pair( const Eigen::
     const float dp = target_candidates[best_target_idx].dot(source_candidates[best_source_idx]);
     return std::make_pair(target_candidates[best_target_idx], source_candidates[best_source_idx] * std::copysign( 1.0f, dp ));
 }
+
+/**
+ * Combine two tangent vectors with weighting
+ * @param v1 The first vector
+ * @param v2 The second vector
+ * @param n1 The first normal 
+ * @param n2 The second normal
+ * @param w1 Weighting for the first vector
+ * @param w2 Weighting for the second vector
+ */
+Eigen::Vector3f average_rosy_vectors( const Eigen::Vector3f& v1, 
+								 const Eigen::Vector3f& n1,
+								 float w1, 
+								 const Eigen::Vector3f& v2, 
+								 const Eigen::Vector3f& n2,
+								 float w2) {
+	using namespace Eigen;
+
+	// Find best matching rotation
+	std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( v1, n1, v2, n2);
+	Eigen::Vector3f v = (result.first * w1) + (result.second * w2);
+	v = reproject_to_tangent_space( v, n1 );
+	v.normalize();
+	return v;
+}

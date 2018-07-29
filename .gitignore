@@ -3,3 +3,7 @@
 bin/
 build/
 lib/
+src/cmake-build-debug
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+

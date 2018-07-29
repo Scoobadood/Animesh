@@ -188,5 +188,3 @@ Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eige
 	// Total transformation is vvrN2' * in_plane_rot * vvrN1
 	return vvrN2.inverse() * in_plane_rot * vvrN1;
 }
-
-

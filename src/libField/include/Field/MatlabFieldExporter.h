@@ -32,6 +32,7 @@ private:
 	void writeTangentData( std::ostream& out, std::vector<const FieldElement *>& elements ) const;
 	void writeInt( std::ostream& out, int i ) const;
 	void writeShort( std::ostream& out, short s ) const;
+	void writeChar( std::ostream& out, char c) const;
 	void writeVector3f( std::ostream& out, const Eigen::Vector3f& vector ) const;
 	int writeVectorsHeader( std::ostream& out, const char * const name,  unsigned int numVectors ) const;
 

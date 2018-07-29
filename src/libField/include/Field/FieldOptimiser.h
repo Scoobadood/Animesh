@@ -3,10 +3,10 @@
 
 namespace animesh {
 
-using FieldGraph = Graph<FieldElement *, void *>;
-using FieldGraphNode = typename Graph<FieldElement *, void *>::GraphNode;
-using FieldGraphSimplifier = GraphSimplifier<FieldElement *, void *>;
-using FieldGraphMapping = GraphSimplifier<FieldElement *, void *>::GraphMapping;
+using FieldGraph 			= Graph<FieldElement *, void *>;
+using FieldGraphNode 		= typename Graph<FieldElement *, void *>::GraphNode;
+using FieldGraphSimplifier 	= GraphSimplifier<FieldElement *, void *>;
+using FieldGraphMapping 	= GraphSimplifier<FieldElement *, void *>::GraphMapping;
 
 class FieldOptimiser {
 
@@ -101,21 +101,21 @@ private:
 	 */
 	void generate_hierarchy( int max_tiers, int max_nodes, int max_edges );
 
-	Field *    								m_field;
+	Field *    						m_field;
 
 	/** A hierarchy of graphs **/
-	std::vector<FieldGraph *>				m_graph_hierarchy;
-	std::vector<FieldGraphMapping>			m_mapping_hierarchy;
+	std::vector<FieldGraph *>		m_graph_hierarchy;
+	std::vector<FieldGraphMapping>	m_mapping_hierarchy;
 
 	/** Flag to determine if we should trace field moothing */
-	bool 									m_tracing_enabled;
+	bool 							m_tracing_enabled;
 
 	/** Smoothing in progress */
-	bool									m_is_optimising;
-	bool									m_optimising_started_new_tier;
-	float									m_optimising_last_error;
-	int 									m_optimising_iterations_this_tier;
-	int 									m_optimising_tier_index;
-	animesh::Graph<FieldElement *, void*> *	m_optimising_current_tier;
+	bool							m_is_optimising;
+	bool							m_optimising_started_new_tier;
+	float							m_optimising_last_error;
+	int 							m_optimising_iterations_this_tier;
+	int 							m_optimising_tier_index;
+	FieldGraph * 					m_optimising_current_tier;
 };
 }

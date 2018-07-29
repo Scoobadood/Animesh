@@ -10,6 +10,7 @@ const int	SMOOTH_TIERS = 10;
 
 
 namespace animesh {
+
 /**
  * Construct with a Field to be optimised
  */
@@ -177,40 +178,51 @@ bool FieldOptimiser::check_convergence( float new_error ) {
  */
 Eigen::Vector3f FieldOptimiser::calculate_smoothed_node( FieldGraph * tier, FieldGraphNode * gn ) const {
 	using namespace Eigen;
+	using namespace std;
 
 	FieldElement * this_fe = (FieldElement *) gn->data();
-	// if( m_tracing_enabled ) 
-	// 	trace_node( "smooth_node", this_fe);
+	if( m_tracing_enabled ) std::cout << "smooth_node" << this_fe << std::endl;
 
-	Vector3f sum = this_fe->tangent();
+	vector<FieldElement *> spatial_neighbours = tier->neighbours_data( gn );
+
+	Vector3f new_tangent = this_fe->tangent();
 	float weight = 0;
 
-	// For each edge from this node
-	std::vector<FieldGraphNode *> neighbours = tier->neighbours( gn );
-	for( auto neighbour : neighbours ) {
-
-		// Get the adjacent FieldElement
-		FieldElement * neighbour_fe = neighbour->data();
-		// if( m_tracing_enabled ) trace_node( "    consider neighbour", neighbour_fe );
+	// Merge spatial neighbours
+	for( auto neighbour_fe : spatial_neighbours ) {
+		if( m_tracing_enabled ) std::cout << "    consider neighbour" << neighbour_fe << std::endl;
 
 		// Find best matching rotation
-		std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( 
-			sum,
-			this_fe->normal(),
-			neighbour_fe->tangent(), 
-			neighbour_fe->normal());
-
-		// Update the computed new tangent
-		// TODO: Manage weights better
+		// TODO: Extract the edge weight from the graph node
 		float edge_weight = 1.0f;
-		sum = (result.first * weight) + (result.second * edge_weight);
+		new_tangent = average_rosy_vectors( new_tangent, this_fe->normal(), weight, 
+						 neighbour_fe->tangent(), neighbour_fe->normal(), edge_weight);
 		weight += edge_weight;
-		sum = reproject_to_tangent_space( sum, this_fe->normal() );
-		sum.normalize();
 	}
-	return sum;
-}
 
+
+	// Merge temporal neighbours
+	for( size_t tp_idx = 1; tp_idx < m_field->get_num_timepoints( ); ++tp_idx ) {
+		// Get my own transformation matrix at this time point
+		Matrix3f m = m_field->get_fwd_xform_for( this_fe, tp_idx );
+		Matrix3f minv = m.inverse();
+
+		vector<FieldElement *> temporal_neighbours = m_field->get_neighbours_of( this_fe, tp_idx);
+
+		// Now for each spatial neighbour
+		for( auto neighbour_fe : temporal_neighbours) {
+			// back project the future coord to the now using m inverse
+			Vector3f future_tangent = minv * neighbour_fe->tangent();
+			Vector3f future_normal = minv * neighbour_fe->normal();
+
+			new_tangent = average_rosy_vectors( new_tangent, this_fe->normal(), 0.5f, 
+						 	 future_tangent, future_normal, 0.5f);
+		}
+	}
+
+
+	return new_tangent;
+}
 
 /* ********** 
  * * Error Computations

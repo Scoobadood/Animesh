@@ -1,52 +1,94 @@
 #include "TestField.h"
 
 #include <Field/Field.h>
+#include <Field/FieldElement.h>
 
 
 void TestField::SetUp( ) {}
 void TestField::TearDown( ) {}
 
-// TEST_F(TestField, SizeAccuatelyReportsSize) { 
-// 	Field * field = Field( gb, elements );
+TEST_F(TestField, findCorrespondenceWithDifferentSizeVectorsShouldThrow) { 
+	using namespace std;
+	using namespace animesh;
 
-// 	// Hard set tangents
-// 	const std::vector<const FieldElement *> fes = field->elements( );
-// 	const_cast<FieldElement *>(fes[0])->m_tangent = Eigen::Vector3f{ -1.50f, 0.0f, 1.0f };
-// 	const_cast<FieldElement *>(fes[1])->m_tangent = Eigen::Vector3f{  0.0f, 0.0f, 1.0f };
-// 	const_cast<FieldElement *>(fes[2])->m_tangent = Eigen::Vector3f{  1.50f, 0.0f, 1.0f };
+	vector<FieldElement * > first;
+	vector<FieldElement * > second;
 
-// 	std::cout << "tan{1} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
-// 	std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
-// 	std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
+	FieldElement *fe1 = new FieldElement( vec_0_0_0, vec_1_0_0);
+	FieldElement *fe2 = new FieldElement( vec_0_0_0, vec_1_0_0);
+	FieldElement *fe3 = new FieldElement( vec_0_0_0, vec_1_0_0);
 
-// 	for( int i=0; i<3; i++ ) {
-// 		field->smooth( );
-// 		std::cout << "tan{"<<i+2<<"} = [" << fes[0]->m_tangent[0] << ", " <<  fes[0]->m_tangent[1] << ", " << fes[0]->m_tangent[2] << ";";
-// 		std::cout << fes[1]->m_tangent[0] << ", " <<  fes[1]->m_tangent[1] << ", " << fes[1]->m_tangent[2] << ";";
-// 		std::cout << fes[2]->m_tangent[0] << ", " <<  fes[2]->m_tangent[1] << ", " << fes[2]->m_tangent[2] << "]';" << std::endl;
-// 	}
-// }
+	first.push_back( fe1 );
+	first.push_back( fe2 );
+	second.push_back( fe3 );
+
+	Field::Correspondence corr;
+
+	try {
+		find_correspondences( first, second, corr );
+        FAIL() << "Expected std::invalid_argument";
+	} catch( invalid_argument const & err) {
+        EXPECT_EQ( err.what(), std::string( "find_correspondences expects vectors to be the same size") );
+	} catch( ... ) {
+        FAIL() << "Expected std::invalid_argument";
+	}
+}
+
+TEST_F(TestField, findCorrespondenceWithZeroFirstVectorShouldThrow) { 
+	using namespace std;
+	using namespace animesh;
+
+	vector<FieldElement * > first;
+	vector<FieldElement * > second;
+
+	FieldElement *fe1 = new FieldElement( vec_0_0_0, vec_1_0_0);
+
+	second.push_back( fe1 );
+
+	Field::Correspondence corr;
+
+	try {
+		find_correspondences( first, second, corr );
+        FAIL() << "Expected std::invalid_argument";
+	} catch( invalid_argument const & err) {
+        EXPECT_EQ( err.what(), string( "find_correspondences expects first vector to have non-zero size") );
+	} catch( ... ) {
+        FAIL() << "Expected std::invalid_argument";
+	}
+}
+
+TEST_F(TestField, findCorrespondenceWithZeroSecondVectorShouldThrow) { 
+	using namespace std;
+	using namespace animesh;
+
+	vector<FieldElement * > first;
+	vector<FieldElement * > second;
+
+	FieldElement *fe1 = new FieldElement( vec_0_0_0, vec_1_0_0);
+
+	first.push_back( fe1 );
+
+	Field::Correspondence corr;
+
+	try {
+		find_correspondences( first, second, corr );
+        FAIL() << "Expected std::invalid_argument";
+	} catch( invalid_argument const & err) {
+        EXPECT_EQ( err.what(), string( "find_correspondences expects second vector to have non-zero size") );
+	} catch( ... ) {
+        FAIL() << "Expected std::invalid_argument";
+	}
+}
 
 
-// TEST_F(TestField, ShouldThrowWhenRequestingOutOfRangeItem) { 
-//     Graph graph{ new NNEdgeManager{ 3} };
-//     graph.addElement( el_1_1_1 );
-//     graph.addElement( el_1_1_2 );
-//     graph.addElement( el_1_1_3 );
+/* ******************************************************************************************
+ * **
+ * **  Test temporal transform
+ * **
+ * ******************************************************************************************/
+TEST_F(TestField, TemporalTransform) {
 
-//     Field field{ &graph };
-
-//  	try {
-//         field.dataForGraphNode( 4 );
-//         FAIL() << "Expected std::invalid_argument";
-//     }
-//     catch ( std::invalid_argument const & err ) {
-//         EXPECT_EQ( err.what(), std::string( "Index out of range") );
-//     }
-//     catch ( ... ) {
-//         FAIL( ) << "Expected std::invalid_argument";
-//     }
-// }
+}
 
 // TEST_F(TestField, GetByIndexReturnsCorrectLocation) { 
 //     Graph graph{ new NNEdgeManager{ 3} };

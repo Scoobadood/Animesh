@@ -1,0 +1,15 @@
+It seems reasonable that a Graph ought to let me reference nodes by value since it is responsible for creating the nodes when I add data.
+
+The Field wants to find the neighbours of a particular FieldElement. This relationship is modeled within the Field using a Graph. The Graph can tell me who the neighbours of a node are because that is its job.
+
+But I don't have a node, I have an item.
+
+I need to convert this to a node
+
+Either Field can manage this
+
+Or Graph can.
+
+I chose Field for now though later we may revise graph to deal only in NodeData objects rather than externalising GraphNode. Actually, as I type this, it feels like externalising GraphNode is not a good idea and Graph really ought to provide a more 'data' oriented approach. Though as I type *this* it occurs to me that the essence of a Graph is Nodes and Edges and so it;s not unreasonable to ask externalise these.
+
+Decision stands, we'll put a value lookup in Field

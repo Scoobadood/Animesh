@@ -29,14 +29,6 @@ void Field::dump(  ) const {
 	}
 }
 
-void Field::trace_node( const std::string& prefix, const FieldElement * this_fe ) const {
-	std::cout << prefix << this_fe << std::endl;
-}
-
-void Field::trace_vector( const std::string& prefix, const Eigen::Vector3f& vector ) const {
-	std::cout << prefix << vector << std::endl;
-}
-
 /**
  * Write a Vector3f to output stream;
  */

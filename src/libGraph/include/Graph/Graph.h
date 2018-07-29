@@ -188,6 +188,18 @@ public:
     }
 
     /**
+     * @return a vector of the neghbours' data for a given node
+     */
+    std::vector<NodeData> neighbours_data( GraphNode * node ) {
+        std::vector<NodeData> data;
+        for( auto gn : m_adjacency[node]) {
+            data.push_back(gn->data());
+        }
+
+        return data;
+    }
+
+    /**
      * @return true if there is an edge from node 1 to node 2
      */
     bool has_edge( GraphNode * node_a, GraphNode * node_b ) {

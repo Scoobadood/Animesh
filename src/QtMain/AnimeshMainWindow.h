@@ -12,8 +12,6 @@
 #include "vtkSmartPointer.h"
 
 
-namespace animesh {
-
 namespace Ui {
 class AnimeshMainWindow;
 }
@@ -37,7 +35,7 @@ private:
 	void update_poly_data( );
 	vtkSmartPointer<vtkRenderer> set_up_renderer( );
 
-    void set_field( Field * field );
+    void set_field( animesh::Field * field );
     void update_inspector();
     void disable_inspector();
 	void update_view();
@@ -45,10 +43,10 @@ private:
 
 
 	// Field declaration
-	Field *    m_field;
+	animesh::Field *    m_field;
 
     // Optimiser
-    FieldOptimiser  * m_field_optimiser;
+    animesh::FieldOptimiser  * m_field_optimiser;
 
 	// Poly data
 	vtkSmartPointer<vtkPolyData> m_polydata;
@@ -65,5 +63,4 @@ private slots:
     void on_btnSmoothCompletely_clicked();
     void on_btnSmoothOnce_clicked();
 };
-}
 #endif // ANIMESHMAINWINDOW_H

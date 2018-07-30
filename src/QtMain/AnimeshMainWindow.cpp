@@ -34,8 +34,12 @@
 #include "vtkTextWidget.h"
 #include "vtkUnsignedCharArray.h"
 
-namespace animesh {
-
+using animesh::Field;
+using animesh::FieldOptimiser;
+using animesh::FieldElement;
+using animesh::FieldFactory;
+using animesh::FieldGraph;
+using animesh::load_field_from_obj_file;
 
 AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow) {
     m_field = nullptr;
@@ -337,8 +341,4 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
     actor->GetProperty()->SetColor(1, 0, 0);
     renderer->AddActor(actor);
     return renderer;
-}
-
-
-
 }

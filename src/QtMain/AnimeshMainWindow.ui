@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>animesh::AnimeshMainWindow</class>
+ <class>AnimeshMainWindow</class>
  <widget class="QMainWindow" name="AnimeshMainWindow">
   <property name="geometry">
    <rect>

@@ -7,8 +7,8 @@
 ##Display
 [x] Add a frame counter to the left hand view with spinner
 [x] Add a label
-[ ] Set min and max based on frame count
-[ ] Update field to return points based on current frame
+[x] Set min and max based on frame count
+[x] Update field to return points based on current frame
 [ ] Call this from visualisation code.
 
 ##Test

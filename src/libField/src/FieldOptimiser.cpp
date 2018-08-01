@@ -203,7 +203,7 @@ namespace animesh {
 
 
         // Merge temporal neighbours
-        for (size_t tp_idx = 1; tp_idx < m_field->get_num_timepoints(); ++tp_idx) {
+        for (size_t tp_idx = 0; tp_idx < m_field->get_num_timepoints(); ++tp_idx) {
             // Get my own transformation matrix at this time point
             Matrix3f m = m_field->get_fwd_xform_for(this_fe, tp_idx);
             Matrix3f minv = m.inverse();

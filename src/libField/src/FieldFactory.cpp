@@ -41,10 +41,10 @@ Field * load_field_from_obj_file( const std::string& file_name, int k, float wit
 
 	// Scale points
 	std::cout << "scaling points by " << with_scaling << std::endl;
-	for( auto iter = cloud->points.begin(); iter != cloud->points.end(); ++iter ) {
-		(*iter).x *= with_scaling;
-		(*iter).y *= with_scaling;
-		(*iter).z *= with_scaling;
+	for( auto iter : cloud->points) {
+		iter.x *= with_scaling;
+		iter.y *= with_scaling;
+		iter.z *= with_scaling;
 	}
 
 	std::cout << "building graph with " << k<< " nearest neighbours." << std::endl;

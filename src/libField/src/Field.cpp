@@ -331,7 +331,7 @@ FieldElement *const Field::get_point_corresponding_to(FieldElement * const fe, i
     check_time_point(time_point);
     if( time_point == 0 ) return fe;
 
-    Correspondence c = m_correspondences[time_point];
+    Correspondence c = m_correspondences[time_point-1];
     FutureFieldElementAndRotation f = c.at(const_cast<FieldElement *>(fe));
 
     return f.first;

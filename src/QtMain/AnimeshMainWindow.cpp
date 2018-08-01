@@ -324,7 +324,6 @@ void AnimeshMainWindow::update_poly_data() {
                 fe = m_field->get_point_corresponding_to(fe, m_current_frame);
             }
 
-            std::cout << " gn, fe : " << gn << fe << std::endl;
             Vector3f location = fe->location();
             Vector3f tangent = fe->tangent();
             Vector3f normal = fe->normal();

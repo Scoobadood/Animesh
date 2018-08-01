@@ -46,13 +46,14 @@ AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(
     m_field_optimiser = nullptr;
     m_polydata = nullptr;
     m_current_tier = 0;
+    m_current_frame = 0;
 
     ui->setupUi(this);
 
-    disable_inspector( );
+    disable_inspector();
 
     // VTK/Qt wedded
-    ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer( ));
+    ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer());
 
     // Set up action signals and slots
     connect(this->ui->action_exit, SIGNAL(triggered()), this, SLOT(slotExit()));
@@ -70,7 +71,7 @@ void AnimeshMainWindow::on_action_open_triggered() {
     // Notify the app to load the file
     QString fileName = QFileDialog::getOpenFileName(this);
     if (!fileName.isEmpty()) {
-        loadFile(fileName);
+        load_model_from_file(fileName);
     }
 }
 
@@ -80,23 +81,41 @@ void AnimeshMainWindow::on_action_open_triggered() {
 // -- Populate inspector
 // -- update render view
 void AnimeshMainWindow::on_action_poly_triggered() {
-    set_field( FieldFactory::polynomial_field( 10, 10, 2.5, 5) );
+    set_field(FieldFactory::polynomial_field(10, 10, 2.5, 5));
 }
 
 void AnimeshMainWindow::on_action_plane_triggered() {
-    set_field( FieldFactory::planar_field( 10, 10, 2.5, 5) );
+    set_field(FieldFactory::planar_field(10, 10, 2.5, 5));
+}
+
+void AnimeshMainWindow::on_action_add_frame_triggered() {
+    // Notify the app to load the file
+    QString file_name = QFileDialog::getOpenFileName(this);
+    if (!file_name.isEmpty()) {
+        load_new_frame(file_name);
+    }
 }
 
 /** Up or down a level in the graph
- */
+*/
 void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
     m_current_tier = new_graph_level;
-    view_changed( );
+    view_changed();
+}
+
+/** Up or down a level in the graph
+*/
+void AnimeshMainWindow::on_sbFrameNumber_valueChanged(int new_frame_number) {
+    // Frame should be zero based, dispaly is 1 based
+    if( m_current_frame != new_frame_number - 1 ) {
+        m_current_frame = new_frame_number - 1;
+        view_changed();
+    }
 }
 
 void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
-    assert( m_field );
-    assert( m_field_optimiser );
+    assert(m_field);
+    assert(m_field_optimiser);
 
     m_field_optimiser->optimise();
     m_current_tier = 0;
@@ -104,23 +123,36 @@ void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
 }
 
 void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
-    assert( m_field );
-    assert( m_field_optimiser );
+    assert(m_field);
+    assert(m_field_optimiser);
 
     m_field_optimiser->optimise_once();
-    m_current_tier = m_field_optimiser->optimising_tier_index( );
+    m_current_tier = m_field_optimiser->optimising_tier_index();
     view_changed();
 }
 
 /**
  * Load a new file, setup all the stuff
  */
-void AnimeshMainWindow::loadFile( QString fileName ) {
-    Field * field = load_field_from_obj_file( fileName.toStdString(), 5, 100, true );
-    if( field ) {
-        set_field( field );
-        setWindowFilePath(fileName);
+void AnimeshMainWindow::load_model_from_file(QString fileName) {
+    Field *field = load_field_from_obj_file(fileName.toStdString(), 5, 100, true);
+    if (field) {
+        set_field(field);
         statusBar()->showMessage(tr("File loaded"), 2000);
+    } else {
+        statusBar()->showMessage(tr("Error loading file"), 2000);
+    }
+}
+
+/**
+ * Load a new file, setup all the stuff
+ */
+void AnimeshMainWindow::load_new_frame(QString file_name) {
+    pcl::PointCloud<pcl::PointNormal>::Ptr cloud = animesh::load_pointcloud_from_obj(file_name.toStdString());
+    if (cloud) {
+        m_field->add_new_timepoint(cloud);
+        update_frame_counter();
+        statusBar()->showMessage(tr("Added frame"), 2000);
     } else {
         statusBar()->showMessage(tr("Error loading file"), 2000);
     }
@@ -131,23 +163,25 @@ void AnimeshMainWindow::loadFile( QString fileName ) {
  * Set field to new variable
  * Refresh the view
  */
-void AnimeshMainWindow::set_field( Field * new_field ) {
-    if( m_field_optimiser != nullptr ) delete m_field_optimiser;
-    if( m_field != nullptr ) delete m_field;
+void AnimeshMainWindow::set_field(Field *new_field) {
+    // Cler out the old
+    if (m_field_optimiser != nullptr) delete m_field_optimiser;
+    if (m_field != nullptr) delete m_field;
 
     // Set new values
     int m_current_tier = 0;
     m_field = new_field;
-    m_field_optimiser = new FieldOptimiser( m_field );
-    view_changed( );
+    m_field_optimiser = new FieldOptimiser(m_field);
+    ui->action_add_frame->setEnabled(m_field != nullptr);
+    update_frame_counter();
+    view_changed();
 }
 
 //
 // View changed
 // -- Populate inspector
 // -- update render view
-void AnimeshMainWindow::view_changed()
-{
+void AnimeshMainWindow::view_changed() {
     update_inspector();
     update_view();
 }
@@ -164,19 +198,56 @@ void AnimeshMainWindow::view_changed()
 /**
  * Disable all the input fields and buttons in the inspector
  */
-void AnimeshMainWindow::disable_inspector( ) {
-    this->ui->sbGraphLevel->setMaximum( 0 );
-    this->ui->sbGraphLevel->setValue( 0 );
-    this->ui->sbGraphLevel->setEnabled( false );
-    this->ui->txtResidual->setText( "0" );
-    this->ui->txtResidual->setEnabled( false );
-    this->ui->txtNodeCount->setText( "0" );
-    this->ui->txtNodeCount->setEnabled( false );
-    this->ui->txtEdgeCount->setText( "0" );
-    this->ui->txtEdgeCount->setEnabled( false );
+void AnimeshMainWindow::disable_inspector() {
+    this->ui->sbGraphLevel->setMaximum(0);
+    this->ui->sbGraphLevel->setValue(0);
+    this->ui->sbGraphLevel->setEnabled(false);
 
-    this->ui->btnSmoothOnce->setEnabled( false );
-    this->ui->btnSmoothCompletely->setEnabled( false );
+    disable_frame_counter();
+
+    this->ui->txtResidual->setText("0");
+    this->ui->txtResidual->setEnabled(false);
+    this->ui->txtNodeCount->setText("0");
+    this->ui->txtNodeCount->setEnabled(false);
+    this->ui->txtEdgeCount->setText("0");
+    this->ui->txtEdgeCount->setEnabled(false);
+
+    this->ui->btnSmoothOnce->setEnabled(false);
+    this->ui->btnSmoothCompletely->setEnabled(false);
+}
+
+
+void AnimeshMainWindow::disable_frame_counter( ) {
+    ui->sbFrameNumber->setMaximum(0);
+    ui->sbFrameNumber->setValue(0);
+    ui->sbFrameNumber->setEnabled(false);
+}
+
+void AnimeshMainWindow::update_frame_counter( ) {
+    if( m_field != nullptr ) {
+        int max_frame = m_field->get_num_timepoints();
+        // If there are no (other) frames
+        if( max_frame == 0 ) {
+            disable_frame_counter();
+        }
+        // Otherwise ...
+        else {
+            // We start numbering at 1.
+            ui->sbFrameNumber->setMinimum(1);
+            ui->sbFrameNumber->setMaximum(max_frame+1);
+            if( m_current_frame +1 > max_frame) {
+                m_current_frame = 0;
+                ui->sbFrameNumber->setValue(m_current_frame+1);
+            }
+            if( max_frame > 0 ) {
+                ui->sbFrameNumber->setEnabled(true);
+            } else {
+                ui->sbFrameNumber->setEnabled(false);
+            }
+        }
+    } else {
+        disable_frame_counter();
+    }
 }
 
 // Populate inspector
@@ -186,53 +257,56 @@ void AnimeshMainWindow::disable_inspector( ) {
 //    updte spinner value
 // -- Set the node count with nodes in this level
 // -- Set the edge count with edges in this level
-void AnimeshMainWindow::update_inspector(){
+void AnimeshMainWindow::update_inspector() {
     std::cout << "Update inspector. field : " << m_field << std::endl;
-    if( m_field == nullptr ) {
-        disable_inspector( );
+    if (m_field == nullptr) {
+        disable_inspector();
         return;
     }
 
-    if( m_field_optimiser != nullptr ) {
-        this->ui->btnSmoothOnce->setEnabled( true );
-        this->ui->btnSmoothCompletely->setEnabled( true );
+    // If there's an optimiser, there's a field to render
+    if (m_field_optimiser != nullptr) {
+        ui->btnSmoothOnce->setEnabled(true);
+        ui->btnSmoothCompletely->setEnabled(true);
 
         // FO->num_tiers cannot be 0 at this stage
-        if( m_field_optimiser->num_tiers( ) == 1 ) {
-            this->ui->sbGraphLevel->setEnabled( false );
+        if (m_field_optimiser->num_tiers() == 1) {
+            ui->sbGraphLevel->setEnabled(false);
         } else {
-            this->ui->sbGraphLevel->setEnabled( true );
+            ui->sbGraphLevel->setEnabled(true);
         }
-        this->ui->sbGraphLevel->setMaximum( m_field_optimiser->num_tiers( ) - 1);
+        ui->sbGraphLevel->setMaximum(m_field_optimiser->num_tiers() - 1);
 
-        std::cout << "New field has " <<  m_field_optimiser->num_tiers( ) << " tiers" << std::endl;
-        this->ui->sbGraphLevel->setValue( m_current_tier );
+        std::cout << "New field has " << m_field_optimiser->num_tiers() << " tiers" << std::endl;
+        ui->sbGraphLevel->setValue(m_current_tier);
 
-        this->ui->txtNodeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes() ) );
-        this->ui->txtEdgeCount->setText( QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges() ) );
+        ui->txtNodeCount->setText(
+                QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
+        ui->txtEdgeCount->setText(
+                QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
 
-        this->ui->txtResidual->setText( QString::number( m_field_optimiser->current_error( m_current_tier) ) );
+        ui->txtResidual->setText(QString::number(m_field_optimiser->current_error(m_current_tier)));
     }
-
 }
+
 
 // Update render view
 // -- Rebuild/build new poly from field current layer
 // -- Update the render window
-void AnimeshMainWindow::update_view(){
-    std::cout << "render view for graph at level: " << this->ui->sbGraphLevel->value( ) << std::endl;
-    update_poly_data( );
+void AnimeshMainWindow::update_view() {
+    std::cout << "render view for graph at level: " << ui->sbGraphLevel->value() << std::endl;
+    update_poly_data();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
 /**
  * Reconstruct the given polydata from the field
  */
-void AnimeshMainWindow::update_poly_data( ) {
+void AnimeshMainWindow::update_poly_data() {
     using namespace Eigen;
 
-    vtkSmartPointer<vtkPoints>      pts  = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray>   lines = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
 
     // Create a vtkUnsignedCharArray container and store the colors in it
     vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
@@ -240,61 +314,64 @@ void AnimeshMainWindow::update_poly_data( ) {
     colours->SetNumberOfComponents(3);
 
     m_polydata->Initialize();
-    if( m_field_optimiser != nullptr ) {
-        FieldGraph * fg = m_field_optimiser->graph_at_tier( m_current_tier );
+    if (m_field_optimiser != nullptr) {
+        FieldGraph *fg = m_field_optimiser->graph_at_tier(m_current_tier);
         std::cout << "update view : " << fg->nodes().size() << " nodes" << std::endl;
 
-        for (auto gn : fg->nodes( ) ) {
-            const FieldElement * const fe = gn->data();
+        for (auto gn : fg->nodes()) {
+            FieldElement *fe = gn->data();
+            if (m_current_frame > 0) {
+                fe = m_field->get_point_corresponding_to(fe, m_current_frame);
+            }
 
             std::cout << " gn, fe : " << gn << fe << std::endl;
-            Vector3f location = fe->location( );
+            Vector3f location = fe->location();
             Vector3f tangent = fe->tangent();
-            Vector3f normal = fe->normal( );
+            Vector3f normal = fe->normal();
 
             // Add the field node
             vtkIdType pid[6];
 
             // Add location
-            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z() );
+            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
 
-          // Add tangent points
-          Vector3f p1 = location + tangent;
-          pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
+            // Add tangent points
+            Vector3f p1 = location + tangent;
+            pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
 
-          // Add opposite tangent points
-          Vector3f p2 = location - tangent;
-          pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
+            // Add opposite tangent points
+            Vector3f p2 = location - tangent;
+            pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
 
-          // Compute 90 tangent
-          Vector3f ninety = tangent.cross( normal );
-          Vector3f p3 = location + ninety;
-          pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
-          Vector3f p4 = location - ninety;
-          pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-          Vector3f p5 = location + (normal * 0.1);
-          pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
+            // Compute 90 tangent
+            Vector3f ninety = tangent.cross(normal);
+            Vector3f p3 = location + ninety;
+            pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
+            Vector3f p4 = location - ninety;
+            pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
+            Vector3f p5 = location + (normal * 0.1);
+            pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
 
             // Main tangent
-        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-            line->GetPointIds()->SetId(0,pid[0]);
-            line->GetPointIds()->SetId(1,pid[1]);
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+            line->GetPointIds()->SetId(0, pid[0]);
+            line->GetPointIds()->SetId(1, pid[1]);
             lines->InsertNextCell(line);
             colours->InsertNextTypedTuple(named_colours->GetColor3ub("Red").GetData());
 
             // Secondary tangents
-            for( int i=0; i<3; ++i ) {
+            for (int i = 0; i < 3; ++i) {
                 line = vtkSmartPointer<vtkLine>::New();
-                line->GetPointIds()->SetId(0,pid[0]);
-                line->GetPointIds()->SetId(1,pid[i + 2]);
+                line->GetPointIds()->SetId(0, pid[0]);
+                line->GetPointIds()->SetId(1, pid[i + 2]);
                 lines->InsertNextCell(line);
                 colours->InsertNextTypedTuple(named_colours->GetColor3ub("Pink").GetData());
             }
 
             // Normal
             line = vtkSmartPointer<vtkLine>::New();
-            line->GetPointIds()->SetId(0,pid[0]);
-            line->GetPointIds()->SetId(1,pid[5]);
+            line->GetPointIds()->SetId(0, pid[0]);
+            line->GetPointIds()->SetId(1, pid[5]);
             lines->InsertNextCell(line);
             colours->InsertNextTypedTuple(named_colours->GetColor3ub("Yellow").GetData());
         }
@@ -307,17 +384,16 @@ void AnimeshMainWindow::update_poly_data( ) {
 /**
  * Draw the field
  */
-vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
+vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
 
     //  Make empty Polydata
     m_polydata = vtkSmartPointer<vtkPolyData>::New();
     update_poly_data();
 
-
-// The depthSort object is set up to generate scalars representing
-// the sort depth.  A camera is assigned for the sorting. The camera
-// define the sort vector (position and focal point).
+    // The depthSort object is set up to generate scalars representing
+    // the sort depth.  A camera is assigned for the sorting. The camera
+    // define the sort vector (position and focal point).
     vtkSmartPointer<vtkDepthSortPolyData> depth_sort = vtkSmartPointer<vtkDepthSortPolyData>::New();
     depth_sort->SetInputData(m_polydata);
     depth_sort->SetDirectionToBackToFront();
@@ -335,7 +411,7 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer( ) {
 
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(3); 
+    actor->GetProperty()->SetPointSize(3);
     actor->GetProperty()->SetLineWidth(3);
     actor->GetProperty()->SetOpacity(0.5);
     actor->GetProperty()->SetColor(1, 0, 0);

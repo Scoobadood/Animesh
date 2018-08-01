@@ -125,6 +125,13 @@
          </widget>
         </item>
         <item row="6" column="1">
+         <widget class="QPushButton" name="btnSmoothOnce">
+          <property name="text">
+           <string>Smooth Once</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
          <widget class="QPushButton" name="btnSmoothCompletely">
           <property name="text">
            <string>Smooth Completely</string>
@@ -132,9 +139,12 @@
          </widget>
         </item>
         <item row="5" column="1">
-         <widget class="QPushButton" name="btnSmoothOnce">
+         <widget class="QSpinBox" name="sbFrameNumber"/>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="lblFrameNumber">
           <property name="text">
-           <string>Smooth Once</string>
+           <string>Frame Number</string>
           </property>
          </widget>
         </item>
@@ -201,6 +211,8 @@
     <addaction name="action_cube"/>
     <addaction name="action_sphere"/>
     <addaction name="separator"/>
+    <addaction name="action_add_frame"/>
+    <addaction name="separator"/>
     <addaction name="action_exit"/>
    </widget>
    <addaction name="menuFile"/>
@@ -249,6 +261,11 @@
   <action name="action_exit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="action_add_frame">
+   <property name="text">
+    <string>Add Frame</string>
    </property>
   </action>
  </widget>

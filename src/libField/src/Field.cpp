@@ -301,6 +301,7 @@ void Field::add_new_timepoint(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud
 std::vector<FieldElement *> Field::get_neighbours_of(FieldElement *fe, int time_point) const {
     using namespace std;
 
+    check_time_point(time_point);
     FieldGraphNode *gn = m_graphnode_for_field_element.at(fe);
     vector<FieldElement *> t0_neighbours = m_graph->neighbours_data(gn);
     if (time_point == 0) {
@@ -312,8 +313,8 @@ std::vector<FieldElement *> Field::get_neighbours_of(FieldElement *fe, int time_
 
     Correspondence c = m_correspondences[time_point];
     vector<FieldElement *> future_neighbours;
-    for (auto fe : t0_neighbours) {
-        FutureFieldElementAndRotation f = c[fe];
+    for (auto nfe : t0_neighbours) {
+        FutureFieldElementAndRotation f = c[nfe];
         future_neighbours.push_back(f.first);
     }
 
@@ -323,11 +324,13 @@ std::vector<FieldElement *> Field::get_neighbours_of(FieldElement *fe, int time_
 /**
  * Get the point corresponding to this one at a given time point
  * @param fe The source FieldElement
- * @param time_point The time point from which to recover the corresponding point
+ * @param time_point The time point from which to recover the corresponding point. should be 1
  * @return The corresponding element
  */
-FieldElement *const Field::get_point_corresponding_to(const FieldElement *const fe, int time_point) const {
+FieldElement *const Field::get_point_corresponding_to(FieldElement * const fe, int time_point) const {
     check_time_point(time_point);
+    if( time_point == 0 ) return fe;
+
     Correspondence c = m_correspondences[time_point];
     FutureFieldElementAndRotation f = c.at(const_cast<FieldElement *>(fe));
 
@@ -339,6 +342,7 @@ std::vector<FieldElement *> Field::get_all_n_at_t0() const {
     return v;
 }
 
+// Total number of time points. Current time point is 0. If there is one additional timepoint, we return 2
 size_t Field::get_num_timepoints() const {
     return m_correspondences.size();
 }
@@ -346,12 +350,14 @@ size_t Field::get_num_timepoints() const {
 /**
  * Get the Matrix which transforms a given FE into it's position at time t
  * @param fe The FieldElement to map
- * @param t The timepoint
+ * @param t The timepoint (0 for now, >0 for future
  * @return The mtransformation matrix
  */
 Eigen::Matrix3f Field::get_fwd_xform_for(const FieldElement *const fe, int time_point) const {
     check_time_point(time_point);
-    Correspondence c = m_correspondences[time_point];
+    if( time_point == 0 ) return Eigen::Matrix3f::Identity();
+
+    Correspondence c = m_correspondences[time_point - 1];
     FutureFieldElementAndRotation f = c.at(const_cast<FieldElement *>(fe));
 
     return f.second;

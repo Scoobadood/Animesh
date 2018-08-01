@@ -1,0 +1,16 @@
+#Multi Frame
+##Loading
+[x] Add an option to the main menu for add frame.
+[ ] This should invoke the PCL loader and call field->add_pointcloud
+[ ] Should only be enabled once there is a frame loaded
+
+##Display
+[x] Add a frame counter to the left hand view with spinner
+[x] Add a label
+[ ] Set min and max based on frame count
+[ ] Update field to return points based on current frame
+[ ] Call this from visualisation code.
+
+##Test
+[ ] Construct (separate code) a series of point clouds with increasingly sharp folds
+

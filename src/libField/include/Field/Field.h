@@ -75,7 +75,7 @@ public:
 	 * @param time_point The time point from which to recover the corresponding point
 	 * @return The corresponding element
 	 */
-	FieldElement * const get_point_corresponding_to( const FieldElement * const fe, int time_point ) const;
+	FieldElement * const get_point_corresponding_to( FieldElement * const fe, int time_point ) const;
 
 	/**
 	 * Get the Matrix which transforms a given FE into it's position at time t
@@ -125,7 +125,7 @@ private:
 	 * @param time_point
 	 */
 	void inline check_time_point( int time_point ) const {
-        if (time_point < 1 || time_point >= m_correspondences.size())
+        if (time_point < 0 || time_point > m_correspondences.size())
             throw std::invalid_argument("Time point out of range");
     }
 

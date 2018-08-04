@@ -21,7 +21,7 @@ MatlabFieldExporter::~MatlabFieldExporter( ) {}
 void MatlabFieldExporter::exportField( const Field& field  ) const {
 	writeHeader( m_out );
 
-	std::vector<const FieldElement *> elements = field.elements();
+	const std::vector<FieldElement *>& elements = field.elements(0);
 
 	writeLocationData( m_out, elements );
 	writeNormalData( m_out, elements );
@@ -50,7 +50,7 @@ void MatlabFieldExporter::writeHeader( std::ostream& out ) const {
 	writeChar( out, 'I' );
 }
 
-void MatlabFieldExporter::writeLocationData( std::ostream& out, std::vector<const FieldElement *>& elements ) const {
+void MatlabFieldExporter::writeLocationData( std::ostream& out, const std::vector<FieldElement *>& elements ) const {
 	using namespace Eigen;
 	using namespace std;
 
@@ -62,7 +62,7 @@ void MatlabFieldExporter::writeLocationData( std::ostream& out, std::vector<cons
 	out.write( padding, paddingLength);
 }
 
-void MatlabFieldExporter::writeNormalData( std::ostream& out, std::vector<const FieldElement *>& elements ) const {
+void MatlabFieldExporter::writeNormalData( std::ostream& out, const std::vector<FieldElement *>& elements ) const {
 	using namespace Eigen;
 	using namespace std;
 	
@@ -74,7 +74,7 @@ void MatlabFieldExporter::writeNormalData( std::ostream& out, std::vector<const 
 	out.write( padding, paddingLength);
 }
 
-void MatlabFieldExporter::writeTangentData( std::ostream& out, std::vector<const FieldElement *>& elements ) const {
+void MatlabFieldExporter::writeTangentData( std::ostream& out, const std::vector<FieldElement *>& elements ) const {
 	using namespace Eigen;
 	using namespace std;
 	

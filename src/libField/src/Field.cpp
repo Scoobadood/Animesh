@@ -55,29 +55,6 @@ struct animesh::cmpPointNormal {
 };
 
 /**
- * Find correspondences between FieldElements in first set and second set.
- */
-void animesh::find_correspondences(
-        const std::vector<FieldElement *> &first,
-        const std::vector<FieldElement *> &second,
-        Field::Correspondence &corr) {
-
-    if (first.size() == 0)
-        throw std::invalid_argument("find_correspondences expects first vector to have non-zero size");
-
-    if (second.size() == 0)
-        throw std::invalid_argument("find_correspondences expects second vector to have non-zero size");
-
-    // Naive implementation assumes a one-to-one, ordered correspondence.
-    if (first.size() != second.size())
-        throw std::invalid_argument("find_correspondences expects vectors to be the same size");
-
-    for (size_t i = 0; i < first.size(); ++i) {
-        corr.insert(std::make_pair(first[i], std::make_pair(second[i], Eigen::Matrix3f::Identity())));
-    }
-}
-
-/**
  * Construct a vector of FieldElements from a point cloud of PointNormals
  */
 std::vector<FieldElement *>
@@ -89,37 +66,6 @@ make_field_elements_from_point_cloud(const pcl::PointCloud<pcl::PointNormal>::Pt
     return elements;
 }
 
-
-/**
- * Compute the transformation for a given node
- * @param fe The source FieldElement
- * @param time_point The time point from which to recover the corresponding point
- */
-void animesh::compute_temporal_transform(FieldElement *node,
-                                         const std::vector<FieldElement *> &neighbours,
-                                         Field::Correspondence &corr) {
-    using namespace std;
-    using namespace Eigen;
-
-    Vector3f point1 = node->location();
-    Vector3f normal1 = node->normal();
-
-    const FieldElement *const node_at_t1 = corr.at(node).first;
-    Vector3f point2 = node_at_t1->location();
-    Vector3f normal2 = node_at_t1->normal();
-
-    // Find points for neighbours at both time intervals
-    vector<Vector3f> neighbours1;
-    vector<Vector3f> neighbours2;
-    for (auto fe : neighbours) {
-        neighbours1.push_back(fe->location());
-        neighbours2.push_back(corr.at(fe).first->location());
-    }
-
-    Eigen::Matrix3f m = rotation_between(point1, normal1, neighbours1,
-                                         point2, normal2, neighbours2);
-    corr.at(node).second = m;
-}
 
 /* ******************************************************************************************
  * **
@@ -137,17 +83,18 @@ Field::add_points_from_cloud(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud)
     using namespace pcl;
 
     // Convert points to FieldElements
-    m_elements = make_field_elements_from_point_cloud(cloud);
+    assert(m_frame_data.size() == 0 );
+    m_frame_data.push_back( make_field_elements_from_point_cloud(cloud));
 
     // And add to graph, maintaining a mapping
     size_t fe_idx = 0;
     map<PointNormal, FieldGraphNode *, cmpPointNormal> *point_to_gn_map = new map<PointNormal, FieldGraphNode *, cmpPointNormal>();
 
     for (auto point : *cloud) {
-        FieldGraphNode *gn = m_graph->add_node(m_elements[fe_idx]);
+        FieldGraphNode *gn = m_graph->add_node(m_frame_data[0][fe_idx]);
 
         // Keep a (long term) mapping from FE to GN
-        m_graphnode_for_field_element[m_elements[fe_idx]] = gn;
+        m_graphnode_for_field_element[m_frame_data[0][fe_idx]] = gn;
 
         // Keep a mapping from point to gn
         (*point_to_gn_map)[point] = gn;
@@ -246,20 +193,18 @@ Field::~Field() {
 /**
  * @return the size of the ifled
  */
-std::size_t Field::size() const {
-    return m_graph->num_nodes();
+std::size_t
+Field::size() const {
+    return m_frame_data[0].size();
 }
 
 /**
  * Return vector of elements
  */
-const std::vector<const FieldElement *> Field::elements() const {
-    std::vector<const FieldElement *> elements;
-
-    for (auto node : m_graph->nodes()) {
-        elements.push_back(node->data());
-    }
-    return elements;
+const std::vector<FieldElement *>&
+Field::elements( size_t frame_idx) const {
+    check_frame(frame_idx);
+    return m_frame_data[frame_idx];
 }
 
 
@@ -271,94 +216,45 @@ const std::vector<const FieldElement *> Field::elements() const {
 
 /**
  * Add a point cloud for the next point in time.
+ * For now we assume that the second point cloud is the same size as the current one and that
+ * points in the cloud are in correspondence with the current list of FieldElements
+ *
  * @param cloud The point cloud to be added for the next time point.
  */
-void Field::add_new_timepoint(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud) {
+void
+Field::add_new_frame(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud) {
     // Construct a vector of FieldElements from points in the cloud
     std::vector<FieldElement *> new_elements = make_field_elements_from_point_cloud(cloud);
-
-    // Find correspondences between t_0 and this time point
-    Correspondence corr;
-    find_correspondences(m_elements, new_elements, corr);
-
-    // For each FE in the t_0 cloud, compute the xform to the FE in the t_n cloud
-    for (auto gn : m_graph->nodes()) {
-        // 1. Get the neighbours of this FE according to graph
-        FieldElement *fe = gn->data();
-        std::vector<FieldElement *> neighbours_0 = m_graph->neighbours_data(gn);
-        compute_temporal_transform(fe, neighbours_0, corr);
-    }
-
-    m_correspondences.push_back(corr);
+    assert(new_elements.size() == m_frame_data[0].size() );
+    m_frame_data.push_back(new_elements);
 }
 
 /**
  * Get the vector elements neighbouring the given node at the specific time point.
  * @param fe The FieldElement who's neighbours should be returned
- * @param time_point The neighbouring FieldElements
+ * @param frame_idx The neighbouring FieldElements
  * @return vector of elements
  */
-std::vector<FieldElement *> Field::get_neighbours_of(FieldElement *fe, int time_point) const {
+std::vector<FieldElement *> 
+Field::get_neighbours_of(FieldElement *fe, size_t frame_idx) const {
     using namespace std;
 
-    check_time_point(time_point);
-    FieldGraphNode *gn = m_graphnode_for_field_element.at(fe);
+    check_frame(frame_idx);
+    auto it = m_graphnode_for_field_element.find(fe);
+    assert(it != m_graphnode_for_field_element.end());
+    FieldGraphNode *gn = it->second;
     vector<FieldElement *> t0_neighbours = m_graph->neighbours_data(gn);
-    if (time_point == 0) {
+    if (frame_idx == 0) {
         return t0_neighbours;
     }
 
-    if (time_point >= m_correspondences.size())
-        throw std::invalid_argument("Time point out of range");
-
-    Correspondence c = m_correspondences[time_point];
     vector<FieldElement *> future_neighbours;
     for (auto nfe : t0_neighbours) {
-        FutureFieldElementAndRotation f = c[nfe];
-        future_neighbours.push_back(f.first);
+        auto it = std::find(m_frame_data[0].begin(), m_frame_data[0].end(), nfe);
+        assert( it != m_frame_data[0].end());
+        size_t idx = it - m_frame_data[0].begin();
+        future_neighbours.push_back(m_frame_data[frame_idx][idx]);
     }
 
     return future_neighbours;
-}
-
-/**
- * Get the point corresponding to this one at a given time point
- * @param fe The source FieldElement
- * @param time_point The time point from which to recover the corresponding point. should be 1
- * @return The corresponding element
- */
-FieldElement *const Field::get_point_corresponding_to(FieldElement * const fe, int time_point) const {
-    check_time_point(time_point);
-    if( time_point == 0 ) return fe;
-
-    Correspondence c = m_correspondences[time_point-1];
-    FutureFieldElementAndRotation f = c.at(const_cast<FieldElement *>(fe));
-
-    return f.first;
-}
-
-std::vector<FieldElement *> Field::get_all_n_at_t0() const {
-    std::vector<FieldElement *> v{};
-    return v;
-}
-
-// Total number of time points. Current time point is 0. If there is one additional timepoint, we return 2
-size_t Field::get_num_timepoints() const {
-    return m_correspondences.size();
-}
-
-/**
- * Get the Matrix which transforms a given FE into it's position at time t
- * @param fe The FieldElement to map
- * @param t The timepoint (0 for now, >0 for future
- * @return The mtransformation matrix
- */
-Eigen::Matrix3f Field::get_fwd_xform_for(const FieldElement *const fe, int time_point) const {
-    check_time_point(time_point);
-    if( time_point == 0 ) return Eigen::Matrix3f::Identity();
-
-    Correspondence c = m_correspondences[time_point - 1];
-    FutureFieldElementAndRotation f = c.at(const_cast<FieldElement *>(fe));
-
-    return f.second;
 }

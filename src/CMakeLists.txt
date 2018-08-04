@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
 set(CMAKE_BUILD_TYPE Debug)
-
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 project( Animesh
          VERSION 0.1 
          LANGUAGES CXX )

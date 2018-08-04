@@ -126,7 +126,7 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
     assert(m_field);
     assert(m_field_optimiser);
 
-    m_field_optimiser->optimise_once();
+    m_field_optimiser->optimise_one_step();
     m_current_tier = m_field_optimiser->optimising_tier_index();
     view_changed();
 }
@@ -150,7 +150,7 @@ void AnimeshMainWindow::load_model_from_file(QString fileName) {
 void AnimeshMainWindow::load_new_frame(QString file_name) {
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud = animesh::load_pointcloud_from_obj(file_name.toStdString());
     if (cloud) {
-        m_field->add_new_timepoint(cloud);
+        m_field->add_new_frame(cloud);
         update_frame_counter();
         statusBar()->showMessage(tr("Added frame"), 2000);
     } else {
@@ -225,7 +225,7 @@ void AnimeshMainWindow::disable_frame_counter( ) {
 
 void AnimeshMainWindow::update_frame_counter( ) {
     if( m_field != nullptr ) {
-        int max_frame = m_field->get_num_timepoints();
+        int max_frame = m_field->get_num_frames();
         // If there are no (other) frames
         if( max_frame == 0 ) {
             disable_frame_counter();
@@ -317,14 +317,13 @@ void AnimeshMainWindow::update_poly_data() {
     if (m_field_optimiser != nullptr) {
         FieldGraph *fg = m_field_optimiser->graph_at_tier(m_current_tier);
         std::cout << "update view : " << fg->nodes().size() << " nodes" << std::endl;
-
         for (auto gn : fg->nodes()) {
-            FieldElement *fe = gn->data();
+            const FieldElement *fe = gn->data();
             if (m_current_frame > 0) {
-                fe = m_field->get_point_corresponding_to(fe, m_current_frame);
+                fe = m_field_optimiser->get_corresponding_fe_in_frame(m_current_frame, m_current_tier, fe);
             }
 
-            Vector3f location = fe->location();
+                Vector3f location = fe->location();
             Vector3f tangent = fe->tangent();
             Vector3f normal = fe->normal();
 

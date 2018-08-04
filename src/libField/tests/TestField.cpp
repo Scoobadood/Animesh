@@ -1,6 +1,7 @@
 #include "TestField.h"
 
 #include <Field/Field.h>
+#include <Field/CorrespondenceMapping.h>
 #include <Field/FieldElement.h>
 
 
@@ -22,10 +23,10 @@ TEST_F(TestField, findCorrespondenceWithDifferentSizeVectorsShouldThrow) {
 	first.push_back( fe2 );
 	second.push_back( fe3 );
 
-	Field::Correspondence corr;
+	
 
 	try {
-		find_correspondences( first, second, corr );
+		new CorrespondenceMapping( first, second, nullptr);
         FAIL() << "Expected std::invalid_argument";
 	} catch( invalid_argument const & err) {
         EXPECT_EQ( err.what(), std::string( "find_correspondences expects vectors to be the same size") );
@@ -45,10 +46,8 @@ TEST_F(TestField, findCorrespondenceWithZeroFirstVectorShouldThrow) {
 
 	second.push_back( fe1 );
 
-	Field::Correspondence corr;
-
 	try {
-		find_correspondences( first, second, corr );
+		new CorrespondenceMapping( first, second, nullptr);
         FAIL() << "Expected std::invalid_argument";
 	} catch( invalid_argument const & err) {
         EXPECT_EQ( err.what(), string( "find_correspondences expects first vector to have non-zero size") );
@@ -68,10 +67,8 @@ TEST_F(TestField, findCorrespondenceWithZeroSecondVectorShouldThrow) {
 
 	first.push_back( fe1 );
 
-	Field::Correspondence corr;
-
 	try {
-		find_correspondences( first, second, corr );
+		new CorrespondenceMapping( first, second, nullptr);
         FAIL() << "Expected std::invalid_argument";
 	} catch( invalid_argument const & err) {
         EXPECT_EQ( err.what(), string( "find_correspondences expects second vector to have non-zero size") );

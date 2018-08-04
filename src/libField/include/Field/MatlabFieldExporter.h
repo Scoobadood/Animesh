@@ -27,9 +27,9 @@ public:
 
 private:
 	void writeHeader( std::ostream& out ) const;
-	void writeNormalData( std::ostream& out, std::vector<const FieldElement *>& elements ) const;
-	void writeLocationData( std::ostream& out, std::vector<const FieldElement *>& elements ) const;
-	void writeTangentData( std::ostream& out, std::vector<const FieldElement *>& elements ) const;
+	void writeNormalData( std::ostream& out, const std::vector<FieldElement *>& elements ) const;
+	void writeLocationData( std::ostream& out, const std::vector<FieldElement *>& elements ) const;
+	void writeTangentData( std::ostream& out, const std::vector<FieldElement *>& elements ) const;
 	void writeInt( std::ostream& out, int i ) const;
 	void writeShort( std::ostream& out, short s ) const;
 	void writeChar( std::ostream& out, char c) const;

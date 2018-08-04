@@ -43,9 +43,10 @@ public:
 	std::size_t size() const;
 
 	/**
-	 * @return vector of elements 
+	 * @return vector of elements in frame.
 	 */
-	const std::vector<const FieldElement *> elements( ) const;
+	const std::vector<FieldElement *>& 
+	elements( size_t frame_idx ) const;
 
 
 	/* ******************************************************************************************
@@ -55,10 +56,10 @@ public:
 	 * ******************************************************************************************/
 
 	/**
-	 * Add a point cloud for the next point in time.
-	 * @param cloud The point cloud to be added for the next time point.
+	 * Add a point cloud for another frame
+	 * @param cloud The point cloud to be added.
 	 */ 
-	void add_new_timepoint( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud );
+	void add_new_frame( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud );
 
 
 	/**
@@ -67,28 +68,12 @@ public:
 	 * @param time_point The neighbouring FieldElements
 	 * @return vector of elements 
 	 */
-	std::vector<FieldElement *> get_neighbours_of( FieldElement * fe, int time_point ) const;
+	std::vector<FieldElement *> get_neighbours_of( FieldElement * fe, size_t frame_idx ) const;
 
 	/**
-	 * Get the point corresponding to this one at a given time point
-	 * @param fe The source FieldElement
-	 * @param time_point The time point from which to recover the corresponding point
-	 * @return The corresponding element
+	 * @return the number of frames in this field
 	 */
-	FieldElement * const get_point_corresponding_to( FieldElement * const fe, int time_point ) const;
-
-	/**
-	 * Get the Matrix which transforms a given FE into it's position at time t
-	 * @param fe The FieldElement to map
-	 * @param t The timepoint
-	 * @return The mtransformation matrix 
-	 */
-	Eigen::Matrix3f get_fwd_xform_for( const FieldElement * const node, int time_point ) const;
-
-
-	std::vector<FieldElement *> get_all_n_at_t0() const;
-
-	size_t get_num_timepoints() const;
+	inline size_t get_num_frames() const { return m_frame_data.size(); }
 
 
 	/* ******************************************************************************************
@@ -100,13 +85,11 @@ public:
 
 	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}
 
-	/** Vector of maps from first frame FieldElement to Point/xform at time t */
-	using FutureFieldElementAndRotation = std::pair<FieldElement *, Eigen::Matrix3f>;
-	using Correspondence = std::map<FieldElement *, std::pair<FieldElement *, Eigen::Matrix3f>>;
-	std::vector<Correspondence>	m_correspondences;
-
 	/** The graph of the nodes constructed over the first pointcloud */
-	FieldGraph *				m_graph;
+	FieldGraph *							m_graph;
+
+	/** Point data for each frame();								*/
+	std::vector<std::vector<FieldElement *>> m_frame_data;
 
 private:
 	/**
@@ -118,22 +101,19 @@ private:
 	std::map<pcl::PointNormal, FieldGraphNode*, cmpPointNormal> * 
 	add_points_from_cloud( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud);
 
-
 	/**
-	 *  Throw an exception if the time_point is out of range
-	 *
-	 * @param time_point
+	 *  Throw an exception if the frame is out of range
+	 * @param frame
 	 */
-	void inline check_time_point( int time_point ) const {
-        if (time_point < 0 || time_point > m_correspondences.size())
-            throw std::invalid_argument("Time point out of range");
+	void inline check_frame( size_t frame ) const {
+        if (frame > get_num_frames()) {
+        	std::string err = "Frame out of range : " + std::to_string(frame);
+            throw std::invalid_argument(err);
+        }
     }
 
     /** Flag to determine if we should trace field moothing */
 	bool 											m_tracing_enabled;
-
-	/** Maintain a list of elements in the first time point */
-	std::vector<FieldElement *> 					m_elements;
 
 	/** Maintain a mapping between FieldElements and GraphNodes */
 	std::map<FieldElement *, FieldGraphNode *>		m_graphnode_for_field_element;
@@ -143,24 +123,6 @@ private:
  * *  Utility Functions
  * * 
  * ******************************************************************************************/
-
-/**
- * Get the point corresponding to this one at a given time point
- * @param fe The source FieldElement
- * @param time_point The time point from which to recover the corresponding point
- * @return The corresponding element
- */
-void compute_temporal_transform( FieldElement * node_at_t0, 
-	const std::vector<FieldElement *>& neighbours_at_0, 
-	Field::Correspondence& corr );
-
-/**
- * Find correspondences between FieldElements in first set and second set.
- */
-void find_correspondences( 
-	const std::vector<FieldElement * >& first, 
-	const std::vector<FieldElement * >& second, 
-	Field::Correspondence& corr );
 
 std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& fe);
 }

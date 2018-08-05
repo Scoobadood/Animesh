@@ -34,7 +34,6 @@ public:
      */
     float current_error(int tier) const;
 
-
     /**
      * @Return the nth graph in the hierarchy where 0 is base.
      */
@@ -50,8 +49,19 @@ public:
      */
     const FieldElement*
     get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const;
+
+    std::vector<FieldElement*> 
+    get_elements_at( size_t frame_idx, size_t tier_idx ) const;
     
 private:
+    /**
+    * Return a reference to the correspondence mapping for the given tier and frame
+    * @param frame_idx
+    * @param tier_idx
+    * @return
+    */
+    CorrespondenceMapping* get_correspondence_mapping_at(size_t frame_idx, size_t tier_idx) const;
+
     /**
      * Start optimising.
      */
@@ -115,14 +125,6 @@ private:
     void generate_hierarchy(int max_tiers, int max_nodes, int max_edges);
 
     size_t index(size_t frame_idx, size_t tier_idx) const;
-
-    /**
-    * Return a reference to the correspondence mapping for the given tier and frame
-    * @param frame_idx
-    * @param tier_idx
-    * @return
-    */
-    CorrespondenceMapping* get_correspondence_mapping_at(size_t frame_idx, size_t tier_idx) const;
 
     /**
     * Set the correspondence mapping for the given tier and frame

@@ -315,17 +315,11 @@ void AnimeshMainWindow::update_poly_data() {
 
     m_polydata->Initialize();
     if (m_field_optimiser != nullptr) {
-        FieldGraph *fg = m_field_optimiser->graph_at_tier(m_current_tier);
-        std::cout << "update view : " << fg->nodes().size() << " nodes" << std::endl;
-        for (auto gn : fg->nodes()) {
-            const FieldElement *fe = gn->data();
-            if (m_current_frame > 0) {
-                fe = m_field_optimiser->get_corresponding_fe_in_frame(m_current_frame, m_current_tier, fe);
-            }
-
-                Vector3f location = fe->location();
-            Vector3f tangent = fe->tangent();
+        std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
+        for( FieldElement * fe : elements ) {
+            Vector3f location = fe->location();
             Vector3f normal = fe->normal();
+            Vector3f tangent = fe->tangent();
 
             // Add the field node
             vtkIdType pid[6];

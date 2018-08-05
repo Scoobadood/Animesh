@@ -73,13 +73,15 @@ FieldOptimiser::get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx
     if (tier_idx > m_graph_hierarchy.size()) throw std::runtime_error("tier_idx is invalid");
     
     if( tier_idx == 0 ) {
+        if( frame_idx == 0 ) return src_fe;
+
         auto it = std::find(m_field->m_frame_data[0].begin(), m_field->m_frame_data[0].end(), src_fe);
         assert( it != m_field->m_frame_data[0].end());
         return m_field->m_frame_data[frame_idx][it - m_field->m_frame_data[0].begin()];
     } 
     if (m_correspondences == nullptr) throw std::runtime_error("correspondences not allocated");
     size_t idx = tier_idx * m_field->get_num_frames() + frame_idx;
-    CorrespondenceMapping * mapping = m_correspondences[(tier_idx * m_field->get_num_frames() + frame_idx)];
+    CorrespondenceMapping * mapping = get_correspondence_mapping_at(frame_idx, tier_idx);
     return mapping->get_corresponding_fe(const_cast<FieldElement*>(src_fe));
 }
 
@@ -125,7 +127,7 @@ FieldOptimiser::build_correspondences() {
         // for each subsequent frame
         for (size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
             vector<FieldElement*> currentFrameElements;
-            CorrespondenceMapping * mapping = m_correspondences[(tier_idx-1 * num_frames + frame_idx)];
+            CorrespondenceMapping * mapping = get_correspondence_mapping_at(frame_idx, tier_idx-1);
 
             // For each node
             for (auto gn : fg->nodes()) {
@@ -348,7 +350,7 @@ Eigen::Vector3f FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldG
 
     // Merge temporal neighbours
     for (size_t frame_idx = 0; frame_idx < m_field->get_num_frames(); ++frame_idx) {
-        CorrespondenceMapping * cm = m_correspondences[index(frame_idx, m_optimising_tier_index)];
+        CorrespondenceMapping * cm = get_correspondence_mapping_at(frame_idx, m_optimising_tier_index);
         // Get my own transformation matrix at this time point
         Matrix3f m = cm->get_transformation_for(this_fe);
         Matrix3f minv = m.inverse();
@@ -371,6 +373,29 @@ Eigen::Vector3f FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldG
     return new_tangent;
 }
 
+
+
+std::vector<FieldElement*> 
+FieldOptimiser::get_elements_at( size_t frame_idx, size_t tier_idx ) const {
+    using namespace std;
+    vector<FieldElement*> elements;
+
+    if( tier_idx == 0 ) {
+        elements.insert( elements.end(), m_field->m_frame_data[frame_idx].begin(), m_field->m_frame_data[frame_idx].end());
+    } else {
+        FieldGraph *fg = graph_at_tier(tier_idx);
+        animesh::CorrespondenceMapping* cm = get_correspondence_mapping_at(frame_idx, tier_idx);
+        for (auto gn : fg->nodes()) {
+            FieldElement *fe = gn->data();
+            FieldElement *frame_fe = const_cast<FieldElement*>(get_corresponding_fe_in_frame(frame_idx, tier_idx, fe));
+            frame_fe->set_tangent( cm->get_transformation_for(fe) * fe->tangent() );
+            elements.push_back( frame_fe);
+        }
+    }
+
+    return elements;
+
+}
 
 /**
  * Current error in field

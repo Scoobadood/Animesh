@@ -225,21 +225,21 @@ void AnimeshMainWindow::disable_frame_counter( ) {
 
 void AnimeshMainWindow::update_frame_counter( ) {
     if( m_field != nullptr ) {
-        int max_frame = m_field->get_num_frames();
+        int num_frames = m_field->get_num_frames();
         // If there are no (other) frames
-        if( max_frame == 0 ) {
+        if( num_frames == 0 ) {
             disable_frame_counter();
         }
         // Otherwise ...
         else {
             // We start numbering at 1.
             ui->sbFrameNumber->setMinimum(1);
-            ui->sbFrameNumber->setMaximum(max_frame+1);
-            if( m_current_frame +1 > max_frame) {
+            ui->sbFrameNumber->setMaximum(num_frames);
+            if( m_current_frame >= num_frames) {
                 m_current_frame = 0;
                 ui->sbFrameNumber->setValue(m_current_frame+1);
             }
-            if( max_frame > 0 ) {
+            if( num_frames > 0 ) {
                 ui->sbFrameNumber->setEnabled(true);
             } else {
                 ui->sbFrameNumber->setEnabled(false);

@@ -84,7 +84,9 @@ FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const
 	// Take the tangent from the parent and reproject into the child's tangent space and normalise
 	Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
 	Vector3f new_tangent = (parent->m_tangent - error).normalized( );
-	return new FieldElement( child->m_location, child->m_normal, new_tangent );
+	FieldElement * new_element = const_cast<FieldElement*>(child);
+	new_element->set_tangent(new_tangent);
+	return new_element;
 }
 
 

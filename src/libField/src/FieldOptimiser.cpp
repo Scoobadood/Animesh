@@ -22,45 +22,26 @@ FieldOptimiser::FieldOptimiser(Field *field) {
     if (field == nullptr) throw std::invalid_argument("Field cannot be null");
     m_field = field;
     m_graph_hierarchy.push_back(m_field->m_graph);
-
+    m_tracing_enabled = true;
 }
 
 size_t FieldOptimiser::index(size_t frame_idx, size_t tier_idx) const {
     if (frame_idx > m_field->get_num_frames())
         throw std::runtime_error("frame_idx is invalid");
     if (tier_idx > m_graph_hierarchy.size()) throw std::runtime_error("tier_idx is invalid");
-    if (m_correspondences == nullptr) throw std::runtime_error("correspondences not allocated");
 
     size_t idx = tier_idx * m_field->get_num_frames() + frame_idx;
     return idx;
 }
 
-/**
- * Return a reference to the correspondence mapping for the given tier and frame
- * @param frame_idx
- * @param tier_idx
- * @return
- */
-CorrespondenceMapping*
-FieldOptimiser::get_correspondence_mapping_at(size_t frame_idx, size_t tier_idx) const {
-    return m_correspondences[index(frame_idx, tier_idx)];
-}
 
-/**
-* Set the correspondence mapping for the given tier and frame
-* @param frame_idx
-* @param tier_idx
-* @return
-*/
-void
-FieldOptimiser::set_correspondence_mapping(size_t frame_idx, size_t tier_idx, CorrespondenceMapping * mapping) {
-    if (frame_idx > m_field->get_num_frames())
-        throw std::runtime_error("frame_idx is invalid");
-    if (tier_idx > m_graph_hierarchy.size()) throw std::runtime_error("tier_idx is invalid");
-    if (m_correspondences == nullptr) throw std::runtime_error("correspondences not allocated");
-
-    size_t idx = tier_idx * m_field->get_num_frames() + frame_idx;
-    m_correspondences[idx] = mapping;
+std::vector<FieldElement*>
+FieldOptimiser::get_corresponding_fes_in_frame(size_t frame_idx, size_t  tier_idx, std::vector<FieldElement*> fes) const {
+    std::vector<FieldElement*> vec;
+    for( FieldElement * fe : fes ) {
+        vec.push_back(const_cast<FieldElement*>(get_corresponding_fe_in_frame( frame_idx, tier_idx, fe)));
+    }
+    return vec;
 }
 
 /**
@@ -68,21 +49,120 @@ FieldOptimiser::set_correspondence_mapping(size_t frame_idx, size_t tier_idx, Co
  */
 const FieldElement*
 FieldOptimiser::get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const {
-    if (frame_idx > m_field->get_num_frames())
-        throw std::runtime_error("frame_idx is invalid");
-    if (tier_idx > m_graph_hierarchy.size()) throw std::runtime_error("tier_idx is invalid");
-    
-    if( tier_idx == 0 ) {
-        if( frame_idx == 0 ) return src_fe;
+    using namespace std;
 
-        auto it = std::find(m_field->m_frame_data[0].begin(), m_field->m_frame_data[0].end(), src_fe);
-        assert( it != m_field->m_frame_data[0].end());
-        return m_field->m_frame_data[frame_idx][it - m_field->m_frame_data[0].begin()];
-    } 
-    if (m_correspondences == nullptr) throw std::runtime_error("correspondences not allocated");
-    size_t idx = tier_idx * m_field->get_num_frames() + frame_idx;
-    CorrespondenceMapping * mapping = get_correspondence_mapping_at(frame_idx, tier_idx);
-    return mapping->get_corresponding_fe(const_cast<FieldElement*>(src_fe));
+    size_t idx = index(frame_idx, tier_idx);
+
+    vector<FieldElement*> source = m_field_element_mappings[index(0, tier_idx)];
+    vector<FieldElement*> dest   = m_field_element_mappings[index(frame_idx, tier_idx)];
+
+    auto it = find(source.begin(), source.end(), src_fe);
+    assert( it != source.end());
+    return dest[it - source.begin()];
+}
+
+
+void 
+FieldOptimiser::build_equivalent_fes( ) {
+    using namespace std;
+
+    size_t num_frames = m_field->get_num_frames();
+    size_t num_tiers = m_graph_hierarchy.size();
+
+    // Allocate a bunch of storage
+    m_field_element_mappings = new vector<FieldElement*>[num_frames * num_tiers];
+
+    // Copy the tier zero stuff directly from field
+    for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
+        size_t idx = index(frame_idx,0);
+        m_field_element_mappings[idx].insert(m_field_element_mappings[idx].end(),m_field->elements(idx).begin(), m_field->elements(idx).end() );
+    }
+
+    // For each other tier of the graph hierarchy
+    for (size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
+        FieldGraph *fg = m_graph_hierarchy[tier_idx];
+
+        // For each node; sort frame 0
+        for (auto gn : fg->nodes()) {
+            FieldElement *frame_0_parent_fe = gn->data();
+
+            // Stash the base node in frame 0
+            m_field_element_mappings[index(0, tier_idx)].push_back(frame_0_parent_fe);
+
+            for (size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
+        
+                // Get the children (at time t0) in the previous tier
+                vector<FieldElement *> frame_0_children = m_mapping_hierarchy[tier_idx - 1].children(gn);
+
+                // Get corresponding elements in specified frame
+                vector<FieldElement *> frame_idx_children = get_corresponding_fes_in_frame(frame_idx, tier_idx-1, frame_0_children);
+
+                FieldElement * frame_idx_parent;
+                if( frame_idx_children.size() == 1 ) {
+                    frame_idx_parent = new FieldElement(frame_idx_children[0]->location(), frame_idx_children[0]->normal() );
+                } else if ( frame_idx_children.size() == 2 ) {
+                    frame_idx_parent = FieldElement::mergeFieldElements(frame_idx_children[0], frame_idx_children[1]);
+                } else {
+                    string err = "Expected one or two children but found " + std::to_string(frame_0_children.size());
+                    throw runtime_error(err);
+                }
+                m_field_element_mappings[ index(frame_idx, tier_idx)].push_back( frame_idx_parent );
+            }
+        }
+    }
+}
+
+void 
+FieldOptimiser::build_transforms( ) {
+    using namespace std;
+    using namespace Eigen;
+
+    size_t num_frames = m_field->get_num_frames();
+    size_t num_tiers = m_graph_hierarchy.size();
+
+    m_transforms = new vector<Eigen::Matrix3f>[num_frames * num_tiers];
+
+    // For each tier
+    for (size_t tier_idx = 0; tier_idx < num_tiers; ++tier_idx) {
+        FieldGraph *fg = m_graph_hierarchy[tier_idx];
+
+        // Frame 0 transforms are all identify matrix
+        for( size_t i = 0; i < m_graph_hierarchy[0]->num_nodes(); ++i) {
+            m_transforms[index(0,tier_idx)].push_back( Matrix3f::Identity());
+        }
+
+        // For remainder of frames we have to compute values
+        for( size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
+            size_t node_idx = 0;
+            for (auto gn : fg->nodes()) {
+                // 1. Get the neighbours of this FE according to graph
+                FieldElement *fe = gn->data();
+                vector<FieldElement *> fe_neighbours = fg->neighbours_data(gn);
+                const FieldElement * other_fe = get_corresponding_fe_in_frame( frame_idx, tier_idx, fe );
+                vector<FieldElement *> other_fe_neighbours = get_corresponding_fes_in_frame( frame_idx, tier_idx, fe_neighbours );
+
+                // First point and normal
+                Vector3f point1 = fe->location();
+                Vector3f normal1 = fe->normal();
+
+                // Second point and normal
+                Vector3f point2 = other_fe->location();
+                Vector3f normal2 = other_fe->normal();
+
+                // Find points for neighbours at both time intervals
+                vector<Vector3f> neighbour_points_1;
+                vector<Vector3f> neighbour_points_2;
+                for (size_t i=0; i< fe_neighbours.size(); ++i ) {
+                    neighbour_points_1.push_back(fe_neighbours[i]->location());
+                    neighbour_points_2.push_back(other_fe_neighbours[i]->location());
+                }
+                Matrix3f m = rotation_between(point1, normal1, neighbour_points_1, point2, normal2, neighbour_points_2);
+                cout << "M (" << frame_idx << ", " << tier_idx  << ", " << node_idx << ")"<< endl << m << endl;
+                node_idx++;
+                m_transforms[index(frame_idx, tier_idx)].push_back( m );
+            }
+        }
+    }
 }
 
 /**
@@ -100,64 +180,9 @@ FieldOptimiser::build_correspondences() {
     if (m_graph_hierarchy.size() == 0)
         throw runtime_error("build_correspondences() called with no graph hierarchy");
 
-    size_t num_frames = m_field->get_num_frames();
-    size_t num_tiers = m_graph_hierarchy.size();
+    build_equivalent_fes( );
 
-
-    // Allocate a bunch of storage
-    m_correspondences = new CorrespondenceMapping*[num_frames * num_tiers];
-
-    for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-        m_correspondences[frame_idx] = new CorrespondenceMapping(
-            m_field->elements(0), 
-            m_field->elements(0), 
-            m_graph_hierarchy[0]);
-    }
-
-    // For each tier of the graph hierarchy
-    for (size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
-        FieldGraph *fg = m_graph_hierarchy[tier_idx];
-        vector<FieldElement*> firstFrameElements;
-
-        // Get first frame elemenets
-        for (auto gn : fg->nodes()) {
-            firstFrameElements.push_back(gn->data());
-        }
-
-        // for each subsequent frame
-        for (size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
-            vector<FieldElement*> currentFrameElements;
-            CorrespondenceMapping * mapping = get_correspondence_mapping_at(frame_idx, tier_idx-1);
-
-            // For each node
-            for (auto gn : fg->nodes()) {
-                FieldElement *parent_fe = gn->data();
-                // Get the children (at time t0) in the previous tier
-                vector<FieldElement *> child_fes = m_mapping_hierarchy[tier_idx - 1].children(gn);
-
-                // Find the childrens' positions at that frame
-                vector<FieldElement *> future_child_fes;
-                for (FieldElement *fe : child_fes) {
-                    future_child_fes.push_back( const_cast<FieldElement*>(mapping->get_corresponding_fe(fe)));
-                }
-                // Compute mean of children
-                FieldElement *future_parent_fe;
-                if (future_child_fes.size() == 1) {
-                    future_parent_fe = new FieldElement(future_child_fes[0]->location(),
-                                                        future_child_fes[0]->normal());
-                } else if (child_fes.size() == 2) {
-                    future_parent_fe = FieldElement::mergeFieldElements(future_child_fes[0], future_child_fes[1]);
-                } else {
-                    string err = "Expected one or two children but found " + std::to_string(child_fes.size());
-                    throw runtime_error(err);
-                }
-
-                currentFrameElements.push_back(future_parent_fe);
-            }
-            m_correspondences[(tier_idx * num_frames + frame_idx)] = new CorrespondenceMapping(
-                firstFrameElements, currentFrameElements, fg);
-        }
-    }
+    build_transforms( );
 }
 
 /**
@@ -190,9 +215,11 @@ FieldOptimiser::stop_optimising() {
         delete m_graph_hierarchy[tier];
         tier--;
     }
+
+    delete [] m_transforms;
+    delete [] m_field_element_mappings;
     m_graph_hierarchy.clear();
     m_mapping_hierarchy.clear();
-    delete[] m_correspondences;
     m_graph_hierarchy.push_back(m_field->m_graph);
 }
 
@@ -208,6 +235,32 @@ FieldOptimiser::setup_tier_optimisation() {
     m_optimising_started_new_tier = false;
 }
 
+
+/**
+ */
+void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents ) {
+    using namespace Eigen;
+
+    assert( tier_idx < m_graph_hierarchy.size() );
+    FieldGraph * fg = m_graph_hierarchy[tier_idx];
+
+    size_t num_frames = m_field->get_num_frames();
+
+    for( size_t node_idx = 0; node_idx < fg->num_nodes(); ++ node_idx ) {
+        Vector3f new_tan = new_tangents[node_idx];
+
+        // Set the frames
+        for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
+            size_t idx = index(frame_idx, tier_idx);
+            if( frame_idx == 0 ) {
+                m_field_element_mappings[idx][node_idx]->set_tangent( new_tan);
+            } else {
+                Matrix3f m = m_transforms[idx][node_idx];
+                m_field_element_mappings[idx][node_idx]->set_tangent( m * new_tan);
+            }
+        }
+    }
+}
 /**
  * Smooth the current tier of the hierarchy once and return true if it converged
  * @param tier The Graph (tier) to be optimised
@@ -220,21 +273,17 @@ FieldOptimiser::optimise_tier_once(FieldGraph *tier) {
     if (m_tracing_enabled) cout << "    smooth_once" << endl;
 
     // Extract map keys into vector and shuffle
-    std::vector<FieldGraphNode *> nodes = tier->nodes();
+    vector<FieldGraphNode *> nodes = tier->nodes();
     random_shuffle(nodes.begin(), nodes.end());
 
     // Iterate over permute, look up key, lookup fe and smooth
-    vector<const Vector3f> new_tangents;
+    vector<Vector3f> new_tangents;
     for (auto node : nodes) {
         new_tangents.push_back(calculate_smoothed_node(tier, node));
     }
 
     // Now update all of the nodes
-    auto tan_iter = new_tangents.begin();
-    for (auto node : nodes) {
-        node->data()->set_tangent(*tan_iter);
-        ++tan_iter;
-    }
+    update_tangents( m_optimising_tier_index, new_tangents );
 
     // Get the new error
     m_optimising_iterations_this_tier++;
@@ -300,7 +349,7 @@ FieldOptimiser::check_convergence(float new_error) {
 
     bool converged = (display_pct >= 0.0f && display_pct < CONVERGENCE_THRESHOLD);
     if (m_tracing_enabled) {
-        std::cout << "      New Error : " << new_error << " (" << delta << ") : " << display_pct << "%"
+        std::cout << "      New Error : " << new_error << " (" << delta << ") : " << display_pct << "%%"
                   << std::endl;
     }
 
@@ -323,12 +372,19 @@ FieldOptimiser::check_convergence(float new_error) {
  * Smooth the specified node
  * @return The new vector.
  */
-Eigen::Vector3f FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldGraphNode *gn) const {
+Eigen::Vector3f 
+FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldGraphNode *gn) const {
     using namespace Eigen;
     using namespace std;
 
     FieldElement *this_fe = (FieldElement *) gn->data();
     if (m_tracing_enabled) std::cout << "smooth_node" << this_fe << std::endl;
+
+    // TODO: Replace this by passing in node index in future
+    vector<FieldElement*> fem = m_field_element_mappings[index(0, m_optimising_tier_index)];
+    auto it = find(fem.begin(), fem.end(), this_fe);
+    assert( it != fem.end());
+    size_t node_idx = it - fem.begin();
 
     vector<FieldElement *> spatial_neighbours = tier->neighbours_data(gn);
 
@@ -347,22 +403,20 @@ Eigen::Vector3f FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldG
         weight += edge_weight;
     }
 
-
     // Merge temporal neighbours
-    for (size_t frame_idx = 0; frame_idx < m_field->get_num_frames(); ++frame_idx) {
-        CorrespondenceMapping * cm = get_correspondence_mapping_at(frame_idx, m_optimising_tier_index);
+    for (size_t frame_idx = 1; frame_idx < m_field->get_num_frames(); ++frame_idx) {
+
         // Get my own transformation matrix at this time point
-        Matrix3f m = cm->get_transformation_for(this_fe);
+        Matrix3f m = m_transforms[index(frame_idx, m_optimising_tier_index)][node_idx];
         Matrix3f minv = m.inverse();
 
         // Now for each spatial neighbour
-        for (auto neighbour_fe : spatial_neighbours) {
-            // Find the corresponding point at the given frame
-            const FieldElement *future_neighbour_fe = cm->get_corresponding_fe(neighbour_fe);
+        vector<FieldElement*> temporal_neighbours = get_corresponding_fes_in_frame(frame_idx, m_optimising_tier_index, spatial_neighbours);
+        for (auto future_neighbour : temporal_neighbours) {
 
             // back project the future coord to the now using m inverse
-            Vector3f future_tangent = minv * future_neighbour_fe->tangent();
-            Vector3f future_normal = minv * future_neighbour_fe->normal();
+            Vector3f future_tangent = minv * future_neighbour->tangent();
+            Vector3f future_normal = minv * future_neighbour->normal();
 
             new_tangent = average_rosy_vectors(new_tangent, this_fe->normal(), 0.5f,
                                                future_tangent, future_normal, 0.5f);
@@ -373,28 +427,18 @@ Eigen::Vector3f FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldG
     return new_tangent;
 }
 
-
-
 std::vector<FieldElement*> 
 FieldOptimiser::get_elements_at( size_t frame_idx, size_t tier_idx ) const {
-    using namespace std;
-    vector<FieldElement*> elements;
+    assert( m_field != nullptr);
+    std::cout << "get_elements_at( " << frame_idx << ", " << tier_idx << ")" << std::endl;
 
-    if( tier_idx == 0 ) {
-        elements.insert( elements.end(), m_field->m_frame_data[frame_idx].begin(), m_field->m_frame_data[frame_idx].end());
+    // If the graph has expanded, use local vars, otherwise use field vars
+    if(m_graph_hierarchy.size() == 1 ) {
+        assert( tier_idx == 0 );
+        return m_field->elements(frame_idx );
     } else {
-        FieldGraph *fg = graph_at_tier(tier_idx);
-        animesh::CorrespondenceMapping* cm = get_correspondence_mapping_at(frame_idx, tier_idx);
-        for (auto gn : fg->nodes()) {
-            FieldElement *fe = gn->data();
-            FieldElement *frame_fe = const_cast<FieldElement*>(get_corresponding_fe_in_frame(frame_idx, tier_idx, fe));
-            frame_fe->set_tangent( cm->get_transformation_for(fe) * fe->tangent() );
-            elements.push_back( frame_fe);
-        }
+        return m_field_element_mappings[ index( frame_idx, tier_idx)];    
     }
-
-    return elements;
-
 }
 
 /**

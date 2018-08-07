@@ -54,13 +54,11 @@ public:
     get_elements_at( size_t frame_idx, size_t tier_idx ) const;
     
 private:
+
     /**
-    * Return a reference to the correspondence mapping for the given tier and frame
-    * @param frame_idx
-    * @param tier_idx
-    * @return
-    */
-    CorrespondenceMapping* get_correspondence_mapping_at(size_t frame_idx, size_t tier_idx) const;
+     */
+    void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents );
+
 
     /**
      * Start optimising.
@@ -124,29 +122,21 @@ private:
      */
     void generate_hierarchy(int max_tiers, int max_nodes, int max_edges);
 
+    void build_equivalent_fes( );
+    void build_transforms( );
+
     size_t index(size_t frame_idx, size_t tier_idx) const;
 
-    /**
-    * Set the correspondence mapping for the given tier and frame
-    * @param frame_idx
-    * @param tier_idx
-    * @return
-    */
-    void
-    set_correspondence_mapping(size_t frame_idx, size_t tier_idx, CorrespondenceMapping * mapping);
+    std::vector<FieldElement*> get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const;
 
-    Field *m_field;
+    Field *                             m_field;
 
     /** A hierarchy of graphs **/
-    std::vector<FieldGraph *> m_graph_hierarchy;
-    std::vector<FieldGraphMapping> m_mapping_hierarchy;
+    std::vector<FieldGraph *>           m_graph_hierarchy;
+    std::vector<FieldGraphMapping>      m_mapping_hierarchy;
 
-    /** Correspondences between nodes at t_0 and at all other timepoints
-     * for all tiers of the graph
-     * per tier
-     * per timepoint
-     */
-    CorrespondenceMapping **m_correspondences;
+    std::vector<FieldElement*>   *      m_field_element_mappings;
+    std::vector<Eigen::Matrix3f> *      m_transforms;
 
 
     /** Flag to determine if we should trace field moothing */

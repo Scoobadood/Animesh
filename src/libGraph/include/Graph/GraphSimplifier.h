@@ -119,16 +119,17 @@ namespace animesh {
          * the two graphs
          */
         std::pair<Graph *, GraphMapping> simplify(Graph *input_graph) const {
+            using namespace std;
 
             // Can only simplify if the input graph has at least one edge
             if (input_graph->num_edges() == 0)
-                throw std::invalid_argument("Can't simplify Graph with no edges");
+                throw invalid_argument("Can't simplify Graph with no edges");
 
             // Make the up graph
             Graph *output_graph = new Graph();
 
             // Make the mapper
-            std::map<GraphNode *, GraphNode *> node_map;
+            map<GraphNode *, GraphNode *> node_map;
 
             /*
                 for each edge in the input graph
@@ -183,14 +184,15 @@ namespace animesh {
             }
 
             // Convert child->parent mapping to the other way around
-            std::multimap<GraphNode *, GraphNode *> parents_to_children;
+            multimap<GraphNode *, GraphNode *> parents_to_children;
             for (auto node_node : node_map) {
-                parents_to_children.insert(std::pair<GraphNode *, GraphNode *>(node_node.second, node_node.first));
+                auto x = parents_to_children.insert(make_pair(node_node.second, node_node.first));
+                if( x == parents_to_children.end() ) throw runtime_error( "Failed to nisert" );
             }
 
             GraphMapping mapping{m_node_propagate_function, parents_to_children};
 
-            return std::pair<Graph *, GraphMapping>{output_graph, mapping};
+            return make_pair(output_graph, mapping);
         }
 
     private:

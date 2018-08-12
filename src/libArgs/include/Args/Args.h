@@ -49,8 +49,6 @@ public:
 	 bool inline load_from_pointcloud() const { return m_load_from_pointcloud; }
 	 std::string inline file_name() const { return m_file_name; }
 
-	 float inline scale( ) const { return m_scale; }
-
 private:
 	bool 			m_should_fix_tangents;
 
@@ -79,6 +77,4 @@ private:
 	std::string		m_file_name;
 
 	Shape 			m_default_shape;
-
-	float 			m_scale;
 };

@@ -223,9 +223,6 @@ Args::Args( int &argc, char **argv) {
 		SwitchArg dump_field("d","dump","Dump the field in it's initial state", cmd, false);
 		SwitchArg tracing_enabled("v","verbose","Output lots of diagnostics", cmd, false);
 
-		// Scale - byy which to multiply coords
-		ValueArg<float> scale("s","scale","Multiplier for point coordinates",false, 1.0f, "scale", cmd);
-
 
 		// Parse the argv array.
 		cmd.parse( argc, argv );
@@ -235,7 +232,6 @@ Args::Args( int &argc, char **argv) {
 		m_should_dump_field        = dump_field.getValue();
 		m_tracing_enabled          = tracing_enabled.getValue();
 		m_k						   = k.getValue();
-		m_scale					   = scale.getValue();
 
 
 		if( file_name.isSet() ) {

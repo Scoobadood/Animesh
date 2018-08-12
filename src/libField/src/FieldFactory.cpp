@@ -31,21 +31,13 @@ pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::stri
 /**
  * Construct a field from an OBJ file
  */
-Field * load_field_from_obj_file( const std::string& file_name, int k, float with_scaling, bool trace ) {
+Field * load_field_from_obj_file( const std::string& file_name, int k, bool trace ) {
 	std::cout << "Loading from file " << file_name << std::endl;
 
 	// Load the point cloud from file
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud = load_pointcloud_from_obj(file_name);
 	if( !cloud ) 
 		return nullptr;
-
-	// Scale points
-	std::cout << "scaling points by " << with_scaling << std::endl;
-	for( auto iter : cloud->points) {
-		iter.x *= with_scaling;
-		iter.y *= with_scaling;
-		iter.z *= with_scaling;
-	}
 
 	std::cout << "building graph with " << k<< " nearest neighbours." << std::endl;
 	return new Field( cloud, k, trace );
@@ -198,35 +190,35 @@ Field * FieldFactory::circular_field( float radius, int k ) {
 	return new Field( cloud, k, false );
 }
 
-Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, float scale, int k) {
+Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, int k) {
 	using namespace Eigen;
 
-	std::cout << "Cube x:" << cube_x << ", y:" << cube_y << ", z:" << cube_z << ", sp:"<<scale << std::endl;
+	std::cout << "Cube x:" << cube_x << ", y:" << cube_y << ", z:" << cube_z  << std::endl;
 
 
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
 
-	float minXVal = (0.5f - ( cube_x / 2.0f )) * scale;
-	float maxXVal = (( cube_x / 2.0f ) - 0.5f) * scale;
-	float minYVal = (0.5f - ( cube_y / 2.0f )) * scale;
-	float maxYVal = (( cube_y / 2.0f ) - 0.5f) * scale;
-	float minZVal = (0.5f - ( cube_z / 2.0f )) * scale;
-	float maxZVal = (( cube_z / 2.0f ) - 0.5f) * scale;
+	float minXVal = (0.5f - ( cube_x / 2.0f ));
+	float maxXVal = (( cube_x / 2.0f ) - 0.5f);
+	float minYVal = (0.5f - ( cube_y / 2.0f ));
+	float maxYVal = (( cube_y / 2.0f ) - 0.5f);
+	float minZVal = (0.5f - ( cube_z / 2.0f ));
+	float maxZVal = (( cube_z / 2.0f ) - 0.5f);
 
 
 	pcl::PointNormal point;
 	point.normal_x = 0.0f;
 	point.normal_y = 0.0f;
 	point.normal_z = -1.0f;
-	for( float x = minXVal; x <= maxXVal; x +=  scale) {
-		for( float y = minYVal; y <= maxYVal; y+= scale ) {
+	for( float x = minXVal; x <= maxXVal; x ++) {
+		for( float y = minYVal; y <= maxYVal; y++ ) {
 
 			point.x = x;
 			point.y = y;
-			point.z = minZVal - (scale / 2.0f);
+			point.z = minZVal - 0.5f;
 			cloud->push_back( point );
 
-			point.z = maxZVal + (scale / 2.0f);
+			point.z = maxZVal + 0.5f;
 			point.normal_z = 1.0f;
 			cloud->push_back( point );
 		}
@@ -235,14 +227,14 @@ Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, float sca
 	point.normal_x = 0.0f;
 	point.normal_y =-1.0f;
 	point.normal_z = 0.0f;
-	for( float x = minXVal; x <= maxXVal; x +=  scale) {
-		for( float z = minZVal; z <= maxZVal; z+= scale ) {
+	for( float x = minXVal; x <= maxXVal; x ++) {
+		for( float z = minZVal; z <= maxZVal; z++ ) {
 			point.x = x;
-			point.y = minYVal - (scale / 2.0f);
+			point.y = minYVal - 0.5f;
 			point.z = z;
 			cloud->push_back( point );
 
-			point.y = maxYVal + (scale / 2.0f);
+			point.y = maxYVal + 0.5f;
 			point.normal_y = 1.0f;
 			cloud->push_back( point );
 		}
@@ -251,14 +243,14 @@ Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, float sca
 	point.normal_x =-1.0f;
 	point.normal_y = 0.0f;
 	point.normal_z = 0.0f;
-	for( float z = minZVal; z <= maxZVal; z +=  scale) {
-		for( float y = minYVal; y <= maxYVal; y+= scale ) {
-			point.x = minXVal - (scale / 2.0f);
+	for( float z = minZVal; z <= maxZVal; z ++) {
+		for( float y = minYVal; y <= maxYVal; y++ ) {
+			point.x = minXVal - 0.5f;
 			point.y = y;
 			point.z = z;
 			cloud->push_back( point );
 
-			point.x = maxXVal + (scale / 2.0f);
+			point.x = maxXVal + 0.5f;
 			point.normal_x = 1.0f;
 			cloud->push_back( point );
 		}

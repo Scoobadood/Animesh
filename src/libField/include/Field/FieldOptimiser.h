@@ -54,10 +54,25 @@ public:
     get_elements_at( size_t frame_idx, size_t tier_idx ) const;
     
 private:
+    std::vector<FieldElement *> copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const;
 
     /**
+     * @return the index of the FE in the given vector or throw
+     * if not found.
      */
-    void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents );
+    size_t index_of( const FieldElement *fe, const std::vector<FieldElement *>& elements ) const;
+
+    /**
+     * @return the index of the GN in the given vector or throw
+     * if not found.
+     */
+    size_t index_of( const FieldGraphNode *gn, const std::vector<FieldGraphNode *>& nodes ) const;
+
+    /**
+     * We need nodes because the order of the tangents in new_tangents does NOT
+     * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
+     */
+    void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<FieldGraphNode*>& nodes );
 
 
     /**
@@ -85,7 +100,7 @@ private:
      * Smooth the current tier of the hierarchy once and return true if it converged
      * @param tier The Graph (tier) to be optimised
      */
-    bool optimise_tier_once(FieldGraph *tier);
+    bool optimise_tier_once(std::size_t tier_idx);
 
     /**
      * @return true if the optimisation operation has converged
@@ -98,7 +113,7 @@ private:
      * Smooth the specified node
      * @return The new vector.
      */
-    Eigen::Vector3f calculate_smoothed_node(FieldGraph *tier, FieldGraphNode *gn) const;
+    Eigen::Vector3f calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn) const;
 
     /**
      * @return the smoothness of the entire Field

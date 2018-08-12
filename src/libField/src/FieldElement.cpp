@@ -3,6 +3,9 @@
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
 
+#define throw_invalid_argument(msg) \
+    throw std::invalid_argument(msg " at " __FILE__ ":" + std::to_string(__LINE__))
+
 static const float EPSILON = 1e-6;
 namespace animesh {
 
@@ -26,8 +29,9 @@ FieldElement * FieldElement::from_point( const pcl::PointNormal& point ) {
  */
 FieldElement::FieldElement( const Eigen::Vector3f& location,  const Eigen::Vector3f& normal ) {
 	// Preconditions : Normal is unit length
-	if( std::abs(normal.norm() - 1.0) > EPSILON )
-		throw std::invalid_argument( "Normal should be unit length" );
+	if( std::abs(normal.norm() - 1.0) > EPSILON ) 
+		std::cout << "too big : " << normal << " ("<<normal.norm()<<") " << std::endl;
+	assert( std::abs(normal.norm() - 1.0) <= EPSILON );
 	
 	m_location = location;
 	m_normal = normal; 
@@ -44,12 +48,14 @@ FieldElement::FieldElement( const Eigen::Vector3f& location,  const Eigen::Vecto
  */
 FieldElement::FieldElement( const Eigen::Vector3f& location,  const Eigen::Vector3f& normal, const Eigen::Vector3f& tangent ) {
 	// Preconditions : Normal and tangent are perpendicular and neither is 0
-	if( std::abs(normal.norm() - 1.0) > EPSILON )
-		throw std::invalid_argument( "Normal should be unit length" );
+	assert( std::abs(normal.norm() - 1.0) <= EPSILON );
 	if( std::abs(tangent.norm() - 1.0) > EPSILON )
-		throw std::invalid_argument( "Tangent should be unit length" );
-	if( std::abs(normal.dot( tangent) ) > EPSILON )
-		throw std::invalid_argument( "Tangent and normal should be perpendicular" );
+		throw_invalid_argument("Tangent should be unit length");
+	if( std::abs(normal.dot( tangent) ) > EPSILON ) {
+		std::stringstream buffer;
+		buffer << "Tangent [" << tangent[0] << ", " << tangent[1] << ", " << tangent[2] << "] and normal [" << normal[0] << ", " << normal[1] << ", " << normal[2] << "] are not perpendicular";
+		std::invalid_argument(buffer.str() + " at " __FILE__ ":" + std::to_string(__LINE__));
+	}
 
 	m_location = location;
 	m_normal = normal; 
@@ -95,10 +101,13 @@ FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const
  * @parameter A tangent which must be unit length and perpendicular to the normal.
  */
 void FieldElement::set_tangent( const Eigen::Vector3f& tangent ) {
-	if( std::abs(tangent.norm() - 1.0) > EPSILON )
-		throw std::invalid_argument( "Tangent should be unit length" );
-	if( std::abs(m_normal.dot( tangent) ) > EPSILON )
-		throw std::invalid_argument( "Tangent and normal should be perpendicular" );
+	if( std::abs(tangent.norm() - 1.0) > EPSILON ) 
+		throw_invalid_argument( "Tangent should be unit length" );
+	if( std::abs(m_normal.dot( tangent) ) > EPSILON ) {
+		std::stringstream buffer;
+		buffer << "Tangent [" << tangent[0] << ", " << tangent[1] << ", " << tangent[2] << "] and normal [" << m_normal[0] << ", " << m_normal[1] << ", " << m_normal[2] << "] are not perpendicular";
+		std::invalid_argument(buffer.str() + " at " __FILE__ ":" + std::to_string(__LINE__));
+	}
 	m_tangent = tangent;
 }
 

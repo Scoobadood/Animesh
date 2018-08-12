@@ -81,11 +81,11 @@ void AnimeshMainWindow::on_action_open_triggered() {
 // -- Populate inspector
 // -- update render view
 void AnimeshMainWindow::on_action_poly_triggered() {
-    set_field(FieldFactory::polynomial_field(10, 10, 2.5, 5));
+    set_field(FieldFactory::polynomial_field(10, 10, 1, 5));
 }
 
 void AnimeshMainWindow::on_action_plane_triggered() {
-    set_field(FieldFactory::planar_field(10, 10, 2.5, 5));
+    set_field(FieldFactory::planar_field(10, 10, 1, 5));
 }
 
 void AnimeshMainWindow::on_action_add_frame_triggered() {
@@ -135,7 +135,7 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
  * Load a new file, setup all the stuff
  */
 void AnimeshMainWindow::load_model_from_file(QString fileName) {
-    Field *field = load_field_from_obj_file(fileName.toStdString(), 5, 100, true);
+    Field *field = load_field_from_obj_file(fileName.toStdString(), 5, true);
     if (field) {
         set_field(field);
         statusBar()->showMessage(tr("File loaded"), 2000);
@@ -159,6 +159,21 @@ void AnimeshMainWindow::load_new_frame(QString file_name) {
 }
 
 /**
+ * Compute the lengths to use for normals and tangent vectors based on the
+ * mean length of an edge in the graph
+ */
+void AnimeshMainWindow::compute_scale() {
+    assert( m_field != nullptr);
+    float sum = 0.0f;
+    for( auto edge : m_field->m_graph->edges()) {
+        Eigen::Vector3f v1 = edge->from_node( )->data()->location();
+        Eigen::Vector3f v2 = edge->to_node( )->data()->location();
+        Eigen::Vector3f diff = v2 - v1;
+        sum = sum + diff.norm();
+    }
+    tan_scale_factor = (sum / m_field->m_graph->num_edges()) / 2.5f;
+}
+/**
  * Reset all old variables
  * Set field to new variable
  * Refresh the view
@@ -173,6 +188,7 @@ void AnimeshMainWindow::set_field(Field *new_field) {
     m_field = new_field;
     m_field_optimiser = new FieldOptimiser(m_field);
     ui->action_add_frame->setEnabled(m_field != nullptr);
+    compute_scale();
     update_frame_counter();
     view_changed();
 }
@@ -328,20 +344,20 @@ void AnimeshMainWindow::update_poly_data() {
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
 
             // Add tangent points
-            Vector3f p1 = location + tangent;
+            Vector3f p1 = location + (tangent * tan_scale_factor);
             pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
 
             // Add opposite tangent points
-            Vector3f p2 = location - tangent;
+            Vector3f p2 = location - (tangent * tan_scale_factor);
             pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
 
             // Compute 90 tangent
             Vector3f ninety = tangent.cross(normal);
-            Vector3f p3 = location + ninety;
+            Vector3f p3 = location + (ninety * tan_scale_factor);
             pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
-            Vector3f p4 = location - ninety;
+            Vector3f p4 = location - (ninety * tan_scale_factor);
             pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-            Vector3f p5 = location + (normal * 0.1);
+            Vector3f p5 = location + (normal * tan_scale_factor * 0.2);
             pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
 
             // Main tangent

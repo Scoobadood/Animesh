@@ -181,8 +181,8 @@ public:
     /**
      * @return a vector of the neghbours of a given node
      */
-    std::vector<GraphNode *> neighbours( GraphNode * node ) {
-        std::vector<GraphNode *> ret = m_adjacency[node];
+    std::vector<GraphNode *> neighbours( GraphNode * node ) const {
+        std::vector<GraphNode *> ret = m_adjacency.at(const_cast<GraphNode*>(node));
 
         return ret;
     }
@@ -190,9 +190,9 @@ public:
     /**
      * @return a vector of the neghbours' data for a given node
      */
-    std::vector<NodeData> neighbours_data( GraphNode * node ) {
+    std::vector<NodeData> neighbours_data( const GraphNode * node ) const {
         std::vector<NodeData> data;
-        for( auto gn : m_adjacency[node]) {
+        for( auto gn : m_adjacency.at(const_cast<GraphNode*>(node))) {
             data.push_back(gn->data());
         }
 

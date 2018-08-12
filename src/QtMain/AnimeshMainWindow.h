@@ -55,6 +55,8 @@ private:
 
     void view_changed();
 
+    void compute_scale();
+
 
     // Field declaration
     animesh::Field *m_field;
@@ -71,6 +73,8 @@ private:
     // Currently displayed frame
     int m_current_frame;
 
+    // Length to use for tangents
+    float tan_scale_factor = 1.0f;
 
 private slots:
 

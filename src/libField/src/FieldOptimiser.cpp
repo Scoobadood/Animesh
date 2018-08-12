@@ -2,6 +2,11 @@
 #include <Field/Field.h>
 #include <RoSy/RoSy.h>
 
+#define throw_invalid_argument(msg) \
+    throw std::invalid_argument(msg " at " __FILE__ ":" + std::to_string(__LINE__))
+#define throw_runtime_error(msg) \
+    throw std::runtime_error(msg " at " __FILE__ ":" + std::to_string(__LINE__))
+
 const int MAX_ITERS_PER_TIER = 20;
 const float CONVERGENCE_THRESHOLD = 0.5f;
 const int SMOOTH_EDGES = 10;
@@ -19,22 +24,29 @@ using animesh::CorrespondenceMapping;
  * Construct with a Field to be optimised
  */
 FieldOptimiser::FieldOptimiser(Field *field) {
-    if (field == nullptr) throw std::invalid_argument("Field cannot be null");
+    if (field == nullptr) throw_invalid_argument("Field cannot be null");
     m_field = field;
     m_graph_hierarchy.push_back(m_field->m_graph);
     m_tracing_enabled = true;
 }
 
+/**
+ * @return the index for data given a frame and tier number
+ */
 size_t FieldOptimiser::index(size_t frame_idx, size_t tier_idx) const {
     if (frame_idx > m_field->get_num_frames())
-        throw std::runtime_error("frame_idx is invalid");
-    if (tier_idx > m_graph_hierarchy.size()) throw std::runtime_error("tier_idx is invalid");
+        throw_invalid_argument("frame_idx is invalid");
+    if (tier_idx > m_graph_hierarchy.size()) 
+        throw_invalid_argument("tier_idx is invalid");
 
-    size_t idx = tier_idx * m_field->get_num_frames() + frame_idx;
-    return idx;
+    return tier_idx * m_field->get_num_frames() + frame_idx;
 }
 
 
+/**
+ * Find the FEs which correspond to the input vector but in the given frame and tier.
+ * @return A vector of field elements.
+ */
 std::vector<FieldElement*>
 FieldOptimiser::get_corresponding_fes_in_frame(size_t frame_idx, size_t  tier_idx, std::vector<FieldElement*> fes) const {
     std::vector<FieldElement*> vec;
@@ -56,12 +68,16 @@ FieldOptimiser::get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx
     vector<FieldElement*> source = m_field_element_mappings[index(0, tier_idx)];
     vector<FieldElement*> dest   = m_field_element_mappings[index(frame_idx, tier_idx)];
 
-    auto it = find(source.begin(), source.end(), src_fe);
-    assert( it != source.end());
-    return dest[it - source.begin()];
+    size_t src_idx = index_of( src_fe, source);
+    return dest[src_idx];
 }
 
 
+/**
+ * When constructing a graph hierarchy, we generate new FEs for higher tiers of the graph which are 
+ * generated from nodes in lower tiers.
+ * This method is responsible for generating equivalent nodes in other frames.
+ */
 void 
 FieldOptimiser::build_equivalent_fes( ) {
     using namespace std;
@@ -80,7 +96,7 @@ FieldOptimiser::build_equivalent_fes( ) {
 
     // For each other tier of the graph hierarchy
     for (size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
-        FieldGraph *fg = m_graph_hierarchy[tier_idx];
+        FieldGraph *fg = graph_at_tier(tier_idx);
 
         // For each node; sort frame 0
         for (auto gn : fg->nodes()) {
@@ -103,8 +119,7 @@ FieldOptimiser::build_equivalent_fes( ) {
                 } else if ( frame_idx_children.size() == 2 ) {
                     frame_idx_parent = FieldElement::mergeFieldElements(frame_idx_children[0], frame_idx_children[1]);
                 } else {
-                    string err = "Expected one or two children but found " + std::to_string(frame_0_children.size());
-                    throw runtime_error(err);
+                    throw_runtime_error( "Expected only one or two children" );
                 }
                 m_field_element_mappings[ index(frame_idx, tier_idx)].push_back( frame_idx_parent );
             }
@@ -112,6 +127,36 @@ FieldOptimiser::build_equivalent_fes( ) {
     }
 }
 
+/**
+ * @return the index of the FE in the given vector or throw
+ * if not found.
+ */
+size_t FieldOptimiser::index_of( const FieldElement *fe, const std::vector<FieldElement *>& elements ) const {
+    auto it = std::find( elements.begin(), elements.end(), fe);
+
+    if (it == elements.end())
+        throw_runtime_error("FieldElement not found in vector");
+
+    return it - elements.begin();
+}
+/**
+ * @return the index of the GN in the given vector or throw
+ * if not found.
+ */
+size_t FieldOptimiser::index_of( const FieldGraphNode *gn, const std::vector<FieldGraphNode *>& nodes ) const {
+    auto it = std::find( nodes.begin(), nodes.end(), gn);
+
+    if (it == nodes.end())
+        throw_runtime_error("GraphNode not found in vector");
+
+    return it - nodes.begin();
+}
+
+
+/**
+ * Given a set of corresponding field elements for each frame and tier, and a graph of neighbours, compute the
+ * best fitting rotation to map a FE to it's corresponding element in another frame and tier.
+ */
 void 
 FieldOptimiser::build_transforms( ) {
     using namespace std;
@@ -124,16 +169,15 @@ FieldOptimiser::build_transforms( ) {
 
     // For each tier
     for (size_t tier_idx = 0; tier_idx < num_tiers; ++tier_idx) {
-        FieldGraph *fg = m_graph_hierarchy[tier_idx];
+        FieldGraph *fg = graph_at_tier(tier_idx);
 
         // Frame 0 transforms are all identify matrix
-        for( size_t i = 0; i < m_graph_hierarchy[0]->num_nodes(); ++i) {
+        for( size_t i = 0; i < graph_at_tier(0)->num_nodes(); ++i) {
             m_transforms[index(0,tier_idx)].push_back( Matrix3f::Identity());
         }
 
         // For remainder of frames we have to compute values
         for( size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
-            size_t node_idx = 0;
             for (auto gn : fg->nodes()) {
                 // 1. Get the neighbours of this FE according to graph
                 FieldElement *fe = gn->data();
@@ -157,8 +201,6 @@ FieldOptimiser::build_transforms( ) {
                     neighbour_points_2.push_back(other_fe_neighbours[i]->location());
                 }
                 Matrix3f m = rotation_between(point1, normal1, neighbour_points_1, point2, normal2, neighbour_points_2);
-                cout << "M (" << frame_idx << ", " << tier_idx  << ", " << node_idx << ")"<< endl << m << endl;
-                node_idx++;
                 m_transforms[index(frame_idx, tier_idx)].push_back( m );
             }
         }
@@ -178,7 +220,7 @@ FieldOptimiser::build_correspondences() {
     if(m_tracing_enabled) cout << "build_correspondences" << endl;
 
     if (m_graph_hierarchy.size() == 0)
-        throw runtime_error("build_correspondences() called with no graph hierarchy");
+        throw_runtime_error("build_correspondences() called with no graph hierarchy");
 
     build_equivalent_fes( );
 
@@ -195,7 +237,7 @@ FieldOptimiser::setup_optimisation() {
     build_correspondences();
 
     m_optimising_tier_index = m_graph_hierarchy.size() - 1;;
-    m_optimising_current_tier = m_graph_hierarchy[m_optimising_tier_index];
+    m_optimising_current_tier = graph_at_tier(m_optimising_tier_index);
     m_optimising_started_new_tier = true;
     m_is_optimising = true;
 
@@ -212,7 +254,7 @@ FieldOptimiser::stop_optimising() {
     m_is_optimising = false;
     size_t tier = m_graph_hierarchy.size() - 1;
     while (tier > 0) {
-        delete m_graph_hierarchy[tier];
+        delete graph_at_tier(tier);
         tier--;
     }
 
@@ -237,16 +279,23 @@ FieldOptimiser::setup_tier_optimisation() {
 
 
 /**
+ * We need nodes because the order of the tangents in new_tangents does NOT
+ * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
  */
-void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents ) {
+void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<FieldGraphNode*>& nodes ) {
     using namespace Eigen;
 
-    assert( tier_idx < m_graph_hierarchy.size() );
-    FieldGraph * fg = m_graph_hierarchy[tier_idx];
+    if( tier_idx >= m_graph_hierarchy.size() )
+        throw_invalid_argument("tier_idx is out of range" );
+
+    FieldGraph * fg = graph_at_tier(tier_idx);
 
     size_t num_frames = m_field->get_num_frames();
 
-    for( size_t node_idx = 0; node_idx < fg->num_nodes(); ++ node_idx ) {
+
+    for( auto node : nodes ) {
+        size_t node_idx = index_of( node, fg->nodes() );
+
         Vector3f new_tan = new_tangents[node_idx];
 
         // Set the frames
@@ -266,24 +315,26 @@ void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::
  * @param tier The Graph (tier) to be optimised
  */
 bool
-FieldOptimiser::optimise_tier_once(FieldGraph *tier) {
+FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
     using namespace Eigen;
     using namespace std;
 
     if (m_tracing_enabled) cout << "    smooth_once" << endl;
 
+    FieldGraph *tier = m_graph_hierarchy[tier_idx];
     // Extract map keys into vector and shuffle
-    vector<FieldGraphNode *> nodes = tier->nodes();
+    vector<FieldGraphNode *> nodes;  
+    nodes.insert(end(nodes), begin(tier->nodes()), end(tier->nodes()));
     random_shuffle(nodes.begin(), nodes.end());
 
     // Iterate over permute, look up key, lookup fe and smooth
     vector<Vector3f> new_tangents;
     for (auto node : nodes) {
-        new_tangents.push_back(calculate_smoothed_node(tier, node));
+        new_tangents.push_back(calculate_smoothed_node(tier_idx, node));
     }
 
     // Now update all of the nodes
-    update_tangents( m_optimising_tier_index, new_tangents );
+    update_tangents( m_optimising_tier_index, new_tangents, nodes );
 
     // Get the new error
     m_optimising_iterations_this_tier++;
@@ -308,13 +359,13 @@ FieldOptimiser::optimise_one_step() {
     }
 
     // Smooth the tier, possible starting a new one
-    if (optimise_tier_once(m_optimising_current_tier)) {
+    if (optimise_tier_once(m_optimising_tier_index)) {
         // Converged. If there's another tier, do it
         if (m_optimising_tier_index != 0) {
 
             m_optimising_tier_index--;
             m_mapping_hierarchy[m_optimising_tier_index].propagate();
-            m_optimising_current_tier = m_graph_hierarchy[m_optimising_tier_index];
+            m_optimising_current_tier = graph_at_tier(m_optimising_tier_index);
             m_optimising_started_new_tier = true;
         }
 
@@ -368,32 +419,67 @@ FieldOptimiser::check_convergence(float new_error) {
     return converged;
 }
 
+
+std::vector<FieldElement *> 
+FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const {
+    using namespace std;
+    using namespace Eigen;
+
+    vector<FieldElement *> all_neighbours;
+
+    // Get the index of the fe in frame 0 of this tier
+    vector<FieldElement*> fem = m_field_element_mappings[index(0, tier_idx)];
+    size_t node_idx = index_of( gn->data(), fem );
+
+
+    //  Copy spatial neighbours unchanged
+    FieldGraph * tier = graph_at_tier(tier_idx);
+    vector<FieldElement *> spatial_neighbours = tier->neighbours_data(gn);
+    for( auto fe : spatial_neighbours) {
+        FieldElement * new_fe = new FieldElement( fe->location(), fe->normal(), fe->tangent());
+        all_neighbours.push_back(new_fe);
+    }
+
+    //  Copy temporal neighbours transformed to current frame
+    for (size_t frame_idx = 1; frame_idx < m_field->get_num_frames(); ++frame_idx) {
+        // Get my own transformation matrix for this frame
+        Matrix3f m = m_transforms[index(frame_idx, tier_idx)][node_idx];
+        Matrix3f minv = m.inverse();
+
+        // Now for each spatial neighbour
+        vector<FieldElement*> temporal_neighbours = get_corresponding_fes_in_frame(frame_idx, tier_idx, spatial_neighbours);
+        for (auto fe : temporal_neighbours) {
+            // Back project the future normal and tangent to frame 0
+            Vector3f new_tangent = minv * fe->tangent();
+            Vector3f new_normal = minv * fe->normal();
+
+            // TODO: Need to deal with locations at some future time.
+            FieldElement * new_fe = new FieldElement(fe->location(), new_normal, new_tangent);
+            all_neighbours.push_back( new_fe);
+        }
+    }
+    return all_neighbours;
+}
+
 /**
  * Smooth the specified node
  * @return The new vector.
  */
 Eigen::Vector3f 
-FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldGraphNode *gn) const {
+FieldOptimiser::calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn) const {
     using namespace Eigen;
     using namespace std;
 
     FieldElement *this_fe = (FieldElement *) gn->data();
-    if (m_tracing_enabled) std::cout << "smooth_node" << this_fe << std::endl;
+    if (m_tracing_enabled) cout << "smooth_node" << this_fe << endl;
 
-    // TODO: Replace this by passing in node index in future
-    vector<FieldElement*> fem = m_field_element_mappings[index(0, m_optimising_tier_index)];
-    auto it = find(fem.begin(), fem.end(), this_fe);
-    assert( it != fem.end());
-    size_t node_idx = it - fem.begin();
-
-    vector<FieldElement *> spatial_neighbours = tier->neighbours_data(gn);
-
+    vector<FieldElement *> all_neighbours = copy_all_neighbours_for( tier_idx, gn);
     Vector3f new_tangent = this_fe->tangent();
     float weight = 0;
 
-    // Merge spatial neighbours
-    for (auto neighbour_fe : spatial_neighbours) {
-        if (m_tracing_enabled) std::cout << "    consider neighbour" << neighbour_fe << std::endl;
+    // Merge all neighbours
+    for (auto neighbour_fe : all_neighbours) {
+        if (m_tracing_enabled) cout << "    consider neighbour" << neighbour_fe << endl;
 
         // Find best matching rotation
         // TODO: Extract the edge weight from the graph node
@@ -403,26 +489,10 @@ FieldOptimiser::calculate_smoothed_node(FieldGraph *tier, FieldGraphNode *gn) co
         weight += edge_weight;
     }
 
-    // Merge temporal neighbours
-    for (size_t frame_idx = 1; frame_idx < m_field->get_num_frames(); ++frame_idx) {
-
-        // Get my own transformation matrix at this time point
-        Matrix3f m = m_transforms[index(frame_idx, m_optimising_tier_index)][node_idx];
-        Matrix3f minv = m.inverse();
-
-        // Now for each spatial neighbour
-        vector<FieldElement*> temporal_neighbours = get_corresponding_fes_in_frame(frame_idx, m_optimising_tier_index, spatial_neighbours);
-        for (auto future_neighbour : temporal_neighbours) {
-
-            // back project the future coord to the now using m inverse
-            Vector3f future_tangent = minv * future_neighbour->tangent();
-            Vector3f future_normal = minv * future_neighbour->normal();
-
-            new_tangent = average_rosy_vectors(new_tangent, this_fe->normal(), 0.5f,
-                                               future_tangent, future_normal, 0.5f);
-        }
+    // Dispose of neighbours
+    for( auto fe : all_neighbours) {
+        delete fe;
     }
-
 
     return new_tangent;
 }
@@ -493,7 +563,7 @@ float FieldOptimiser::calculate_error_for_node(FieldGraph *tier, FieldGraphNode 
  * @Return the nth graph in the hierarchy where 0 is base.
  */
 FieldGraph *FieldOptimiser::graph_at_tier(std::size_t tier) const {
-    if (tier >= m_graph_hierarchy.size()) throw std::invalid_argument("Tier out of range");
+    if (tier >= m_graph_hierarchy.size()) throw_invalid_argument("Tier out of range");
     return m_graph_hierarchy[tier];
 }
 
@@ -508,33 +578,34 @@ FieldGraph *FieldOptimiser::graph_at_tier(std::size_t tier) const {
  *
  */
 void FieldOptimiser::generate_hierarchy(int max_tiers, int max_nodes, int max_edges) {
+    using namespace std;
+
     if (m_graph_hierarchy.size() > 1)
-        throw std::runtime_error("Hierarchy already generated");
+        throw_runtime_error("Hierarchy already generated");
 
     // At least one of max_tiers, max_nodes and max_edges must be >0
     if (max_edges <= 0 && max_nodes <= 0 && max_tiers <= 0) {
-        throw std::invalid_argument("Must specify terminating criteria for hierarchy generation");
+        throw_invalid_argument("Must specify terminating criteria for hierarchy generation");
     }
 
     if (m_tracing_enabled) {
-        std::cout << "Generating graph hierarchy. Teminating when one of ";
+        cout << "Generating graph hierarchy. Teminating when one of ";
         if (max_edges > 0) {
-            std::cout << " edges <= " << max_edges;
+            cout << " edges <= " << max_edges;
         }
         if (max_nodes > 0) {
-            std::cout << " nodes <= " << max_nodes;
+            cout << " nodes <= " << max_nodes;
         }
         if (max_tiers > 0) {
-            std::cout << " tiers <= " << max_tiers;
+            cout << " tiers <= " << max_tiers;
         }
-        std::cout << " is true" << std::endl;
-        std::cout << "  Start :" << m_graph_hierarchy[0]->num_nodes() << " nodes, "
-                  << m_graph_hierarchy[0]->num_edges() << " edges" << std::endl;
+        cout << " is true" << endl;
+        cout << "  Start :" << graph_at_tier(0)->num_nodes() << " nodes, "
+                  << graph_at_tier(0)->num_edges() << " edges" << endl;
     }
 
-
     bool done = false;
-    FieldGraph *current_tier = m_graph_hierarchy[0];
+    FieldGraph *current_tier = graph_at_tier(0);
     FieldGraphSimplifier *s = new FieldGraphSimplifier(FieldElement::mergeFieldElements,
             FieldElement::propagateFieldElements);
 
@@ -544,22 +615,24 @@ void FieldOptimiser::generate_hierarchy(int max_tiers, int max_nodes, int max_ed
         done = done || ((max_tiers > 0) && (m_graph_hierarchy.size() == max_tiers));
 
         if (!done) {
-            std::pair<FieldGraph *, FieldGraphMapping> simplify_results = s->simplify(current_tier);
+            pair<FieldGraph *, FieldGraphMapping> simplify_results = s->simplify(current_tier);
             m_graph_hierarchy.push_back(simplify_results.first);
             m_mapping_hierarchy.push_back(simplify_results.second);
             current_tier = simplify_results.first;
         }
 
         if (m_tracing_enabled)
-            std::cout << "  Tier : " << m_graph_hierarchy.size() << "Nodes :" << current_tier->num_nodes()
-                      << ", Edges :" << current_tier->num_edges() << std::endl;
+            cout << "  Tier : " << m_graph_hierarchy.size() 
+                    << "Nodes :" << current_tier->num_nodes() 
+                    << ", Edges :" << current_tier->num_edges() 
+                    << endl;
     }
 }
 
 /**
- * @Return the current tier being optimised or 0 if none
+ * @Return the current tier being optimised
  */
 size_t
 FieldOptimiser::optimising_tier_index() const {
-    return m_is_optimising ? m_optimising_tier_index : 0;
+    return m_optimising_tier_index;
 }

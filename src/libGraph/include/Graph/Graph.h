@@ -118,19 +118,12 @@ public:
      * Add an edge to the graph connecting two existing nodes
      */
     Edge * add_edge( GraphNode * from_node, GraphNode * to_node, float weight, const EdgeData& edge_data) {
-//        std::cout << "      add edge from " << from_node << " to " << to_node << std::endl;
-        if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
-        if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
-        if ( weight < 0 ) throw std::invalid_argument( "weight must be positive" );
-        if ( std::find( m_nodes.begin(), m_nodes.end(), from_node ) == m_nodes.end() ) throw std::invalid_argument( "from node is unknown" );
-        if ( std::find( m_nodes.begin(), m_nodes.end(), to_node ) == m_nodes.end() ) throw std::invalid_argument( "to node is unknown" );
-
-        // If edge exists already, don't make a new one (throw)
-        if ( m_adjacency[from_node].size() != 0 ) {
-            if( std::find( m_adjacency[from_node].begin(), m_adjacency[from_node].end(), to_node ) != m_adjacency[from_node].end() ) {
-                throw std::invalid_argument( "can't insert duplicate edge");
-            }
-        }
+        assert( from_node != nullptr );
+        assert( to_node != nullptr );
+        assert( weight >= 0 );
+        assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
+        assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
+        assert( !has_edge( from_node, to_node));
 
         m_adjacency[from_node].push_back( to_node );
 
@@ -203,7 +196,7 @@ public:
      * @return true if there is an edge from node 1 to node 2
      */
     bool has_edge( GraphNode * node_a, GraphNode * node_b ) {
-        std::vector<GraphNode *> neighbours = m_adjacency[node_a];
+        std::vector<GraphNode *> neighbours = m_adjacency.at(node_a);
         return (std::find( neighbours.begin(), neighbours.end(), node_b ) != neighbours.end());
     }
 

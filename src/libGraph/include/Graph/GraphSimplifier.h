@@ -4,6 +4,9 @@
 #include <map>
 #include <Graph/Graph.h>
 
+#define throw_invalid_argument(msg) \
+    throw std::invalid_argument(msg " at " __FILE__ ":" + std::to_string(__LINE__))
+
 namespace animesh {
 
 /**
@@ -75,18 +78,18 @@ namespace animesh {
 
 
     private:
-        /**
+    /**
      * Construct a GraphNode as the parent of two other nodes
      */
         GraphNode *
         create_parent_node(GraphNode *node_a, GraphNode *node_b, std::map<GraphNode *, GraphNode *> &node_map) const {
-            if (node_a == nullptr) throw std::invalid_argument("first node may not be null");
-            if (node_b == nullptr) throw std::invalid_argument("second node may not be null");
+            if (node_a == nullptr) throw_invalid_argument("first node may not be null");
+            if (node_b == nullptr) throw_invalid_argument("second node may not be null");
 
             NodeData new_data = m_node_merge_function(node_a->data(), node_b->data());
             GraphNode *gn = new GraphNode(new_data);
-            node_map[node_a] = gn;
-            node_map[node_b] = gn;
+            node_map.insert(std::make_pair(node_a, gn));
+            node_map.insert(std::make_pair(node_b, gn));
             return gn;
         }
 
@@ -97,7 +100,7 @@ namespace animesh {
             if (node_a == nullptr) throw std::invalid_argument("first node may not be null");
 
             GraphNode *gn = new GraphNode(node_a->data());
-            node_map[node_a] = gn;
+            node_map.insert(std::make_pair(node_a, gn));
             return gn;
         }
 
@@ -173,8 +176,8 @@ namespace animesh {
                 end
             */
             for (auto edge : input_graph->edges()) {
-                GraphNode *gn1 = node_map[edge->from_node()];
-                GraphNode *gn2 = node_map[edge->to_node()];
+                GraphNode *gn1 = node_map.at(edge->from_node());
+                GraphNode *gn2 = node_map.at(edge->to_node());
 
                 if ((gn1 != gn2) && !output_graph->has_edge(gn1, gn2)) {
                     output_graph->add_edge(gn1, gn2, 1.0f, nullptr);

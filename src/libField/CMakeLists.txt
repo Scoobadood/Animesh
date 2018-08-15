@@ -56,10 +56,11 @@ add_test( NAME TestFieldElement.twoArgConstructWithUnitNormalShouldGeneratePerpT
 add_test( NAME TestFieldElement.threeArgConstructWithNonUnitNormalShouldThrow COMMAND testField --gtest_filter=TestFieldElement.threeArgConstructWithNonUnitNormalShouldThrow )
 add_test( NAME TestFieldElement.threeArgConstructWithNonUnitTangentShouldThrow COMMAND testField --gtest_filter=TestFieldElement.threeArgConstructWithNonUnitTangentShouldThrow )
 add_test( NAME TestFieldElement.threeArgConstructWithNonPerpTangentShouldThrow COMMAND testField --gtest_filter=TestFieldElement.threeArgConstructWithNonPerpTangentShouldThrow )
+add_test( NAME TestFieldElement.mergeIdenticalVectorsShouldGiveSameFE COMMAND testField --gtest_filter=TestFieldElement.mergeIdenticalVectorsShouldGiveSameFE )
+add_test( NAME TestFieldElement.mergeVectorsWithCommonNormalShouldHaveSameNormal COMMAND testField --gtest_filter=TestFieldElement.mergeVectorsWithCommonNormalShouldHaveSameNormal )
 
 
 # add_test( NAME  COMMAND testField --gtest_filter=  )
-
 
 
 # Stash it

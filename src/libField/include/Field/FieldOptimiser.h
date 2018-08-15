@@ -1,6 +1,5 @@
 #include <Field/Field.h>
 #include <Graph/GraphSimplifier.h>
-#include <Field/CorrespondenceMapping.h>
 
 namespace animesh {
 
@@ -8,6 +7,10 @@ using FieldGraph            = Graph<FieldElement *, void *>;
 using FieldGraphNode        = typename Graph<FieldElement *, void *>::GraphNode;
 using FieldGraphSimplifier    = GraphSimplifier<FieldElement *, void *>;
 using FieldGraphMapping    = GraphSimplifier<FieldElement *, void *>::GraphMapping;
+
+FieldElement * 
+back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv);
+
 
 class FieldOptimiser {
 
@@ -50,10 +53,23 @@ public:
     const FieldElement*
     get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const;
 
-    std::vector<FieldElement*> 
+    std::vector<FieldElement*>
     get_elements_at( size_t frame_idx, size_t tier_idx ) const;
-    
+
 private:
+    void 
+    set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent );
+    
+    /**
+    * Validate that building the hoerarchy did not generate any crappy data
+    */
+    void validate_hierarchy();
+
+    /**
+    * Validate that building the hoerarchy did not generate any crappy data
+    */
+    void validate_correspondences();
+
     std::vector<FieldElement *> copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const;
 
     /**
@@ -72,7 +88,7 @@ private:
      * We need nodes because the order of the tangents in new_tangents does NOT
      * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
      */
-    void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<FieldGraphNode*>& nodes );
+    void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<int>& node_indices );
 
 
     /**

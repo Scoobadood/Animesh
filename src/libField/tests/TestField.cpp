@@ -1,81 +1,11 @@
 #include "TestField.h"
 
 #include <Field/Field.h>
-#include <Field/CorrespondenceMapping.h>
 #include <Field/FieldElement.h>
 
 
 void TestField::SetUp( ) {}
 void TestField::TearDown( ) {}
-
-TEST_F(TestField, findCorrespondenceWithDifferentSizeVectorsShouldThrow) { 
-	using namespace std;
-	using namespace animesh;
-
-	vector<FieldElement * > first;
-	vector<FieldElement * > second;
-
-	FieldElement *fe1 = new FieldElement( vec_0_0_0, vec_1_0_0);
-	FieldElement *fe2 = new FieldElement( vec_0_0_0, vec_1_0_0);
-	FieldElement *fe3 = new FieldElement( vec_0_0_0, vec_1_0_0);
-
-	first.push_back( fe1 );
-	first.push_back( fe2 );
-	second.push_back( fe3 );
-
-	
-
-	try {
-		new CorrespondenceMapping( first, second, nullptr);
-        FAIL() << "Expected std::invalid_argument";
-	} catch( invalid_argument const & err) {
-        EXPECT_EQ( err.what(), std::string( "find_correspondences expects vectors to be the same size") );
-	} catch( ... ) {
-        FAIL() << "Expected std::invalid_argument";
-	}
-}
-
-TEST_F(TestField, findCorrespondenceWithZeroFirstVectorShouldThrow) { 
-	using namespace std;
-	using namespace animesh;
-
-	vector<FieldElement * > first;
-	vector<FieldElement * > second;
-
-	FieldElement *fe1 = new FieldElement( vec_0_0_0, vec_1_0_0);
-
-	second.push_back( fe1 );
-
-	try {
-		new CorrespondenceMapping( first, second, nullptr);
-        FAIL() << "Expected std::invalid_argument";
-	} catch( invalid_argument const & err) {
-        EXPECT_EQ( err.what(), string( "find_correspondences expects first vector to have non-zero size") );
-	} catch( ... ) {
-        FAIL() << "Expected std::invalid_argument";
-	}
-}
-
-TEST_F(TestField, findCorrespondenceWithZeroSecondVectorShouldThrow) { 
-	using namespace std;
-	using namespace animesh;
-
-	vector<FieldElement * > first;
-	vector<FieldElement * > second;
-
-	FieldElement *fe1 = new FieldElement( vec_0_0_0, vec_1_0_0);
-
-	first.push_back( fe1 );
-
-	try {
-		new CorrespondenceMapping( first, second, nullptr);
-        FAIL() << "Expected std::invalid_argument";
-	} catch( invalid_argument const & err) {
-        EXPECT_EQ( err.what(), string( "find_correspondences expects second vector to have non-zero size") );
-	} catch( ... ) {
-        FAIL() << "Expected std::invalid_argument";
-	}
-}
 
 
 /* ******************************************************************************************

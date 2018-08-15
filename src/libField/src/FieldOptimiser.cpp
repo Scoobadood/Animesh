@@ -18,7 +18,19 @@ using animesh::FieldGraph;
 using animesh::FieldElement;
 using animesh::FieldOptimiser;
 using animesh::FieldGraphSimplifier;
-using animesh::CorrespondenceMapping;
+
+FieldElement * 
+animesh::back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv) {
+    using namespace Eigen; 
+    
+    Vector3f new_normal = (minv * fe->normal()).normalized();
+    Vector3f new_tangent = (minv * fe->tangent());
+    new_tangent = reproject_to_tangent_space( new_tangent, new_normal);
+    // TODO: Need to deal with locations at some future time.
+    FieldElement * new_fe = new FieldElement(fe->location(), new_normal, new_tangent);
+    return new_fe;
+}
+
 
 /**
  * Construct with a Field to be optimised
@@ -228,13 +240,125 @@ FieldOptimiser::build_correspondences() {
 }
 
 /**
+ * Validate that building the hoerarchy did not generate any crappy data
+ */
+void FieldOptimiser::validate_hierarchy() {
+    using namespace std;
+    using namespace Eigen;
+
+    float EPSILON = 1e-6;
+
+    cout << "Validating hierarchy..." << endl;
+    for( size_t tier_idx = 0; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
+        size_t node_idx = 0;
+        for( auto gn : m_graph_hierarchy[tier_idx]->nodes()) {
+            Vector3f tangent = gn->data()->tangent();
+            Vector3f normal  = gn->data()->normal();
+            if( abs(normal.norm() - 1.0f ) > EPSILON ) {
+                cout << "Tier : " << tier_idx << ", node : " << node_idx << " failed normal unit length test" << normal << "(" << normal.norm() << ")" << endl;
+                throw runtime_error("Validate hierarchy failed");
+            }
+            if( abs(tangent.norm() - 1.0f) > EPSILON ) {
+                cout << "Tier : " << tier_idx << ", node : " << node_idx << " failed tangent unit length test" << tangent << "(" << tangent.norm() << ")" <<endl;
+                throw runtime_error("Validate hierarchy failed");
+            }
+            if( abs(tangent.dot( normal))  > EPSILON ) {
+                cout << "Tier : " << tier_idx << ", node : " << node_idx << " failed perpendicularity test" << endl;
+                throw runtime_error("Validate hierarchy failed");
+            }
+
+            assert( m_graph_hierarchy[tier_idx]->neighbours(gn).size() > 0 );
+        }
+    }
+    cout << "-- Validated" << endl;
+}
+
+/**
+ * Validate that building the hoerarchy did not generate any crappy data
+ */
+void FieldOptimiser::validate_correspondences() {
+    using namespace std;
+    using namespace Eigen;
+
+    float EPSILON = 1e-1;
+
+    size_t num_frames = m_field->get_num_frames();
+    cout << "Validating correspondences..." << endl;
+    for( size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
+        vector<FieldElement *> fe0s  = m_field_element_mappings[index(0, tier_idx)];
+
+        for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
+            size_t idx = index(frame_idx, tier_idx);
+
+            vector<FieldElement*> fes = m_field_element_mappings[idx];
+            vector<Matrix3f> xforms = m_transforms[idx];
+
+            for( size_t node_idx = 0; node_idx < fes.size(); ++node_idx ) {
+                FieldElement * fe0 = fe0s[node_idx];
+                FieldElement * fe = fes[node_idx];
+                Vector3f normal0  = fe0->normal();
+                Vector3f tangent = fe->tangent();
+                Vector3f normal  = fe->normal();
+                Matrix3f m = xforms[node_idx];
+
+                for( size_t i=0; i<9; ++i ) 
+                    assert(!isnan(m(i)));
+
+                Matrix3f minv = m.inverse();
+                Vector3f back_normal = minv * normal;
+
+                if( abs(normal.norm() - 1.0f ) > EPSILON ) {
+                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal unit length test" << normal << "(" << normal.norm() << ")" << endl;
+                    throw runtime_error("Validate correspondences failed");
+                }
+                if( abs(tangent.norm() - 1.0f) > EPSILON ) {
+                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed tangent unit length test" << tangent << "(" << tangent.norm() << ")" <<endl;
+                    throw runtime_error("Validate correspondences failed");
+                }
+                if( abs(tangent.dot( normal)) > EPSILON ) {
+                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed perpendicularity test" << endl;
+                    throw runtime_error("Validate correspondences failed");
+                }
+                Vector3f delta = back_normal - normal0;
+                if( abs(delta.norm() ) > EPSILON ) {
+                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal back projection test (diff)" << endl;
+                    // Dump offending things
+                    cout << "  Frame 0 normal        : " << normal0 << endl;
+                    cout << "  Back projected normal : " << back_normal << endl;
+                    cout << "  Delta                 : " << delta << endl;
+                    cout << "  Delta norm            : " << delta.norm() << endl;
+                    cout << "  M\n-----\n" << m << endl;
+                    cout << "  Minv\n-----\n" << minv << endl;
+                    throw runtime_error("Validate correspondences failed");
+                }
+                if( abs(back_normal.norm() - 1.0f ) > EPSILON ) {
+                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal back projection test (length)" << endl;
+                    // Dump offending things
+                    cout << "  Frame 0 normal        : " << normal0 << endl;
+                    cout << "  Frame "<< frame_idx<<" normal       : " << normal << endl;
+                    cout << "  Back projected normal : " << back_normal << endl;
+                    cout << "  M                     : " << m << endl;
+                    cout << "  Minv                  : " << minv << endl;
+
+                    throw runtime_error("Validate correspondences failed");
+                }
+            }
+        }
+    }
+    cout << "-- Validated" << endl;
+}
+
+/**
  * Setup for optimisation. Build the hierarchical graph and
  * construct correspondence maps.
  */
 void
 FieldOptimiser::setup_optimisation() {
     generate_hierarchy(SMOOTH_EDGES, SMOOTH_NODES, SMOOTH_TIERS);
+    validate_hierarchy( );
+
     build_correspondences();
+    validate_correspondences();
 
     m_optimising_tier_index = m_graph_hierarchy.size() - 1;;
     m_optimising_current_tier = graph_at_tier(m_optimising_tier_index);
@@ -277,12 +401,30 @@ FieldOptimiser::setup_tier_optimisation() {
     m_optimising_started_new_tier = false;
 }
 
+void 
+FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent ) {
+    using namespace Eigen;
+
+    size_t idx = index(frame_idx, tier_idx);
+    FieldElement * fe = m_field_element_mappings[idx][node_idx];
+
+    if( frame_idx > 0 ) {
+        // Need to forward xform 
+        Matrix3f m = m_transforms[idx][node_idx];
+        Vector3f t1 = m * tangent;
+        Vector3f t2 = reproject_to_tangent_space( t1, fe->normal() );
+        fe->set_tangent(t2);
+    } else {
+        fe->set_tangent(tangent);
+    }
+}
+
 
 /**
  * We need nodes because the order of the tangents in new_tangents does NOT
  * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
  */
-void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<FieldGraphNode*>& nodes ) {
+void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<int>& node_indices ) {
     using namespace Eigen;
 
     if( tier_idx >= m_graph_hierarchy.size() )
@@ -293,20 +435,12 @@ void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::
     size_t num_frames = m_field->get_num_frames();
 
 
-    for( auto node : nodes ) {
-        size_t node_idx = index_of( node, fg->nodes() );
-
+    for( auto node_idx : node_indices ) {
         Vector3f new_tan = new_tangents[node_idx];
 
         // Set the frames
         for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-            size_t idx = index(frame_idx, tier_idx);
-            if( frame_idx == 0 ) {
-                m_field_element_mappings[idx][node_idx]->set_tangent( new_tan);
-            } else {
-                Matrix3f m = m_transforms[idx][node_idx];
-                m_field_element_mappings[idx][node_idx]->set_tangent( m * new_tan);
-            }
+            set_tangent( frame_idx, tier_idx, node_idx, new_tan);
         }
     }
 }
@@ -322,19 +456,23 @@ FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
     if (m_tracing_enabled) cout << "    smooth_once" << endl;
 
     FieldGraph *tier = m_graph_hierarchy[tier_idx];
+
     // Extract map keys into vector and shuffle
-    vector<FieldGraphNode *> nodes;  
-    nodes.insert(end(nodes), begin(tier->nodes()), end(tier->nodes()));
-    random_shuffle(nodes.begin(), nodes.end());
+    size_t num_nodes = tier->nodes().size();
+    vector<int> node_indices;
+    for( size_t idx = 0; idx < num_nodes; ++idx ) {
+        node_indices.push_back(idx);
+    }
+    random_shuffle(begin(node_indices), end(node_indices));
 
     // Iterate over permute, look up key, lookup fe and smooth
-    vector<Vector3f> new_tangents;
-    for (auto node : nodes) {
-        new_tangents.push_back(calculate_smoothed_node(tier_idx, node));
+    vector<Eigen::Vector3f> new_tangents{num_nodes};
+    for (auto node_index : node_indices) {
+        new_tangents[node_index] = calculate_smoothed_node(tier_idx, tier->nodes()[node_index]);
     }
 
     // Now update all of the nodes
-    update_tangents( m_optimising_tier_index, new_tangents, nodes );
+    update_tangents( m_optimising_tier_index, new_tangents, node_indices );
 
     // Get the new error
     m_optimising_iterations_this_tier++;
@@ -419,7 +557,6 @@ FieldOptimiser::check_convergence(float new_error) {
     return converged;
 }
 
-
 std::vector<FieldElement *> 
 FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const {
     using namespace std;
@@ -430,7 +567,6 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
     // Get the index of the fe in frame 0 of this tier
     vector<FieldElement*> fem = m_field_element_mappings[index(0, tier_idx)];
     size_t node_idx = index_of( gn->data(), fem );
-
 
     //  Copy spatial neighbours unchanged
     FieldGraph * tier = graph_at_tier(tier_idx);
@@ -449,12 +585,7 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
         // Now for each spatial neighbour
         vector<FieldElement*> temporal_neighbours = get_corresponding_fes_in_frame(frame_idx, tier_idx, spatial_neighbours);
         for (auto fe : temporal_neighbours) {
-            // Back project the future normal and tangent to frame 0
-            Vector3f new_tangent = minv * fe->tangent();
-            Vector3f new_normal = minv * fe->normal();
-
-            // TODO: Need to deal with locations at some future time.
-            FieldElement * new_fe = new FieldElement(fe->location(), new_normal, new_tangent);
+            FieldElement * new_fe = back_project_fe( fe, minv);
             all_neighbours.push_back( new_fe);
         }
     }
@@ -462,7 +593,8 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
 }
 
 /**
- * Smooth the specified node
+ * Computes the new tangent for a given node by averaging over all neighbours. Final result is
+ * projected back into tangent space for the given FE's normal
  * @return The new vector.
  */
 Eigen::Vector3f 
@@ -471,15 +603,16 @@ FieldOptimiser::calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn
     using namespace std;
 
     FieldElement *this_fe = (FieldElement *) gn->data();
-    if (m_tracing_enabled) cout << "smooth_node" << this_fe << endl;
+    if (m_tracing_enabled) cout << "smooth_node : " << *this_fe << endl;
 
+    // Get all neighbours across all frames for this node
     vector<FieldElement *> all_neighbours = copy_all_neighbours_for( tier_idx, gn);
-    Vector3f new_tangent = this_fe->tangent();
-    float weight = 0;
 
     // Merge all neighbours
+    Vector3f new_tangent = this_fe->tangent();
+    float weight = 0;
     for (auto neighbour_fe : all_neighbours) {
-        if (m_tracing_enabled) cout << "    consider neighbour" << neighbour_fe << endl;
+        if (m_tracing_enabled) cout << "  considering neighbour : " << *neighbour_fe << endl;
 
         // Find best matching rotation
         // TODO: Extract the edge weight from the graph node
@@ -493,6 +626,8 @@ FieldOptimiser::calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn
     for( auto fe : all_neighbours) {
         delete fe;
     }
+
+    if (m_tracing_enabled) cout << "  result : " << new_tangent << endl;
 
     return new_tangent;
 }

@@ -59,7 +59,9 @@ Eigen::Vector3f reproject_to_tangent_space( const Eigen::Vector3f& v, const Eige
 	using namespace Eigen;
 
 	Vector3f error = v.dot( n ) * n;
-	return (v - error);
+	Vector3f reprojected = v - error;
+	reprojected.normalize();
+	return reprojected;
 }
 
 
@@ -96,27 +98,26 @@ Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eige
 	Matrix3f ret;
 
 	// Sanity check
-	if( v1.norm( ) < EPSILON || v2.norm( ) < EPSILON ) 
-		throw std::invalid_argument( "Vector may not be zero length" );
-
+	assert(v1.norm( ) >= EPSILON && v2.norm( ) >= EPSILON );
 
 	// First compute the axis of rotation by finding the cross product
 	Vector3f vu1 = v1.normalized( );
 	Vector3f vu2 = v2.normalized( );
 
-	// Handle the case where the vectors are the same : axis
+	// Handle the case where the vectors are the same direction - return identity
 	float cos_alpha = vu1.dot( vu2 );
-	if( cos_alpha == 1 ) return Matrix3f::Identity( );
+	if( abs(cos_alpha - 1.0f) < EPSILON)
+		return Matrix3f::Identity( );
 
-	// .. and in opposite directions
-	if( cos_alpha == -1 ) {
-
+	// If they're opposite directions then pick an arbitrary axis perp to both and rotate by pi
+	if( abs(cos_alpha + 1.0f) < EPSILON ) {
 		Vector3f axis = vector_perpendicular_to_vector( vu1 ).normalized();
 		// Compute rotation through pi about this axis
 		// From http://scipp.ucsc.edu/~haber/ph216/rotation_12.pdf (p5)
-		ret << 2 * axis(0) * axis(0) - 1, 2 * axis(0) * axis(1), 2 * axis(0) * axis(2),
-						 2 * axis(0) * axis(1), 2 * axis(1) * axis(1) - 1, 2 * axis(1) * axis(2),
-						 2 * axis(0) * axis(2), 2 * axis(1) * axis(2), 2 * axis(2) * axis(2) - 1;
+		float ax = axis.x(), ay = axis.y(), az = axis.z();
+		ret <<  2*ax*ax - 1, 2*ax*ay,	  2*ax*az,
+				2*ay*ax,	 2*ay*ay - 1, 2*ay*az,
+				2*az*ax,	 2*az*ay,	  2*az*az - 1;
 		return ret;
 	} 
 
@@ -144,6 +145,10 @@ Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eige
  									const Eigen::Vector3f& normal2, 
  									const std::vector<Eigen::Vector3f>& neighbours2) {
  	using namespace Eigen;
+
+ 	assert( neighbours1.size() > 0 );
+ 	assert( neighbours2.size() == neighbours1.size() );
+
 
  	// First compute the rotations which bring the two normal vectors into alignment with z-axis
  	Vector3f z_axis{ 0, 0, 1};
@@ -186,5 +191,10 @@ Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eige
 	in_plane_rot << std::cos( theta ), -std::sin( theta ), 0, std::sin( theta) , std::cos(theta), 0, 0, 0, 1;
 
 	// Total transformation is vvrN2' * in_plane_rot * vvrN1
-	return vvrN2.inverse() * in_plane_rot * vvrN1;
+	Matrix3f result = vvrN2.inverse() * in_plane_rot * vvrN1;
+	for( size_t i=0; i<9; ++i ) {
+		assert( !isnan(result(i)));
+		assert( !isinf(result(i)));
+	}
+	return result;
 }

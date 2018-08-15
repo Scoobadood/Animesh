@@ -33,7 +33,8 @@ void Field::dump(  ) const {
  * Write a Vector3f to output stream;
  */
 std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& vector) {
-	os  << vector[0] << ", "   
+	os  << "(" 
+		<< vector[0] << ", "   
 	 	<< vector[1] << ", "   
 	 	<< vector[2] << ")";
  	return os;

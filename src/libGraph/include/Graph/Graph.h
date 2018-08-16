@@ -100,24 +100,23 @@ public:
     }
 
     /**
-     * Add the given GraphNode so long as it doesn;t already exist
+     * Add the given GraphNode so long as it doesn't already exist
      * @param node The GraphNode
      * @return a pointer to the node added
      */
     GraphNode * add_node( GraphNode * node ) {
-        if( std::find( m_nodes.begin(), m_nodes.end( ), node ) == m_nodes.end() ) {
-            m_nodes.push_back( node );
-            std::vector<GraphNode*> x;
-            m_adjacency[node] = x;
-            return node;
-        }
-        throw std::invalid_argument( "can't add node to graph when it's already there");
+        assert( std::find( m_nodes.begin(), m_nodes.end( ), node ) == m_nodes.end() );
+
+        m_nodes.push_back( node );
+        return node;
     }
 
     /**
      * Add an edge to the graph connecting two existing nodes
      */
     Edge * add_edge( GraphNode * from_node, GraphNode * to_node, float weight, const EdgeData& edge_data) {
+        using namespace std;
+
         assert( from_node != nullptr );
         assert( to_node != nullptr );
         assert( weight >= 0 );
@@ -125,7 +124,7 @@ public:
         assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
         assert( !has_edge( from_node, to_node));
 
-        m_adjacency[from_node].push_back( to_node );
+        m_adjacency.insert( make_pair( from_node, to_node));
 
         Edge * edge = new Edge( from_node, to_node, weight, edge_data);
         m_edges.push_back( edge );
@@ -134,20 +133,19 @@ public:
     }
 
     void remove_edge(  GraphNode * from_node, GraphNode * to_node) {
-        if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
-        if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
-        if ( std::find( m_nodes.begin(), m_nodes.end(), from_node ) == m_nodes.end() ) throw std::invalid_argument( "from node is unknown" );
-        if ( std::find( m_nodes.begin(), m_nodes.end(), to_node ) == m_nodes.end() ) throw std::invalid_argument( "to node is unknown" );
-
-        // If edge does not exists (throw)
-        if ( m_adjacency[from_node].size() != 0 ) {
-            if( std::find( m_adjacency[from_node].begin(), m_adjacency[from_node].end(), to_node ) == m_adjacency[from_node].end() ) {
-                throw std::invalid_argument( "no such edge");
-            }
-        }
+        assert( from_node != nullptr );
+        assert( to_node != nullptr );
+        assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
+        assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
 
         // TODO: Perform actual delete
-        m_adjacency.erase(from_node);
+        auto range = equal_range (from_node);
+        for( auto it = range.first; it != range.second; ++it ) {
+            if( it->second == to_node) {
+                m_adjacency.erase(it);
+                break;
+            }
+        }
 
         auto edge_iter = m_edges.begin();
         for ( ; edge_iter != m_edges.end(); ) {
@@ -155,6 +153,7 @@ public:
                 ( (*edge_iter)->to_node() == to_node ) ) {
 
                 edge_iter = m_edges.erase(edge_iter);
+                break;
             } else {
                 ++edge_iter;
             }
@@ -175,9 +174,13 @@ public:
      * @return a vector of the neghbours of a given node
      */
     std::vector<GraphNode *> neighbours( GraphNode * node ) const {
-        std::vector<GraphNode *> ret = m_adjacency.at(const_cast<GraphNode*>(node));
+        std::vector<GraphNode *> data;
+        auto range = m_adjacency.equal_range (node);
+        for( auto it = range.first; it != range.second; ++it ) {
+            data.push_back(it->second);
+        }
 
-        return ret;
+        return data;
     }
 
     /**
@@ -185,8 +188,9 @@ public:
      */
     std::vector<NodeData> neighbours_data( const GraphNode * node ) const {
         std::vector<NodeData> data;
-        for( auto gn : m_adjacency.at(const_cast<GraphNode*>(node))) {
-            data.push_back(gn->data());
+        auto range = m_adjacency.equal_range ( const_cast<GraphNode*>(node));
+        for( auto it = range.first; it != range.second; ++it ) {
+            data.push_back(it->second->data());
         }
 
         return data;
@@ -196,8 +200,15 @@ public:
      * @return true if there is an edge from node 1 to node 2
      */
     bool has_edge( GraphNode * node_a, GraphNode * node_b ) {
-        std::vector<GraphNode *> neighbours = m_adjacency.at(node_a);
-        return (std::find( neighbours.begin(), neighbours.end(), node_b ) != neighbours.end());
+        using namespace std;
+
+        // Has edge if one of the mappings of node_a is node_b
+        auto range = m_adjacency.equal_range (node_a);
+        for( auto it = range.first; it != range.second; ++it ) {
+            if( it->second == node_b) 
+                return true;
+        }
+        return false;
     }
 
     /**
@@ -218,7 +229,7 @@ public:
 private:
     std::vector<GraphNode *>                        m_nodes;
     std::vector<Edge *>                             m_edges;
-    std::map<GraphNode *, std::vector<GraphNode*>>  m_adjacency;
+    std::multimap<GraphNode*, GraphNode*>           m_adjacency;
 };
 
 

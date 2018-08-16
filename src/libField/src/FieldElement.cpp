@@ -1,5 +1,5 @@
 #include <Field/FieldElement.h>
-#include <Geom/Geom.h>
+#include <Geom/geom.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
@@ -7,10 +7,9 @@
 #define throw_invalid_argument(msg) \
     throw std::invalid_argument(msg " at " __FILE__ ":" + std::to_string(__LINE__))
 
-
-
 static const float EPSILON = 1e-4;
-namespace animesh {
+
+using animesh::FieldElement;
 
 /**
  * Check that a vector is of unit length or throw
@@ -145,7 +144,8 @@ void FieldElement::set_tangent( const Eigen::Vector3f& tangent ) {
 /**
  * Write a FieldElement to output stream;
  */
-std::ostream& operator<<( std::ostream& os, const FieldElement& fe) {
+std::ostream& 
+animesh::operator<<( std::ostream& os, const FieldElement& fe) {
 	os	<< "l=( "
 	    << fe.location()[0] << ", "
 	    << fe.location()[1] << ", "
@@ -157,6 +157,4 @@ std::ostream& operator<<( std::ostream& os, const FieldElement& fe) {
 	    << fe.tangent()[1] << ", "
 	    << fe.tangent()[2] << ")";
 	return os;
-}
-
 }

@@ -23,7 +23,8 @@ using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNod
  * **  Utility functions
  * **
  * ******************************************************************************************/
-bool operator==(const pcl::PointNormal &point1, const pcl::PointNormal &point2) {
+bool 
+operator==(const pcl::PointNormal &point1, const pcl::PointNormal &point2) {
     return (point1.x == point2.x) &&
            (point1.y == point2.y) &&
            (point1.z == point2.z) &&

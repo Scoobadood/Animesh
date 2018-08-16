@@ -7,12 +7,14 @@
 #include <iostream>
 #include <pcl/io/obj_io.h>
 
-namespace animesh {
+using animesh::Field;
+using animesh::FieldFactory;
 
 /**
  * Load an obj file into a point cloud
  */
-pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::string& file_name ) {
+pcl::PointCloud<pcl::PointNormal>::Ptr 
+animesh::load_pointcloud_from_obj( const std::string& file_name ) {
     if( file_name.size() == 0 ) 
         throw std::invalid_argument( "Missing file name" );
 
@@ -31,7 +33,8 @@ pcl::PointCloud<pcl::PointNormal>::Ptr load_pointcloud_from_obj( const std::stri
 /**
  * Construct a field from an OBJ file
  */
-Field * load_field_from_obj_file( const std::string& file_name, int k, bool trace ) {
+Field * 
+animesh::load_field_from_obj_file( const std::string& file_name, int k, bool trace ) {
 	std::cout << "Loading from file " << file_name << std::endl;
 
 	// Load the point cloud from file
@@ -51,7 +54,8 @@ Field * load_field_from_obj_file( const std::string& file_name, int k, bool trac
  * @param grid_spacing The space between grid points
  * @param k The number of nearest neighbours to consider
  */
-Field * FieldFactory::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k) {
+Field * 
+FieldFactory::polynomial_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k) {
 	using namespace Eigen;
 
 	std::cout << "Plane x:" << dim_x << ", y:" << dim_y << ", sp:"<<grid_spacing << std::endl;
@@ -89,7 +93,8 @@ Field * FieldFactory::polynomial_field( std::size_t dim_x, std::size_t dim_y, fl
  * @param grid_spacing The space between grid points
  * @param k The number of nearest neighbours to consider
  */
-Field * FieldFactory::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k ) {
+Field * 
+FieldFactory::planar_field( std::size_t dim_x, std::size_t dim_y, float grid_spacing, int k ) {
 	using namespace Eigen;
 
 	std::cout << "Plane x:" << dim_x << ", y:" << dim_y << ", sp:"<<grid_spacing << std::endl;
@@ -122,7 +127,8 @@ Field * FieldFactory::planar_field( std::size_t dim_x, std::size_t dim_y, float 
  * @param phi_steps The number of steps in the Y direction
  * @param k The number of nearest neighbours to consider
  */
-Field * FieldFactory::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k ) {
+Field * 
+FieldFactory::spherical_field( float radius, std::size_t theta_steps, std::size_t phi_steps, int k ) {
 	using namespace Eigen;
 
 	std::cout << "Sphere ra:" << radius << ", ts:" << theta_steps << ", ps:" << phi_steps << std::endl;
@@ -162,7 +168,8 @@ Field * FieldFactory::spherical_field( float radius, std::size_t theta_steps, st
 }
 
 
-Field * FieldFactory::circular_field( float radius, int k ) {
+Field * 
+FieldFactory::circular_field( float radius, int k ) {
 	using namespace Eigen;
 
     pcl::PointCloud<pcl::PointNormal>::Ptr cloud (new pcl::PointCloud<pcl::PointNormal>);
@@ -190,7 +197,8 @@ Field * FieldFactory::circular_field( float radius, int k ) {
 	return new Field( cloud, k, false );
 }
 
-Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, int k) {
+Field * 
+FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, int k) {
 	using namespace Eigen;
 
 	std::cout << "Cube x:" << cube_x << ", y:" << cube_y << ", z:" << cube_z  << std::endl;
@@ -257,6 +265,4 @@ Field * FieldFactory::cubic_field( int cube_x, int cube_y, int cube_z, int k) {
 	}
 
 	return new Field( cloud, k, true );
-}
-
 }

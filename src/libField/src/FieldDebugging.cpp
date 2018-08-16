@@ -2,7 +2,7 @@
 #include <vector>
 #include <iostream>
 
-namespace animesh {
+using animesh::Field;
 
 /* ******************************************************************************************
  * **
@@ -32,12 +32,11 @@ void Field::dump(  ) const {
 /**
  * Write a Vector3f to output stream;
  */
-std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& vector) {
+std::ostream& 
+animesh::operator<<( std::ostream& os, const Eigen::Vector3f& vector) {
 	os  << "(" 
 		<< vector[0] << ", "   
 	 	<< vector[1] << ", "   
 	 	<< vector[2] << ")";
  	return os;
-}
-
 }

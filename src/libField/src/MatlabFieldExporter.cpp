@@ -1,7 +1,8 @@
 #include <Field/MatlabFieldExporter.h>
 #include <string>
 
-namespace animesh {
+using animesh::MatlabFieldExporter;
+using animesh::Field;
 
 /** 
  * Constructor 
@@ -142,7 +143,4 @@ int MatlabFieldExporter::writeVectorsHeader( std::ostream& out, const char * con
 	writeInt( out, numVectors * 3 * 4 ); 	// length
 
 	return padding;
-}
-
-
 }

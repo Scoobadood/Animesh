@@ -39,7 +39,7 @@ FieldOptimiser::FieldOptimiser(Field *field) {
     if (field == nullptr) throw_invalid_argument("Field cannot be null");
     m_field = field;
     m_graph_hierarchy.push_back(m_field->m_graph);
-    m_tracing_enabled = true;
+    m_tracing_enabled = field->is_tracing_enabled();
 }
 
 /**
@@ -267,7 +267,7 @@ void FieldOptimiser::validate_hierarchy() {
                 throw runtime_error("Validate hierarchy failed");
             }
 
-            assert( m_graph_hierarchy[tier_idx]->neighbours(gn).size() > 0 );
+//            assert( m_graph_hierarchy[tier_idx]->neighbours(gn).size() > 0 );
         }
     }
     cout << "-- Validated" << endl;

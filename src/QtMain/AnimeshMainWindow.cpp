@@ -135,7 +135,7 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
  * Load a new file, setup all the stuff
  */
 void AnimeshMainWindow::load_model_from_file(QString fileName) {
-    Field *field = load_field_from_obj_file(fileName.toStdString(), 5, true);
+    Field *field = load_field_from_obj_file(fileName.toStdString(), 5, false);
     if (field) {
         set_field(field);
         statusBar()->showMessage(tr("File loaded"), 2000);

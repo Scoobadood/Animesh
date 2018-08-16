@@ -1,4 +1,5 @@
 #include <Field/FieldElement.h>
+#include <Geom/Geom.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <pcl/point_types.h>
@@ -8,7 +9,7 @@
 
 
 
-static const float EPSILON = 1e-6;
+static const float EPSILON = 1e-4;
 namespace animesh {
 
 /**
@@ -119,8 +120,7 @@ FieldElement * FieldElement::propagateFieldElements ( const FieldElement * const
 	using namespace Eigen;
 
 	// Take the tangent from the parent and reproject into the child's tangent space and normalise
-	Vector3f error = parent->m_tangent.dot( child->m_normal ) * child->m_normal;
-	Vector3f new_tangent = (parent->m_tangent - error).normalized( );
+	Vector3f new_tangent = reproject_to_tangent_space( parent->m_tangent, child->m_normal);
 	FieldElement * new_element = const_cast<FieldElement*>(child);
 	new_element->set_tangent(new_tangent);
 	return new_element;

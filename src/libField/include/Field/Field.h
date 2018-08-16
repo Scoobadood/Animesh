@@ -85,6 +85,8 @@ public:
 
 	void enable_tracing( bool enable_tracing ) { m_tracing_enabled = enable_tracing;}
 
+	inline bool is_tracing_enabled( ) const { return m_tracing_enabled; }
+
 	/** The graph of the nodes constructed over the first pointcloud */
 	FieldGraph *							m_graph;
 

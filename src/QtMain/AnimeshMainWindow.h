@@ -66,6 +66,9 @@ private:
 
     // Poly data
     vtkSmartPointer<vtkPolyData> m_polydata;
+    vtkSmartPointer<vtkPolyData> m_polydata_main_tangents;
+    vtkSmartPointer<vtkPolyData> m_polydata_other_tangents;
+    vtkSmartPointer<vtkPolyData> m_polydata_normals;
 
     // Currently displayed level of the field graph hierarchy
     int m_current_tier;

@@ -397,25 +397,13 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
 
     //  Make empty Polydata
     m_polydata = vtkSmartPointer<vtkPolyData>::New();
+    m_polydata_normals = vtkSmartPointer<vtkPolyData>::New();
+    m_polydata_main_tangents = vtkSmartPointer<vtkPolyData>::New();
+    m_polydata_other_tangents = vtkSmartPointer<vtkPolyData>::New();
     update_poly_data();
 
-    // The depthSort object is set up to generate scalars representing
-    // the sort depth.  A camera is assigned for the sorting. The camera
-    // define the sort vector (position and focal point).
-    vtkSmartPointer<vtkDepthSortPolyData> depth_sort = vtkSmartPointer<vtkDepthSortPolyData>::New();
-    depth_sort->SetInputData(m_polydata);
-    depth_sort->SetDirectionToBackToFront();
-    depth_sort->SetVector(1, 1, 1);
-    depth_sort->SetCamera(renderer->GetActiveCamera());
-    depth_sort->SortScalarsOn();
-    depth_sort->Update();
-
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputConnection(depth_sort->GetOutputPort());
-
-    mapper->SetScalarVisibility(true);
-    mapper->SetScalarRange(0, depth_sort->GetOutput()->GetNumberOfCells());
-    // mapper->SetInputData(m_polydata);
+    mapper->SetInputData(m_polydata);
 
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     actor->SetMapper(mapper);

@@ -181,11 +181,10 @@ Eigen::Matrix3f rotation_between(	const Eigen::Vector3f& point1,
 			pyqy += (p[1] * q[1]);
 		}
 
-		float A = pxqx + pyqy;
-		float B = pyqx - pxqy;
-		float cos_phi = A / std::sqrt(A * A + B * B);
-		// We want forward rotation so theta = acos(phi) rather than -acos(phi)
-		theta = std::acos( cos_phi );
+		// tan(theta) = -(qxpy - qypx) / (pxqx+pyqy)
+		float A = pxqy - pyqx;
+		float B = pxqx + pyqy;
+		theta = atan2( A, B );
 	}
 
 	Matrix3f in_plane_rot;

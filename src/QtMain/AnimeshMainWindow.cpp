@@ -316,9 +316,96 @@ void AnimeshMainWindow::update_view() {
 }
 
 /**
- * Reconstruct the given polydata from the field
+ * Init the main tangent vector layer
  */
-void AnimeshMainWindow::update_poly_data() {
+void AnimeshMainWindow::init_neighbours_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+    m_polydata_neighbours = vtkSmartPointer<vtkPolyData>::New();
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(m_polydata_neighbours);
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetPointSize(3);
+    actor->GetProperty()->SetLineWidth(3);
+    actor->GetProperty()->SetOpacity(1.0);
+    actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(actor);
+}
+
+/**
+ * Update the secondary tangents layer
+ */
+void AnimeshMainWindow::update_neighbours_layer( ) {
+    using namespace Eigen;
+    using namespace std;
+
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+    // Create a vtkUnsignedCharArray container and store the colors in it
+    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colours->SetNumberOfComponents(3);
+
+    m_polydata_neighbours->Initialize();
+    if (m_field_optimiser != nullptr) {
+        // Get the *graph*
+        FieldGraph * graph = m_field_optimiser->graph_at_tier(m_current_tier);
+
+        // Get each GN
+        for( auto gn : graph->nodes()) {
+            const FieldElement * this_fe = m_field_optimiser->get_corresponding_fe_in_frame(m_current_frame, m_current_tier, gn->data());
+            Vector3f location = this_fe->location();
+
+            vector<FieldElement *> neighbours_at_frame0 = graph->neighbours_data( gn );
+            vector<FieldElement *> neighbours = m_field_optimiser->get_corresponding_fes_in_frame(m_current_frame, m_current_tier, neighbours_at_frame0 );
+
+            size_t num_points = neighbours.size() + 1;
+            vtkIdType pid[num_points];
+            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+            size_t i=1;
+            for( auto other_fe : neighbours ) {
+                pid[i++] = pts->InsertNextPoint(other_fe->location().x(), other_fe->location().y(), other_fe->location().z());
+            }
+            // Main tangent
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+            for (size_t i = 1; i < num_points; ++i) {
+                line = vtkSmartPointer<vtkLine>::New();
+                line->GetPointIds()->SetId(0, pid[0]);
+                line->GetPointIds()->SetId(1, pid[i]);
+                lines->InsertNextCell(line);
+                colours->InsertNextTypedTuple(named_colours->GetColor3ub("Green").GetData());
+            }
+        }
+    }
+    m_polydata_neighbours->SetPoints(pts);
+    m_polydata_neighbours->SetLines(lines);
+    m_polydata_neighbours->GetCellData()->SetScalars(colours);
+}
+
+/**
+ * Init the main tangent vector layer
+ */
+void AnimeshMainWindow::init_secondary_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+    m_polydata_other_tangents = vtkSmartPointer<vtkPolyData>::New();
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(m_polydata_other_tangents);
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetPointSize(3);
+    actor->GetProperty()->SetLineWidth(3);
+    actor->GetProperty()->SetOpacity(1.0);
+    actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(actor);
+}
+
+/**
+ * Update the secondary tangents layer
+ */
+void AnimeshMainWindow::update_secondary_tangent_vector_layer( ) {
     using namespace Eigen;
 
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
@@ -329,7 +416,7 @@ void AnimeshMainWindow::update_poly_data() {
     vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
     colours->SetNumberOfComponents(3);
 
-    m_polydata->Initialize();
+    m_polydata_other_tangents->Initialize();
     if (m_field_optimiser != nullptr) {
         std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
         for( FieldElement * fe : elements ) {
@@ -338,7 +425,80 @@ void AnimeshMainWindow::update_poly_data() {
             Vector3f tangent = fe->tangent();
 
             // Add the field node
-            vtkIdType pid[6];
+            vtkIdType pid[4];
+
+            // Add location
+            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+
+            // Add opposite tangent points
+            Vector3f p2 = location - (tangent * tan_scale_factor);
+            pid[1] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
+
+            // Compute 90 tangent
+            Vector3f ninety = tangent.cross(normal);
+            Vector3f p3 = location + (ninety * tan_scale_factor);
+            pid[2] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
+            Vector3f p4 = location - (ninety * tan_scale_factor);
+            pid[3] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
+
+            // Main tangent
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+            for (int i = 0; i < 3; ++i) {
+                line = vtkSmartPointer<vtkLine>::New();
+                line->GetPointIds()->SetId(0, pid[0]);
+                line->GetPointIds()->SetId(1, pid[i + 1]);
+                lines->InsertNextCell(line);
+                colours->InsertNextTypedTuple(named_colours->GetColor3ub("Pink").GetData());
+            }
+        }
+    }
+    m_polydata_other_tangents->SetPoints(pts);
+    m_polydata_other_tangents->SetLines(lines);
+    m_polydata_other_tangents->GetCellData()->SetScalars(colours);
+}
+
+/**
+ * Init the main tangent vector layer
+ */
+void AnimeshMainWindow::init_main_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+    m_polydata_main_tangents = vtkSmartPointer<vtkPolyData>::New();
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(m_polydata_main_tangents);
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetPointSize(3);
+    actor->GetProperty()->SetLineWidth(3);
+    actor->GetProperty()->SetOpacity(1.0);
+    actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(actor);
+}
+
+/**
+ * Update the main tangent layer
+ */
+void AnimeshMainWindow::update_main_tangent_vector_layer( ) {
+    using namespace Eigen;
+
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+    // Create a vtkUnsignedCharArray container and store the colors in it
+    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colours->SetNumberOfComponents(3);
+
+    m_polydata_main_tangents->Initialize();
+    if (m_field_optimiser != nullptr) {
+        std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
+        for( FieldElement * fe : elements ) {
+            Vector3f location = fe->location();
+            Vector3f normal = fe->normal();
+            Vector3f tangent = fe->tangent();
+
+            // Add the field node
+            vtkIdType pid[2];
 
             // Add location
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
@@ -347,70 +507,105 @@ void AnimeshMainWindow::update_poly_data() {
             Vector3f p1 = location + (tangent * tan_scale_factor);
             pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
 
-            // Add opposite tangent points
-            Vector3f p2 = location - (tangent * tan_scale_factor);
-            pid[2] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
-
-            // Compute 90 tangent
-            Vector3f ninety = tangent.cross(normal);
-            Vector3f p3 = location + (ninety * tan_scale_factor);
-            pid[3] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
-            Vector3f p4 = location - (ninety * tan_scale_factor);
-            pid[4] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-            Vector3f p5 = location + (normal * tan_scale_factor * 0.2);
-            pid[5] = pts->InsertNextPoint(p5.x(), p5.y(), p5.z());
-
             // Main tangent
             vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
             line->GetPointIds()->SetId(0, pid[0]);
             line->GetPointIds()->SetId(1, pid[1]);
             lines->InsertNextCell(line);
             colours->InsertNextTypedTuple(named_colours->GetColor3ub("Red").GetData());
+        }
+    }
+    m_polydata_main_tangents->SetPoints(pts);
+    m_polydata_main_tangents->SetLines(lines);
+    m_polydata_main_tangents->GetCellData()->SetScalars(colours);
+}
 
-            // Secondary tangents
-            for (int i = 0; i < 3; ++i) {
-                line = vtkSmartPointer<vtkLine>::New();
-                line->GetPointIds()->SetId(0, pid[0]);
-                line->GetPointIds()->SetId(1, pid[i + 2]);
-                lines->InsertNextCell(line);
-                colours->InsertNextTypedTuple(named_colours->GetColor3ub("Pink").GetData());
-            }
+/**
+ * Init the normal polydata/mapper/actor
+ */
+void AnimeshMainWindow::init_normals_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+    m_polydata_normals = vtkSmartPointer<vtkPolyData>::New();
 
-            // Normal
-            line = vtkSmartPointer<vtkLine>::New();
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputData(m_polydata_normals);
+
+    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetPointSize(3);
+    actor->GetProperty()->SetLineWidth(3);
+    actor->GetProperty()->SetOpacity(1.0);
+    actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(actor);
+}
+
+/**
+ * Update the normals layer
+ */
+void AnimeshMainWindow::update_normals_layer( ) {
+    using namespace Eigen;
+
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+    // Create a vtkUnsignedCharArray container and store the colors in it
+    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colours->SetNumberOfComponents(3);
+
+    m_polydata_normals->Initialize();
+    if (m_field_optimiser != nullptr) {
+        std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
+        for( FieldElement * fe : elements ) {
+            Vector3f location = fe->location();
+            Vector3f normal = fe->normal();
+            Vector3f tangent = fe->tangent();
+
+            vtkIdType pid[2];
+            // Add location
+            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+
+            // Add end of normal
+            Vector3f n = location + (normal * tan_scale_factor * 0.2);
+            pid[1] = pts->InsertNextPoint(n.x(), n.y(), n.z());
+
+            // Line between them
+            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
             line->GetPointIds()->SetId(0, pid[0]);
-            line->GetPointIds()->SetId(1, pid[5]);
+            line->GetPointIds()->SetId(1, pid[1]);
             lines->InsertNextCell(line);
             colours->InsertNextTypedTuple(named_colours->GetColor3ub("Yellow").GetData());
         }
     }
-    m_polydata->SetPoints(pts);
-    m_polydata->SetLines(lines);
-    m_polydata->GetCellData()->SetScalars(colours);
+    m_polydata_normals->SetPoints(pts);
+    m_polydata_normals->SetLines(lines);
+    m_polydata_normals->GetCellData()->SetScalars(colours);
+}
+
+
+
+/**
+ * Reconstruct the given polydata from the field
+ */
+void AnimeshMainWindow::update_poly_data() {
+    update_normals_layer();
+    update_main_tangent_vector_layer();
+    update_secondary_tangent_vector_layer( );
+    update_neighbours_layer( );
 }
 
 /**
  * Draw the field
  */
 vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
+
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
 
-    //  Make empty Polydata
-    m_polydata = vtkSmartPointer<vtkPolyData>::New();
-    m_polydata_normals = vtkSmartPointer<vtkPolyData>::New();
-    m_polydata_main_tangents = vtkSmartPointer<vtkPolyData>::New();
-    m_polydata_other_tangents = vtkSmartPointer<vtkPolyData>::New();
-    update_poly_data();
+    init_normals_layer( renderer );
+    init_main_tangent_vector_layer( renderer );
+    init_secondary_tangent_vector_layer( renderer );
+    init_neighbours_layer( renderer );
 
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputData(m_polydata);
+    update_poly_data( );
 
-    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(3);
-    actor->GetProperty()->SetLineWidth(3);
-    actor->GetProperty()->SetOpacity(0.5);
-    actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(actor);
     return renderer;
 }

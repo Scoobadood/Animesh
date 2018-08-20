@@ -40,6 +40,11 @@ FieldOptimiser::FieldOptimiser(Field *field) {
     m_field = field;
     m_graph_hierarchy.push_back(m_field->m_graph);
     m_tracing_enabled = field->is_tracing_enabled();
+
+    m_field_element_mappings = nullptr;
+    m_transforms = nullptr;
+    m_is_optimising = false;
+    m_optimising_current_tier = nullptr;
 }
 
 /**
@@ -75,13 +80,25 @@ const FieldElement*
 FieldOptimiser::get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const {
     using namespace std;
 
-    size_t idx = index(frame_idx, tier_idx);
+    vector<FieldElement*> source_frame_nodes;
+    vector<FieldElement*> dest_frame_nodes;
 
-    vector<FieldElement*> source = m_field_element_mappings[index(0, tier_idx)];
-    vector<FieldElement*> dest   = m_field_element_mappings[index(frame_idx, tier_idx)];
+    // If not yet allocated; dereference through m_field
+    if( m_field_element_mappings == nullptr ) {
+        source_frame_nodes = m_field->m_frame_data[0];
+        assert( frame_idx < m_field->get_num_frames());
+        dest_frame_nodes = m_field->m_frame_data[frame_idx];
+    } 
+    // Otherwise go for local copy
+    else {
+        size_t idx = index(frame_idx, tier_idx);
 
-    size_t src_idx = index_of( src_fe, source);
-    return dest[src_idx];
+        source_frame_nodes = m_field_element_mappings[index(0, tier_idx)];
+        dest_frame_nodes   = m_field_element_mappings[index(frame_idx, tier_idx)];
+    }
+
+    size_t src_idx = index_of( src_fe, source_frame_nodes);
+    return dest_frame_nodes[src_idx];
 }
 
 

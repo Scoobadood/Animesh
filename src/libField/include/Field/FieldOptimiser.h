@@ -53,6 +53,9 @@ public:
     const FieldElement*
     get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const;
 
+    std::vector<FieldElement*> 
+    get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const;
+
     std::vector<FieldElement*>
     get_elements_at( size_t frame_idx, size_t tier_idx ) const;
 
@@ -60,6 +63,9 @@ private:
     void 
     set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent );
     
+    std::vector<FieldElement *> 
+    copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const;
+
     /**
     * Validate that building the hoerarchy did not generate any crappy data
     */
@@ -69,8 +75,6 @@ private:
     * Validate that building the hoerarchy did not generate any crappy data
     */
     void validate_correspondences();
-
-    std::vector<FieldElement *> copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const;
 
     /**
      * @return the index of the FE in the given vector or throw
@@ -157,8 +161,6 @@ private:
     void build_transforms( );
 
     size_t index(size_t frame_idx, size_t tier_idx) const;
-
-    std::vector<FieldElement*> get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const;
 
     Field *                             m_field;
 

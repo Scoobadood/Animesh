@@ -42,6 +42,41 @@ private:
 
         // VTK Handling
     void update_poly_data();
+    /**
+     * Init the normal polydata/mapper/actor
+     */
+    void init_normals_layer( vtkSmartPointer<vtkRenderer> renderer );
+
+    /**
+     * Update the normals layer
+     */
+    void update_normals_layer( );
+    /**
+     * Init the main tangent layer
+     */
+    void init_main_tangent_vector_layer(vtkSmartPointer<vtkRenderer> renderer );
+    /**
+     * Update the main tangent layer
+     */
+    void update_main_tangent_vector_layer( );
+    /**
+     * Init the main tangent vector layer
+     */
+    void init_secondary_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer );
+    /**
+     * Update the secondary tangents layer
+     */
+    void update_secondary_tangent_vector_layer( );
+
+    /**
+     * Init the main tangent vector layer
+     */
+    void init_neighbours_layer( vtkSmartPointer<vtkRenderer> renderer );
+
+    /**
+     * Update the secondary tangents layer
+     */
+    void update_neighbours_layer( );
 
     vtkSmartPointer<vtkRenderer> set_up_renderer();
 
@@ -69,6 +104,7 @@ private:
     vtkSmartPointer<vtkPolyData> m_polydata_main_tangents;
     vtkSmartPointer<vtkPolyData> m_polydata_other_tangents;
     vtkSmartPointer<vtkPolyData> m_polydata_normals;
+    vtkSmartPointer<vtkPolyData> m_polydata_neighbours;
 
     // Currently displayed level of the field graph hierarchy
     int m_current_tier;

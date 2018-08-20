@@ -107,7 +107,7 @@ void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
 */
 void AnimeshMainWindow::on_sbFrameNumber_valueChanged(int new_frame_number) {
     // Frame should be zero based, dispaly is 1 based
-    if( m_current_frame != new_frame_number - 1 ) {
+    if ( m_current_frame != new_frame_number - 1 ) {
         m_current_frame = new_frame_number - 1;
         view_changed();
     }
@@ -130,6 +130,54 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
     m_current_tier = m_field_optimiser->optimising_tier_index();
     view_changed();
 }
+
+void AnimeshMainWindow::on_cbMainTangent_stateChanged(int enabled) {
+    std::cout << "Toggle main tangent " << enabled << std::endl;
+    if (!enabled) {
+        m_main_tangents_actor->VisibilityOff();
+    }
+    else {
+        m_main_tangents_actor->VisibilityOn();
+    }
+    ui->qvtkWidget->GetRenderWindow()->Render();
+}
+
+void AnimeshMainWindow::on_cbSecondaryTangents_stateChanged(int enabled)
+{
+    std::cout << "Toggle secondary tangent " << enabled << std::endl;
+    if (!enabled) {
+        m_other_tangents_actor->VisibilityOff();
+    }
+    else {
+        m_other_tangents_actor->VisibilityOn();
+    }
+    ui->qvtkWidget->GetRenderWindow()->Render();
+}
+
+void AnimeshMainWindow::on_cbNormals_stateChanged(int enabled)
+{
+    std::cout << "Toggle normals " << enabled << std::endl;
+    if (!enabled) {
+        m_normals_actor->VisibilityOff();
+    }
+    else {
+        m_normals_actor->VisibilityOn();
+    }
+    ui->qvtkWidget->GetRenderWindow()->Render();
+}
+
+void AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled)
+{
+    std::cout << "Toggle neighbours " << enabled << std::endl;
+    if (!enabled) {
+        m_neighbours_actor->VisibilityOff();
+    }
+    else {
+        m_neighbours_actor->VisibilityOn();
+    }
+    ui->qvtkWidget->GetRenderWindow()->Render();
+}
+
 
 /**
  * Load a new file, setup all the stuff
@@ -165,7 +213,7 @@ void AnimeshMainWindow::load_new_frame(QString file_name) {
 void AnimeshMainWindow::compute_scale() {
     assert( m_field != nullptr);
     float sum = 0.0f;
-    for( auto edge : m_field->m_graph->edges()) {
+    for ( auto edge : m_field->m_graph->edges()) {
         Eigen::Vector3f v1 = edge->from_node( )->data()->location();
         Eigen::Vector3f v2 = edge->to_node( )->data()->location();
         Eigen::Vector3f diff = v2 - v1;
@@ -240,10 +288,10 @@ void AnimeshMainWindow::disable_frame_counter( ) {
 }
 
 void AnimeshMainWindow::update_frame_counter( ) {
-    if( m_field != nullptr ) {
+    if ( m_field != nullptr ) {
         int num_frames = m_field->get_num_frames();
         // If there are no (other) frames
-        if( num_frames == 0 ) {
+        if ( num_frames == 0 ) {
             disable_frame_counter();
         }
         // Otherwise ...
@@ -251,11 +299,11 @@ void AnimeshMainWindow::update_frame_counter( ) {
             // We start numbering at 1.
             ui->sbFrameNumber->setMinimum(1);
             ui->sbFrameNumber->setMaximum(num_frames);
-            if( m_current_frame >= num_frames) {
+            if ( m_current_frame >= num_frames) {
                 m_current_frame = 0;
-                ui->sbFrameNumber->setValue(m_current_frame+1);
+                ui->sbFrameNumber->setValue(m_current_frame + 1);
             }
-            if( num_frames > 0 ) {
+            if ( num_frames > 0 ) {
                 ui->sbFrameNumber->setEnabled(true);
             } else {
                 ui->sbFrameNumber->setEnabled(false);
@@ -267,7 +315,7 @@ void AnimeshMainWindow::update_frame_counter( ) {
 }
 
 // Populate inspector
-// -- Get the number of graph levels and set the 
+// -- Get the number of graph levels and set the
 //    min and max values of the spinner
 //    set current level to bottom
 //    updte spinner value
@@ -297,9 +345,9 @@ void AnimeshMainWindow::update_inspector() {
         ui->sbGraphLevel->setValue(m_current_tier);
 
         ui->txtNodeCount->setText(
-                QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
+            QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
         ui->txtEdgeCount->setText(
-                QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
+            QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
 
         ui->txtResidual->setText(QString::number(m_field_optimiser->current_error(m_current_tier)));
     }
@@ -324,13 +372,12 @@ void AnimeshMainWindow::init_neighbours_layer( vtkSmartPointer<vtkRenderer> rend
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputData(m_polydata_neighbours);
 
-    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(3);
-    actor->GetProperty()->SetLineWidth(3);
-    actor->GetProperty()->SetOpacity(1.0);
-    actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(actor);
+    m_neighbours_actor = vtkSmartPointer<vtkActor>::New();
+    m_neighbours_actor->SetMapper(mapper);
+    m_neighbours_actor->GetProperty()->SetPointSize(3);
+    m_neighbours_actor->GetProperty()->SetLineWidth(3);
+    m_neighbours_actor->GetProperty()->SetOpacity(1.0);
+    renderer->AddActor(m_neighbours_actor);
 }
 
 /**
@@ -354,7 +401,7 @@ void AnimeshMainWindow::update_neighbours_layer( ) {
         FieldGraph * graph = m_field_optimiser->graph_at_tier(m_current_tier);
 
         // Get each GN
-        for( auto gn : graph->nodes()) {
+        for ( auto gn : graph->nodes()) {
             const FieldElement * this_fe = m_field_optimiser->get_corresponding_fe_in_frame(m_current_frame, m_current_tier, gn->data());
             Vector3f location = this_fe->location();
 
@@ -364,8 +411,8 @@ void AnimeshMainWindow::update_neighbours_layer( ) {
             size_t num_points = neighbours.size() + 1;
             vtkIdType pid[num_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
-            size_t i=1;
-            for( auto other_fe : neighbours ) {
+            size_t i = 1;
+            for ( auto other_fe : neighbours ) {
                 pid[i++] = pts->InsertNextPoint(other_fe->location().x(), other_fe->location().y(), other_fe->location().z());
             }
             // Main tangent
@@ -393,13 +440,13 @@ void AnimeshMainWindow::init_secondary_tangent_vector_layer( vtkSmartPointer<vtk
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputData(m_polydata_other_tangents);
 
-    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(3);
-    actor->GetProperty()->SetLineWidth(3);
-    actor->GetProperty()->SetOpacity(1.0);
-    actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(actor);
+    m_other_tangents_actor = vtkSmartPointer<vtkActor>::New();
+    m_other_tangents_actor->SetMapper(mapper);
+    m_other_tangents_actor->GetProperty()->SetPointSize(3);
+    m_other_tangents_actor->GetProperty()->SetLineWidth(3);
+    m_other_tangents_actor->GetProperty()->SetOpacity(1.0);
+    m_other_tangents_actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(m_other_tangents_actor);
 }
 
 /**
@@ -419,7 +466,7 @@ void AnimeshMainWindow::update_secondary_tangent_vector_layer( ) {
     m_polydata_other_tangents->Initialize();
     if (m_field_optimiser != nullptr) {
         std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
-        for( FieldElement * fe : elements ) {
+        for ( FieldElement * fe : elements ) {
             Vector3f location = fe->location();
             Vector3f normal = fe->normal();
             Vector3f tangent = fe->tangent();
@@ -466,13 +513,13 @@ void AnimeshMainWindow::init_main_tangent_vector_layer( vtkSmartPointer<vtkRende
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputData(m_polydata_main_tangents);
 
-    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(3);
-    actor->GetProperty()->SetLineWidth(3);
-    actor->GetProperty()->SetOpacity(1.0);
-    actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(actor);
+    m_main_tangents_actor = vtkSmartPointer<vtkActor>::New();
+    m_main_tangents_actor->SetMapper(mapper);
+    m_main_tangents_actor->GetProperty()->SetPointSize(3);
+    m_main_tangents_actor->GetProperty()->SetLineWidth(3);
+    m_main_tangents_actor->GetProperty()->SetOpacity(1.0);
+    m_main_tangents_actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(m_main_tangents_actor);
 }
 
 /**
@@ -492,7 +539,7 @@ void AnimeshMainWindow::update_main_tangent_vector_layer( ) {
     m_polydata_main_tangents->Initialize();
     if (m_field_optimiser != nullptr) {
         std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
-        for( FieldElement * fe : elements ) {
+        for ( FieldElement * fe : elements ) {
             Vector3f location = fe->location();
             Vector3f normal = fe->normal();
             Vector3f tangent = fe->tangent();
@@ -529,13 +576,13 @@ void AnimeshMainWindow::init_normals_layer( vtkSmartPointer<vtkRenderer> rendere
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputData(m_polydata_normals);
 
-    vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
-    actor->SetMapper(mapper);
-    actor->GetProperty()->SetPointSize(3);
-    actor->GetProperty()->SetLineWidth(3);
-    actor->GetProperty()->SetOpacity(1.0);
-    actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(actor);
+    m_normals_actor = vtkSmartPointer<vtkActor>::New();
+    m_normals_actor->SetMapper(mapper);
+    m_normals_actor->GetProperty()->SetPointSize(3);
+    m_normals_actor->GetProperty()->SetLineWidth(3);
+    m_normals_actor->GetProperty()->SetOpacity(1.0);
+    m_normals_actor->GetProperty()->SetColor(1, 0, 0);
+    renderer->AddActor(m_normals_actor);
 }
 
 /**
@@ -555,7 +602,7 @@ void AnimeshMainWindow::update_normals_layer( ) {
     m_polydata_normals->Initialize();
     if (m_field_optimiser != nullptr) {
         std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
-        for( FieldElement * fe : elements ) {
+        for ( FieldElement * fe : elements ) {
             Vector3f location = fe->location();
             Vector3f normal = fe->normal();
             Vector3f tangent = fe->tangent();

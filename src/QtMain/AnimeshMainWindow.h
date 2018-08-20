@@ -106,6 +106,12 @@ private:
     vtkSmartPointer<vtkPolyData> m_polydata_normals;
     vtkSmartPointer<vtkPolyData> m_polydata_neighbours;
 
+    // Actors
+    vtkSmartPointer<vtkActor> m_main_tangents_actor;
+    vtkSmartPointer<vtkActor> m_other_tangents_actor;
+    vtkSmartPointer<vtkActor> m_normals_actor;
+    vtkSmartPointer<vtkActor> m_neighbours_actor;
+
     // Currently displayed level of the field graph hierarchy
     int m_current_tier;
 
@@ -132,6 +138,10 @@ private slots:
     void on_btnSmoothCompletely_clicked();
 
     void on_btnSmoothOnce_clicked();
+    void on_cbMainTangent_stateChanged(int arg1);
+    void on_cbSecondaryTangents_stateChanged(int arg1);
+    void on_cbNormals_stateChanged(int arg1);
+    void on_cbNeighbours_stateChanged(int arg1);
 };
 
 #endif // ANIMESHMAINWINDOW_H

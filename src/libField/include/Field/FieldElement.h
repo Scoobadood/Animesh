@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <pcl/point_types.h>
 
 namespace animesh {
 
@@ -16,13 +15,6 @@ private:
 	Eigen::Vector3f		m_tangent;
 
 public:
-
-	/**
-	 * Construct a FieldElement given a pcl::PointNormal
-	 * @param pointNormal The pcl::PointNormal
-	 * @return Ptr to a FieldElement
-	 */
-	static FieldElement * from_point( const pcl::PointNormal& point );
 
 	/**
 	 * Construct a FieldElement with a given location and normal. This will generate a random tangent which 

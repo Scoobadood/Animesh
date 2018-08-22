@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <Graph/Graph.h>
 #include <Eigen/Core>
@@ -36,20 +36,20 @@ public:
 	/**
 	 * @return vector of elements in frame.
 	 */
-	const std::vector<FieldElement *>& 
-	elements( size_t frame_idx ) const;
+	std::vector<FieldElement *>&
+	elements( size_t frame_idx );
 
 
 	/* ******************************************************************************************
 	 * *
 	 * *  Multi Frame Support
-	 * * 
+	 * *
 	 * ******************************************************************************************/
 
 	/**
 	 * Add a point cloud for another frame
 	 * @param cloud The point cloud to be added.
-	 */ 
+	 */
 	void
 	add_new_frame(const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals);
 
@@ -57,7 +57,7 @@ public:
 	 * Get the vector elements neighbouring the given node at the specific time point.
 	 * @param fe The FieldElement who's neighbours should be returned
 	 * @param time_point The neighbouring FieldElements
-	 * @return vector of elements 
+	 * @return vector of elements
 	 */
 	std::vector<FieldElement *> get_neighbours_of( FieldElement * fe, size_t frame_idx ) const;
 
@@ -70,7 +70,7 @@ public:
 	/* ******************************************************************************************
 	 * *
 	 * *  IO
-	 * * 
+	 * *
 	 * ******************************************************************************************/
 	void dump( ) const;
 
@@ -79,10 +79,10 @@ public:
 	inline bool is_tracing_enabled( ) const { return m_tracing_enabled; }
 
 	/** The graph of the nodes constructed over the first pointcloud */
-	FieldGraph *							m_graph;
+	FieldGraph *									m_graph;
 
 	/** Point data for each frame();								*/
-	std::vector<std::vector<FieldElement *>> m_frame_data;
+	std::vector<std::vector<FieldElement *>> 		m_frame_data;
 
 private:
 	/**
@@ -90,13 +90,13 @@ private:
 	 * @param frame
 	 */
 	void inline check_frame( size_t frame ) const {
-        if (frame > get_num_frames()) {
-        	std::string err = "Frame out of range : " + std::to_string(frame);
-            throw std::invalid_argument(err);
-        }
-    }
+		if (frame > get_num_frames()) {
+			std::string err = "Frame out of range : " + std::to_string(frame);
+			throw std::invalid_argument(err);
+		}
+	}
 
-    /** Flag to determine if we should trace field moothing */
+	/** Flag to determine if we should trace field moothing */
 	bool 											m_tracing_enabled;
 
 	/** Maintain a mapping between FieldElements and GraphNodes */
@@ -105,7 +105,7 @@ private:
 /* ******************************************************************************************
  * *
  * *  Utility Functions
- * * 
+ * *
  * ******************************************************************************************/
 
 std::ostream& operator<<( std::ostream& os, const Eigen::Vector3f& fe);

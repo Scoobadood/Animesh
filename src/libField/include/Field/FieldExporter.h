@@ -15,6 +15,6 @@ public:
 	/**
 	 * Export the field
 	 */
-	virtual void exportField( const Field& field ) const =0;
+	virtual void exportField( Field& field ) const =0;
 };
 }

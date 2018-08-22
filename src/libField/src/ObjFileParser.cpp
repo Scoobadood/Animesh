@@ -91,11 +91,7 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 	for( size_t i = 0; i < num_vertices; ++i ) {
 		m_vertices.push_back(defined_vertices[i]);
 
-		Vector3f vn = computed_normals[i];
-		cout << "Normalising this : " << vn[0] << " " << vn[1] << " " << vn[2] << endl;
-		vn.normalize();
-		cout << "Gives this : " << vn[0] << " " << vn[1] << " " << vn[2] << "(norm is :" << vn.norm() << ")" << endl;
-		assert( abs(vn.norm() - 1.0f) < EPSILON);
+		Vector3f vn = computed_normals[i].normalized();
 		m_normals.push_back(vn);
 
 		vector<size_t> adj;

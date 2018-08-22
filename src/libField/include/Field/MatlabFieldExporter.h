@@ -22,7 +22,7 @@ public:
 	/**
  	 * Export the field
  	 */
-	void exportField( const Field& field ) const override;
+	void exportField( Field& field ) const override;
 
 
 private:

@@ -1,4 +1,5 @@
 #include <QtWidgets>
+#include <Eigen/Geometry>
 
 #include "AnimeshMainWindow.h"
 

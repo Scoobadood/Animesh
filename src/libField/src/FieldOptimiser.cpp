@@ -1,12 +1,16 @@
 #include <Field/FieldOptimiser.h>
+#include <Field/Checks.h>
+
 #include <Field/Field.h>
 #include <RoSy/RoSy.h>
+#include <Eigen/Geometry>
 
 #define throw_invalid_argument(msg) \
     throw std::invalid_argument(msg " at " __FILE__ ":" + std::to_string(__LINE__))
 #define throw_runtime_error(msg) \
     throw std::runtime_error(msg " at " __FILE__ ":" + std::to_string(__LINE__))
 
+const float EPSILON = 1e-4;
 const int MAX_ITERS_PER_TIER = 20;
 const float CONVERGENCE_THRESHOLD = 0.5f;
 const int SMOOTH_EDGES = 10;
@@ -19,24 +23,11 @@ using animesh::FieldElement;
 using animesh::FieldOptimiser;
 using animesh::FieldGraphSimplifier;
 
-FieldElement * 
-animesh::back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv) {
-    using namespace Eigen; 
-    
-    Vector3f new_normal = (minv * fe->normal()).normalized();
-    Vector3f new_tangent = (minv * fe->tangent());
-    new_tangent = reproject_to_tangent_space( new_tangent, new_normal);
-    // TODO: Need to deal with locations at some future time.
-    FieldElement * new_fe = new FieldElement(fe->location(), new_normal, new_tangent);
-    return new_fe;
-}
-
-
 /**
  * Construct with a Field to be optimised
  */
 FieldOptimiser::FieldOptimiser(Field *field) {
-    if (field == nullptr) throw_invalid_argument("Field cannot be null");
+    assert(field != nullptr);
     m_field = field;
     m_graph_hierarchy.push_back(m_field->m_graph);
     m_tracing_enabled = field->is_tracing_enabled();
@@ -47,14 +38,27 @@ FieldOptimiser::FieldOptimiser(Field *field) {
     m_optimising_current_tier = nullptr;
 }
 
+FieldElement * 
+animesh::back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv) {
+    assert(fe != nullptr);
+    checkRotationMatrix("Back transform", minv);
+
+    using namespace Eigen; 
+    
+    Vector3f new_normal = (minv * fe->normal()).normalized();
+    Vector3f new_tangent = (minv * fe->tangent());
+    new_tangent = reproject_to_tangent_space( new_tangent, new_normal);
+    // TODO: Need to deal with locations at some future time.
+    FieldElement * new_fe = new FieldElement(fe->location(), new_normal, new_tangent);
+    return new_fe;
+}
+
 /**
  * @return the index for data given a frame and tier number
  */
 size_t FieldOptimiser::index(size_t frame_idx, size_t tier_idx) const {
-    if (frame_idx > m_field->get_num_frames())
-        throw_invalid_argument("frame_idx is invalid");
-    if (tier_idx > m_graph_hierarchy.size()) 
-        throw_invalid_argument("tier_idx is invalid");
+    assert(tier_idx < m_graph_hierarchy.size());
+    assert(frame_idx < m_field->get_num_frames());
 
     return tier_idx * m_field->get_num_frames() + frame_idx;
 }
@@ -65,7 +69,7 @@ size_t FieldOptimiser::index(size_t frame_idx, size_t tier_idx) const {
  * @return A vector of field elements.
  */
 std::vector<FieldElement*>
-FieldOptimiser::get_corresponding_fes_in_frame(size_t frame_idx, size_t  tier_idx, std::vector<FieldElement*> fes) const {
+FieldOptimiser::get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const {
     std::vector<FieldElement*> vec;
     for( FieldElement * fe : fes ) {
         vec.push_back(const_cast<FieldElement*>(get_corresponding_fe_in_frame( frame_idx, tier_idx, fe)));
@@ -80,24 +84,16 @@ const FieldElement*
 FieldOptimiser::get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const {
     using namespace std;
 
+    assert(src_fe != nullptr);
+
+    if( frame_idx == 0 ) return src_fe;
+
     vector<FieldElement*> source_frame_nodes;
-    vector<FieldElement*> dest_frame_nodes;
-
-    // If not yet allocated; dereference through m_field
-    if( m_field_element_mappings == nullptr ) {
-        source_frame_nodes = m_field->m_frame_data[0];
-        assert( frame_idx < m_field->get_num_frames());
-        dest_frame_nodes = m_field->m_frame_data[frame_idx];
-    } 
-    // Otherwise go for local copy
-    else {
-        size_t idx = index(frame_idx, tier_idx);
-
-        source_frame_nodes = m_field_element_mappings[index(0, tier_idx)];
-        dest_frame_nodes   = m_field_element_mappings[index(frame_idx, tier_idx)];
-    }
-
+    source_frame_nodes = get_elements_at(0, tier_idx);
     size_t src_idx = index_of( src_fe, source_frame_nodes);
+
+    vector<FieldElement*> dest_frame_nodes;
+    dest_frame_nodes   = get_elements_at(frame_idx, tier_idx);
     return dest_frame_nodes[src_idx];
 }
 
@@ -119,8 +115,9 @@ FieldOptimiser::build_equivalent_fes( ) {
 
     // Copy the tier zero stuff directly from field
     for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-        size_t idx = index(frame_idx,0);
-        m_field_element_mappings[idx].insert(m_field_element_mappings[idx].end(),m_field->elements(idx).begin(), m_field->elements(idx).end() );
+        size_t idx = index(frame_idx, 0);
+        vector<FieldElement*> tier_0_elements = m_field->elements(frame_idx);
+        tier_0_elements.insert(tier_0_elements.end(), m_field->elements(idx).begin(), m_field->elements(idx).end() );
     }
 
     // For each other tier of the graph hierarchy
@@ -150,7 +147,7 @@ FieldOptimiser::build_equivalent_fes( ) {
                 } else {
                     throw_runtime_error( "Expected only one or two children" );
                 }
-                m_field_element_mappings[ index(frame_idx, tier_idx)].push_back( frame_idx_parent );
+                m_field_element_mappings[index(frame_idx, tier_idx)].push_back( frame_idx_parent );
             }
         }
     }
@@ -161,11 +158,10 @@ FieldOptimiser::build_equivalent_fes( ) {
  * if not found.
  */
 size_t FieldOptimiser::index_of( const FieldElement *fe, const std::vector<FieldElement *>& elements ) const {
+    assert(fe != nullptr);
+    assert(elements.size() > 0 );
     auto it = std::find( elements.begin(), elements.end(), fe);
-
-    if (it == elements.end())
-        throw_runtime_error("FieldElement not found in vector");
-
+    assert(it != elements.end());
     return it - elements.begin();
 }
 /**
@@ -173,14 +169,12 @@ size_t FieldOptimiser::index_of( const FieldElement *fe, const std::vector<Field
  * if not found.
  */
 size_t FieldOptimiser::index_of( const FieldGraphNode *gn, const std::vector<FieldGraphNode *>& nodes ) const {
+    assert(gn != nullptr);
+    assert(nodes.size() > 0 );
     auto it = std::find( nodes.begin(), nodes.end(), gn);
-
-    if (it == nodes.end())
-        throw_runtime_error("GraphNode not found in vector");
-
+    assert(it != nodes.end());
     return it - nodes.begin();
 }
-
 
 /**
  * Given a set of corresponding field elements for each frame and tier, and a graph of neighbours, compute the
@@ -230,7 +224,7 @@ FieldOptimiser::build_transforms( ) {
                     neighbour_points_2.push_back(other_fe_neighbours[i]->location());
                 }
                 Matrix3f m = rotation_between(point1, normal1, neighbour_points_1, point2, normal2, neighbour_points_2);
-                m_transforms[index(frame_idx, tier_idx)].push_back( m );
+                get_transforms_at(frame_idx, tier_idx).push_back( m );
             }
         }
     }
@@ -263,28 +257,18 @@ void FieldOptimiser::validate_hierarchy() {
     using namespace std;
     using namespace Eigen;
 
-    float EPSILON = 1e-4;
-
     cout << "Validating hierarchy..." << endl;
     for( size_t tier_idx = 0; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
         size_t node_idx = 0;
         for( auto gn : m_graph_hierarchy[tier_idx]->nodes()) {
             Vector3f tangent = gn->data()->tangent();
             Vector3f normal  = gn->data()->normal();
-            if( abs(normal.norm() - 1.0f ) > EPSILON ) {
-                cout << "Tier : " << tier_idx << ", node : " << node_idx << " failed normal unit length test" << normal << "(" << normal.norm() << ")" << endl;
-                throw runtime_error("Validate hierarchy failed");
-            }
-            if( abs(tangent.norm() - 1.0f) > EPSILON ) {
-                cout << "Tier : " << tier_idx << ", node : " << node_idx << " failed tangent unit length test" << tangent << "(" << tangent.norm() << ")" <<endl;
-                throw runtime_error("Validate hierarchy failed");
-            }
-            if( abs(tangent.dot( normal))  > EPSILON ) {
-                cout << "Tier : " << tier_idx << ", node : " << node_idx << " failed perpendicularity test" << endl;
-                throw runtime_error("Validate hierarchy failed");
-            }
-
-//            assert( m_graph_hierarchy[tier_idx]->neighbours(gn).size() > 0 );
+            string normal_name = "Tier " + to_string(tier_idx) + ", node " + to_string(node_idx) + " normal";
+            string tangent_name = "Tier " + to_string(tier_idx) + ", node " + to_string(node_idx) + " tangent";
+            checkUnitLength(normal_name, normal);
+            checkUnitLength(tangent_name, tangent);
+            checkPerpendicular(normal_name, normal, tangent_name, tangent);
+            assert( m_graph_hierarchy[tier_idx]->neighbours(gn).size() > 0 );
         }
     }
     cout << "-- Validated" << endl;
@@ -297,17 +281,15 @@ void FieldOptimiser::validate_correspondences() {
     using namespace std;
     using namespace Eigen;
 
-    float EPSILON = 1e-1;
-
     size_t num_frames = m_field->get_num_frames();
     cout << "Validating correspondences..." << endl;
     for( size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
-        vector<FieldElement *> fe0s  = m_field_element_mappings[index(0, tier_idx)];
+        vector<FieldElement *> fe0s  = get_elements_at( 0, tier_idx);
 
         for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
             size_t idx = index(frame_idx, tier_idx);
 
-            vector<FieldElement*> fes = m_field_element_mappings[idx];
+            vector<FieldElement*> fes = get_elements_at(frame_idx, tier_idx);
             vector<Matrix3f> xforms = m_transforms[idx];
 
             for( size_t node_idx = 0; node_idx < fes.size(); ++node_idx ) {
@@ -324,18 +306,12 @@ void FieldOptimiser::validate_correspondences() {
                 Matrix3f minv = m.inverse();
                 Vector3f back_normal = minv * normal;
 
-                if( abs(normal.norm() - 1.0f ) > EPSILON ) {
-                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal unit length test" << normal << "(" << normal.norm() << ")" << endl;
-                    throw runtime_error("Validate correspondences failed");
-                }
-                if( abs(tangent.norm() - 1.0f) > EPSILON ) {
-                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed tangent unit length test" << tangent << "(" << tangent.norm() << ")" <<endl;
-                    throw runtime_error("Validate correspondences failed");
-                }
-                if( abs(tangent.dot( normal)) > EPSILON ) {
-                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed perpendicularity test" << endl;
-                    throw runtime_error("Validate correspondences failed");
-                }
+                string normal_name = "Tier " + to_string(tier_idx) + ", frame " + to_string(frame_idx) + ", node " + to_string(node_idx) + " normal";
+                string tangent_name = "Tier " + to_string(tier_idx) + ", frame " + to_string(frame_idx) + ", node " + to_string(node_idx) + " tangent";
+
+                checkUnitLength(normal_name, normal);
+                checkUnitLength(tangent_name, tangent);
+                checkPerpendicular(normal_name, normal, tangent_name, tangent);
                 Vector3f delta = back_normal - normal0;
                 if( abs(delta.norm() ) > EPSILON ) {
                     cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal back projection test (diff)" << endl;
@@ -422,12 +398,12 @@ void
 FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent ) {
     using namespace Eigen;
 
-    size_t idx = index(frame_idx, tier_idx);
-    FieldElement * fe = m_field_element_mappings[idx][node_idx];
+    FieldElement * fe = get_elements_at(frame_idx, tier_idx)[node_idx];
+    assert( fe != nullptr);
 
     if( frame_idx > 0 ) {
         // Need to forward xform 
-        Matrix3f m = m_transforms[idx][node_idx];
+        Matrix3f m = get_transforms_at(frame_idx, tier_idx)[node_idx];
         Vector3f t1 = m * tangent;
         Vector3f t2 = reproject_to_tangent_space( t1, fe->normal() );
         fe->set_tangent(t2);
@@ -444,13 +420,11 @@ FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx,
 void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<int>& node_indices ) {
     using namespace Eigen;
 
-    if( tier_idx >= m_graph_hierarchy.size() )
-        throw_invalid_argument("tier_idx is out of range" );
+    assert( tier_idx < m_graph_hierarchy.size() );
 
     FieldGraph * fg = graph_at_tier(tier_idx);
 
     size_t num_frames = m_field->get_num_frames();
-
 
     for( auto node_idx : node_indices ) {
         Vector3f new_tan = new_tangents[node_idx];
@@ -579,10 +553,14 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
     using namespace std;
     using namespace Eigen;
 
+    assert( gn != nullptr);
+    assert( tier_idx < m_graph_hierarchy.size());
+
+
     vector<FieldElement *> all_neighbours;
 
     // Get the index of the fe in frame 0 of this tier
-    vector<FieldElement*> fem = m_field_element_mappings[index(0, tier_idx)];
+    vector<FieldElement*> fem = get_elements_at(0, tier_idx);
     size_t node_idx = index_of( gn->data(), fem );
 
     //  Copy spatial neighbours unchanged
@@ -606,6 +584,7 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
             all_neighbours.push_back( new_fe);
         }
     }
+    assert( all_neighbours.size() > 0 );
     return all_neighbours;
 }
 
@@ -649,18 +628,27 @@ FieldOptimiser::calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn
     return new_tangent;
 }
 
-std::vector<FieldElement*> 
+std::vector<FieldElement*>&
 FieldOptimiser::get_elements_at( size_t frame_idx, size_t tier_idx ) const {
     assert( m_field != nullptr);
-    std::cout << "get_elements_at( " << frame_idx << ", " << tier_idx << ")" << std::endl;
 
-    // If the graph has expanded, use local vars, otherwise use field vars
-    if(m_graph_hierarchy.size() == 1 ) {
-        assert( tier_idx == 0 );
+    // If tier is 0, use field_Data
+    if(tier_idx == 0 ) {
+        assert( m_field->elements(frame_idx ).size() > 0 );
         return m_field->elements(frame_idx );
     } else {
-        return m_field_element_mappings[ index( frame_idx, tier_idx)];    
+        size_t idx = index( frame_idx, tier_idx);
+        assert( m_field_element_mappings[idx].size() > 0 );
+        return m_field_element_mappings[idx];
     }
+}
+
+std::vector<Eigen::Matrix3f>&
+FieldOptimiser::get_transforms_at( size_t frame_idx, size_t tier_idx ) const {
+    assert( m_field != nullptr);
+    assert( m_transforms != nullptr );
+
+    return m_transforms[ index( frame_idx, tier_idx)];
 }
 
 /**

@@ -1,4 +1,5 @@
 #include <Field/FieldElement.h>
+#include <Field/Checks.h>
 #include <Geom/geom.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -9,35 +10,6 @@
 static const float EPSILON = 1e-4;
 
 using animesh::FieldElement;
-
-/**
- * Check that a vector is of unit length or throw
- */
-void checkUnitLength( std::string vector_name, Eigen::Vector3f vector ) {
-	using namespace std;
-
-	assert ( abs(vector.norm() - 1.0) <= EPSILON );
-	if ( abs(vector.norm() - 1.0) > EPSILON ) {
-		stringstream buffer;
-		buffer << vector_name << " [" << vector[0] << ", " << vector[1] << ", " << vector[2] << "] is not unit length";
-		throw invalid_argument(buffer.str() + " at " __FILE__ ":" + to_string(__LINE__));
-	}
-}
-
-/**
- * Check that two vectors are perpendicular or throw
- */
-void checkPerpendicular( std::string vec1_name, Eigen::Vector3f vec1, std::string vec2_name, Eigen::Vector3f vec2 ) {
-	using namespace std;
-	
-	assert ( abs(vec1.dot( vec2) ) <= EPSILON );
-	if ( abs(vec1.dot( vec2) ) > EPSILON ) {
-		stringstream buffer;
-		buffer << vec1_name << " [" << vec1[0] << ", " << vec1[1] << ", " << vec1[2] << "] and " << vec2_name << " [" << vec2[0] << ", " << vec2[1] << ", " << vec2[2] << "] are not perpendicular";
-
-		throw invalid_argument(buffer.str() + " at " __FILE__ ":" + to_string(__LINE__));
-	}
-}
 
 /**
  * Construct a FieldElement with a given location and normal. This will generate a random tangent which

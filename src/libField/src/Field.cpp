@@ -32,7 +32,7 @@ make_field_elements_from_point_data(const std::vector<Eigen::Vector3f>& vertices
 
     std::vector<FieldElement *> elements;
 
-    for (size_t i=0; i<vertices.size(); ++i) {
+    for (size_t i = 0; i < vertices.size(); ++i) {
         elements.push_back(new FieldElement( vertices[i], normals[i]));
     }
     return elements;
@@ -65,7 +65,7 @@ Field::Field( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Ei
     vector<FieldElement *> fes = make_field_elements_from_point_data(vertices, normals );
     m_frame_data.push_back(fes);
 
-    for( auto fe : fes) {
+    for ( auto fe : fes) {
         FieldGraphNode *gn = m_graph->add_node(fe);
 
         // Keep a (long term) mapping from FE to GN
@@ -73,17 +73,17 @@ Field::Field( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Ei
     }
 
     // Add edges
-    for(size_t src_node_idx=0; src_node_idx<vertices.size(); ++src_node_idx) {
+    for (size_t src_node_idx = 0; src_node_idx < vertices.size(); ++src_node_idx) {
         FieldElement * src_fe = fes[src_node_idx];
         FieldGraphNode * src_node = m_graphnode_for_field_element.at(src_fe);
 
-        for(size_t adj_idx=0; adj_idx < adjacency[src_node_idx].size(); ++adj_idx) {
+        for (size_t adj_idx = 0; adj_idx < adjacency[src_node_idx].size(); ++adj_idx) {
             size_t dest_node_idx = adjacency[src_node_idx][adj_idx];
             FieldElement * dest_fe = fes[dest_node_idx];
             FieldGraphNode * dest_node = m_graphnode_for_field_element.at(dest_fe);
 
             // Construct edge
-            if( ! m_graph->has_edge(src_node, dest_node) ) {
+            if ( ! m_graph->has_edge(src_node, dest_node) ) {
                 m_graph->add_edge(src_node, dest_node, 1.0f, nullptr);
             }
         }
@@ -109,8 +109,8 @@ Field::size() const {
 /**
  * Return vector of elements
  */
-const std::vector<FieldElement *>&
-Field::elements( size_t frame_idx) const {
+std::vector<FieldElement *>&
+Field::elements( size_t frame_idx) {
     check_frame(frame_idx);
     return m_frame_data[frame_idx];
 }
@@ -140,7 +140,7 @@ Field::add_new_frame(const std::vector<Eigen::Vector3f>& vertices, const std::ve
  * @param frame_idx The neighbouring FieldElements
  * @return vector of elements
  */
-std::vector<FieldElement *> 
+std::vector<FieldElement *>
 Field::get_neighbours_of(FieldElement *fe, size_t frame_idx) const {
     using namespace std;
 

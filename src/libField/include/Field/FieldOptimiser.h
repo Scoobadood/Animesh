@@ -56,9 +56,11 @@ public:
     std::vector<FieldElement*> 
     get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const;
 
-    std::vector<FieldElement*>
+    std::vector<FieldElement*>&
     get_elements_at( size_t frame_idx, size_t tier_idx ) const;
 
+    std::vector<Eigen::Matrix3f>&
+    get_transforms_at( size_t frame_idx, size_t tier_idx ) const;
 private:
     void 
     set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent );

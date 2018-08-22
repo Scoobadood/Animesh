@@ -2,8 +2,6 @@
 
 #include <Graph/Graph.h>
 #include <Eigen/Core>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
 
 #include <Field/FieldElement.h>
 
@@ -24,16 +22,9 @@ class Field {
 
 public:
 	/**
-	 * Construct from a PCL PointCloud
+	 * Construct a Field given vectors of vertices and their normals as well as adjacency.
 	 */
-	Field( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k = 5, bool tracing_enabled = false );
-
-	/**
-	 * Construct from multiple PCL PointClouds
-	 */
-	// Field( const std::vector<pcl::PointCloud<pcl::PointNormal>::Ptr> clouds, int k = 5, bool tracing_enabled = false );
-
-	Field( const std::string file_name, int k, bool tracing_enabled = false );
+	Field( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals, const std::vector<std::vector<size_t>>& adjacency );
 
 	~Field( );
 
@@ -59,8 +50,8 @@ public:
 	 * Add a point cloud for another frame
 	 * @param cloud The point cloud to be added.
 	 */ 
-	void add_new_frame( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud );
-
+	void
+	add_new_frame(const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals);
 
 	/**
 	 * Get the vector elements neighbouring the given node at the specific time point.
@@ -94,15 +85,6 @@ public:
 	std::vector<std::vector<FieldElement *>> m_frame_data;
 
 private:
-	/**
-	 * Used in the cinstruction of a Field. Adds the points and builds a map from
-	 * points to GraphNode to facilitate nearest neighbour calculations.
-	 * @param cloud The point cloud to add.
-	 * @return the mapping
-	 */
-	std::map<pcl::PointNormal, FieldGraphNode*, cmpPointNormal> * 
-	add_points_from_cloud( const pcl::PointCloud<pcl::PointNormal>::Ptr cloud);
-
 	/**
 	 *  Throw an exception if the frame is out of range
 	 * @param frame

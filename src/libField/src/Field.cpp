@@ -4,7 +4,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <pcl/kdtree/kdtree_flann.h>
 
 #include <iostream>
 #include <queue>
@@ -23,46 +22,18 @@ using FieldGraphNode = typename animesh::Graph<FieldElement *, void *>::GraphNod
  * **  Utility functions
  * **
  * ******************************************************************************************/
-bool 
-operator==(const pcl::PointNormal &point1, const pcl::PointNormal &point2) {
-    return (point1.x == point2.x) &&
-           (point1.y == point2.y) &&
-           (point1.z == point2.z) &&
-           (point1.normal_x == point2.normal_x) &&
-           (point1.normal_y == point2.normal_y) &&
-           (point1.normal_z == point2.normal_z);
-}
-
-/*
- * Comparator for pcl::PointNormal instances
- */
-struct animesh::cmpPointNormal {
-    bool operator()(const pcl::PointNormal &a, const pcl::PointNormal &b) const {
-        if (a.x < b.x) return true;
-        if (a.x > b.x) return false;
-        if (a.y < b.y) return true;
-        if (a.y > b.y) return false;
-        if (a.z < b.z) return true;
-        if (a.z > b.z) return false;
-
-        if (a.normal_x < b.normal_x) return true;
-        if (a.normal_x > b.normal_x) return false;
-        if (a.normal_y < b.normal_y) return true;
-        if (a.normal_y > b.normal_y) return false;
-        if (a.normal_z < b.normal_z) return true;
-
-        return false;
-    }
-};
-
 /**
- * Construct a vector of FieldElements from a point cloud of PointNormals
+ * Construct a vector of FieldElements from vectors of vertices and normals.
  */
 std::vector<FieldElement *>
-make_field_elements_from_point_cloud(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud) {
+make_field_elements_from_point_data(const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals ) {
+    assert( vertices.size() != 0);
+    assert( normals.size() == vertices.size());
+
     std::vector<FieldElement *> elements;
-    for (auto point : *cloud) {
-        elements.push_back(FieldElement::from_point(point));
+
+    for (size_t i=0; i<vertices.size(); ++i) {
+        elements.push_back(new FieldElement( vertices[i], normals[i]));
     }
     return elements;
 }
@@ -75,114 +46,48 @@ make_field_elements_from_point_cloud(const pcl::PointCloud<pcl::PointNormal>::Pt
  * ******************************************************************************************/
 
 /**
- * Add points to graph while maintaining a map from point to Graphnode
- * @return the mapping
+ * Construct a Field given vectors of vertices and their normals as well as adjacency.
  */
-std::map<pcl::PointNormal, FieldGraphNode *, animesh::cmpPointNormal> *
-Field::add_points_from_cloud(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud) {
+Field::Field( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals, const std::vector<std::vector<size_t>>& adjacency ) {
     using namespace std;
-    using namespace pcl;
+    using namespace Eigen;
 
-    // Convert points to FieldElements
-    assert(m_frame_data.size() == 0 );
-    m_frame_data.push_back( make_field_elements_from_point_cloud(cloud));
+    // Preconditions
+    assert( vertices.size() != 0);
+    assert( normals.size() == vertices.size());
+    assert( adjacency.size() == vertices.size());
 
-    // And add to graph, maintaining a mapping
-    size_t fe_idx = 0;
-    map<PointNormal, FieldGraphNode *, cmpPointNormal> *point_to_gn_map = new map<PointNormal, FieldGraphNode *, cmpPointNormal>();
-
-    for (auto point : *cloud) {
-        FieldGraphNode *gn = m_graph->add_node(m_frame_data[0][fe_idx]);
-
-        // Keep a (long term) mapping from FE to GN
-        m_graphnode_for_field_element[m_frame_data[0][fe_idx]] = gn;
-
-        // Keep a mapping from point to gn
-        (*point_to_gn_map)[point] = gn;
-        fe_idx++;
-    }
-    if (m_tracing_enabled)
-        cout << "Added " << point_to_gn_map->size() << " points" << endl;
-    return point_to_gn_map;
-}
-
-/**
- * Construct a field given a point cloud
- */
-Field::Field(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud, int k, bool tracing_enabled) {
-    using namespace pcl;
-    using namespace std;
-
-    m_tracing_enabled = tracing_enabled;
 
     // First make an empty FieldGraph
     m_graph = new FieldGraph();
 
-    // Next add points, converting as necessary
-    map<PointNormal, FieldGraphNode *, cmpPointNormal> *point_to_gn_map = add_points_from_cloud(cloud);
+    // Convert data to FEs
+    vector<FieldElement *> fes = make_field_elements_from_point_data(vertices, normals );
+    m_frame_data.push_back(fes);
 
-    // Set up for kNN
-    KdTreeFLANN<PointNormal> kdtree;
-    kdtree.setInputCloud(cloud);
-    vector<int> knnNeighbourIndices(k);
-    vector<float> knnNeighbourDistances(k);
+    for( auto fe : fes) {
+        FieldGraphNode *gn = m_graph->add_node(fe);
 
-    // Keep track of points visited
-    set<PointNormal, cmpPointNormal> visited;
-
-    // For each point, construct edges
-    for (auto this_point : *cloud) {
-        if (m_tracing_enabled)
-            cout << "Processing point " << this_point << endl;
-
-        // Look up GN
-        FieldGraphNode *this_gn = point_to_gn_map->at(this_point);
-
-        // Now find neighbours
-        knnNeighbourIndices.clear();
-        knnNeighbourDistances.clear();
-        if (kdtree.nearestKSearch(this_point, k, knnNeighbourIndices, knnNeighbourDistances) > 0) {
-
-            if (m_tracing_enabled) {
-                cout << "  Found " << knnNeighbourIndices.size() << " neighbours :" << endl;
-                size_t point_index = 0;
-                for (size_t i : knnNeighbourIndices) {
-                    PointNormal neighbour_point = cloud->points[i];
-                    cout << "    Point: " << neighbour_point << ";  GN "
-                         << point_to_gn_map->at(neighbour_point) << endl;
-                }
-                cout << "  Looking at neighbours" << endl;
-            }
-
-            // ... and add edges to them
-            for (int i : knnNeighbourIndices) {
-                PointNormal neighbour_point = cloud->points[i];
-                if (m_tracing_enabled)
-                    cout << "    next point is " << neighbour_point << endl;
-
-                // Provided the eighbour isn't this point
-                if (!(neighbour_point == this_point)) {
-                    // If the neighbour GN is not found... throw
-                    FieldGraphNode *neighbour_gn = point_to_gn_map->at(neighbour_point);
-
-                    if (m_tracing_enabled)
-                        cout << "    Adding edge to " << neighbour_point << endl;
-
-                    // Construct edge
-                    m_graph->add_edge(this_gn, neighbour_gn, 1.0f, nullptr);
-                } else {
-                    if (m_tracing_enabled)
-                        cout << "    Ignoring me as my own neighbour" << endl;
-                }
-            }
-        } else {
-            throw std::runtime_error("No neighbours found for a point. This shouldn't happen");
-        }
+        // Keep a (long term) mapping from FE to GN
+        m_graphnode_for_field_element[fe] = gn;
     }
 
-    // FieldGraph is built
-    cout << "Done" << endl;
+    // Add edges
+    for(size_t src_node_idx=0; src_node_idx<vertices.size(); ++src_node_idx) {
+        FieldElement * src_fe = fes[src_node_idx];
+        FieldGraphNode * src_node = m_graphnode_for_field_element.at(src_fe);
+
+        for(size_t adj_idx=0; adj_idx < adjacency[src_node_idx].size(); ++adj_idx) {
+            size_t dest_node_idx = adjacency[src_node_idx][adj_idx];
+            FieldElement * dest_fe = fes[dest_node_idx];
+            FieldGraphNode * dest_node = m_graphnode_for_field_element.at(dest_fe);
+
+            // Construct edge
+            m_graph->add_edge(src_node, dest_node, 1.0f, nullptr);
+        }
+    }
 }
+
 
 /**
  * Destructor for fields
@@ -219,13 +124,10 @@ Field::elements( size_t frame_idx) const {
  * Add a point cloud for the next point in time.
  * For now we assume that the second point cloud is the same size as the current one and that
  * points in the cloud are in correspondence with the current list of FieldElements
- *
- * @param cloud The point cloud to be added for the next time point.
  */
 void
-Field::add_new_frame(const pcl::PointCloud<pcl::PointNormal>::Ptr cloud) {
-    // Construct a vector of FieldElements from points in the cloud
-    std::vector<FieldElement *> new_elements = make_field_elements_from_point_cloud(cloud);
+Field::add_new_frame(const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals) {
+    std::vector<FieldElement *> new_elements = make_field_elements_from_point_data(vertices, normals);
     assert(new_elements.size() == m_frame_data[0].size() );
     m_frame_data.push_back(new_elements);
 }

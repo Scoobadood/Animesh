@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <Field/Field.h>
 #include <Field/FieldOptimiser.h>
-
+#include <Field/ObjFileParser.h>
 
 #include "vtkObject.h"
 #include "vtkPolyData.h"
@@ -40,8 +40,6 @@ private:
 
     void update_frame_counter( );
 
-        // VTK Handling
-    void update_poly_data();
     /**
      * Init the normal polydata/mapper/actor
      */
@@ -78,6 +76,11 @@ private:
      */
     void update_neighbours_layer( );
 
+    /**
+     * Reconstruct the given polydata from the field
+     */
+    void update_poly_data( );
+
     vtkSmartPointer<vtkRenderer> set_up_renderer();
 
     void set_field(animesh::Field *field);
@@ -100,7 +103,6 @@ private:
     animesh::FieldOptimiser *m_field_optimiser;
 
     // Poly data
-    vtkSmartPointer<vtkPolyData> m_polydata;
     vtkSmartPointer<vtkPolyData> m_polydata_main_tangents;
     vtkSmartPointer<vtkPolyData> m_polydata_other_tangents;
     vtkSmartPointer<vtkPolyData> m_polydata_normals;
@@ -124,10 +126,6 @@ private:
 private slots:
 
     void on_action_open_triggered();
-
-    void on_action_poly_triggered();
-
-    void on_action_plane_triggered();
 
     void on_action_add_frame_triggered();
 

@@ -2,7 +2,6 @@
 #include <Geom/geom.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <pcl/point_types.h>
 
 #define throw_invalid_argument(msg) \
     throw std::invalid_argument(msg " at " __FILE__ ":" + std::to_string(__LINE__))
@@ -38,21 +37,6 @@ void checkPerpendicular( std::string vec1_name, Eigen::Vector3f vec1, std::strin
 
 		throw invalid_argument(buffer.str() + " at " __FILE__ ":" + to_string(__LINE__));
 	}
-}
-
-/**
- * Construct a FieldElement given a pcl::PointNormal
- * @param pointNormal The pcl::PointNormal
- * @return Ptr to a FieldElement
- */
-FieldElement * FieldElement::from_point( const pcl::PointNormal& point ) {
-	Eigen::Vector3f location{ point.x, point.y, point.z};
-	Eigen::Vector3f normal { point.normal_x, point.normal_y, point.normal_z};
-
-	checkUnitLength("Normal", normal);
-
-	FieldElement * fe = new FieldElement( location, normal);
-	return fe;
 }
 
 /**

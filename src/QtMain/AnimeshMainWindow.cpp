@@ -1,7 +1,6 @@
 #include <QtWidgets>
 
 #include "AnimeshMainWindow.h"
-#include <Field/FieldFactory.h>
 
 #include "ui_AnimeshMainWindow.h"
 
@@ -37,14 +36,19 @@
 using animesh::Field;
 using animesh::FieldOptimiser;
 using animesh::FieldElement;
-using animesh::FieldFactory;
 using animesh::FieldGraph;
-using animesh::load_field_from_obj_file;
 
 AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow) {
     m_field = nullptr;
     m_field_optimiser = nullptr;
-    m_polydata = nullptr;
+    m_polydata_main_tangents = nullptr;
+    m_polydata_other_tangents = nullptr;
+    m_polydata_normals = nullptr;
+    m_polydata_neighbours = nullptr;
+    m_main_tangents_actor = nullptr;
+    m_other_tangents_actor = nullptr;
+    m_normals_actor = nullptr;
+    m_neighbours_actor = nullptr;
     m_current_tier = 0;
     m_current_frame = 0;
 
@@ -73,19 +77,6 @@ void AnimeshMainWindow::on_action_open_triggered() {
     if (!fileName.isEmpty()) {
         load_model_from_file(fileName);
     }
-}
-
-//
-// On select prefab:
-// -- Create field
-// -- Populate inspector
-// -- update render view
-void AnimeshMainWindow::on_action_poly_triggered() {
-    set_field(FieldFactory::polynomial_field(10, 10, 1, 5));
-}
-
-void AnimeshMainWindow::on_action_plane_triggered() {
-    set_field(FieldFactory::planar_field(10, 10, 1, 5));
 }
 
 void AnimeshMainWindow::on_action_add_frame_triggered() {
@@ -182,8 +173,9 @@ void AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled)
 /**
  * Load a new file, setup all the stuff
  */
-void AnimeshMainWindow::load_model_from_file(QString fileName) {
-    Field *field = load_field_from_obj_file(fileName.toStdString(), 5, false);
+void AnimeshMainWindow::load_model_from_file(QString file_name) {
+    ObjFileParser parser{file_name.toStdString()};
+    Field *field = new Field( parser.m_vertices, parser.m_normals, parser.m_adjacency );
     if (field) {
         set_field(field);
         statusBar()->showMessage(tr("File loaded"), 2000);
@@ -196,14 +188,10 @@ void AnimeshMainWindow::load_model_from_file(QString fileName) {
  * Load a new file, setup all the stuff
  */
 void AnimeshMainWindow::load_new_frame(QString file_name) {
-    pcl::PointCloud<pcl::PointNormal>::Ptr cloud = animesh::load_pointcloud_from_obj(file_name.toStdString());
-    if (cloud) {
-        m_field->add_new_frame(cloud);
-        update_frame_counter();
-        statusBar()->showMessage(tr("Added frame"), 2000);
-    } else {
-        statusBar()->showMessage(tr("Error loading file"), 2000);
-    }
+    ObjFileParser parser{file_name.toStdString()};
+    m_field->add_new_frame(parser.m_vertices, parser.m_normals);
+    update_frame_counter();
+    statusBar()->showMessage(tr("Added frame"), 2000);
 }
 
 /**

@@ -1,5 +1,6 @@
-#include <ObjFileParser.h>
+#include <Field/ObjFileParser.h>
 #include <FileUtils/FileUtils.h>
+#include <iostream>
 
 template <typename Out>
 void split(const std::string &s, char delim, Out result) {
@@ -19,28 +20,35 @@ std::vector<std::string> split(const std::string &s, char delim) {
 
 ObjFileParser::ObjFileParser(std::string file_name) {
 	using namespace std;
+	using namespace Eigen;
 
-	vector<vec3> 			defined_vertices;
-	vector<vec3> 			defined_normals;
+	vector<Vector3f>		defined_vertices;
+	vector<Vector3f> 		defined_normals;
 	vector<int>  			face_vertex_idx;
 	vector<int>  			face_normal_idx;
 	vector<vector<size_t>>	adjacency;
 
 	process_file_by_lines( file_name, [&](const string& line){
 		if (line[0] == 'v' ) {
+			// Normals
 			if( line[1] == 'n') {
 				istringstream iss (line);
 				string ss;
 				float x,y,z;
 				iss >> ss >> x >> y >> z;
-				vec3 vn{x, y, z};
+				Vector3f vn{x, y, z};
+				cout << "vn " << x << " " << y << " " << z << endl;
+				assert( abs(vn.norm() - 1.0f) < 1e-6 );
 				defined_normals.push_back(vn);
-			} else {
+			} 
+			// Vertices
+			else {
 				istringstream iss (line);
 				string ss;
 				float x,y,z;
 				iss >> ss >> x >> y >> z;
-				vec3 v{x, y, z};
+				Vector3f v{x, y, z};
+				cout << "v  " << x << " " << y << " " << z << endl;
 				defined_vertices.push_back(v);
 			}
 		} else if( line[0] == 'f' ) {
@@ -50,80 +58,54 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 			while( idx < tokens.size()) {
 				// Form is int/int/int
 				vector<string> terms = split( tokens[idx], '/');
-				int v_idx = stoi(terms[0]);
-				int vn_idx = stoi(terms[2]);
-				face_vertex_idx.push_back(v_idx-1);
-				face_normal_idx.push_back(vn_idx-1);
-				verts.push_back(v_idx-1);
+				int v_idx = stoi(terms[0]) - 1;
+				int vn_idx = stoi(terms[2]) - 1;
+				face_vertex_idx.push_back(v_idx);
+				face_normal_idx.push_back(vn_idx);
+				verts.push_back(v_idx);
 				idx++;
 			}
 			adjacency.push_back(verts);
 		}
 	});
 
+	// Compute vertex normals from face normals
 	size_t num_vertices = defined_vertices.size();
-	vec3 *computed_normals = new vec3[num_vertices];
-
+	Vector3f *computed_normals = new Vector3f[num_vertices];
 	for( size_t i = 0; i < face_vertex_idx.size(); ++i ) {
-		int vertex_idx = face_vertex_idx[i];
-		assert( vertex_idx >= 0 && vertex_idx < num_vertices);
+		size_t vertex_idx = face_vertex_idx[i];
+		assert( vertex_idx < num_vertices);
 
-		int normal_idx = face_normal_idx[i];
-		assert( normal_idx >= 0 && normal_idx < defined_normals.size());
+		size_t normal_idx = face_normal_idx[i];
+		assert( normal_idx < defined_normals.size());
 
-		vec3 current_norm = computed_normals[vertex_idx];
-		vec3 addin_norm = defined_normals[normal_idx];
-		current_norm.x += addin_norm.x;
-		current_norm.y += addin_norm.y;
-		current_norm.z += addin_norm.z;
-		computed_normals[vertex_idx] = current_norm;
+		computed_normals[vertex_idx] += defined_normals[normal_idx];
 	}
 
+	// Stash verts and norms
 	for( size_t i = 0; i < num_vertices; ++i ) {
-		vec3 v = defined_vertices[i];
-		m_vertices.push_back(v);
+		m_vertices.push_back(defined_vertices[i]);
 
-		vec3 vn = computed_normals[i];
-		float len = std::sqrt(vn.x*vn.x + vn.y*vn.y + vn.z*vn.z);
-		assert( len > 1e-6 );
-		vn.x /= len;
-		vn.y /= len;
-		vn.z /= len;
+		Vector3f vn = computed_normals[i].normalized();
+		assert( abs(vn.norm() - 1.0f) < 1e-6);
 		m_normals.push_back(vn);
 
 		vector<size_t> adj;
-		m_adjacency.push_back(adj)
+		m_adjacency.push_back(adj);
+		std::cout << i << ":" << vn << std::endl;
 	}
 	delete [] computed_normals;
 
 	// Finally compute adjacency
 	for( auto adj : adjacency ) {
 		size_t n = adj.size();
-		for( size_t idx=0; i<n; ++i ) {
+		for( size_t idx=0; idx < n; ++idx ) {
 			size_t first = adj[idx];
+			assert( first < num_vertices);
 			size_t second = adj[(idx + 1) % n];
+			assert( second < num_vertices);
 			m_adjacency[first].push_back(second);
 			m_adjacency[second].push_back(first);
 		}
 	}
-}
-
-size_t 
-ObjFileParser::num_vertices() const {
-	return m_vertices.size();
-}
-
-vec3
-ObjFileParser::vertex_at(size_t i) const {
-	return m_vertices[i];
-}
-
-vec3
-ObjFileParser::normal_at(size_t i) const {
-	return m_normals[i];
-}
-
-std::vector<size_t> 
-ObjFileParser::vertices_adjacent_to(size_t i) const {
-	return m_adjacency[i];
 }

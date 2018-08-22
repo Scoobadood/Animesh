@@ -1,29 +1,13 @@
 #include <vector>
 #include <string>
+#include <Eigen/Core>
 
 class ObjFileParser {
 public:
-	struct vec3 {
-		float x, y, z;
-		vec3( ) {
-			x = 0.0f;
-			y = 0.0f;
-			z = 0.0f;
-		}
-		vec3( float x, float y, float z ) {
-			this->x = x;
-			this->y = y;
-			this->z = z;
-		}
-	};
 
-size_t num_vertices() const;
-vec3 vertex_at(size_t i) const;
-vec3 normal_at(size_t i) const;
-std::vector<size_t> vertices_adjacent_to(size_t i) const;
+	ObjFileParser(std::string file_name);
 
-private:
-	std::vector<vec3>				m_vertices;
-	std::vector<vec3>				m_normals;
-	std::vector<std::vector<int>>	m_adjacency;
-}
+	std::vector<Eigen::Vector3f>		m_vertices;
+	std::vector<Eigen::Vector3f>		m_normals;
+	std::vector<std::vector<size_t>>	m_adjacency;
+};

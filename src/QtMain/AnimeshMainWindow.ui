@@ -287,10 +287,6 @@
      <string>File</string>
     </property>
     <addaction name="action_open"/>
-    <addaction name="action_poly"/>
-    <addaction name="action_plane"/>
-    <addaction name="action_cube"/>
-    <addaction name="action_sphere"/>
     <addaction name="separator"/>
     <addaction name="action_add_frame"/>
     <addaction name="separator"/>

@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 
-const float EPSILON = 1e-6;
+const float EPSILON = 1e-4;
 
 
 /**

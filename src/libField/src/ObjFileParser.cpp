@@ -2,6 +2,8 @@
 #include <FileUtils/FileUtils.h>
 #include <iostream>
 
+const float EPSILON = 1e-4;
+
 template <typename Out>
 void split(const std::string &s, char delim, Out result) {
     std::stringstream ss(s);
@@ -38,7 +40,7 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 				iss >> ss >> x >> y >> z;
 				Vector3f vn{x, y, z};
 				cout << "vn " << x << " " << y << " " << z << endl;
-				assert( abs(vn.norm() - 1.0f) < 1e-6 );
+				assert( abs(vn.norm() - 1.0f) < EPSILON );
 				defined_normals.push_back(vn);
 			} 
 			// Vertices
@@ -72,6 +74,9 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 	// Compute vertex normals from face normals
 	size_t num_vertices = defined_vertices.size();
 	Vector3f *computed_normals = new Vector3f[num_vertices];
+	for( size_t i=0; i < num_vertices; ++i ) {
+		computed_normals[i] = Vector3f::Zero();
+	}
 	for( size_t i = 0; i < face_vertex_idx.size(); ++i ) {
 		size_t vertex_idx = face_vertex_idx[i];
 		assert( vertex_idx < num_vertices);
@@ -86,8 +91,11 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 	for( size_t i = 0; i < num_vertices; ++i ) {
 		m_vertices.push_back(defined_vertices[i]);
 
-		Vector3f vn = computed_normals[i].normalized();
-		assert( abs(vn.norm() - 1.0f) < 1e-6);
+		Vector3f vn = computed_normals[i];
+		cout << "Normalising this : " << vn[0] << " " << vn[1] << " " << vn[2] << endl;
+		vn.normalize();
+		cout << "Gives this : " << vn[0] << " " << vn[1] << " " << vn[2] << "(norm is :" << vn.norm() << ")" << endl;
+		assert( abs(vn.norm() - 1.0f) < EPSILON);
 		m_normals.push_back(vn);
 
 		vector<size_t> adj;

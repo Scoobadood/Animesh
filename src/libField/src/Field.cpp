@@ -83,7 +83,9 @@ Field::Field( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Ei
             FieldGraphNode * dest_node = m_graphnode_for_field_element.at(dest_fe);
 
             // Construct edge
-            m_graph->add_edge(src_node, dest_node, 1.0f, nullptr);
+            if( ! m_graph->has_edge(src_node, dest_node) ) {
+                m_graph->add_edge(src_node, dest_node, 1.0f, nullptr);
+            }
         }
     }
 }

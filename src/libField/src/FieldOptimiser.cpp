@@ -263,7 +263,7 @@ void FieldOptimiser::validate_hierarchy() {
     using namespace std;
     using namespace Eigen;
 
-    float EPSILON = 1e-6;
+    float EPSILON = 1e-4;
 
     cout << "Validating hierarchy..." << endl;
     for( size_t tier_idx = 0; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {

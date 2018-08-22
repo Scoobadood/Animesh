@@ -3,7 +3,7 @@
 #include <RoSy/RoSy.h>
 #include <Field/Field.h>
 
-const float EPSILON = 1e-6;
+const float EPSILON = 1e-4;
 
 /**
  * @param targetVector The vector we're trying to match

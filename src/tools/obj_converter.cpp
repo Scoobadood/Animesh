@@ -6,6 +6,8 @@
 #include <iterator>
 #include <cmath>
 
+const float EPSILON = 1e-4;
+
 struct vec3 {
 	float x, y, z;
 	vec3( ) {
@@ -107,7 +109,7 @@ int main( int argc, char * argv[] ) {
 			vec3 vn = computed_normals[i];
 
 			float len = std::sqrt(vn.x*vn.x + vn.y*vn.y + vn.z*vn.z);
-			assert( len > 1e-6 );
+			assert( len > EPSILON );
 			vn.x /= len;
 			vn.y /= len;
 			vn.z /= len;

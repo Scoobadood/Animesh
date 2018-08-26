@@ -36,6 +36,9 @@ FieldOptimiser::FieldOptimiser(Field *field) {
     m_transforms = nullptr;
     m_is_optimising = false;
     m_optimising_current_tier = nullptr;
+    for( size_t i = 0; i < m_field->get_num_frames(); ++i ) {
+        m_include_frames.push_back(true);
+    }
 }
 
 FieldElement * 
@@ -63,6 +66,13 @@ size_t FieldOptimiser::index(size_t frame_idx, size_t tier_idx) const {
     return tier_idx * m_field->get_num_frames() + frame_idx;
 }
 
+/**
+ * Include or exclude the frame from smoothing.
+ */
+void
+FieldOptimiser::enable_frame(size_t frame_idx, bool enable) {
+    m_include_frames[frame_idx] = enable;
+}
 
 /**
  * Find the FEs which correspond to the input vector but in the given frame and tier.
@@ -516,10 +526,32 @@ FieldOptimiser::optimise() {
 }
 
 /**
+ * Randomise the field. Can only be performed when the field is not in the process of being optimised.
+ */
+void FieldOptimiser::randomise() {
+    checkCanRandomise();
+
+    for( auto fe : m_field->elements(0)) {
+        fe->randomise_tangent();
+    }
+}
+
+
+/**
+ * Return if the optimising is not mid optimisation and has
+ */
+ void FieldOptimiser::checkCanRandomise() {
+    if( m_field == nullptr) throw_runtime_error("Field not set.");
+    if(m_is_optimising) throw_runtime_error("Can't randomise during optimisation");
+ }
+
+
+/**
  * @return true if the optimisation operation has converged
  * (or has iterated enough times)
  * otherwise return false
  */
+
 bool
 FieldOptimiser::check_convergence(float new_error) {
     float delta = m_optimising_last_error - new_error;
@@ -573,6 +605,9 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
 
     //  Copy temporal neighbours transformed to current frame
     for (size_t frame_idx = 1; frame_idx < m_field->get_num_frames(); ++frame_idx) {
+        if(!m_include_frames[frame_idx] )
+            continue;
+
         // Get my own transformation matrix for this frame
         Matrix3f m = m_transforms[index(frame_idx, tier_idx)][node_idx];
         Matrix3f minv = m.inverse();

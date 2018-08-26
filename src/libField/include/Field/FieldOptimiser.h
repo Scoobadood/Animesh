@@ -26,6 +26,15 @@ public:
     void optimise();
 
     /**
+     * Randomise the field. Can only be performed when the field is not in the process of being optimised.
+     */
+    void randomise();
+    /**
+     * Return if the optimising is not mid optimisation and has
+    */
+    void checkCanRandomise();
+
+    /**
      * Perform one step of omptimisation
      */
     void optimise_one_step();
@@ -61,12 +70,21 @@ public:
 
     std::vector<Eigen::Matrix3f>&
     get_transforms_at( size_t frame_idx, size_t tier_idx ) const;
+
+    void
+    enable_frame(size_t frame_idx, bool enable);
+
+    inline bool is_optimising() const {
+        return m_is_optimising;
+    }
+
 private:
     void 
     set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent );
     
     std::vector<FieldElement *> 
     copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const;
+
 
     /**
     * Validate that building the hoerarchy did not generate any crappy data
@@ -173,6 +191,8 @@ private:
     std::vector<FieldElement*>   *      m_field_element_mappings;
     std::vector<Eigen::Matrix3f> *      m_transforms;
 
+    /** Flags to determine whether or not to include a frame in smoothing ops. */
+    std::vector<bool>                   m_include_frames;
 
     /** Flag to determine if we should trace field moothing */
     bool m_tracing_enabled;

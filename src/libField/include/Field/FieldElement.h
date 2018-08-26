@@ -49,6 +49,9 @@ public:
 
 	/** Setters */
 	void set_tangent( const Eigen::Vector3f& tangent );
+
+	/** Generate a random tangent, perpendicular to the normal */
+	void randomise_tangent();
 };
 /**
  * Write a FieldElement to a stream

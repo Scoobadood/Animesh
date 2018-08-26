@@ -36,7 +36,13 @@ private:
 
     void setCurrentFile(const QString &fileName);
 
-    void disable_frame_counter( );
+    /**
+     *
+     */
+    void set_current_frame( size_t new_frame_idx );
+
+
+        void disable_frame_counter( );
 
     void update_frame_counter( );
 
@@ -75,6 +81,8 @@ private:
      * Update the secondary tangents layer
      */
     void update_neighbours_layer( );
+
+    void update_frame_range( );
 
     /**
      * Reconstruct the given polydata from the field
@@ -118,7 +126,7 @@ private:
     int m_current_tier;
 
     // Currently displayed frame
-    int m_current_frame;
+    size_t m_current_frame;
 
     // Length to use for tangents
     float tan_scale_factor = 1.0f;
@@ -126,20 +134,16 @@ private:
 private slots:
 
     void on_action_open_triggered();
-
     void on_action_add_frame_triggered();
-
     void on_sbGraphLevel_valueChanged(int new_graph_level);
-
-    void on_sbFrameNumber_valueChanged(int new_frame_number);
-
     void on_btnSmoothCompletely_clicked();
-
     void on_btnSmoothOnce_clicked();
     void on_cbMainTangent_stateChanged(int arg1);
     void on_cbSecondaryTangents_stateChanged(int arg1);
     void on_cbNormals_stateChanged(int arg1);
     void on_cbNeighbours_stateChanged(int arg1);
+    void on_cb_include_frame_stateChanged(int arg1);
+    void on_hs_frame_selector_valueChanged(int value);
 };
 
 #endif // ANIMESHMAINWINDOW_H

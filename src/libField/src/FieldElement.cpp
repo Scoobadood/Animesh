@@ -15,7 +15,7 @@ using animesh::FieldElement;
  * Construct a FieldElement with a given location and normal. This will generate a random tangent which
  * is of unit length and perpendicular to the normal.
  * @param location The 3D location of the element in space.
- * @param normal A unit vector in the dircetion of the normal to the point
+ * @param normal A unit vector in the direction of the normal to the point
  */
 FieldElement::FieldElement( const Eigen::Vector3f& location,  const Eigen::Vector3f& normal ) {
 	using namespace std;
@@ -93,6 +93,13 @@ void FieldElement::set_tangent( const Eigen::Vector3f& tangent ) {
 	checkPerpendicular("Tangent", tangent, "Normal", m_normal);
 	m_tangent = tangent;
 }
+
+
+/** Generate a random tangent, perpendicular to the normal */
+void FieldElement::randomise_tangent() {
+	m_tangent = (Eigen::Vector3f::Random().cross(m_normal)).normalized();
+}
+
 
 /**
  * Write a FieldElement to a stream

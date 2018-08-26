@@ -56,6 +56,7 @@ AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(
     ui->setupUi(this);
 
     disable_inspector();
+    disable_frame_counter( );
 
     // VTK/Qt wedded
     ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer());
@@ -95,16 +96,6 @@ void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
     view_changed();
 }
 
-/** Up or down a level in the graph
-*/
-void AnimeshMainWindow::on_sbFrameNumber_valueChanged(int new_frame_number) {
-    // Frame should be zero based, dispaly is 1 based
-    if ( m_current_frame != new_frame_number - 1 ) {
-        m_current_frame = new_frame_number - 1;
-        view_changed();
-    }
-}
-
 void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
     assert(m_field);
     assert(m_field_optimiser);
@@ -118,8 +109,12 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
     assert(m_field);
     assert(m_field_optimiser);
 
+    ui->btnRandomise->setEnabled(false);
     m_field_optimiser->optimise_one_step();
     m_current_tier = m_field_optimiser->optimising_tier_index();
+    if (!m_field_optimiser->is_optimising()) {
+        ui->btnRandomise->setEnabled(true);
+    }
     view_changed();
 }
 
@@ -171,6 +166,47 @@ void AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled)
 }
 
 
+void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
+    set_current_frame( new_frame_idx - 1 );
+}
+
+void AnimeshMainWindow::on_cb_include_frame_stateChanged(int enabled) {
+    assert( m_field_optimiser != nullptr );
+
+    if( m_current_frame != 0 ) {
+        m_field_optimiser->enable_frame(m_current_frame, enabled != 0);
+    }
+}
+
+
+void AnimeshMainWindow::on_btnRandomise_clicked() {
+    m_field_optimiser->randomise();
+    view_changed();
+}
+
+/* ********************************************************************************
+ *
+ *   Load a new file, setup all the stuff
+ *
+ * ********************************************************************************/
+
+/**
+ *
+ */
+void AnimeshMainWindow::set_current_frame( size_t new_frame_idx ) {
+    if( m_current_frame == new_frame_idx )
+        return;
+
+    if( new_frame_idx == 0 ) {
+        m_current_frame = 0;
+    } else {
+        assert(m_field != nullptr);
+        assert(new_frame_idx < m_field->get_num_frames());
+        m_current_frame = new_frame_idx;
+    }
+    view_changed();
+}
+
 /**
  * Load a new file, setup all the stuff
  */
@@ -191,8 +227,8 @@ void AnimeshMainWindow::load_model_from_file(QString file_name) {
 void AnimeshMainWindow::load_new_frame(QString file_name) {
     ObjFileParser parser{file_name.toStdString()};
     m_field->add_new_frame(parser.m_vertices, parser.m_normals);
-    update_frame_counter();
     statusBar()->showMessage(tr("Added frame"), 2000);
+    update_inspector( );
 }
 
 /**
@@ -225,8 +261,8 @@ void AnimeshMainWindow::set_field(Field *new_field) {
     m_field = new_field;
     m_field_optimiser = new FieldOptimiser(m_field);
     ui->action_add_frame->setEnabled(m_field != nullptr);
+    ui->btnRandomise->setEnabled(true);
     compute_scale();
-    update_frame_counter();
     view_changed();
 }
 
@@ -271,36 +307,42 @@ void AnimeshMainWindow::disable_inspector() {
 
 
 void AnimeshMainWindow::disable_frame_counter( ) {
-    ui->sbFrameNumber->setMaximum(0);
-    ui->sbFrameNumber->setValue(0);
-    ui->sbFrameNumber->setEnabled(false);
+    ui->hs_frame_selector->setMaximum(1);
+    ui->hs_frame_selector->setValue(1);
+    ui->hs_frame_selector->setEnabled(false);
 }
 
-void AnimeshMainWindow::update_frame_counter( ) {
+void AnimeshMainWindow::update_frame_range( ) {
     if ( m_field != nullptr ) {
         int num_frames = m_field->get_num_frames();
         // If there are no (other) frames
-        if ( num_frames == 0 ) {
+        if ( num_frames < 2 ) {
             disable_frame_counter();
         }
         // Otherwise ...
         else {
             // We start numbering at 1.
-            ui->sbFrameNumber->setMinimum(1);
-            ui->sbFrameNumber->setMaximum(num_frames);
+            ui->hs_frame_selector->setMinimum(1);
+            ui->hs_frame_selector->setMaximum(num_frames);
+            ui->lbl_first_frame->setText(QString::number( 1 ));
+            ui->lbl_last_frame->setText(QString::number( num_frames ));
+
             if ( m_current_frame >= num_frames) {
-                m_current_frame = 0;
-                ui->sbFrameNumber->setValue(m_current_frame + 1);
+                set_current_frame(num_frames-1);
             }
-            if ( num_frames > 0 ) {
-                ui->sbFrameNumber->setEnabled(true);
-            } else {
-                ui->sbFrameNumber->setEnabled(false);
-            }
+            ui->hs_frame_selector->setEnabled(true);
         }
     } else {
         disable_frame_counter();
     }
+}
+
+void AnimeshMainWindow::update_frame_counter( ) {
+    // We start numbering at 1.
+    if( ui->hs_frame_selector->value() != m_current_frame + 1 ) {
+        ui->hs_frame_selector->setValue( m_current_frame + 1 );
+    }
+    ui->lbl_current_frame->setText(QString::number(m_current_frame + 1));
 }
 
 // Populate inspector
@@ -311,33 +353,31 @@ void AnimeshMainWindow::update_frame_counter( ) {
 // -- Set the node count with nodes in this level
 // -- Set the edge count with edges in this level
 void AnimeshMainWindow::update_inspector() {
-    std::cout << "Update inspector. field : " << m_field << std::endl;
     if (m_field == nullptr) {
         disable_inspector();
         return;
     }
+
+    update_frame_range( );
+    update_frame_counter( );
 
     // If there's an optimiser, there's a field to render
     if (m_field_optimiser != nullptr) {
         ui->btnSmoothOnce->setEnabled(true);
         ui->btnSmoothCompletely->setEnabled(true);
 
-        // FO->num_tiers cannot be 0 at this stage
         if (m_field_optimiser->num_tiers() == 1) {
             ui->sbGraphLevel->setEnabled(false);
         } else {
             ui->sbGraphLevel->setEnabled(true);
         }
         ui->sbGraphLevel->setMaximum(m_field_optimiser->num_tiers() - 1);
-
-        std::cout << "New field has " << m_field_optimiser->num_tiers() << " tiers" << std::endl;
         ui->sbGraphLevel->setValue(m_current_tier);
 
         ui->txtNodeCount->setText(
             QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
         ui->txtEdgeCount->setText(
             QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
-
         ui->txtResidual->setText(QString::number(m_field_optimiser->current_error(m_current_tier)));
     }
 }
@@ -347,7 +387,6 @@ void AnimeshMainWindow::update_inspector() {
 // -- Rebuild/build new poly from field current layer
 // -- Update the render window
 void AnimeshMainWindow::update_view() {
-    std::cout << "render view for graph at level: " << ui->sbGraphLevel->value() << std::endl;
     update_poly_data();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }

@@ -233,6 +233,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="btnRandomise">
+           <property name="text">
+            <string>Randomise</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="btnSmoothOnce">
            <property name="text">
             <string>Smooth Once</string>

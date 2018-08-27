@@ -62,6 +62,5 @@ Eigen::Vector3f average_rosy_vectors( const Eigen::Vector3f& v1,
 	std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair( v1, n1, v2, n2);
 	Eigen::Vector3f v = (result.first * w1) + (result.second * w2);
 	v = reproject_to_tangent_space( v, n1 );
-	v.normalize();
 	return v;
 }

@@ -23,6 +23,23 @@ using animesh::FieldElement;
 using animesh::FieldOptimiser;
 using animesh::FieldGraphSimplifier;
 
+
+/**
+ * Construct a vector of size_t elements in the range 0 .. n but random order
+ *
+ * @param n The vector size
+ * @return The vector.
+ */
+std::vector<size_t>
+generate_random_indices( size_t n) {
+    vector<size_t> indices;
+    for( size_t idx = 0; idx < n; ++idx ) {
+        indices.push_back(idx);
+    }
+    random_shuffle(begin(indices), end(indices));
+    return indices;
+}
+
 /**
  * Construct with a Field to be optimised
  */
@@ -41,6 +58,15 @@ FieldOptimiser::FieldOptimiser(Field *field) {
     }
 }
 
+/**
+ * Given a FieldElement and a 3x3 rotation matrix, generate a new FE by multiplying by the matrix.
+ * We transform the normal vector and tangent and ensure that they are still orthogonal and
+ * unit length.
+ *
+ * @param fe The FieldElement to transform
+ * @param m The matrix.
+ * @return The transformed field element.
+ */
 FieldElement * 
 animesh::back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv) {
     assert(fe != nullptr);
@@ -404,6 +430,16 @@ FieldOptimiser::setup_tier_optimisation() {
     m_optimising_started_new_tier = false;
 }
 
+/**
+ * Set the tangent for the given frame, tier and node.  For frames other than 0 this involves
+ * transforming the tangent into the frame's space by applying the forward transform associated with this
+ * FE.
+ *
+ * @param frame_idx The frame into which to set the tangent.
+ * @param tier_idx The tier of the graph hierarchy to apply to.
+ * @param node_idx The node in this tier.
+ * @param tangent The tangent as at frame 0.
+ */
 void 
 FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent ) {
     using namespace Eigen;
@@ -413,7 +449,7 @@ FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx,
 
     if( frame_idx > 0 ) {
         // Need to forward xform 
-        Matrix3f m = get_transforms_at(frame_idx, tier_idx)[node_idx];
+        Matrix3f m = get_transform_at(frame_idx, tier_idx, node_idx);
         Vector3f t1 = m * tangent;
         Vector3f t2 = reproject_to_tangent_space( t1, fe->normal() );
         fe->set_tangent(t2);
@@ -424,10 +460,11 @@ FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx,
 
 
 /**
- * We need nodes because the order of the tangents in new_tangents does NOT
- * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
+ * Update the tangents for the gievn tier of the graph.  The provided vector of tangents is in 
+ * order specified by indices.
  */
-void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<int>& node_indices ) {
+void
+FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents, const std::vector<int>& indices ) {
     using namespace Eigen;
 
     assert( tier_idx < m_graph_hierarchy.size() );
@@ -436,8 +473,8 @@ void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::
 
     size_t num_frames = m_field->get_num_frames();
 
-    for( auto node_idx : node_indices ) {
-        Vector3f new_tan = new_tangents[node_idx];
+    for( auto idx : indices ) {
+        Vector3f new_tan = new_tangents[idx];
 
         // Set the frames
         for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
@@ -445,9 +482,12 @@ void FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::
         }
     }
 }
+
 /**
  * Smooth the current tier of the hierarchy once and return true if it converged
- * @param tier The Graph (tier) to be optimised
+
+ * @param tier_idx The index of the graph tier to be optimised.
+ * @return True of the optimisation converged, otherwise false.
  */
 bool
 FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
@@ -460,11 +500,7 @@ FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
 
     // Extract map keys into vector and shuffle
     size_t num_nodes = tier->nodes().size();
-    vector<int> node_indices;
-    for( size_t idx = 0; idx < num_nodes; ++idx ) {
-        node_indices.push_back(idx);
-    }
-    random_shuffle(begin(node_indices), end(node_indices));
+    vector<int> node_indices = generate_random_indices(num_nodes);
 
     // Iterate over permute, look up key, lookup fe and smooth
     vector<Eigen::Vector3f> new_tangents{num_nodes};
@@ -473,7 +509,7 @@ FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
     }
 
     // Now update all of the nodes
-    update_tangents( m_optimising_tier_index, new_tangents, node_indices );
+    update_tangents( tier_idx, new_tangents, node_indices );
 
     // Get the new error
     m_optimising_iterations_this_tier++;
@@ -531,8 +567,10 @@ FieldOptimiser::optimise() {
 void FieldOptimiser::randomise() {
     checkCanRandomise();
 
-    for( auto fe : m_field->elements(0)) {
-        fe->randomise_tangent();
+    for( size_t frame_idx = 0; frame_idx < m_field->get_num_frames(); ++frame_idx) {
+        for( auto fe : m_field->elements(frame_idx)) {
+            fe->randomise_tangent();
+        }
     }
 }
 
@@ -580,6 +618,17 @@ FieldOptimiser::check_convergence(float new_error) {
     return converged;
 }
 
+
+/**
+ * Construct a vector of all neighbours of a given graph node in a specific tier.
+ * This method uses the graph to extract immediate neighbours at frame 0 in this tier
+ * and then identifies corresponding FieldElements in other frames and back-projects them to 
+ * frame 0 using the inverse transformation matrix constructed during initialisation.
+ *
+ * @param tier_idx The tier of the graph hierarchy to consider.
+ * @param gn The graph node within the graph at this tier to get neighbours for.
+ * @return A vector of all neighbours. These are copies of the original nodes as we don't want to modify them.
+ */
 std::vector<FieldElement *> 
 FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const {
     using namespace std;
@@ -587,7 +636,6 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
 
     assert( gn != nullptr);
     assert( tier_idx < m_graph_hierarchy.size());
-
 
     vector<FieldElement *> all_neighbours;
 
@@ -603,16 +651,18 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
         all_neighbours.push_back(new_fe);
     }
 
-    //  Copy temporal neighbours transformed to current frame
+    //  Copy temporal neighbours transformed to frame 0
     for (size_t frame_idx = 1; frame_idx < m_field->get_num_frames(); ++frame_idx) {
+        // Exclude unflagged frames
+        cout << "collecting temporal neighbours from frame " << frame_idx << endl;
         if(!m_include_frames[frame_idx] )
             continue;
 
         // Get my own transformation matrix for this frame
-        Matrix3f m = m_transforms[index(frame_idx, tier_idx)][node_idx];
+        Matrix3f m = get_transform_at(frame_idx, tier_idx, node_idx);
         Matrix3f minv = m.inverse();
 
-        // Now for each spatial neighbour
+        // Now for each spatial neighbour in frame 0, back transform the corresponding neighbour in future frame
         vector<FieldElement*> temporal_neighbours = get_corresponding_fes_in_frame(frame_idx, tier_idx, spatial_neighbours);
         for (auto fe : temporal_neighbours) {
             FieldElement * new_fe = back_project_fe( fe, minv);
@@ -626,6 +676,7 @@ FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphN
 /**
  * Computes the new tangent for a given node by averaging over all neighbours. Final result is
  * projected back into tangent space for the given FE's normal
+
  * @return The new vector.
  */
 Eigen::Vector3f 
@@ -676,6 +727,14 @@ FieldOptimiser::get_elements_at( size_t frame_idx, size_t tier_idx ) const {
         assert( m_field_element_mappings[idx].size() > 0 );
         return m_field_element_mappings[idx];
     }
+}
+
+const Eigen::Matrix3f&
+FieldOptimiser::get_transform_at( size_t frame_idx, size_t tier_idx, size_t node_idx ) const {
+    assert( m_field != nullptr);
+    assert( m_transforms != nullptr );
+
+    return m_transforms[ index( frame_idx, tier_idx)][node_idx];
 }
 
 std::vector<Eigen::Matrix3f>&
@@ -733,12 +792,18 @@ float FieldOptimiser::calculate_error_for_node(FieldGraph *tier, FieldGraphNode 
     return error;
 }
 
+void
+FieldOptimiser::add_new_frame( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals) {
+    m_field->add_new_frame(vertices, normals);
+    m_include_frames.push_back(true);
+}
+
 
 /**
  * @Return the nth graph in the hierarchy where 0 is base.
  */
 FieldGraph *FieldOptimiser::graph_at_tier(std::size_t tier) const {
-    if (tier >= m_graph_hierarchy.size()) throw_invalid_argument("Tier out of range");
+    assert( tier < m_graph_hierarchy.size());
     return m_graph_hierarchy[tier];
 }
 

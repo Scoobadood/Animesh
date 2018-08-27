@@ -39,7 +39,6 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 				float x,y,z;
 				iss >> ss >> x >> y >> z;
 				Vector3f vn{x, y, z};
-				cout << "vn " << x << " " << y << " " << z << endl;
 				assert( abs(vn.norm() - 1.0f) < EPSILON );
 				defined_normals.push_back(vn);
 			} 
@@ -50,7 +49,6 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 				float x,y,z;
 				iss >> ss >> x >> y >> z;
 				Vector3f v{x, y, z};
-				cout << "v  " << x << " " << y << " " << z << endl;
 				defined_vertices.push_back(v);
 			}
 		} else if( line[0] == 'f' ) {
@@ -96,7 +94,6 @@ ObjFileParser::ObjFileParser(std::string file_name) {
 
 		vector<size_t> adj;
 		m_adjacency.push_back(adj);
-		std::cout << i << ":" << vn << std::endl;
 	}
 	delete [] computed_normals;
 

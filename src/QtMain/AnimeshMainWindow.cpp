@@ -52,17 +52,20 @@ AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(
     m_neighbours_actor = nullptr;
     m_current_tier = 0;
     m_current_frame = 0;
+    m_draw_main_tangent = true;
+    m_draw_other_tangents = true;
+    m_draw_normals = false;
+    m_draw_neighbours = false;
 
     ui->setupUi(this);
-
-    disable_inspector();
-    disable_frame_counter( );
 
     // VTK/Qt wedded
     ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer());
 
     // Set up action signals and slots
-    connect(this->ui->action_exit, SIGNAL(triggered()), this, SLOT(slotExit()));
+    connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(slotExit()));
+
+    init_UI();
 }
 
 AnimeshMainWindow::~AnimeshMainWindow() {
@@ -92,8 +95,11 @@ void AnimeshMainWindow::on_action_add_frame_triggered() {
 /** Up or down a level in the graph
 */
 void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
-    m_current_tier = new_graph_level;
-    view_changed();
+    if ( new_graph_level == m_current_tier + 1)
+        return;
+
+    m_current_tier = new_graph_level - 1;
+    update_view();
 }
 
 void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
@@ -101,8 +107,7 @@ void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
     assert(m_field_optimiser);
 
     m_field_optimiser->optimise();
-    m_current_tier = 0;
-    view_changed();
+    update_view();
 }
 
 void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
@@ -111,58 +116,43 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
 
     ui->btnRandomise->setEnabled(false);
     m_field_optimiser->optimise_one_step();
-    m_current_tier = m_field_optimiser->optimising_tier_index();
+    set_current_tier(m_field_optimiser->optimising_tier_index());
     if (!m_field_optimiser->is_optimising()) {
         ui->btnRandomise->setEnabled(true);
     }
-    view_changed();
 }
 
-void AnimeshMainWindow::on_cbMainTangent_stateChanged(int enabled) {
-    std::cout << "Toggle main tangent " << enabled << std::endl;
-    if (!enabled) {
-        m_main_tangents_actor->VisibilityOff();
-    }
-    else {
-        m_main_tangents_actor->VisibilityOn();
-    }
+void 
+AnimeshMainWindow::update_view_layers() {
+    m_draw_main_tangent ? m_main_tangents_actor->VisibilityOn() : m_main_tangents_actor->VisibilityOff();
+    m_draw_other_tangents ? m_other_tangents_actor->VisibilityOn() : m_other_tangents_actor->VisibilityOff();
+    m_draw_normals ? m_normals_actor->VisibilityOn() : m_normals_actor->VisibilityOff();
+    m_draw_neighbours ? m_neighbours_actor->VisibilityOn() : m_neighbours_actor->VisibilityOff();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
-void AnimeshMainWindow::on_cbSecondaryTangents_stateChanged(int enabled)
-{
-    std::cout << "Toggle secondary tangent " << enabled << std::endl;
-    if (!enabled) {
-        m_other_tangents_actor->VisibilityOff();
-    }
-    else {
-        m_other_tangents_actor->VisibilityOn();
-    }
-    ui->qvtkWidget->GetRenderWindow()->Render();
+void 
+AnimeshMainWindow::on_cbMainTangent_stateChanged(int enabled) {
+    m_draw_main_tangent = ui->cbMainTangent->isChecked();
+    update_view_layers();
 }
 
-void AnimeshMainWindow::on_cbNormals_stateChanged(int enabled)
-{
-    std::cout << "Toggle normals " << enabled << std::endl;
-    if (!enabled) {
-        m_normals_actor->VisibilityOff();
-    }
-    else {
-        m_normals_actor->VisibilityOn();
-    }
-    ui->qvtkWidget->GetRenderWindow()->Render();
+void 
+AnimeshMainWindow::on_cbSecondaryTangents_stateChanged(int enabled) {
+    m_draw_other_tangents = ui->cbSecondaryTangents->isChecked();
+    update_view_layers();
 }
 
-void AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled)
-{
-    std::cout << "Toggle neighbours " << enabled << std::endl;
-    if (!enabled) {
-        m_neighbours_actor->VisibilityOff();
-    }
-    else {
-        m_neighbours_actor->VisibilityOn();
-    }
-    ui->qvtkWidget->GetRenderWindow()->Render();
+void 
+AnimeshMainWindow::on_cbNormals_stateChanged(int enabled) {
+    m_draw_normals = ui->cbNormals->isChecked();
+    update_view_layers();
+}
+
+void 
+AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled) {
+    m_draw_neighbours = ui->cbNeighbours->isChecked();
+    update_view_layers();
 }
 
 
@@ -171,17 +161,16 @@ void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
 }
 
 void AnimeshMainWindow::on_cb_include_frame_stateChanged(int enabled) {
-    assert( m_field_optimiser != nullptr );
+    if( m_field_optimiser == nullptr ) return;
+    if( m_current_frame == 0 ) return;
 
-    if( m_current_frame != 0 ) {
-        m_field_optimiser->enable_frame(m_current_frame, enabled != 0);
-    }
+    m_field_optimiser->enable_frame(m_current_frame, ui->cb_include_frame->isChecked());
 }
-
 
 void AnimeshMainWindow::on_btnRandomise_clicked() {
     m_field_optimiser->randomise();
-    view_changed();
+    update_metrics();
+    update_view();
 }
 
 /* ********************************************************************************
@@ -194,18 +183,32 @@ void AnimeshMainWindow::on_btnRandomise_clicked() {
  *
  */
 void AnimeshMainWindow::set_current_frame( size_t new_frame_idx ) {
-    if( m_current_frame == new_frame_idx )
+    if ( m_current_frame == new_frame_idx )
         return;
 
-    if( new_frame_idx == 0 ) {
+    if ( new_frame_idx == 0 ) {
         m_current_frame = 0;
     } else {
         assert(m_field != nullptr);
         assert(new_frame_idx < m_field->get_num_frames());
         m_current_frame = new_frame_idx;
     }
-    view_changed();
+    update_include_checkbox();
+    update_frame_selector_value();
+    update_view();
 }
+
+void AnimeshMainWindow::set_current_tier( size_t new_tier_idx ) {
+    if ( m_current_tier == new_tier_idx )
+        return;
+
+    m_current_tier = new_tier_idx;
+    update_graph_tier_selector();
+    update_metrics();
+    update_view();
+}
+
+
 
 /**
  * Load a new file, setup all the stuff
@@ -226,9 +229,9 @@ void AnimeshMainWindow::load_model_from_file(QString file_name) {
  */
 void AnimeshMainWindow::load_new_frame(QString file_name) {
     ObjFileParser parser{file_name.toStdString()};
-    m_field->add_new_frame(parser.m_vertices, parser.m_normals);
+    m_field_optimiser->add_new_frame(parser.m_vertices, parser.m_normals);
+    update_frame_selector_range( );
     statusBar()->showMessage(tr("Added frame"), 2000);
-    update_inspector( );
 }
 
 /**
@@ -257,131 +260,164 @@ void AnimeshMainWindow::set_field(Field *new_field) {
     if (m_field != nullptr) delete m_field;
 
     // Set new values
-    int m_current_tier = 0;
     m_field = new_field;
     m_field_optimiser = new FieldOptimiser(m_field);
-    ui->action_add_frame->setEnabled(m_field != nullptr);
-    ui->btnRandomise->setEnabled(true);
-    compute_scale();
-    view_changed();
-}
 
-//
-// View changed
-// -- Populate inspector
-// -- update render view
-void AnimeshMainWindow::view_changed() {
-    update_inspector();
+    enable_buttons();
+    enable_display_checkboxes();
+    compute_scale();
+    update_include_checkbox();
+    set_current_tier(0);
+    update_metrics();
     update_view();
 }
 
+/* ********************************************************************************
+ *
+ *   Initialise UI
+ *
+ * ********************************************************************************/
 
-//
-// On load:
-// -- Load field (or fail)
-// -- Populate inspector
-// -- update render view
-
-
-
-/**
- * Disable all the input fields and buttons in the inspector
- */
-void AnimeshMainWindow::disable_inspector() {
-    this->ui->sbGraphLevel->setMaximum(0);
-    this->ui->sbGraphLevel->setValue(0);
-    this->ui->sbGraphLevel->setEnabled(false);
-
-    disable_frame_counter();
-
-    this->ui->txtResidual->setText("0");
-    this->ui->txtResidual->setEnabled(false);
-    this->ui->txtNodeCount->setText("0");
-    this->ui->txtNodeCount->setEnabled(false);
-    this->ui->txtEdgeCount->setText("0");
-    this->ui->txtEdgeCount->setEnabled(false);
-
-    this->ui->btnSmoothOnce->setEnabled(false);
-    this->ui->btnSmoothCompletely->setEnabled(false);
+void
+AnimeshMainWindow::disable_graph_level() {
+    ui->sbGraphLevel->setMinimum(1);
+    ui->sbGraphLevel->setMaximum(1);
+    ui->sbGraphLevel->setValue(1);
+    ui->sbGraphLevel->setEnabled(false);
 }
 
-
-void AnimeshMainWindow::disable_frame_counter( ) {
+void
+AnimeshMainWindow::disable_frame_selector() {
+    ui->hs_frame_selector->setMinimum(1);
     ui->hs_frame_selector->setMaximum(1);
     ui->hs_frame_selector->setValue(1);
-    ui->hs_frame_selector->setEnabled(false);
+    ui->lbl_first_frame->setText("1");
+    ui->lbl_last_frame->setText("1");
+    ui->lbl_current_frame->setText("1");
 }
 
-void AnimeshMainWindow::update_frame_range( ) {
-    if ( m_field != nullptr ) {
-        int num_frames = m_field->get_num_frames();
-        // If there are no (other) frames
-        if ( num_frames < 2 ) {
-            disable_frame_counter();
-        }
-        // Otherwise ...
-        else {
-            // We start numbering at 1.
-            ui->hs_frame_selector->setMinimum(1);
-            ui->hs_frame_selector->setMaximum(num_frames);
-            ui->lbl_first_frame->setText(QString::number( 1 ));
-            ui->lbl_last_frame->setText(QString::number( num_frames ));
+void
+AnimeshMainWindow::clear_metrics() {
+    ui->txtResidual->setText("0");
+    ui->txtResidual->setEnabled(false);
+    ui->txtNodeCount->setText("0");
+    ui->txtNodeCount->setEnabled(false);
+    ui->txtEdgeCount->setText("0");
+    ui->txtEdgeCount->setEnabled(false);
+}
 
-            if ( m_current_frame >= num_frames) {
-                set_current_frame(num_frames-1);
-            }
-            ui->hs_frame_selector->setEnabled(true);
-        }
+void
+AnimeshMainWindow::update_metrics() {
+    if ( m_field_optimiser == nullptr ) return;
+
+    ui->txtNodeCount->setText(
+        QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
+    ui->txtEdgeCount->setText(
+        QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
+    ui->txtResidual->setText(QString::number(m_field_optimiser->current_error(m_current_tier)));
+}
+
+void
+AnimeshMainWindow::update_graph_tier_selector( ) {
+    if ( m_field_optimiser == nullptr ) return;
+
+    if (m_field_optimiser->num_tiers() == 1) {
+        ui->sbGraphLevel->setEnabled(false);
     } else {
-        disable_frame_counter();
+        ui->sbGraphLevel->setEnabled(true);
+    }
+    ui->sbGraphLevel->setMaximum(m_field_optimiser->num_tiers());
+    ui->sbGraphLevel->setValue(m_current_tier);
+}
+
+void 
+AnimeshMainWindow::init_include_checkbox() {
+    ui->cb_include_frame->setChecked( true );
+    ui->cb_include_frame->setEnabled(false);
+}
+
+void 
+AnimeshMainWindow::update_include_checkbox() {
+    if( m_field == nullptr || m_current_frame == 0) {
+        ui->cb_include_frame->setEnabled(false);
+    }
+    ui->cb_include_frame->setEnabled(false);
+    ui->cb_include_frame->setChecked( m_field_optimiser->should_include_frame(m_current_frame) );
+}
+
+void
+AnimeshMainWindow::disable_buttons() {
+    ui->btnRandomise->setEnabled(false);
+    ui->btnSmoothOnce->setEnabled(false);
+    ui->btnSmoothCompletely->setEnabled(false);
+}
+
+void
+AnimeshMainWindow::enable_buttons( ) {
+    ui->btnRandomise->setEnabled(true);
+    ui->btnSmoothOnce->setEnabled(true);
+    ui->btnSmoothCompletely->setEnabled(true);
+}
+
+void
+AnimeshMainWindow::disable_display_checkboxes() {
+    ui->cbMainTangent->setEnabled(false);
+    ui->cbSecondaryTangents->setEnabled(false);
+    ui->cbNormals->setEnabled(false);
+    ui->cbNeighbours->setEnabled(false);
+}
+
+void
+AnimeshMainWindow::enable_display_checkboxes() {
+    ui->cbMainTangent->setEnabled(true);
+    ui->cbSecondaryTangents->setEnabled(true);
+    ui->cbNormals->setEnabled(true);
+    ui->cbNeighbours->setEnabled(true);
+}
+
+void
+AnimeshMainWindow::init_display_checkboxes() {
+    disable_display_checkboxes();
+    ui->cbMainTangent->setChecked(true);
+    ui->cbSecondaryTangents->setChecked(true);
+    ui->cbNormals->setChecked(false);
+    ui->cbNeighbours->setChecked(false);
+}
+
+void
+AnimeshMainWindow::init_UI() {
+    disable_graph_level();
+    disable_frame_selector();
+    clear_metrics();
+    disable_buttons();
+    update_view_layers();
+    init_include_checkbox();
+    init_display_checkboxes();
+}
+
+/* ********************************************************************************
+ *
+ *   Update UI
+ *
+ * ********************************************************************************/
+void
+AnimeshMainWindow::update_frame_selector_range( ) {
+    size_t actual_num_frames = m_field->get_num_frames();
+    size_t control_num_frames = ui->hs_frame_selector->maximum();
+    if ( control_num_frames != actual_num_frames) {
+        ui->hs_frame_selector->setMaximum(actual_num_frames);
+        ui->lbl_last_frame->setText(QString::number(actual_num_frames));
+        if ( m_current_frame >= actual_num_frames) {
+            set_current_frame(actual_num_frames - 1);
+        }
     }
 }
 
-void AnimeshMainWindow::update_frame_counter( ) {
-    // We start numbering at 1.
-    if( ui->hs_frame_selector->value() != m_current_frame + 1 ) {
-        ui->hs_frame_selector->setValue( m_current_frame + 1 );
-    }
+void
+AnimeshMainWindow::update_frame_selector_value( ) {
+    ui->hs_frame_selector->setValue(m_current_frame + 1);
     ui->lbl_current_frame->setText(QString::number(m_current_frame + 1));
 }
-
-// Populate inspector
-// -- Get the number of graph levels and set the
-//    min and max values of the spinner
-//    set current level to bottom
-//    updte spinner value
-// -- Set the node count with nodes in this level
-// -- Set the edge count with edges in this level
-void AnimeshMainWindow::update_inspector() {
-    if (m_field == nullptr) {
-        disable_inspector();
-        return;
-    }
-
-    update_frame_range( );
-    update_frame_counter( );
-
-    // If there's an optimiser, there's a field to render
-    if (m_field_optimiser != nullptr) {
-        ui->btnSmoothOnce->setEnabled(true);
-        ui->btnSmoothCompletely->setEnabled(true);
-
-        if (m_field_optimiser->num_tiers() == 1) {
-            ui->sbGraphLevel->setEnabled(false);
-        } else {
-            ui->sbGraphLevel->setEnabled(true);
-        }
-        ui->sbGraphLevel->setMaximum(m_field_optimiser->num_tiers() - 1);
-        ui->sbGraphLevel->setValue(m_current_tier);
-
-        ui->txtNodeCount->setText(
-            QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
-        ui->txtEdgeCount->setText(
-            QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
-        ui->txtResidual->setText(QString::number(m_field_optimiser->current_error(m_current_tier)));
-    }
-}
-
 
 // Update render view
 // -- Rebuild/build new poly from field current layer

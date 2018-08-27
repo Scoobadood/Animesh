@@ -68,6 +68,9 @@ public:
     std::vector<FieldElement*>&
     get_elements_at( size_t frame_idx, size_t tier_idx ) const;
 
+    const Eigen::Matrix3f&
+    get_transform_at( size_t frame_idx, size_t tier_idx, size_t node_idx ) const;
+
     std::vector<Eigen::Matrix3f>&
     get_transforms_at( size_t frame_idx, size_t tier_idx ) const;
 
@@ -77,6 +80,15 @@ public:
     inline bool is_optimising() const {
         return m_is_optimising;
     }
+
+    inline bool should_include_frame(size_t frame_idx) const { 
+        assert(frame_idx < m_include_frames.size());
+        return m_include_frames[frame_idx];
+    }
+
+    void
+    add_new_frame( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals);
+
 
 private:
     void 
@@ -113,7 +125,6 @@ private:
      * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
      */
     void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<int>& node_indices );
-
 
     /**
      * Start optimising.

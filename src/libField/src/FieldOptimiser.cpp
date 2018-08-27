@@ -32,6 +32,8 @@ using animesh::FieldGraphSimplifier;
  */
 std::vector<size_t>
 generate_random_indices( size_t n) {
+    using namespace std;
+
     vector<size_t> indices;
     for( size_t idx = 0; idx < n; ++idx ) {
         indices.push_back(idx);
@@ -464,7 +466,7 @@ FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx,
  * order specified by indices.
  */
 void
-FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents, const std::vector<int>& indices ) {
+FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents, const std::vector<size_t>& indices ) {
     using namespace Eigen;
 
     assert( tier_idx < m_graph_hierarchy.size() );
@@ -478,7 +480,7 @@ FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vecto
 
         // Set the frames
         for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-            set_tangent( frame_idx, tier_idx, node_idx, new_tan);
+            set_tangent( frame_idx, tier_idx, idx, new_tan);
         }
     }
 }
@@ -500,7 +502,7 @@ FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
 
     // Extract map keys into vector and shuffle
     size_t num_nodes = tier->nodes().size();
-    vector<int> node_indices = generate_random_indices(num_nodes);
+    vector<size_t> node_indices = generate_random_indices(num_nodes);
 
     // Iterate over permute, look up key, lookup fe and smooth
     vector<Eigen::Vector3f> new_tangents{num_nodes};

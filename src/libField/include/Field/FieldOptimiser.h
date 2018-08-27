@@ -124,7 +124,8 @@ private:
      * We need nodes because the order of the tangents in new_tangents does NOT
      * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
      */
-    void update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f> new_tangents, const std::vector<int>& node_indices );
+    void
+    update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents, const std::vector<size_t>& indices );
 
     /**
      * Start optimising.

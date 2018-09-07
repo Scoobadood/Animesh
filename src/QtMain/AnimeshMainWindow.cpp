@@ -14,11 +14,13 @@
 #include "vtkCylinderSource.h"
 #include "vtkDataArray.h"
 #include "vtkDepthSortPolyData.h"
+#include "vtkDoubleArray.h"
 #include "vtkFloatArray.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 #include "vtkLight.h"
 #include "vtkLine.h"
 #include "vtkNamedColors.h"
+#include "vtkOpenGLPolyDataMapper.h"
 #include "vtkPointData.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkProperty.h"
@@ -501,7 +503,7 @@ void AnimeshMainWindow::update_neighbours_layer( ) {
 void AnimeshMainWindow::init_secondary_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer ) {
     m_polydata_other_tangents = vtkSmartPointer<vtkPolyData>::New();
 
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkOpenGLPolyDataMapper> mapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
     mapper->SetInputData(m_polydata_other_tangents);
 
     m_other_tangents_actor = vtkSmartPointer<vtkActor>::New();
@@ -509,7 +511,23 @@ void AnimeshMainWindow::init_secondary_tangent_vector_layer( vtkSmartPointer<vtk
     m_other_tangents_actor->GetProperty()->SetPointSize(3);
     m_other_tangents_actor->GetProperty()->SetLineWidth(3);
     m_other_tangents_actor->GetProperty()->SetOpacity(1.0);
-    m_other_tangents_actor->GetProperty()->SetColor(1, 0, 0);
+    mapper->AddShaderReplacement(
+        vtkShader::Vertex,
+        "//VTK::Normal::Dec", // replace the normal block
+        true, // before the standard replacements
+        "//VTK::Normal::Dec\n" // we still want the default
+        "  varying vec3 myNormalNCVSOutput;\n", //but we add this
+        false // only do it once
+    );
+    mapper->AddShaderReplacement(
+        vtkShader::Vertex,
+        "//VTK::Normal::Impl", // replace the normal block
+        true, // before the standard replacements
+        "//VTK::Normal::Impl\n" // we still want the default
+        "  myNormalNCVSOutput = normalMC;\n", //but we add this
+        false // only do it once
+    );
+
     renderer->AddActor(m_other_tangents_actor);
 }
 
@@ -530,10 +548,19 @@ void AnimeshMainWindow::update_secondary_tangent_vector_layer( ) {
     m_polydata_other_tangents->Initialize();
     if (m_field_optimiser != nullptr) {
         std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
+
+        // TEST Try setting point normals for the tangent array
+        vtkSmartPointer<vtkDoubleArray> pointNormalsArray = vtkSmartPointer<vtkDoubleArray>::New();
+        pointNormalsArray->SetNumberOfComponents(3); //3d normals (ie x,y,z)
+        pointNormalsArray->SetNumberOfTuples(elements.size() * 4);
+        size_t i = 0;
+        // TEST End
+
         for ( FieldElement * fe : elements ) {
             Vector3f location = fe->location();
             Vector3f normal = fe->normal();
             Vector3f tangent = fe->tangent();
+
 
             // Add the field node
             vtkIdType pid[4];
@@ -552,6 +579,17 @@ void AnimeshMainWindow::update_secondary_tangent_vector_layer( ) {
             Vector3f p4 = location - (ninety * tan_scale_factor);
             pid[3] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
 
+            // TEST Set 4 normals
+            double pN1[3] = {normal[0], normal[1], normal[2]};
+            pointNormalsArray->SetTuple(i++, pN1) ;
+            pointNormalsArray->SetTuple(i++, pN1) ;
+            pointNormalsArray->SetTuple(i++, pN1) ;
+            pointNormalsArray->SetTuple(i++, pN1) ;
+            // TEST End of Test code.
+
+
+
+
             // Main tangent
             vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
             for (int i = 0; i < 3; ++i) {
@@ -562,7 +600,9 @@ void AnimeshMainWindow::update_secondary_tangent_vector_layer( ) {
                 colours->InsertNextTypedTuple(named_colours->GetColor3ub("Pink").GetData());
             }
         }
+        m_polydata_other_tangents->GetPointData()->SetNormals(pointNormalsArray);
     }
+
     m_polydata_other_tangents->SetPoints(pts);
     m_polydata_other_tangents->SetLines(lines);
     m_polydata_other_tangents->GetCellData()->SetScalars(colours);
@@ -626,6 +666,7 @@ void AnimeshMainWindow::update_main_tangent_vector_layer( ) {
             colours->InsertNextTypedTuple(named_colours->GetColor3ub("Red").GetData());
         }
     }
+
     m_polydata_main_tangents->SetPoints(pts);
     m_polydata_main_tangents->SetLines(lines);
     m_polydata_main_tangents->GetCellData()->SetScalars(colours);

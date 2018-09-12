@@ -167,14 +167,14 @@
             <item>
              <widget class="QCheckBox" name="cbMainTangent">
               <property name="text">
-               <string>Main Tangent</string>
+               <string>Principal Direction</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QCheckBox" name="cbSecondaryTangents">
               <property name="text">
-               <string>Secondary Tangents</string>
+               <string>Orientation field</string>
               </property>
              </widget>
             </item>
@@ -329,7 +329,7 @@
               </size>
              </property>
              <property name="title">
-              <string>GroupBox</string>
+              <string>Frames</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_2">
               <item>
@@ -407,7 +407,6 @@
     </property>
     <addaction name="action_open"/>
     <addaction name="separator"/>
-    <addaction name="action_add_frame"/>
     <addaction name="separator"/>
     <addaction name="action_exit"/>
    </widget>
@@ -431,11 +430,6 @@
   <action name="action_exit">
    <property name="text">
     <string>Exit</string>
-   </property>
-  </action>
-  <action name="action_add_frame">
-   <property name="text">
-    <string>Add Frame</string>
    </property>
   </action>
  </widget>

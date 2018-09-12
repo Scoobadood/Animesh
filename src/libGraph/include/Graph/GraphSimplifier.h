@@ -30,11 +30,16 @@ namespace animesh {
              * Propagate function takes parent and child nodes and generates new data for the child
              */
             GraphMapping(const std::function<NodeData(const NodeData &, const NodeData &)> &propagate_function,
-                         const std::multimap<GraphNode *, GraphNode *> &parents_to_children) {
+                         const std::map<GraphNode *, GraphNode *>& child_to_parent) {
                 m_propagate_function = propagate_function;
-                m_parents_to_children = parents_to_children;
+                m_child_to_parent = child_to_parent;
+                
+                // Convert child->parent mapping to the other way around
+                for (auto mapping : child_to_parent) {
+                    auto x = m_parents_to_children.insert(std::make_pair(mapping.second, mapping.first));
+                    if( x == m_parents_to_children.end() ) throw std::runtime_error( "Failed to insert" );
+                }
             }
-
 
             /**
              * Propagate changes in the parents to the children
@@ -54,26 +59,50 @@ namespace animesh {
             }
 
             /**
-             * Return the children of a node
+             * Return the childnodes of a node
              */
-            std::vector<NodeData> children(const GraphNode *gn) {
+            std::vector<GraphNode *> child_nodes(const GraphNode *gn) const {
                 using namespace std;
 
-                vector<NodeData> children;
+                vector<GraphNode *> children;
 
                 auto ret = m_parents_to_children.equal_range(const_cast<GraphNode *>(gn));
                 for (auto it = ret.first; it != ret.second; ++it) {
-                    children.push_back(it->second->data());
+                    children.push_back(it->second);
                 }
                 return children;
+            }
+
+            /**
+             * Return the children of a node
+             */
+            std::vector<NodeData> children(const GraphNode *gn) const {
+                using namespace std;
+
+                vector<GraphNode *> nodes = child_nodes(gn);
+                vector<NodeData> children;
+                for( auto node : nodes) {
+                    children.push_back(node->data());
+                }
+                return children;
+            }
+
+            /**
+             * Return the parent of a node
+             */
+            const GraphNode * parent(GraphNode * gn) const {
+                using namespace std;
+
+                return m_child_to_parent.at(gn);
             }
 
         private:
             /** function to propagate changes from parents to children */
             std::function<NodeData(const NodeData &, const NodeData &)> m_propagate_function;
-
             /** map from parents to children */
-            std::multimap<GraphNode *, GraphNode *> m_parents_to_children;
+            std::multimap<GraphNode *, GraphNode *>                     m_parents_to_children;
+            /** map from child to parents */
+            std::map<GraphNode *, GraphNode *>                          m_child_to_parent;
         };
 
 
@@ -186,14 +215,7 @@ namespace animesh {
                 }
             }
 
-            // Convert child->parent mapping to the other way around
-            multimap<GraphNode *, GraphNode *> parents_to_children;
-            for (auto node_node : node_map) {
-                auto x = parents_to_children.insert(make_pair(node_node.second, node_node.first));
-                if( x == parents_to_children.end() ) throw runtime_error( "Failed to nisert" );
-            }
-
-            GraphMapping mapping{m_node_propagate_function, parents_to_children};
+            GraphMapping mapping{m_node_propagate_function, node_map};
 
             return make_pair(output_graph, mapping);
         }

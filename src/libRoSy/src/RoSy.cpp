@@ -1,7 +1,6 @@
 #include <iostream>
 #include <Eigen/Geometry>
 #include <RoSy/RoSy.h>
-#include <Field/Field.h>
 
 const float EPSILON = 1e-4;
 

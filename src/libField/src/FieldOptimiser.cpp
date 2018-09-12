@@ -1,7 +1,7 @@
 #include <Field/FieldOptimiser.h>
 #include <Field/Checks.h>
+#include <Field/PointNormal.h>
 
-#include <Field/Field.h>
 #include <RoSy/RoSy.h>
 #include <Eigen/Geometry>
 
@@ -17,82 +17,595 @@ const int SMOOTH_EDGES = 10;
 const int SMOOTH_NODES = 20;
 const int SMOOTH_TIERS = 10;
 
-using animesh::Field;
-using animesh::FieldGraph;
-using animesh::FieldElement;
 using animesh::FieldOptimiser;
-using animesh::FieldGraphSimplifier;
 
+/* ******************************************************************************************
+ *
+ *   New 
+ *
+ * ******************************************************************************************/
+using animesh::Graph;
+using animesh::GraphSimplifier;
+using animesh::PointNormal;
+using PointNormalGraph    = Graph<PointNormal::Ptr, void *>;
+using PointNormalGraphNode = Graph<PointNormal::Ptr, void *>::GraphNode;
+using PointNormalGraphPtr = std::shared_ptr<PointNormalGraph>;
+using PointNormalGraphSimplifier = GraphSimplifier<PointNormal::Ptr, void *>;
+using PointNormalGraphMapping = GraphSimplifier<PointNormal::Ptr, void *>::GraphMapping;
 
 /**
- * Construct a vector of size_t elements in the range 0 .. n but random order
- *
- * @param n The vector size
- * @return The vector.
+ * @return the error of a single vertex in a tier
  */
-std::vector<size_t>
-generate_random_indices( size_t n) {
+float 
+compute_error_for_vertex(
+    size_t vertex_idx, 
+    std::vector<size_t> neighbour_indices, 
+    const std::vector<PointNormal::Ptr>& vertices, 
+    const std::vector<Eigen::Vector3f>& tangents ) {
+    using namespace std;
+    using namespace Eigen;
+
+    float error = 0.0f;
+
+    Vector3f this_normal = vertices[vertex_idx]->normal();
+    Vector3f this_tangent = tangents[vertex_idx];
+    for (auto other_idx : neighbour_indices) {
+        Vector3f other_normal = vertices[other_idx]->normal();
+        Vector3f other_tangent = tangents[other_idx];
+        pair<Vector3f, Vector3f> result = best_rosy_vector_pair(
+            this_tangent,
+            this_normal,
+            other_tangent,
+            other_normal);
+
+        float theta = angle_between_vectors(result.first, result.second);
+        error += (theta * theta);
+    }
+    return error;
+}
+
+/**
+ * @return The current error in a tier of the graph
+ */
+float 
+compute_error_for_tier(
+    const std::vector<PointNormal::Ptr>& vertices,
+    const PointNormalGraphPtr& graph, 
+    const std::vector<Eigen::Vector3f>& tangents ) {
     using namespace std;
 
-    vector<size_t> indices;
-    for( size_t idx = 0; idx < n; ++idx ) {
-        indices.push_back(idx);
+    // E(O, k) :=      (oi, Rso (oji, ni, kij ))
+    // For each node
+    float error = 0.0f;
+    size_t vertex_idx = 0;
+    for (auto node : graph->nodes() ) {
+        vector<size_t> neighbours = graph->neighbour_indices(node);
+        error += compute_error_for_vertex( vertex_idx, neighbours, vertices, tangents );
+        vertex_idx++;
     }
-    random_shuffle(begin(indices), end(indices));
-    return indices;
+    return error;
 }
 
 /**
- * Construct with a Field to be optimised
+ * Merge PointNormals when simplifying a graph. Each PointNormal has a normal and location.
+ * When merging we do the following:
+ * Locations are averaged
+ * Normals are averaged
  */
-FieldOptimiser::FieldOptimiser(Field *field) {
-    assert(field != nullptr);
-    m_field = field;
-    m_graph_hierarchy.push_back(m_field->m_graph);
-    m_tracing_enabled = field->is_tracing_enabled();
+PointNormal::Ptr
+up_propagate( const PointNormal::Ptr& p1, const PointNormal::Ptr& p2 ) {
+    using namespace std;
+    using namespace Eigen;
 
-    m_field_element_mappings = nullptr;
-    m_transforms = nullptr;
-    m_is_optimising = false;
-    m_optimising_current_tier = nullptr;
-    for( size_t i = 0; i < m_field->get_num_frames(); ++i ) {
-        m_include_frames.push_back(true);
-    }
+    Vector3f new_point  = (p1->point() + p2->point()) / 2.0;
+    Vector3f new_normal = (p1->normal() + p2->normal()).normalized();
+
+    PointNormal::Ptr pn = make_shared<PointNormal>(PointNormal{new_point, new_normal});
+    return pn;
 }
 
 /**
- * Given a FieldElement and a 3x3 rotation matrix, generate a new FE by multiplying by the matrix.
- * We transform the normal vector and tangent and ensure that they are still orthogonal and
- * unit length.
+ * Do nothing going down as we don't need to propagate any changes
+ */
+PointNormal::Ptr
+down_propagate( const PointNormal::Ptr& parent, const PointNormal::Ptr& child ) {
+    return child;
+}
+
+/* ******************************************************************************************
  *
- * @param fe The FieldElement to transform
- * @param m The matrix.
- * @return The transformed field element.
- */
-FieldElement * 
-animesh::back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv) {
-    assert(fe != nullptr);
-    checkRotationMatrix("Back transform", minv);
+ *   Initialisation
+ *
+ * ******************************************************************************************/
 
-    using namespace Eigen; 
-    
-    Vector3f new_normal = (minv * fe->normal()).normalized();
-    Vector3f new_tangent = (minv * fe->tangent());
-    new_tangent = reproject_to_tangent_space( new_tangent, new_normal);
-    // TODO: Need to deal with locations at some future time.
-    FieldElement * new_fe = new FieldElement(fe->location(), new_normal, new_tangent);
-    return new_fe;
+/**
+ * Build a graph given a set of PointNormal::Ptrs and adjacency
+ */
+PointNormalGraphPtr
+initialise_tier0_graph(const std::vector<PointNormal::Ptr>& data, const std::multimap<size_t, size_t>& adjacency) {
+    using namespace std;
+
+    PointNormalGraphPtr graph = make_shared<PointNormalGraph>();
+
+    for( auto it = adjacency.begin(); it != adjacency.end(); ) {
+        size_t vertex_idx = it->first;
+        PointNormalGraph::GraphNode * node = graph->add_node( data[vertex_idx] );
+        do {
+            ++it;
+        } while( it != adjacency.end() && it->first == vertex_idx);
+    }
+
+    vector<PointNormalGraph::GraphNode *> nodes = graph->nodes( );
+    for( auto iter : adjacency ) {
+        PointNormalGraph::GraphNode * from = nodes[iter.first];
+        PointNormalGraph::GraphNode * to   = nodes[iter.second];
+        if( !graph->has_edge( from, to)) {
+            graph->add_edge( from, to, 1.0f, nullptr );
+        }
+    }
+    return graph;
 }
 
 /**
- * @return the index for data given a frame and tier number
+ * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
+ * Stash the graphs and mappings into vectors.
+ * Tries to respect the parameters provided. If multiple paramters are provided it will terminate at
+ * the earliest.
+ * @param max_edges >0 means keep iterating until only this number of edges remain. 0 means don't care.
+ * @param max_nodes >0 means keep iterating until only this number of nodes remain. 0 means don't care.
+ * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
+ *
  */
-size_t FieldOptimiser::index(size_t frame_idx, size_t tier_idx) const {
-    assert(tier_idx < m_graph_hierarchy.size());
-    assert(frame_idx < m_field->get_num_frames());
+std::pair<std::vector<PointNormalGraphPtr>, std::vector<PointNormalGraphMapping>>
+generate_hierarchy(PointNormalGraphPtr graph, int max_tiers, int max_nodes, int max_edges) {
+    using namespace std;
 
-    return tier_idx * m_field->get_num_frames() + frame_idx;
+    // At least one of max_tiers, max_nodes and max_edges must be >0
+    assert (max_edges > 0 || max_nodes > 0 || max_tiers > 0);
+
+    vector<PointNormalGraphPtr> hierarchy;
+    vector<PointNormalGraphMapping> mapping_hierarchy;
+    hierarchy.push_back( graph );
+
+    bool done = false;
+    PointNormalGraphPtr current_tier = graph;
+    PointNormalGraphSimplifier * s = new PointNormalGraphSimplifier(up_propagate, down_propagate);
+
+    while (!done) {
+        done = done || ((max_nodes > 0) && (current_tier->num_nodes() < max_nodes));
+        done = done || ((max_edges > 0) && (current_tier->num_edges() < max_edges));
+        done = done || ((max_tiers > 0) && (hierarchy.size() == max_tiers));
+
+        if (!done) {
+            pair<PointNormalGraph *, PointNormalGraphMapping> simplify_results = s->simplify(current_tier.get());
+            PointNormalGraphPtr next_graph = shared_ptr<PointNormalGraph>(simplify_results.first);
+            hierarchy.push_back(next_graph);
+            mapping_hierarchy.push_back(simplify_results.second);
+            current_tier = next_graph;
+        }
+    }
+    return make_pair( hierarchy, mapping_hierarchy);
 }
+
+
+/**
+ * @return the index of a PointNormal::Ptr in a frame/tier
+ */
+size_t
+index_of_point_in( const PointNormal::Ptr& p, const std::vector<PointNormal::Ptr>& v ) {
+    using namespace std;
+
+    auto begin = v.begin();
+    auto end   = v.end();
+    auto it = find(begin, end, p);
+    if (it != end) return it - begin;
+    throw runtime_error{ "Not found" };
+}
+
+
+
+/**
+ * Allocate the vectors of vertices for each frame of each tier after tier 0
+ */
+void 
+allocate_tiers_and_frames(
+          std::vector<std::vector<std::vector<PointNormal::Ptr>>>& tiers,
+    const std::vector<PointNormalGraphPtr>&                        graphs) {
+    using namespace std;
+
+    size_t num_tiers = graphs.size();
+    size_t num_frames = tiers[0].size();
+
+    // Create all the vectors
+    for (size_t tier_idx = 1; tier_idx < num_tiers; ++tier_idx) {
+        vector<vector<PointNormal::Ptr>> frames_in_this_tier;
+        size_t num_vertices = graphs[tier_idx]->num_nodes();
+        for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
+            frames_in_this_tier.push_back( vector<PointNormal::Ptr>{num_vertices});
+        }
+        tiers.push_back( frames_in_this_tier);
+    }
+}
+
+/**
+ * On entry:
+ *    frames of vertices are allocated for each tier.
+ *    graphs is a hierarchy of graphs. The size of which is the number of tiers we need 
+ * On exit:
+ *    We have generated all vertices.
+ */
+void
+populate_tiers_and_frames(
+          std::vector<std::vector<std::vector<PointNormal::Ptr>>>& tiers,
+    const std::vector<PointNormalGraphPtr>&                        graphs,
+    const std::vector<PointNormalGraphMapping>&                    mappings ) {
+
+    using namespace std;
+
+    size_t num_tiers = graphs.size();
+    size_t num_frames = tiers[0].size();
+
+    // For each tier (1+) of the graph hierarchy
+    for (size_t tier_idx = 1; tier_idx < num_tiers; ++tier_idx) {
+        PointNormalGraphPtr graph = graphs[tier_idx];
+
+        // Now add vertex data for all frames
+        int parent_idx = 0;
+        size_t num_vertices = graph->num_nodes();
+        for (size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
+            auto gn = graph->nodes()[vertex_idx];
+
+            PointNormal::Ptr parent_in_frame_0 = gn->data();
+            tiers[tier_idx][0][vertex_idx] = parent_in_frame_0;
+
+            // For each frame after 0
+            for (size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
+                // Get the children of parent in frame 0 in the previous tier
+                vector<PointNormal::Ptr> children_in_frame_0 = mappings[tier_idx - 1].children(gn);
+                vector<PointNormal::Ptr> children_in_frame_idx;
+                for( auto p : children_in_frame_0 ) {
+                    size_t vertex_idx = index_of_point_in(p, tiers[tier_idx-1][0] );
+                    children_in_frame_idx.push_back(tiers[tier_idx-1][frame_idx][vertex_idx]);
+                }
+
+                // Construct the parent for frame_idx
+                PointNormal::Ptr parent_in_frame_idx;
+                if( children_in_frame_idx.size() == 1 ) {
+                    parent_in_frame_idx = make_shared<PointNormal>( PointNormal{children_in_frame_idx[0]->point(), children_in_frame_idx[0]->normal() } );
+                } else if ( children_in_frame_idx.size() == 2 ) {
+                    parent_in_frame_idx = up_propagate(children_in_frame_idx[0], children_in_frame_idx[1]);
+                } else {
+                    throw_runtime_error( "Expected only one or two children" );
+                }
+                tiers[tier_idx][frame_idx][vertex_idx]= parent_in_frame_idx;
+            }
+            parent_idx++;
+        }
+    }
+}
+
+/** 
+ * Given a fully populated set of frames and tiers
+ * Compute forward and backwards transforms between frame 0 and frame N in tier N
+ */
+std::vector<std::vector<std::vector<std::pair<Eigen::Matrix3f, Eigen::Matrix3f>>>>
+generate_fwd_and_bkwd_transforms(
+    const std::vector<std::vector<std::vector<PointNormal::Ptr>>>& tiers,
+    const std::vector<PointNormalGraphPtr>&                        graphs) {
+
+    using namespace std;
+    using namespace Eigen;
+
+    size_t num_tiers = tiers.size();
+    size_t num_frames = tiers[0].size();
+    size_t num_vertices = tiers[0][0].size();
+
+    vector<vector<vector<pair<Matrix3f, Matrix3f>>>> transforms;
+
+    // For each tier
+    for (size_t tier_idx = 0; tier_idx < num_tiers; ++tier_idx) {
+        vector<vector<pair<Matrix3f, Matrix3f>>> tier_transforms;
+        PointNormalGraphPtr graph = graphs[tier_idx];
+
+        // Frame 0 transforms are all identify matrix
+        vector<pair<Matrix3f, Matrix3f>> frame_0_transforms;
+        for( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+            frame_0_transforms.push_back( make_pair(Matrix3f::Identity(), Matrix3f::Identity()));
+        }
+        tier_transforms.push_back( frame_0_transforms);
+
+        // For remainder of frames we have to compute values
+        for( size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
+            vector<pair<Matrix3f, Matrix3f>> frame_transforms;
+
+            // For each node in the graph (nodes are in the same order as the )
+            size_t vertex_idx = 0;
+            for (auto gn : graph->nodes()) {
+                // First point and normal
+                PointNormal::Ptr pn1 = tiers[tier_idx][0][vertex_idx];
+                PointNormal::Ptr pn2 = tiers[tier_idx][frame_idx][vertex_idx];
+                Vector3f point1 = pn1->point();
+                Vector3f normal1 = pn1->normal();
+                Vector3f point2 = pn2->point();
+                Vector3f normal2 = pn2->normal();
+
+                vector<size_t> frame_0_neighbour_indices = graph->neighbour_indices(gn);
+                vector<Vector3f> neighbour_points_1;
+                vector<Vector3f> neighbour_points_2;
+                for (size_t vertex_idx : frame_0_neighbour_indices ) {
+                    neighbour_points_1.push_back( tiers[tier_idx][0][vertex_idx]->point());
+                    neighbour_points_2.push_back( tiers[tier_idx][frame_idx][vertex_idx]->point());
+                }
+                Matrix3f m = rotation_between(point1, normal1, neighbour_points_1, point2, normal2, neighbour_points_2);
+                frame_transforms.push_back(make_pair( m, m.transpose()));
+                vertex_idx++;
+            }
+            tier_transforms.push_back( frame_transforms );
+        }
+        transforms.push_back( tier_transforms);
+    }    
+    return transforms;
+}
+
+/**
+ * Generate a set of random but correct tangents for the given tier (and frame-0)
+ */
+std::vector<Eigen::Vector3f> 
+generate_random_tangents_for_tier(std::size_t tier_idx, const std::vector<std::vector<std::vector<PointNormal::Ptr>>>& tiers) {
+    using namespace std;
+    using namespace Eigen;
+
+    assert(tiers.size()>0);
+    assert(tiers[tier_idx].size()>0);
+    size_t num_vertices = tiers[tier_idx][0].size();
+    assert(num_vertices > 0);
+    vector<Vector3f> tangents;
+    for( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
+        Vector3f normal = tiers[tier_idx][0][vertex_idx]->normal();
+        Vector3f tangent = (Vector3f::Random().cross(normal)).normalized();
+        tangents.push_back(tangent);
+    }
+    return tangents;
+}
+
+/**
+ * Build a FieldOptimiser to optimise the given data.
+ * Data consists of a number of frames as well as adjacency data.
+ * The frame data is assumed to be in correspondence.
+ *
+ * @param frames The frames of data.
+ * @param adjacency A mape describing adjacency. Indices in the map correspond to the point order in frames.
+ */
+FieldOptimiser::FieldOptimiser(const std::vector<std::vector<PointNormal::Ptr>>& frames, const std::multimap<std::size_t, std::size_t>& adjacency) {
+    using namespace std;
+
+    size_t num_frames = frames.size();
+    assert( num_frames > 0 );
+    size_t num_vertices = frames[0].size();
+    assert( num_vertices > 0 );
+
+    // We have the tier 0 frames here. Store them as such
+    //vector< /*tiers*/ vector< /*frames*/ vector< /*vertices*/ PointNormal::Ptr> > >
+    vector<vector<PointNormal::Ptr>> tier0;
+    for( auto frame : frames ) {
+        assert( frame.size() == num_vertices);
+        tier0.push_back(frame);
+    }
+    m_tiers.push_back( tier0 );
+    m_adjacency = adjacency;
+
+    initialise();
+}
+
+/**
+ * Return the vertex data for a specific tier and frame
+ */
+const std::vector<PointNormal::Ptr>&
+FieldOptimiser::point_normals_for_tier_and_frame( std::size_t tier_idx, std::size_t frame_idx ) const {
+    return m_tiers[tier_idx][frame_idx];
+}
+
+/**
+ * Return the specific vertex for a tier, frame and vertex index
+ */
+const PointNormal::Ptr&
+FieldOptimiser::point_normal_for_tier_and_frame( std::size_t tier_idx, std::size_t frame_idx, std::size_t vertex_idx ) const {
+    return m_tiers[tier_idx][frame_idx][vertex_idx];
+}
+
+
+/**
+ * @return a vector of vectors of indices for the neighbours of each point in a tier.
+ */
+std::vector<std::vector<std::size_t>>
+FieldOptimiser::adjacency_for_tier(std::size_t tier_idx) const {
+    using namespace std;
+
+    vector<vector<size_t>> adjacency;
+    for( auto gn : m_graphs[tier_idx]->nodes()) {
+        vector<size_t> neighbours = m_graphs[tier_idx]->neighbour_indices(gn);
+        adjacency.push_back(neighbours);
+    }
+
+    return adjacency;
+}
+
+
+
+/**
+ * @return the mean edge length in the graph
+ */
+float
+FieldOptimiser::mean_edge_length_for_tier(std::size_t tier_idx ) const {
+    float sum = 0.0f;
+    for ( auto edge : m_graphs[tier_idx]->edges()) {
+        Eigen::Vector3f v1 = edge->from_node( )->data()->point();
+        Eigen::Vector3f v2 = edge->to_node( )->data()->point();
+        Eigen::Vector3f diff = v2 - v1;
+        sum = sum + diff.norm();
+    }
+    return sum / m_graphs[tier_idx]->num_edges();
+}
+
+
+/**
+ * @return The transformation matrix for a specific vertex from frame0 in tier_idx to frame_idx.
+ */
+const Eigen::Matrix3f&
+FieldOptimiser::forward_transform_to( size_t tier_idx, size_t frame_idx, size_t node_idx ) const {
+    return m_point_transforms[tier_idx][frame_idx][node_idx].first;
+}
+
+/**
+ * Initialise the optimiser by:
+ * - Generate tier 0 graph (using adjacency)
+ * - Generating graph hierarchy (from tier 0)
+ * - Generating random tangents (for tier 0)
+ * - Computing interframe transforms (for all frames from 0)
+ */
+void FieldOptimiser::initialise( ) {
+    PointNormalGraphPtr graph = initialise_tier0_graph( point_normals_for_tier_and_frame(0,0), m_adjacency);
+    auto result = ::generate_hierarchy(graph, SMOOTH_EDGES, SMOOTH_NODES, SMOOTH_TIERS);
+    m_graphs = result.first;
+    m_mappings = result.second;
+
+    m_is_optimising = false;
+    m_optimising_started_new_tier = false;
+    m_optimising_last_error = 0.0f;
+    m_optimising_iterations_this_tier = 0;
+    m_optimising_tier_idx = 0;
+    m_optimising_current_tier = nullptr;
+    m_tracing_enabled = false;
+
+    allocate_tiers_and_frames(m_tiers, m_graphs);
+    populate_tiers_and_frames(m_tiers, m_graphs, m_mappings);
+    m_point_transforms = generate_fwd_and_bkwd_transforms(m_tiers, m_graphs );
+    // Implicitly tier 0 tangents
+    m_tangents = generate_random_tangents_for_tier(0 , m_tiers);
+    for( size_t idx = 0; idx < num_frames(); idx++ ) {
+        m_include_frames.push_back( true );
+    }
+}
+
+
+/**
+ * Given a vector of tangents and the current tier index, use the mappings to propagate the tangents upwards through the network
+ * by one tier, assuming that we can do so.
+ */
+std::vector<Eigen::Vector3f>
+FieldOptimiser::propagate_tangents_up( const std::vector<Eigen::Vector3f>& tangents, std::size_t tier_idx ) const {
+    using namespace std;
+    using namespace Eigen;
+
+    assert( tier_idx < m_mappings.size() );
+
+    size_t num_tangents_at_next_tier = m_tiers[tier_idx+1][0].size();
+    vector<Vector3f> new_tangents;
+    new_tangents.resize( num_tangents_at_next_tier, Vector3f::Zero());
+
+    size_t vertex_idx = 0;
+    for( PointNormalGraphNode * gn : m_graphs[tier_idx]->nodes()) {
+        const PointNormalGraphNode * pgn = m_mappings[tier_idx].parent(gn);
+        size_t pidx = m_graphs[tier_idx+1]->index_of(pgn);
+        new_tangents[pidx] = (new_tangents[pidx] + tangents[vertex_idx]);
+        vertex_idx++;
+    }
+    for( size_t tan_idx = 0; tan_idx < num_tangents_at_next_tier; ++tan_idx ) {
+        new_tangents[tan_idx] = reproject_to_tangent_space(new_tangents[tan_idx], m_tiers[tier_idx+1][0][tan_idx]->normal());
+        new_tangents[tan_idx] = new_tangents[tan_idx].normalized();
+    }
+
+    return new_tangents;
+}
+
+std::vector<Eigen::Vector3f>
+FieldOptimiser::propagate_tangents_down( const std::vector<Eigen::Vector3f>& tangents, std::size_t tier_idx ) const {
+    using namespace std;
+    using namespace Eigen;
+
+    assert( tier_idx > 0 );
+
+    vector<Vector3f> new_tangents;
+
+    new_tangents.resize( m_tiers[tier_idx-1][0].size(), Vector3f::Zero());
+    size_t vertex_idx = 0;
+    for( PointNormalGraphNode * gn : m_graphs[tier_idx]->nodes()) {
+        vector<PointNormalGraphNode *> children = m_mappings[tier_idx-1].child_nodes(gn);
+        for( PointNormalGraphNode * child : children ) {
+            size_t pidx = m_graphs[tier_idx-1]->index_of(child);
+            new_tangents[pidx] = tangents[vertex_idx];
+        }
+        vertex_idx++;
+    }
+    return new_tangents;
+}
+
+
+/**
+ * Reproject the tangents from frame 0 tier 0 into an arbitrary frame and tier by using the forward transformations
+ * and then reprojecting into tangent plane and normalising.
+ * @return The tangents as in tier and frame.
+ */
+std::vector<Eigen::Vector3f>
+FieldOptimiser::compute_tangents_for_tier_and_frame(size_t tier_idx, size_t frame_idx) const {
+    using namespace std;
+    using namespace Eigen;
+
+    size_t current_tier_idx = m_optimising_tier_idx;
+    vector<Vector3f> tier_tangents;
+    tier_tangents.insert(end(tier_tangents), begin(m_tangents), end(m_tangents));
+    if( current_tier_idx < tier_idx ) {
+        while( current_tier_idx < tier_idx ) {
+            tier_tangents = propagate_tangents_up( tier_tangents, current_tier_idx );
+            current_tier_idx++;
+        }
+    } else if ( current_tier_idx > tier_idx ) {
+        while( current_tier_idx > tier_idx) {
+            tier_tangents = propagate_tangents_down( tier_tangents, current_tier_idx );
+            current_tier_idx--;
+        }
+    }
+
+    // FRAME propagation 
+    vector<Vector3f> frame_tangents;
+    if( frame_idx != 0 ) {
+        for( size_t vertex_idx = 0; vertex_idx < tier_tangents.size(); ++vertex_idx ) {
+            Matrix3f m = forward_transform_to( tier_idx, frame_idx, vertex_idx);
+            Vector3f t = tier_tangents[vertex_idx];
+            Vector3f new_tan = m * t;
+            new_tan = reproject_to_tangent_space( new_tan, m_tiers[tier_idx][frame_idx][vertex_idx]->normal());
+            new_tan.normalize();
+            frame_tangents.push_back(new_tan);
+        }
+    }
+    else {
+        frame_tangents.insert(end(frame_tangents), begin(tier_tangents), end(tier_tangents));
+    }
+    return frame_tangents;
+}
+
+
+/* ******************************************************************************************
+ *
+ *   Attributes
+ *
+ * ******************************************************************************************/
+/**
+ * @return The number of tiers in the graph hierarchy.
+ */
+std::size_t 
+FieldOptimiser::num_tiers() const { 
+    return m_graphs.size(); 
+}
+
+/**
+ * @return The number of frames
+ */
+std::size_t
+FieldOptimiser::num_frames() const {
+    return m_tiers[0].size();
+}
+
 
 /**
  * Include or exclude the frame from smoothing.
@@ -103,501 +616,317 @@ FieldOptimiser::enable_frame(size_t frame_idx, bool enable) {
 }
 
 /**
- * Find the FEs which correspond to the input vector but in the given frame and tier.
- * @return A vector of field elements.
+ * @return true if a frame is included in smoothing, else false.
  */
-std::vector<FieldElement*>
-FieldOptimiser::get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const {
-    std::vector<FieldElement*> vec;
-    for( FieldElement * fe : fes ) {
-        vec.push_back(const_cast<FieldElement*>(get_corresponding_fe_in_frame( frame_idx, tier_idx, fe)));
-    }
-    return vec;
-}
-
-/**
- * @return the FE corresponding to the given one in a given tier and frame
- */
-const FieldElement*
-FieldOptimiser::get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const {
-    using namespace std;
-
-    assert(src_fe != nullptr);
-
-    if( frame_idx == 0 ) return src_fe;
-
-    vector<FieldElement*> source_frame_nodes;
-    source_frame_nodes = get_elements_at(0, tier_idx);
-    size_t src_idx = index_of( src_fe, source_frame_nodes);
-
-    vector<FieldElement*> dest_frame_nodes;
-    dest_frame_nodes   = get_elements_at(frame_idx, tier_idx);
-    return dest_frame_nodes[src_idx];
+bool
+FieldOptimiser::is_frame_enabled(size_t frame_idx) const {
+    return m_include_frames[frame_idx];
 }
 
 
 /**
- * When constructing a graph hierarchy, we generate new FEs for higher tiers of the graph which are 
- * generated from nodes in lower tiers.
- * This method is responsible for generating equivalent nodes in other frames.
+ * @return the numberof nodes in the given tier.
  */
-void 
-FieldOptimiser::build_equivalent_fes( ) {
-    using namespace std;
-
-    size_t num_frames = m_field->get_num_frames();
-    size_t num_tiers = m_graph_hierarchy.size();
-
-    // Allocate a bunch of storage
-    m_field_element_mappings = new vector<FieldElement*>[num_frames * num_tiers];
-
-    // Copy the tier zero stuff directly from field
-    for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-        size_t idx = index(frame_idx, 0);
-        vector<FieldElement*> tier_0_elements = m_field->elements(frame_idx);
-        tier_0_elements.insert(tier_0_elements.end(), m_field->elements(idx).begin(), m_field->elements(idx).end() );
-    }
-
-    // For each other tier of the graph hierarchy
-    for (size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
-        FieldGraph *fg = graph_at_tier(tier_idx);
-
-        // For each node; sort frame 0
-        for (auto gn : fg->nodes()) {
-            FieldElement *frame_0_parent_fe = gn->data();
-
-            // Stash the base node in frame 0
-            m_field_element_mappings[index(0, tier_idx)].push_back(frame_0_parent_fe);
-
-            for (size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
-        
-                // Get the children (at time t0) in the previous tier
-                vector<FieldElement *> frame_0_children = m_mapping_hierarchy[tier_idx - 1].children(gn);
-
-                // Get corresponding elements in specified frame
-                vector<FieldElement *> frame_idx_children = get_corresponding_fes_in_frame(frame_idx, tier_idx-1, frame_0_children);
-
-                FieldElement * frame_idx_parent;
-                if( frame_idx_children.size() == 1 ) {
-                    frame_idx_parent = new FieldElement(frame_idx_children[0]->location(), frame_idx_children[0]->normal() );
-                } else if ( frame_idx_children.size() == 2 ) {
-                    frame_idx_parent = FieldElement::mergeFieldElements(frame_idx_children[0], frame_idx_children[1]);
-                } else {
-                    throw_runtime_error( "Expected only one or two children" );
-                }
-                m_field_element_mappings[index(frame_idx, tier_idx)].push_back( frame_idx_parent );
-            }
-        }
-    }
+std::size_t 
+FieldOptimiser::num_nodes_in_tier( std::size_t tier_idx) const {
+    return m_graphs[tier_idx]->num_nodes();
 }
 
 /**
- * @return the index of the FE in the given vector or throw
- * if not found.
+ * @return the numberof edges in the given tier.
  */
-size_t FieldOptimiser::index_of( const FieldElement *fe, const std::vector<FieldElement *>& elements ) const {
-    assert(fe != nullptr);
-    assert(elements.size() > 0 );
-    auto it = std::find( elements.begin(), elements.end(), fe);
-    assert(it != elements.end());
-    return it - elements.begin();
-}
-/**
- * @return the index of the GN in the given vector or throw
- * if not found.
- */
-size_t FieldOptimiser::index_of( const FieldGraphNode *gn, const std::vector<FieldGraphNode *>& nodes ) const {
-    assert(gn != nullptr);
-    assert(nodes.size() > 0 );
-    auto it = std::find( nodes.begin(), nodes.end(), gn);
-    assert(it != nodes.end());
-    return it - nodes.begin();
+std::size_t 
+FieldOptimiser::num_edges_in_tier( std::size_t tier_idx) const {
+    return m_graphs[tier_idx]->num_edges();
 }
 
 /**
- * Given a set of corresponding field elements for each frame and tier, and a graph of neighbours, compute the
- * best fitting rotation to map a FE to it's corresponding element in another frame and tier.
+ * @return the optimising index.
  */
-void 
-FieldOptimiser::build_transforms( ) {
+size_t 
+FieldOptimiser::optimising_tier_index( ) const {
+    return m_optimising_tier_idx;
+}
+
+/**
+ * @return true if the optimiser is running.
+ */
+bool 
+FieldOptimiser::is_optimising( ) const {
+    return m_is_optimising;
+}
+
+
+/* ******************************************************************************************
+ *
+ *   Smoothing
+ *
+ * ******************************************************************************************/
+/**
+ * Construct a vector of all neighbours of a given graph node in a specific tier.
+ * This method uses the graph to extract immediate neighbours at frame 0 in this tier
+ * and then identifies corresponding FieldElements in other frames and back-projects them to 
+ * frame 0 using the inverse transformation matrix constructed during initialisation.
+ *
+ * @param tier_idx The tier of the graph hierarchy to consider.
+ * @param vertex_idx The vertex within a frame for which we're calculating this.
+ * @return A pair of vectors, the first are normals and the second tangents for all neighbours of this vertex.
+ */
+std::pair<std::vector<Eigen::Vector3f>, std::vector<Eigen::Vector3f>>
+FieldOptimiser::copy_all_neighbours_for(
+    const std::vector<PointNormalGraphPtr>& graphs, 
+    std::size_t tier_idx, 
+    std::size_t vertex_idx) const {
+
     using namespace std;
     using namespace Eigen;
 
-    size_t num_frames = m_field->get_num_frames();
-    size_t num_tiers = m_graph_hierarchy.size();
+    size_t num_frames = m_tiers[0].size();
+    vector<Vector3f>  nbr_normals;
+    vector<Vector3f>  nbr_tangents;
 
-    m_transforms = new vector<Eigen::Matrix3f>[num_frames * num_tiers];
+    // Get neighbouring vertex indices in this tier at frame 0
+    auto node = graphs[tier_idx]->nodes()[vertex_idx];
+    vector<size_t> nbr_indices = graphs[tier_idx]->neighbour_indices(node);
+    for( size_t nbr_idx : nbr_indices) {
+        nbr_normals.push_back( m_tiers[tier_idx][0][nbr_idx]->normal());
+        nbr_tangents.push_back(m_tangents[nbr_idx]);
+    }
 
-    // For each tier
-    for (size_t tier_idx = 0; tier_idx < num_tiers; ++tier_idx) {
-        FieldGraph *fg = graph_at_tier(tier_idx);
+    Vector3f this_vertex_normal = m_tiers[tier_idx][0][vertex_idx]->normal();
+    //  Copy temporal neighbours transformed to frame 0
+    for (size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
+        if(!m_include_frames[frame_idx] )
+            continue;
 
-        // Frame 0 transforms are all identify matrix
-        for( size_t i = 0; i < graph_at_tier(0)->num_nodes(); ++i) {
-            m_transforms[index(0,tier_idx)].push_back( Matrix3f::Identity());
-        }
+        // Get forward transformed tangents
+        vector<Vector3f> tangents_in_frame = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+        for( size_t nbr_idx : nbr_indices) {
+            nbr_normals.push_back( m_tiers[tier_idx][frame_idx][nbr_idx]->normal());
 
-        // For remainder of frames we have to compute values
-        for( size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
-            for (auto gn : fg->nodes()) {
-                // 1. Get the neighbours of this FE according to graph
-                FieldElement *fe = gn->data();
-                vector<FieldElement *> fe_neighbours = fg->neighbours_data(gn);
-                const FieldElement * other_fe = get_corresponding_fe_in_frame( frame_idx, tier_idx, fe );
-                vector<FieldElement *> other_fe_neighbours = get_corresponding_fes_in_frame( frame_idx, tier_idx, fe_neighbours );
-
-                // First point and normal
-                Vector3f point1 = fe->location();
-                Vector3f normal1 = fe->normal();
-
-                // Second point and normal
-                Vector3f point2 = other_fe->location();
-                Vector3f normal2 = other_fe->normal();
-
-                // Find points for neighbours at both time intervals
-                vector<Vector3f> neighbour_points_1;
-                vector<Vector3f> neighbour_points_2;
-                for (size_t i=0; i< fe_neighbours.size(); ++i ) {
-                    neighbour_points_1.push_back(fe_neighbours[i]->location());
-                    neighbour_points_2.push_back(other_fe_neighbours[i]->location());
-                }
-                Matrix3f m = rotation_between(point1, normal1, neighbour_points_1, point2, normal2, neighbour_points_2);
-                get_transforms_at(frame_idx, tier_idx).push_back( m );
-            }
+            Matrix3f back_transform = m_point_transforms[tier_idx][frame_idx][vertex_idx].second;
+            Vector3f back_transformed_tangent = back_transform * tangents_in_frame[nbr_idx];
+            back_transformed_tangent = reproject_to_tangent_space(back_transformed_tangent, this_vertex_normal);
+            back_transformed_tangent.normalize();
+            nbr_tangents.push_back(back_transformed_tangent);
         }
     }
+    return make_pair(nbr_normals, nbr_tangents);
 }
 
+
 /**
- * Expectations:
- * m_graph_hierarchy is setup and has multiple tiers
- * For each tier of the graph hierarchy, build an equivalent set of correspondences
- * to the newly generated FEs
+ * Update the tangents for the given tier of the graph.  The provided vector of tangents is in 
+ * order specified by indices.
  */
 void
-FieldOptimiser::build_correspondences() {
+FieldOptimiser::update_tangents( const std::vector<Eigen::Vector3f>& new_tangents) {
     using namespace std;
 
-    if(m_tracing_enabled) cout << "build_correspondences" << endl;
-
-    if (m_graph_hierarchy.size() == 0)
-        throw_runtime_error("build_correspondences() called with no graph hierarchy");
-
-    build_equivalent_fes( );
-
-    build_transforms( );
+    m_tangents.clear();
+    m_tangents.insert( end(m_tangents), begin(new_tangents), end(new_tangents));
 }
 
 /**
- * Validate that building the hoerarchy did not generate any crappy data
+ * Perform orientation field optimisation. 
+ * Continuously step until done.
  */
-void FieldOptimiser::validate_hierarchy() {
-    using namespace std;
-    using namespace Eigen;
-
-    cout << "Validating hierarchy..." << endl;
-    for( size_t tier_idx = 0; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
-        size_t node_idx = 0;
-        for( auto gn : m_graph_hierarchy[tier_idx]->nodes()) {
-            Vector3f tangent = gn->data()->tangent();
-            Vector3f normal  = gn->data()->normal();
-            string normal_name = "Tier " + to_string(tier_idx) + ", node " + to_string(node_idx) + " normal";
-            string tangent_name = "Tier " + to_string(tier_idx) + ", node " + to_string(node_idx) + " tangent";
-            checkUnitLength(normal_name, normal);
-            checkUnitLength(tangent_name, tangent);
-            checkPerpendicular(normal_name, normal, tangent_name, tangent);
-            assert( m_graph_hierarchy[tier_idx]->neighbours(gn).size() > 0 );
-        }
-    }
-    cout << "-- Validated" << endl;
+void
+FieldOptimiser::optimise() {
+    do {
+        optimise_do_one_step();
+    } while (m_is_optimising);
 }
 
 /**
- * Validate that building the hoerarchy did not generate any crappy data
+ * Randomise. Can only be performed when the field is not in the process of being optimised.
  */
-void FieldOptimiser::validate_correspondences() {
-    using namespace std;
-    using namespace Eigen;
+void 
+FieldOptimiser::randomise() {
 
-    size_t num_frames = m_field->get_num_frames();
-    cout << "Validating correspondences..." << endl;
-    for( size_t tier_idx = 1; tier_idx < m_graph_hierarchy.size(); ++tier_idx) {
-        vector<FieldElement *> fe0s  = get_elements_at( 0, tier_idx);
 
-        for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-            size_t idx = index(frame_idx, tier_idx);
+    // TODO: Generate random tangents and propagate across tiers and frames.
 
-            vector<FieldElement*> fes = get_elements_at(frame_idx, tier_idx);
-            vector<Matrix3f> xforms = m_transforms[idx];
 
-            for( size_t node_idx = 0; node_idx < fes.size(); ++node_idx ) {
-                FieldElement * fe0 = fe0s[node_idx];
-                FieldElement * fe = fes[node_idx];
-                Vector3f normal0  = fe0->normal();
-                Vector3f tangent = fe->tangent();
-                Vector3f normal  = fe->normal();
-                Matrix3f m = xforms[node_idx];
-
-                for( size_t i=0; i<9; ++i ) 
-                    assert(!isnan(m(i)));
-
-                Matrix3f minv = m.inverse();
-                Vector3f back_normal = minv * normal;
-
-                string normal_name = "Tier " + to_string(tier_idx) + ", frame " + to_string(frame_idx) + ", node " + to_string(node_idx) + " normal";
-                string tangent_name = "Tier " + to_string(tier_idx) + ", frame " + to_string(frame_idx) + ", node " + to_string(node_idx) + " tangent";
-
-                checkUnitLength(normal_name, normal);
-                checkUnitLength(tangent_name, tangent);
-                checkPerpendicular(normal_name, normal, tangent_name, tangent);
-                Vector3f delta = back_normal - normal0;
-                if( abs(delta.norm() ) > EPSILON ) {
-                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal back projection test (diff)" << endl;
-                    // Dump offending things
-                    cout << "  Frame 0 normal        : " << normal0 << endl;
-                    cout << "  Back projected normal : " << back_normal << endl;
-                    cout << "  Delta                 : " << delta << endl;
-                    cout << "  Delta norm            : " << delta.norm() << endl;
-                    cout << "  M\n-----\n" << m << endl;
-                    cout << "  Minv\n-----\n" << minv << endl;
-                    throw runtime_error("Validate correspondences failed");
-                }
-                if( abs(back_normal.norm() - 1.0f ) > EPSILON ) {
-                    cout << "Tier : " << tier_idx << ", frame : " << frame_idx << ", node : " << node_idx << " failed normal back projection test (length)" << endl;
-                    // Dump offending things
-                    cout << "  Frame 0 normal        : " << normal0 << endl;
-                    cout << "  Frame "<< frame_idx<<" normal       : " << normal << endl;
-                    cout << "  Back projected normal : " << back_normal << endl;
-                    cout << "  M                     : " << m << endl;
-                    cout << "  Minv                  : " << minv << endl;
-
-                    throw runtime_error("Validate correspondences failed");
-                }
-            }
-        }
-    }
-    cout << "-- Validated" << endl;
 }
+
+
+
 
 /**
  * Setup for optimisation. Build the hierarchical graph and
  * construct correspondence maps.
  */
-void
-FieldOptimiser::setup_optimisation() {
-    generate_hierarchy(SMOOTH_EDGES, SMOOTH_NODES, SMOOTH_TIERS);
-    validate_hierarchy( );
+void FieldOptimiser::optimise_begin(){
+    using namespace std;
+    using namespace Eigen;
 
-    build_correspondences();
-    validate_correspondences();
+    // Assume we're on tier 0; copy tans
+    update_tangents( compute_tangents_for_tier_and_frame(m_graphs.size() - 1, 0));
 
-    m_optimising_tier_index = m_graph_hierarchy.size() - 1;;
-    m_optimising_current_tier = graph_at_tier(m_optimising_tier_index);
+    m_optimising_tier_idx = m_graphs.size() - 1;
+    m_optimising_current_tier = m_graphs[m_optimising_tier_idx];
     m_optimising_started_new_tier = true;
     m_is_optimising = true;
-
-    m_optimising_last_error = calculate_error(m_optimising_current_tier);
-    if (m_tracing_enabled)
-        std::cout << "Starting smooth. Error : " << m_optimising_last_error << std::endl;
-}
-
-/**
- * Mark optimisation as done.
- */
-void
-FieldOptimiser::stop_optimising() {
-    m_is_optimising = false;
-    size_t tier = m_graph_hierarchy.size() - 1;
-    while (tier > 0) {
-        delete graph_at_tier(tier);
-        tier--;
-    }
-
-    delete [] m_transforms;
-    delete [] m_field_element_mappings;
-    m_graph_hierarchy.clear();
-    m_mapping_hierarchy.clear();
-    m_graph_hierarchy.push_back(m_field->m_graph);
+    m_optimising_last_error = total_error();
 }
 
 /**
  * Start optimising a brand new tier of the hierarchical graph,
  */
-void
-FieldOptimiser::setup_tier_optimisation() {
+void FieldOptimiser::optimise_begin_tier(){
     if (m_tracing_enabled)
-        std::cout << "  Level " << m_optimising_tier_index << std::endl;
+        std::cout << "  Level " << m_optimising_tier_idx << std::endl;
 
     m_optimising_iterations_this_tier = 0;
     m_optimising_started_new_tier = false;
 }
 
-/**
- * Set the tangent for the given frame, tier and node.  For frames other than 0 this involves
- * transforming the tangent into the frame's space by applying the forward transform associated with this
- * FE.
- *
- * @param frame_idx The frame into which to set the tangent.
- * @param tier_idx The tier of the graph hierarchy to apply to.
- * @param node_idx The node in this tier.
- * @param tangent The tangent as at frame 0.
- */
-void 
-FieldOptimiser::set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent ) {
-    using namespace Eigen;
-
-    FieldElement * fe = get_elements_at(frame_idx, tier_idx)[node_idx];
-    assert( fe != nullptr);
-
-    if( frame_idx > 0 ) {
-        // Need to forward xform 
-        Matrix3f m = get_transform_at(frame_idx, tier_idx, node_idx);
-        Vector3f t1 = m * tangent;
-        Vector3f t2 = reproject_to_tangent_space( t1, fe->normal() );
-        fe->set_tangent(t2);
-    } else {
-        fe->set_tangent(tangent);
+bool FieldOptimiser::optimise_end_tier(){
+    if (m_optimising_tier_idx != 0) {
+        update_tangents(propagate_tangents_down(m_tangents, m_optimising_tier_idx) );
+        m_optimising_tier_idx--;
+        m_mappings[m_optimising_tier_idx].propagate();
+        m_optimising_current_tier = m_graphs[m_optimising_tier_idx];
+        m_optimising_started_new_tier = true;
+        return false;
     }
-}
-
-
-/**
- * Update the tangents for the gievn tier of the graph.  The provided vector of tangents is in 
- * order specified by indices.
- */
-void
-FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents, const std::vector<size_t>& indices ) {
-    using namespace Eigen;
-
-    assert( tier_idx < m_graph_hierarchy.size() );
-
-    FieldGraph * fg = graph_at_tier(tier_idx);
-
-    size_t num_frames = m_field->get_num_frames();
-
-    for( auto idx : indices ) {
-        Vector3f new_tan = new_tangents[idx];
-
-        // Set the frames
-        for( size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx ) {
-            set_tangent( frame_idx, tier_idx, idx, new_tan);
-        }
-    }
+    return true;
 }
 
 /**
- * Smooth the current tier of the hierarchy once and return true if it converged
-
- * @param tier_idx The index of the graph tier to be optimised.
- * @return True of the optimisation converged, otherwise false.
+ * Optimisation has concluded.
  */
-bool
-FieldOptimiser::optimise_tier_once(std::size_t tier_idx) {
-    using namespace Eigen;
-    using namespace std;
-
-    if (m_tracing_enabled) cout << "    smooth_once" << endl;
-
-    FieldGraph *tier = m_graph_hierarchy[tier_idx];
-
-    // Extract map keys into vector and shuffle
-    size_t num_nodes = tier->nodes().size();
-    vector<size_t> node_indices = generate_random_indices(num_nodes);
-
-    // Iterate over permute, look up key, lookup fe and smooth
-    vector<Eigen::Vector3f> new_tangents{num_nodes};
-    for (auto node_index : node_indices) {
-        new_tangents[node_index] = calculate_smoothed_node(tier_idx, tier->nodes()[node_index]);
-    }
-
-    // Now update all of the nodes
-    update_tangents( tier_idx, new_tangents, node_indices );
-
-    // Get the new error
-    m_optimising_iterations_this_tier++;
-    float new_error = calculate_error(tier);
-    return check_convergence(new_error);
+void FieldOptimiser::optimise_end(){
+    m_is_optimising = false;
 }
-
 
 /**
  * Perform a single step of optimisation.
  */
 void
-FieldOptimiser::optimise_one_step() {
+FieldOptimiser::optimise_do_one_step() {
+    using namespace std;
+    using namespace Eigen;
+
     // If not optimising, perform setup
     if (!m_is_optimising) {
-        setup_optimisation();
+        optimise_begin(); //setup_optimisation();
     }
 
     // If we're starting a new tier...
     if (m_optimising_started_new_tier) {
-        setup_tier_optimisation();
+        optimise_begin_tier(); //setup_tier_optimisation();
     }
 
     // Smooth the tier, possible starting a new one
-    if (optimise_tier_once(m_optimising_tier_index)) {
-        // Converged. If there's another tier, do it
-        if (m_optimising_tier_index != 0) {
-
-            m_optimising_tier_index--;
-            m_mapping_hierarchy[m_optimising_tier_index].propagate();
-            m_optimising_current_tier = graph_at_tier(m_optimising_tier_index);
-            m_optimising_started_new_tier = true;
-        }
-
-        // Otherwise, done
-        else {
-            stop_optimising();
+    vector<Vector3f> new_tangents = compute_new_tangents_for_tier(m_graphs, m_optimising_tier_idx);
+    update_tangents(new_tangents);
+    m_optimising_iterations_this_tier++;
+    float new_error = total_error();
+    bool is_converged = check_convergence(new_error);
+    m_optimising_last_error = new_error;
+    if( is_converged ) {
+        if( optimise_end_tier() ) {
+            optimise_end(); // stop_optimising
         }
     }
 }
 
 /**
- * Perform orientation field optimisation. Continuously step until done.
+ * Compute new tangents for all vertices in a tier
+ * @param tier_idx The index of the graph tier to be optimised.
+ * @return Vector of tangents
  */
-void
-FieldOptimiser::optimise() {
-    do {
-        optimise_one_step();
-    } while (m_is_optimising);
-}
+std::vector<Eigen::Vector3f>
+FieldOptimiser::compute_new_tangents_for_tier(
+    const std::vector<PointNormalGraphPtr>& graphs, 
+    std::size_t tier_idx) const {
 
-/**
- * Randomise the field. Can only be performed when the field is not in the process of being optimised.
- */
-void FieldOptimiser::randomise() {
-    checkCanRandomise();
+    using namespace Eigen;
+    using namespace std;
 
-    for( size_t frame_idx = 0; frame_idx < m_field->get_num_frames(); ++frame_idx) {
-        for( auto fe : m_field->elements(frame_idx)) {
-            fe->randomise_tangent();
-        }
+    // Iterate over permute, look up key, lookup fe and smooth
+    vector<Eigen::Vector3f> new_tangents;
+    for (size_t vertex_idx = 0; vertex_idx < graphs[tier_idx]->num_nodes(); ++vertex_idx) {
+        new_tangents.push_back(compute_new_tangent_for_vertex(graphs,tier_idx, vertex_idx));
     }
+    return new_tangents;
 }
 
 
 /**
- * Return if the optimising is not mid optimisation and has
+ * Computes the new tangent for a given node by averaging over all neighbours. Final result is
+ * projected back into tangent space for the given FE's normal
+ * @return The new vector.
  */
- void FieldOptimiser::checkCanRandomise() {
-    if( m_field == nullptr) throw_runtime_error("Field not set.");
-    if(m_is_optimising) throw_runtime_error("Can't randomise during optimisation");
- }
+Eigen::Vector3f 
+FieldOptimiser::compute_new_tangent_for_vertex(
+    const std::vector<PointNormalGraphPtr>& graphs, 
+    size_t tier_idx, 
+    size_t vertex_idx) const {
+    using namespace Eigen;
+    using namespace std;
 
+    assert( tier_idx == m_optimising_tier_idx);
+
+    PointNormal::Ptr this_vertex = graphs[tier_idx]->nodes()[vertex_idx]->data();
+
+    // Get all neighbours across all frames for this node
+    pair<vector<Vector3f>, vector<Vector3f>> neighbour_data = copy_all_neighbours_for( graphs, tier_idx, vertex_idx);
+    vector<Vector3f> neighbour_normals = neighbour_data.first;
+    vector<Vector3f> neighbour_tangents = neighbour_data.second;
+
+
+    // Merge all neighbours; implicitly using optiminsing tier tangents
+    Vector3f new_tangent = m_tangents[vertex_idx];
+    float weight = 0;
+    for ( size_t neighbour_idx = 0; neighbour_idx < neighbour_normals.size(); ++neighbour_idx) {
+        // TODO: Extract the edge weight from the graph node
+        float edge_weight = 1.0f;
+        new_tangent = average_rosy_vectors(new_tangent, this_vertex->normal(), weight,
+                                           neighbour_tangents[neighbour_idx], neighbour_normals[neighbour_idx], 
+                                           edge_weight);
+        weight += edge_weight;
+    }
+    return new_tangent;
+}
+
+/* ******************************************************************************************
+ *
+ *   Error calculations
+ *
+ * ******************************************************************************************/
+
+/**
+ * @return The current error. This is calculated on the current tier when smoothing and tier0 when not.
+ */
+float 
+FieldOptimiser::total_error() const {
+    using namespace std;
+    using namespace Eigen;
+
+    size_t tier_idx = 0;
+    if(m_is_optimising) {
+        tier_idx = m_optimising_tier_idx;
+    }
+    PointNormalGraphPtr graph = m_graphs[tier_idx];
+    vector<Vector3f> tangents = compute_tangents_for_tier_and_frame(tier_idx,0);
+
+    float error = compute_error_for_tier( m_tiers[tier_idx][0], graph, tangents );
+    return error;
+}
 
 /**
  * @return true if the optimisation operation has converged
  * (or has iterated enough times)
  * otherwise return false
  */
-
 bool
-FieldOptimiser::check_convergence(float new_error) {
+FieldOptimiser::check_convergence(float new_error) const {
     float delta = m_optimising_last_error - new_error;
     float pct = delta / m_optimising_last_error;
     float display_pct = std::floor(pct * 1000.0f) / 10.0f;
-    m_optimising_last_error = new_error;
 
     bool converged = (display_pct >= 0.0f && display_pct < CONVERGENCE_THRESHOLD);
     if (m_tracing_enabled) {
@@ -618,263 +947,4 @@ FieldOptimiser::check_convergence(float new_error) {
         }
     }
     return converged;
-}
-
-
-/**
- * Construct a vector of all neighbours of a given graph node in a specific tier.
- * This method uses the graph to extract immediate neighbours at frame 0 in this tier
- * and then identifies corresponding FieldElements in other frames and back-projects them to 
- * frame 0 using the inverse transformation matrix constructed during initialisation.
- *
- * @param tier_idx The tier of the graph hierarchy to consider.
- * @param gn The graph node within the graph at this tier to get neighbours for.
- * @return A vector of all neighbours. These are copies of the original nodes as we don't want to modify them.
- */
-std::vector<FieldElement *> 
-FieldOptimiser::copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const {
-    using namespace std;
-    using namespace Eigen;
-
-    assert( gn != nullptr);
-    assert( tier_idx < m_graph_hierarchy.size());
-
-    vector<FieldElement *> all_neighbours;
-
-    // Get the index of the fe in frame 0 of this tier
-    vector<FieldElement*> fem = get_elements_at(0, tier_idx);
-    size_t node_idx = index_of( gn->data(), fem );
-
-    //  Copy spatial neighbours unchanged
-    FieldGraph * tier = graph_at_tier(tier_idx);
-    vector<FieldElement *> spatial_neighbours = tier->neighbours_data(gn);
-    for( auto fe : spatial_neighbours) {
-        FieldElement * new_fe = new FieldElement( fe->location(), fe->normal(), fe->tangent());
-        all_neighbours.push_back(new_fe);
-    }
-
-    //  Copy temporal neighbours transformed to frame 0
-    for (size_t frame_idx = 1; frame_idx < m_field->get_num_frames(); ++frame_idx) {
-        // Exclude unflagged frames
-        cout << "collecting temporal neighbours from frame " << frame_idx << endl;
-        if(!m_include_frames[frame_idx] )
-            continue;
-
-        // Get my own transformation matrix for this frame
-        Matrix3f m = get_transform_at(frame_idx, tier_idx, node_idx);
-        Matrix3f minv = m.inverse();
-
-        // Now for each spatial neighbour in frame 0, back transform the corresponding neighbour in future frame
-        vector<FieldElement*> temporal_neighbours = get_corresponding_fes_in_frame(frame_idx, tier_idx, spatial_neighbours);
-        for (auto fe : temporal_neighbours) {
-            FieldElement * new_fe = back_project_fe( fe, minv);
-            all_neighbours.push_back( new_fe);
-        }
-    }
-    assert( all_neighbours.size() > 0 );
-    return all_neighbours;
-}
-
-/**
- * Computes the new tangent for a given node by averaging over all neighbours. Final result is
- * projected back into tangent space for the given FE's normal
-
- * @return The new vector.
- */
-Eigen::Vector3f 
-FieldOptimiser::calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn) const {
-    using namespace Eigen;
-    using namespace std;
-
-    FieldElement *this_fe = (FieldElement *) gn->data();
-    if (m_tracing_enabled) cout << "smooth_node : " << *this_fe << endl;
-
-    // Get all neighbours across all frames for this node
-    vector<FieldElement *> all_neighbours = copy_all_neighbours_for( tier_idx, gn);
-
-    // Merge all neighbours
-    Vector3f new_tangent = this_fe->tangent();
-    float weight = 0;
-    for (auto neighbour_fe : all_neighbours) {
-        if (m_tracing_enabled) cout << "  considering neighbour : " << *neighbour_fe << endl;
-
-        // Find best matching rotation
-        // TODO: Extract the edge weight from the graph node
-        float edge_weight = 1.0f;
-        new_tangent = average_rosy_vectors(new_tangent, this_fe->normal(), weight,
-                                           neighbour_fe->tangent(), neighbour_fe->normal(), edge_weight);
-        weight += edge_weight;
-    }
-
-    // Dispose of neighbours
-    for( auto fe : all_neighbours) {
-        delete fe;
-    }
-
-    if (m_tracing_enabled) cout << "  result : " << new_tangent << endl;
-
-    return new_tangent;
-}
-
-std::vector<FieldElement*>&
-FieldOptimiser::get_elements_at( size_t frame_idx, size_t tier_idx ) const {
-    assert( m_field != nullptr);
-
-    // If tier is 0, use field_Data
-    if(tier_idx == 0 ) {
-        assert( m_field->elements(frame_idx ).size() > 0 );
-        return m_field->elements(frame_idx );
-    } else {
-        size_t idx = index( frame_idx, tier_idx);
-        assert( m_field_element_mappings[idx].size() > 0 );
-        return m_field_element_mappings[idx];
-    }
-}
-
-const Eigen::Matrix3f&
-FieldOptimiser::get_transform_at( size_t frame_idx, size_t tier_idx, size_t node_idx ) const {
-    assert( m_field != nullptr);
-    assert( m_transforms != nullptr );
-
-    return m_transforms[ index( frame_idx, tier_idx)][node_idx];
-}
-
-std::vector<Eigen::Matrix3f>&
-FieldOptimiser::get_transforms_at( size_t frame_idx, size_t tier_idx ) const {
-    assert( m_field != nullptr);
-    assert( m_transforms != nullptr );
-
-    return m_transforms[ index( frame_idx, tier_idx)];
-}
-
-/**
- * Current error in field
- */
-float FieldOptimiser::current_error(int tier) const {
-    return calculate_error(graph_at_tier(tier));
-}
-
-
-/**
- * @return the smoothness of the entire Field
- */
-float FieldOptimiser::calculate_error(FieldGraph *tier) const {
-    // E(O, k) :=      (oi, Rso (oji, ni, kij ))
-    // For each node
-    float error = 0.0f;
-    for (auto node : tier->nodes()) {
-        error += calculate_error_for_node(tier, node);
-    }
-    return error;
-}
-
-/**
- * @return the smoothness of one node
- */
-float FieldOptimiser::calculate_error_for_node(FieldGraph *tier, FieldGraphNode *gn) const {
-    float error = 0.0f;
-
-    FieldElement *this_fe = (FieldElement *) gn->data();
-
-    std::vector<FieldGraphNode *> neighbours = tier->neighbours(gn);
-
-    for (auto n : neighbours) {
-
-        FieldElement *neighbour_fe = n->data();
-
-        std::pair<Eigen::Vector3f, Eigen::Vector3f> result = best_rosy_vector_pair(
-                    this_fe->tangent(),
-                    this_fe->normal(),
-                    neighbour_fe->tangent(),
-                    neighbour_fe->normal());
-
-        float theta = angle_between_vectors(result.first, result.second);
-        error += (theta * theta);
-    }
-    return error;
-}
-
-void
-FieldOptimiser::add_new_frame( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals) {
-    m_field->add_new_frame(vertices, normals);
-    m_include_frames.push_back(true);
-}
-
-
-/**
- * @Return the nth graph in the hierarchy where 0 is base.
- */
-FieldGraph *FieldOptimiser::graph_at_tier(std::size_t tier) const {
-    assert( tier < m_graph_hierarchy.size());
-    return m_graph_hierarchy[tier];
-}
-
-/**
- * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
- * Stash the graphs and mappings into vectors.
- * Tries to respect the parameters provided. If multiple paramters are provided it will terminate at
- * the earliest.
- * @param max_edges >0 means keep iterating until only this number of edges remain. 0 means don't care.
- * @param max_nodes >0 means keep iterating until only this number of nodes remain. 0 means don't care.
- * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
- *
- */
-void FieldOptimiser::generate_hierarchy(int max_tiers, int max_nodes, int max_edges) {
-    using namespace std;
-
-    if (m_graph_hierarchy.size() > 1)
-        throw_runtime_error("Hierarchy already generated");
-
-    // At least one of max_tiers, max_nodes and max_edges must be >0
-    if (max_edges <= 0 && max_nodes <= 0 && max_tiers <= 0) {
-        throw_invalid_argument("Must specify terminating criteria for hierarchy generation");
-    }
-
-    if (m_tracing_enabled) {
-        cout << "Generating graph hierarchy. Teminating when one of ";
-        if (max_edges > 0) {
-            cout << " edges <= " << max_edges;
-        }
-        if (max_nodes > 0) {
-            cout << " nodes <= " << max_nodes;
-        }
-        if (max_tiers > 0) {
-            cout << " tiers <= " << max_tiers;
-        }
-        cout << " is true" << endl;
-        cout << "  Start :" << graph_at_tier(0)->num_nodes() << " nodes, "
-                  << graph_at_tier(0)->num_edges() << " edges" << endl;
-    }
-
-    bool done = false;
-    FieldGraph *current_tier = graph_at_tier(0);
-    FieldGraphSimplifier *s = new FieldGraphSimplifier(FieldElement::mergeFieldElements,
-            FieldElement::propagateFieldElements);
-
-    while (!done) {
-        done = done || ((max_nodes > 0) && (current_tier->num_nodes() < max_nodes));
-        done = done || ((max_edges > 0) && (current_tier->num_edges() < max_edges));
-        done = done || ((max_tiers > 0) && (m_graph_hierarchy.size() == max_tiers));
-
-        if (!done) {
-            pair<FieldGraph *, FieldGraphMapping> simplify_results = s->simplify(current_tier);
-            m_graph_hierarchy.push_back(simplify_results.first);
-            m_mapping_hierarchy.push_back(simplify_results.second);
-            current_tier = simplify_results.first;
-        }
-
-        if (m_tracing_enabled)
-            cout << "  Tier : " << m_graph_hierarchy.size() 
-                    << "Nodes :" << current_tier->num_nodes() 
-                    << ", Edges :" << current_tier->num_edges() 
-                    << endl;
-    }
-}
-
-/**
- * @Return the current tier being optimised
- */
-size_t
-FieldOptimiser::optimising_tier_index() const {
-    return m_optimising_tier_index;
 }

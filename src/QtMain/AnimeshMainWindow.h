@@ -2,7 +2,6 @@
 #define ANIMESHMAINWINDOW_H
 
 #include <QMainWindow>
-#include <Field/Field.h>
 #include <Field/FieldOptimiser.h>
 #include <Field/ObjFileParser.h>
 
@@ -28,14 +27,38 @@ public:
 private:
     Ui::AnimeshMainWindow *ui;
 
-    void
-    load_model_from_file(QString fileName);
+    /**
+     * Load from one or more files or directory.
+     * If file_names has more than one entry, they must all be files and we load them all
+     * If it has one entry, it could be a directory or a file.
+     */
+    void 
+    load_from( const QStringList& file_names );
 
-    void
-    load_new_frame(QString file_name);
+    /**
+     * Load multiple files
+     */
+    void 
+    load_multiple_files( const std::vector<std::string>& file_names );
 
-    void
-    setCurrentFile(const QString &fileName);
+    /**
+     * Load from directory.
+     */
+    void 
+    load_from_directory( const std::string& directory_name );
+
+    /**
+     * Load from file.
+     */
+    void 
+    load_from_file( const std::string& file_name );
+
+    /**
+     * Reset all controls once a file has been loaded.
+    */
+    void 
+    file_loaded( );
+
 
     void
     set_current_frame( size_t new_frame_idx );
@@ -107,31 +130,25 @@ private:
      * Init the main tangent layer
      */
     void
-    init_main_tangent_vector_layer(vtkSmartPointer<vtkRenderer> renderer );
-
-    /**
-     * Update the main tangent layer
-     */
-    void
-    update_main_tangent_vector_layer( );
-
-    /**
-     * Init the main tangent vector layer
-     */
-    void
-    init_secondary_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer );
-
-    /**
-     * Update the secondary tangents layer
-     */
-    void
-    update_secondary_tangent_vector_layer( );
+    init_cross_field_layer(vtkSmartPointer<vtkRenderer> renderer );
 
     /**
      * Init the main tangent vector layer
      */
     void
     init_neighbours_layer( vtkSmartPointer<vtkRenderer> renderer );
+
+    /**
+     * Utility to initialise any layer
+     */
+    void
+    init_layer( vtkSmartPointer<vtkRenderer> renderer, vtkSmartPointer<vtkPolyData>& poly_data, vtkSmartPointer<vtkActor>& actor );
+
+    /**
+     * Update the main tangent layer
+     */
+    void
+    update_cross_field_layer( );
 
     /**
      * Update the secondary tangents layer
@@ -143,15 +160,13 @@ private:
     update_frame_range( );
 
     /**
-     * Reconstruct the given polydata from the field
+     * Reconstruct all polydata from the field
      */
     void
     update_poly_data( );
 
-    vtkSmartPointer<vtkRenderer> set_up_renderer();
-
-    void
-    set_field(animesh::Field *field);
+    vtkSmartPointer<vtkRenderer> 
+    set_up_renderer();
 
     void
     update_inspector();
@@ -162,22 +177,16 @@ private:
     void
     compute_scale();
 
-
-    // Field declaration
-    animesh::Field *m_field;
-
     // Optimiser
     animesh::FieldOptimiser *m_field_optimiser;
 
     // Poly data
-    vtkSmartPointer<vtkPolyData> m_polydata_main_tangents;
-    vtkSmartPointer<vtkPolyData> m_polydata_other_tangents;
+    vtkSmartPointer<vtkPolyData> m_polydata_cross_field;
     vtkSmartPointer<vtkPolyData> m_polydata_normals;
     vtkSmartPointer<vtkPolyData> m_polydata_neighbours;
 
     // Actors
-    vtkSmartPointer<vtkActor> m_main_tangents_actor;
-    vtkSmartPointer<vtkActor> m_other_tangents_actor;
+    vtkSmartPointer<vtkActor> m_cross_field_actor;
     vtkSmartPointer<vtkActor> m_normals_actor;
     vtkSmartPointer<vtkActor> m_neighbours_actor;
 
@@ -197,24 +206,24 @@ private:
     float tan_scale_factor = 1.0f;
 
     // Things to draw
-    bool m_draw_main_tangent;
-    bool m_draw_other_tangents;
+    bool m_draw_cross_field;
+    bool m_highlight_main_tangent;
     bool m_draw_normals;
     bool m_draw_neighbours;
 
 private slots:
     void on_action_open_triggered();
-    void on_action_add_frame_triggered();
-    void on_sbGraphLevel_valueChanged(int new_graph_level);
+    void on_action_exit_triggered();
     void on_btnSmoothCompletely_clicked();
     void on_btnSmoothOnce_clicked();
+    void on_btnRandomise_clicked();
     void on_cbMainTangent_stateChanged(int arg1);
     void on_cbSecondaryTangents_stateChanged(int arg1);
     void on_cbNormals_stateChanged(int arg1);
     void on_cbNeighbours_stateChanged(int arg1);
     void on_cb_include_frame_stateChanged(int arg1);
     void on_hs_frame_selector_valueChanged(int value);
-    void on_btnRandomise_clicked();
+    void on_sbGraphLevel_valueChanged(int new_graph_level);
 };
 
 #endif // ANIMESHMAINWINDOW_H

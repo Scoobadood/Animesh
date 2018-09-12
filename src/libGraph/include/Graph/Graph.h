@@ -183,6 +183,44 @@ public:
         return data;
     }
 
+    std::size_t index_of( const GraphNode * gn ) const {
+        size_t idx = 0;
+        for( GraphNode * test_node : m_nodes) {
+            if( gn == test_node ) {
+                return idx;
+            }
+            idx++;
+        }
+        assert( "Node not found" == nullptr);
+    }
+
+    /**
+     * TODO: This is O(Kn) in neighbours and nodes and is very expensive.
+     * Fix this in future.
+     * @return a vector of the neghbours of a given node
+     */
+    std::vector<size_t> neighbour_indices( GraphNode * node ) const {
+        using namespace std;
+        vector<GraphNode *> nodes = neighbours(node);
+        vector<size_t> indices;
+        for(GraphNode * gn : nodes ) {
+            size_t i = 0;
+            for( GraphNode * test_node : m_nodes) {
+                if( gn == test_node ) {
+                    indices.push_back( i );
+                    break;
+                } else {
+                    i++;
+                }
+            }
+            // Fail. Node should have been found before here.
+            if( i == m_nodes.size()) {
+                assert( "Node not found" == nullptr);
+            }
+        }
+        return indices;
+    }
+
     /**
      * @return a vector of the neghbours' data for a given node
      */

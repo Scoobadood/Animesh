@@ -1,6 +1,7 @@
 #include <QtWidgets>
 #include <Eigen/Geometry>
 
+#include <FileUtils/FileUtils.h>
 #include "AnimeshMainWindow.h"
 
 #include "ui_AnimeshMainWindow.h"
@@ -36,26 +37,47 @@
 #include "vtkTextWidget.h"
 #include "vtkUnsignedCharArray.h"
 
-using animesh::Field;
 using animesh::FieldOptimiser;
-using animesh::FieldElement;
-using animesh::FieldGraph;
+using animesh::ObjFileParser;
+using animesh::PointNormal;
+
+
+std::vector<std::string> get_files_in_directory( std::string directory_name ) {
+    using namespace std;
+
+    ObjFileParser parser;
+    vector<string> file_names;
+    files_in_directory( directory_name, file_names, []( string name ) {
+        using namespace std;
+
+        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+        string obj = ".obj";
+
+        if( name.size() < 4 ) return false;
+        return equal(obj.rbegin(), obj.rend(), name.rbegin());
+    });
+    // Construct full path names
+    vector<string> full_path_names;
+    for( string file_name : file_names) {
+        // FIXME: Replace this evilness with something more robust and cross platform.
+        string path_name = directory_name + "/" + file_name;
+        full_path_names.push_back( path_name );
+    }
+    return full_path_names;
+}
 
 AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::AnimeshMainWindow) {
-    m_field = nullptr;
     m_field_optimiser = nullptr;
-    m_polydata_main_tangents = nullptr;
-    m_polydata_other_tangents = nullptr;
+    m_polydata_cross_field = nullptr;
     m_polydata_normals = nullptr;
     m_polydata_neighbours = nullptr;
-    m_main_tangents_actor = nullptr;
-    m_other_tangents_actor = nullptr;
+    m_cross_field_actor = nullptr;
     m_normals_actor = nullptr;
     m_neighbours_actor = nullptr;
     m_current_tier = 0;
     m_current_frame = 0;
-    m_draw_main_tangent = true;
-    m_draw_other_tangents = true;
+    m_draw_cross_field = true;
+    m_highlight_main_tangent = true;
     m_draw_normals = false;
     m_draw_neighbours = false;
 
@@ -65,7 +87,7 @@ AnimeshMainWindow::AnimeshMainWindow(QWidget *parent) : QMainWindow(parent), ui(
     ui->qvtkWidget->GetRenderWindow()->AddRenderer(set_up_renderer());
 
     // Set up action signals and slots
-    connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(slotExit()));
+    connect(ui->action_exit, SIGNAL(triggered()), this, SLOT(on_action_exit_triggered()));
 
     init_UI();
 }
@@ -74,38 +96,38 @@ AnimeshMainWindow::~AnimeshMainWindow() {
     delete ui;
 }
 
-
 /**
  * Handle the open file action
  */
 void AnimeshMainWindow::on_action_open_triggered() {
     // Notify the app to load the file
-    QString fileName = QFileDialog::getOpenFileName(this);
-    if (!fileName.isEmpty()) {
-        load_model_from_file(fileName);
+    QFileDialog dialog{this};
+    dialog.setFileMode(QFileDialog::Directory);
+    dialog.setNameFilter("*.obj");
+    QDir startDirectory{"/Users"};
+    QStringList file_names;
+    if (dialog.exec()) {
+        file_names = dialog.selectedFiles();    
+        if (!file_names.isEmpty()) {
+            load_from(file_names);
+        }
     }
 }
 
-void AnimeshMainWindow::on_action_add_frame_triggered() {
-    // Notify the app to load the file
-    QString file_name = QFileDialog::getOpenFileName(this);
-    if (!file_name.isEmpty()) {
-        load_new_frame(file_name);
-    }
+void AnimeshMainWindow::on_action_exit_triggered() {
+
 }
 
 /** Up or down a level in the graph
 */
 void AnimeshMainWindow::on_sbGraphLevel_valueChanged(int new_graph_level) {
-    if ( new_graph_level == m_current_tier + 1)
+    if ( new_graph_level - 1 == m_current_tier)
         return;
 
-    m_current_tier = new_graph_level - 1;
-    update_view();
+    set_current_tier(new_graph_level - 1);
 }
 
 void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
-    assert(m_field);
     assert(m_field_optimiser);
 
     m_field_optimiser->optimise();
@@ -113,45 +135,48 @@ void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
 }
 
 void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
-    assert(m_field);
     assert(m_field_optimiser);
 
     ui->btnRandomise->setEnabled(false);
-    m_field_optimiser->optimise_one_step();
+    m_field_optimiser->optimise_do_one_step();
     set_current_tier(m_field_optimiser->optimising_tier_index());
+    update_graph_tier_selector();
+    update_metrics();
+    update_view();
+
     if (!m_field_optimiser->is_optimising()) {
         ui->btnRandomise->setEnabled(true);
     }
 }
 
-void 
+void
 AnimeshMainWindow::update_view_layers() {
-    m_draw_main_tangent ? m_main_tangents_actor->VisibilityOn() : m_main_tangents_actor->VisibilityOff();
-    m_draw_other_tangents ? m_other_tangents_actor->VisibilityOn() : m_other_tangents_actor->VisibilityOff();
+    m_draw_cross_field ? m_cross_field_actor->VisibilityOn() : m_cross_field_actor->VisibilityOff();
     m_draw_normals ? m_normals_actor->VisibilityOn() : m_normals_actor->VisibilityOff();
     m_draw_neighbours ? m_neighbours_actor->VisibilityOn() : m_neighbours_actor->VisibilityOff();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
-void 
+void
 AnimeshMainWindow::on_cbMainTangent_stateChanged(int enabled) {
-    m_draw_main_tangent = ui->cbMainTangent->isChecked();
+    m_highlight_main_tangent = ui->cbMainTangent->isChecked();
+    update_cross_field_layer();
     update_view_layers();
 }
 
-void 
+void
 AnimeshMainWindow::on_cbSecondaryTangents_stateChanged(int enabled) {
-    m_draw_other_tangents = ui->cbSecondaryTangents->isChecked();
+    m_draw_cross_field = ui->cbSecondaryTangents->isChecked();
     update_view_layers();
 }
 
-void 
+void
 AnimeshMainWindow::on_cbNormals_stateChanged(int enabled) {
     m_draw_normals = ui->cbNormals->isChecked();
     update_view_layers();
 }
 
-void 
+void
 AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled) {
     m_draw_neighbours = ui->cbNeighbours->isChecked();
     update_view_layers();
@@ -163,8 +188,8 @@ void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
 }
 
 void AnimeshMainWindow::on_cb_include_frame_stateChanged(int enabled) {
-    if( m_field_optimiser == nullptr ) return;
-    if( m_current_frame == 0 ) return;
+    if ( m_field_optimiser == nullptr ) return;
+    if ( m_current_frame == 0 ) return;
 
     m_field_optimiser->enable_frame(m_current_frame, ui->cb_include_frame->isChecked());
 }
@@ -182,6 +207,117 @@ void AnimeshMainWindow::on_btnRandomise_clicked() {
  * ********************************************************************************/
 
 /**
+ * Reset all controls once a file has been loaded.
+ */
+void 
+AnimeshMainWindow::file_loaded( ) {
+    m_num_tiers = m_field_optimiser->num_tiers();
+    m_num_frames = m_field_optimiser->num_frames();
+
+    compute_scale( );
+    enable_display_checkboxes( );
+    enable_buttons();
+    update_include_checkbox();
+    update_frame_selector_range();
+    update_frame_selector_value();
+    update_graph_tier_selector();
+    update_metrics();
+    update_view();
+}
+
+/**
+ * Load from one or more files or directory.
+ * If file_names has more than one entry, they must all be files and we load them all
+ * If it has one entry, it could be a directory or a file.
+ */
+void 
+AnimeshMainWindow::load_from( const QStringList& file_names ) {
+    using namespace std;
+    // Nothing
+    if( file_names.size() == 0) return;
+
+    // Either a single file or directory
+    if( file_names.size() == 1 ) {
+        QString file_name = file_names[0];
+        bool is_directory  =false;
+        if( file_exists( file_name.toStdString(), is_directory ) ) {
+            if( is_directory ) {
+                load_from_directory( file_name.toStdString() );
+            } else {
+                // Single file to open
+                load_from_file( file_name.toStdString() );
+            }
+        }
+        // else file didn't exist
+    } else {
+        // Load all files in QStringList
+        vector<string> std_file_names;
+        for( auto s : file_names ) {
+            std_file_names.push_back( s.toStdString());
+        }
+        load_multiple_files(std_file_names);
+    }
+}
+
+/**
+ * Load multiple files
+ */
+void 
+AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_names ) {
+    using namespace std;
+
+    // Sanity check
+    assert( file_names.size() > 0 );
+    for( string file_name : file_names ) {
+        bool is_directory = false;
+        assert (file_exists( file_name, is_directory ) && !is_directory );
+    }
+
+    ObjFileParser parser;
+
+    vector<vector<PointNormal::Ptr>>    frames;
+    multimap<size_t, size_t>            adjacency;
+    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency( file_names[0] );
+    frames.push_back( results.first );
+    adjacency = results.second;
+
+    for( size_t file_idx = 1; file_idx < file_names.size(); ++file_idx ) {
+        vector<PointNormal::Ptr> frame_data = parser.parse_file( file_names[file_idx] );
+        frames.push_back(frame_data);
+    }
+    m_field_optimiser = new FieldOptimiser(frames, adjacency);
+    file_loaded();
+}
+
+/**
+ * Load from directory.
+ */
+void 
+AnimeshMainWindow::load_from_directory( const std::string& dir_name ) {
+    using namespace std;
+
+    vector<string> file_names = get_files_in_directory( dir_name );
+    load_multiple_files( file_names );
+}
+
+/**
+ * Load from directory.
+ */
+void 
+AnimeshMainWindow::load_from_file( const std::string& file_name ) {
+    using namespace std;
+
+    ObjFileParser parser;
+    vector<vector<PointNormal::Ptr>>    frames;
+    multimap<size_t, size_t>            adjacency;
+    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency( file_name);
+    frames.push_back( results.first );
+    adjacency = results.second;
+    m_field_optimiser = new FieldOptimiser(frames, adjacency);
+    file_loaded();
+}
+
+/**
  *
  */
 void AnimeshMainWindow::set_current_frame( size_t new_frame_idx ) {
@@ -191,8 +327,7 @@ void AnimeshMainWindow::set_current_frame( size_t new_frame_idx ) {
     if ( new_frame_idx == 0 ) {
         m_current_frame = 0;
     } else {
-        assert(m_field != nullptr);
-        assert(new_frame_idx < m_field->get_num_frames());
+        assert(new_frame_idx < m_field_optimiser->num_frames());
         m_current_frame = new_frame_idx;
     }
     update_include_checkbox();
@@ -200,6 +335,9 @@ void AnimeshMainWindow::set_current_frame( size_t new_frame_idx ) {
     update_view();
 }
 
+/**
+ * new_tier_idx is 0 .. num_tiers - 1
+ */
 void AnimeshMainWindow::set_current_tier( size_t new_tier_idx ) {
     if ( m_current_tier == new_tier_idx )
         return;
@@ -210,69 +348,15 @@ void AnimeshMainWindow::set_current_tier( size_t new_tier_idx ) {
     update_view();
 }
 
-
-
-/**
- * Load a new file, setup all the stuff
- */
-void AnimeshMainWindow::load_model_from_file(QString file_name) {
-    ObjFileParser parser{file_name.toStdString()};
-    Field *field = new Field( parser.m_vertices, parser.m_normals, parser.m_adjacency );
-    if (field) {
-        set_field(field);
-        statusBar()->showMessage(tr("File loaded"), 2000);
-    } else {
-        statusBar()->showMessage(tr("Error loading file"), 2000);
-    }
-}
-
-/**
- * Load a new file, setup all the stuff
- */
-void AnimeshMainWindow::load_new_frame(QString file_name) {
-    ObjFileParser parser{file_name.toStdString()};
-    m_field_optimiser->add_new_frame(parser.m_vertices, parser.m_normals);
-    update_frame_selector_range( );
-    statusBar()->showMessage(tr("Added frame"), 2000);
-}
-
 /**
  * Compute the lengths to use for normals and tangent vectors based on the
  * mean length of an edge in the graph
  */
 void AnimeshMainWindow::compute_scale() {
-    assert( m_field != nullptr);
-    float sum = 0.0f;
-    for ( auto edge : m_field->m_graph->edges()) {
-        Eigen::Vector3f v1 = edge->from_node( )->data()->location();
-        Eigen::Vector3f v2 = edge->to_node( )->data()->location();
-        Eigen::Vector3f diff = v2 - v1;
-        sum = sum + diff.norm();
-    }
-    tan_scale_factor = (sum / m_field->m_graph->num_edges()) / 2.5f;
+    float mean_edge_length = m_field_optimiser->mean_edge_length_for_tier(m_current_tier);
+    tan_scale_factor = mean_edge_length / 2.5f;
 }
-/**
- * Reset all old variables
- * Set field to new variable
- * Refresh the view
- */
-void AnimeshMainWindow::set_field(Field *new_field) {
-    // Cler out the old
-    if (m_field_optimiser != nullptr) delete m_field_optimiser;
-    if (m_field != nullptr) delete m_field;
 
-    // Set new values
-    m_field = new_field;
-    m_field_optimiser = new FieldOptimiser(m_field);
-
-    enable_buttons();
-    enable_display_checkboxes();
-    compute_scale();
-    update_include_checkbox();
-    set_current_tier(0);
-    update_metrics();
-    update_view();
-}
 
 /* ********************************************************************************
  *
@@ -313,10 +397,10 @@ AnimeshMainWindow::update_metrics() {
     if ( m_field_optimiser == nullptr ) return;
 
     ui->txtNodeCount->setText(
-        QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_nodes()));
+        QString::number(m_field_optimiser->num_nodes_in_tier(m_current_tier)));
     ui->txtEdgeCount->setText(
-        QString::number(m_field_optimiser->graph_at_tier(m_current_tier)->num_edges()));
-    ui->txtResidual->setText(QString::number(m_field_optimiser->current_error(m_current_tier)));
+        QString::number(m_field_optimiser->num_edges_in_tier(m_current_tier)));
+    ui->txtResidual->setText(QString::number(m_field_optimiser->total_error()));
 }
 
 void
@@ -329,22 +413,22 @@ AnimeshMainWindow::update_graph_tier_selector( ) {
         ui->sbGraphLevel->setEnabled(true);
     }
     ui->sbGraphLevel->setMaximum(m_field_optimiser->num_tiers());
-    ui->sbGraphLevel->setValue(m_current_tier);
+    ui->sbGraphLevel->setValue(m_current_tier+1);
 }
 
-void 
+void
 AnimeshMainWindow::init_include_checkbox() {
     ui->cb_include_frame->setChecked( true );
     ui->cb_include_frame->setEnabled(false);
 }
 
-void 
+void
 AnimeshMainWindow::update_include_checkbox() {
-    if( m_field == nullptr || m_current_frame == 0) {
+    if ( m_field_optimiser == nullptr || m_current_frame == 0) {
         ui->cb_include_frame->setEnabled(false);
     }
     ui->cb_include_frame->setEnabled(false);
-    ui->cb_include_frame->setChecked( m_field_optimiser->should_include_frame(m_current_frame) );
+    ui->cb_include_frame->setChecked( m_field_optimiser->is_frame_enabled(m_current_frame) );
 }
 
 void
@@ -404,7 +488,7 @@ AnimeshMainWindow::init_UI() {
  * ********************************************************************************/
 void
 AnimeshMainWindow::update_frame_selector_range( ) {
-    size_t actual_num_frames = m_field->get_num_frames();
+    size_t actual_num_frames = m_field_optimiser->num_frames();
     size_t control_num_frames = ui->hs_frame_selector->maximum();
     if ( control_num_frames != actual_num_frames) {
         ui->hs_frame_selector->setMaximum(actual_num_frames);
@@ -433,84 +517,32 @@ void AnimeshMainWindow::update_view() {
  * Init the main tangent vector layer
  */
 void AnimeshMainWindow::init_neighbours_layer( vtkSmartPointer<vtkRenderer> renderer ) {
-    m_polydata_neighbours = vtkSmartPointer<vtkPolyData>::New();
-
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputData(m_polydata_neighbours);
-
-    m_neighbours_actor = vtkSmartPointer<vtkActor>::New();
-    m_neighbours_actor->SetMapper(mapper);
-    m_neighbours_actor->GetProperty()->SetPointSize(3);
-    m_neighbours_actor->GetProperty()->SetLineWidth(3);
-    m_neighbours_actor->GetProperty()->SetOpacity(1.0);
+    init_layer( renderer, m_polydata_neighbours, m_neighbours_actor);
     renderer->AddActor(m_neighbours_actor);
-}
-
-/**
- * Update the secondary tangents layer
- */
-void AnimeshMainWindow::update_neighbours_layer( ) {
-    using namespace Eigen;
-    using namespace std;
-
-    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-
-    // Create a vtkUnsignedCharArray container and store the colors in it
-    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
-    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
-    colours->SetNumberOfComponents(3);
-
-    m_polydata_neighbours->Initialize();
-    if (m_field_optimiser != nullptr) {
-        // Get the *graph*
-        FieldGraph * graph = m_field_optimiser->graph_at_tier(m_current_tier);
-
-        // Get each GN
-        for ( auto gn : graph->nodes()) {
-            const FieldElement * this_fe = m_field_optimiser->get_corresponding_fe_in_frame(m_current_frame, m_current_tier, gn->data());
-            Vector3f location = this_fe->location();
-
-            vector<FieldElement *> neighbours_at_frame0 = graph->neighbours_data( gn );
-            vector<FieldElement *> neighbours = m_field_optimiser->get_corresponding_fes_in_frame(m_current_frame, m_current_tier, neighbours_at_frame0 );
-
-            size_t num_points = neighbours.size() + 1;
-            vtkIdType pid[num_points];
-            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
-            size_t i = 1;
-            for ( auto other_fe : neighbours ) {
-                pid[i++] = pts->InsertNextPoint(other_fe->location().x(), other_fe->location().y(), other_fe->location().z());
-            }
-            // Main tangent
-            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-            for (size_t i = 1; i < num_points; ++i) {
-                line = vtkSmartPointer<vtkLine>::New();
-                line->GetPointIds()->SetId(0, pid[0]);
-                line->GetPointIds()->SetId(1, pid[i]);
-                lines->InsertNextCell(line);
-                colours->InsertNextTypedTuple(named_colours->GetColor3ub("Green").GetData());
-            }
-        }
-    }
-    m_polydata_neighbours->SetPoints(pts);
-    m_polydata_neighbours->SetLines(lines);
-    m_polydata_neighbours->GetCellData()->SetScalars(colours);
 }
 
 /**
  * Init the main tangent vector layer
  */
-void AnimeshMainWindow::init_secondary_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer ) {
-    m_polydata_other_tangents = vtkSmartPointer<vtkPolyData>::New();
+void AnimeshMainWindow::init_cross_field_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+    init_layer( renderer, m_polydata_cross_field, m_cross_field_actor);
+    renderer->AddActor(m_cross_field_actor);
+}
 
+/**
+ * Init the normal polydata/mapper/actor
+ */
+void
+AnimeshMainWindow::init_normals_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+    init_layer( renderer, m_polydata_normals, m_normals_actor);
+    renderer->AddActor(m_normals_actor);
+}
+
+void
+AnimeshMainWindow::init_layer( vtkSmartPointer<vtkRenderer> renderer, vtkSmartPointer<vtkPolyData>& poly_data, vtkSmartPointer<vtkActor>& actor ) {
+    poly_data = vtkSmartPointer<vtkPolyData>::New();
     vtkSmartPointer<vtkOpenGLPolyDataMapper> mapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
-    mapper->SetInputData(m_polydata_other_tangents);
-
-    m_other_tangents_actor = vtkSmartPointer<vtkActor>::New();
-    m_other_tangents_actor->SetMapper(mapper);
-    m_other_tangents_actor->GetProperty()->SetPointSize(3);
-    m_other_tangents_actor->GetProperty()->SetLineWidth(3);
-    m_other_tangents_actor->GetProperty()->SetOpacity(1.0);
+    mapper->SetInputData(poly_data);
     mapper->AddShaderReplacement(
         vtkShader::Vertex,
         "//VTK::Normal::Dec", // replace the normal block
@@ -527,198 +559,176 @@ void AnimeshMainWindow::init_secondary_tangent_vector_layer( vtkSmartPointer<vtk
         "  myNormalNCVSOutput = normalMC;\n", //but we add this
         false // only do it once
     );
-
-    renderer->AddActor(m_other_tangents_actor);
+    actor = vtkSmartPointer<vtkActor>::New();
+    actor->SetMapper(mapper);
+    actor->GetProperty()->SetPointSize(3);
+    actor->GetProperty()->SetLineWidth(3);
+    actor->GetProperty()->SetOpacity(1.0);
 }
 
 /**
  * Update the secondary tangents layer
  */
-void AnimeshMainWindow::update_secondary_tangent_vector_layer( ) {
+void AnimeshMainWindow::update_neighbours_layer() {
     using namespace Eigen;
+    using namespace std;
 
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-
-    // Create a vtkUnsignedCharArray container and store the colors in it
     vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
     vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
     colours->SetNumberOfComponents(3);
 
-    m_polydata_other_tangents->Initialize();
+    m_polydata_neighbours->Initialize();
+
     if (m_field_optimiser != nullptr) {
-        std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
+        vector<PointNormal::Ptr> vertices = m_field_optimiser->point_normals_for_tier_and_frame(m_current_tier, m_current_frame);
+        vector<vector<size_t>> adjacency = m_field_optimiser->adjacency_for_tier(m_current_tier);
+        size_t num_vertices = vertices.size();
 
-        // TEST Try setting point normals for the tangent array
-        vtkSmartPointer<vtkDoubleArray> pointNormalsArray = vtkSmartPointer<vtkDoubleArray>::New();
-        pointNormalsArray->SetNumberOfComponents(3); //3d normals (ie x,y,z)
-        pointNormalsArray->SetNumberOfTuples(elements.size() * 4);
-        size_t i = 0;
-        // TEST End
+        vtkSmartPointer<vtkFloatArray>  vtk_point_normals = vtkSmartPointer<vtkFloatArray>::New();
+        vtk_point_normals->SetNumberOfComponents(3); //3d normals (ie x,y,z)
+        vtk_point_normals->SetNumberOfTuples(num_vertices);
 
-        for ( FieldElement * fe : elements ) {
-            Vector3f location = fe->location();
-            Vector3f normal = fe->normal();
-            Vector3f tangent = fe->tangent();
-
-
-            // Add the field node
-            vtkIdType pid[4];
-
-            // Add location
-            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
-
-            // Add opposite tangent points
-            Vector3f p2 = location - (tangent * tan_scale_factor);
-            pid[1] = pts->InsertNextPoint(p2.x(), p2.y(), p2.z());
-
-            // Compute 90 tangent
-            Vector3f ninety = tangent.cross(normal);
-            Vector3f p3 = location + (ninety * tan_scale_factor);
-            pid[2] = pts->InsertNextPoint(p3.x(), p3.y(), p3.z());
-            Vector3f p4 = location - (ninety * tan_scale_factor);
-            pid[3] = pts->InsertNextPoint(p4.x(), p4.y(), p4.z());
-
-            // TEST Set 4 normals
-            double pN1[3] = {normal[0], normal[1], normal[2]};
-            pointNormalsArray->SetTuple(i++, pN1) ;
-            pointNormalsArray->SetTuple(i++, pN1) ;
-            pointNormalsArray->SetTuple(i++, pN1) ;
-            pointNormalsArray->SetTuple(i++, pN1) ;
-            // TEST End of Test code.
-
-
-
-
-            // Main tangent
-            vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-            for (int i = 0; i < 3; ++i) {
+        vtkIdType pid[num_vertices];
+        size_t vertex_idx = 0;
+        for ( auto vertex : vertices ) {
+            Vector3f location = vertex->point();
+            Vector3f normal   = vertex->normal();
+            pid[vertex_idx] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+            vtk_point_normals->SetTuple(vertex_idx, normal.data()) ;
+            vertex_idx++;
+        }
+        // Add lines between adjacent points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        for (size_t i = 0; i < num_vertices; ++i) {
+            vector<size_t> neighbours = adjacency[i];
+            for ( size_t neighbour : neighbours ) {
                 line = vtkSmartPointer<vtkLine>::New();
-                line->GetPointIds()->SetId(0, pid[0]);
-                line->GetPointIds()->SetId(1, pid[i + 1]);
+                line->GetPointIds()->SetId(0, pid[i]);
+                line->GetPointIds()->SetId(1, pid[neighbour]);
                 lines->InsertNextCell(line);
-                colours->InsertNextTypedTuple(named_colours->GetColor3ub("Pink").GetData());
+                colours->InsertNextTypedTuple(named_colours->GetColor3ub("Green").GetData());
             }
         }
-        m_polydata_other_tangents->GetPointData()->SetNormals(pointNormalsArray);
+        m_polydata_neighbours->GetPointData()->SetNormals(vtk_point_normals);
+
     }
-
-    m_polydata_other_tangents->SetPoints(pts);
-    m_polydata_other_tangents->SetLines(lines);
-    m_polydata_other_tangents->GetCellData()->SetScalars(colours);
+    m_polydata_neighbours->SetPoints(pts);
+    m_polydata_neighbours->SetLines(lines);
+    m_polydata_neighbours->GetCellData()->SetScalars(colours);
 }
 
-/**
- * Init the main tangent vector layer
- */
-void AnimeshMainWindow::init_main_tangent_vector_layer( vtkSmartPointer<vtkRenderer> renderer ) {
-    m_polydata_main_tangents = vtkSmartPointer<vtkPolyData>::New();
-
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputData(m_polydata_main_tangents);
-
-    m_main_tangents_actor = vtkSmartPointer<vtkActor>::New();
-    m_main_tangents_actor->SetMapper(mapper);
-    m_main_tangents_actor->GetProperty()->SetPointSize(3);
-    m_main_tangents_actor->GetProperty()->SetLineWidth(3);
-    m_main_tangents_actor->GetProperty()->SetOpacity(1.0);
-    m_main_tangents_actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(m_main_tangents_actor);
-}
 
 /**
- * Update the main tangent layer
+ * Update the secondary tangents layer
  */
-void AnimeshMainWindow::update_main_tangent_vector_layer( ) {
+void AnimeshMainWindow::update_cross_field_layer() {
+    using namespace std;
     using namespace Eigen;
 
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-
-    // Create a vtkUnsignedCharArray container and store the colors in it
     vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
     vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
     colours->SetNumberOfComponents(3);
 
-    m_polydata_main_tangents->Initialize();
+    m_polydata_cross_field->Initialize();
     if (m_field_optimiser != nullptr) {
-        std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
-        for ( FieldElement * fe : elements ) {
-            Vector3f location = fe->location();
-            Vector3f normal = fe->normal();
-            Vector3f tangent = fe->tangent();
+        const vector<PointNormal::Ptr>& point_normals = m_field_optimiser->point_normals_for_tier_and_frame( m_current_tier, m_current_frame );
+        vector<Vector3f>                tangents = m_field_optimiser->compute_tangents_for_tier_and_frame( m_current_tier, m_current_frame );
+        size_t                          num_vertices = point_normals.size();
 
+        // TEST Try setting point normals for the tangent array
+        vtkSmartPointer<vtkFloatArray>  vtk_point_normals = vtkSmartPointer<vtkFloatArray>::New();
+        size_t                          vtk_points_per_vertex = 5;
+        size_t                          num_vtk_points = num_vertices * vtk_points_per_vertex;
+        vtk_point_normals->SetNumberOfComponents(3); //3d normals (ie x,y,z)
+        vtk_point_normals->SetNumberOfTuples(num_vtk_points);
+        size_t vtk_point_normal_idx = 0;
+        // TEST End
+
+        for ( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
             // Add the field node
-            vtkIdType pid[2];
+            Vector3f locations[vtk_points_per_vertex];
+            Vector3f tangent = tangents[vertex_idx];
+            Vector3f normal = point_normals[vertex_idx]->normal();
 
-            // Add location
-            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+            locations[0] = point_normals[vertex_idx]->point();
+            locations[1] = locations[0] + (tangent * tan_scale_factor);
+            locations[2] = locations[0] - (tangent * tan_scale_factor);
+            Vector3f ninety = tangent.cross(normal);
+            locations[3] = locations[0] + (ninety * tan_scale_factor);
+            locations[4] = locations[0] - (ninety * tan_scale_factor);
 
-            // Add tangent points
-            Vector3f p1 = location + (tangent * tan_scale_factor);
-            pid[1] = pts->InsertNextPoint(p1.x(), p1.y(), p1.z());
-
-            // Main tangent
+            vtkIdType pid[vtk_points_per_vertex];
+            for ( size_t p_idx = 0; p_idx < vtk_points_per_vertex; p_idx ++ ) {
+                pid[p_idx] = pts->InsertNextPoint(locations[p_idx].x(), locations[p_idx].y(), locations[p_idx].z());
+                vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
+            }
             vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-            line->GetPointIds()->SetId(0, pid[0]);
-            line->GetPointIds()->SetId(1, pid[1]);
-            lines->InsertNextCell(line);
-            colours->InsertNextTypedTuple(named_colours->GetColor3ub("Red").GetData());
+            for (size_t line_idx = 1; line_idx < vtk_points_per_vertex; ++line_idx) {
+                line = vtkSmartPointer<vtkLine>::New();
+                line->GetPointIds()->SetId(0, pid[0]);
+                line->GetPointIds()->SetId(1, pid[line_idx]);
+                lines->InsertNextCell(line);
+                // Optionally highlight the main
+
+                unsigned char rgba[4];
+                if ( (line_idx == 1) && m_highlight_main_tangent) {
+                    named_colours->GetColor("red", rgba);
+                } else {
+                    named_colours->GetColor("grey", rgba);
+                }
+                colours->InsertNextTypedTuple(rgba);
+            }
         }
+        m_polydata_cross_field->GetPointData()->SetNormals(vtk_point_normals);
     }
 
-    m_polydata_main_tangents->SetPoints(pts);
-    m_polydata_main_tangents->SetLines(lines);
-    m_polydata_main_tangents->GetCellData()->SetScalars(colours);
+    m_polydata_cross_field->SetPoints(pts);
+    m_polydata_cross_field->SetLines(lines);
+    m_polydata_cross_field->GetCellData()->SetScalars(colours);
 }
 
-/**
- * Init the normal polydata/mapper/actor
- */
-void AnimeshMainWindow::init_normals_layer( vtkSmartPointer<vtkRenderer> renderer ) {
-    m_polydata_normals = vtkSmartPointer<vtkPolyData>::New();
-
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputData(m_polydata_normals);
-
-    m_normals_actor = vtkSmartPointer<vtkActor>::New();
-    m_normals_actor->SetMapper(mapper);
-    m_normals_actor->GetProperty()->SetPointSize(3);
-    m_normals_actor->GetProperty()->SetLineWidth(3);
-    m_normals_actor->GetProperty()->SetOpacity(1.0);
-    m_normals_actor->GetProperty()->SetColor(1, 0, 0);
-    renderer->AddActor(m_normals_actor);
-}
 
 /**
  * Update the normals layer
  */
 void AnimeshMainWindow::update_normals_layer( ) {
+    using namespace std;
     using namespace Eigen;
 
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-
-    // Create a vtkUnsignedCharArray container and store the colors in it
     vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
     vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
     colours->SetNumberOfComponents(3);
 
     m_polydata_normals->Initialize();
     if (m_field_optimiser != nullptr) {
-        std::vector<FieldElement*> elements = m_field_optimiser->get_elements_at( m_current_frame, m_current_tier);
-        for ( FieldElement * fe : elements ) {
-            Vector3f location = fe->location();
-            Vector3f normal = fe->normal();
-            Vector3f tangent = fe->tangent();
+        const vector<PointNormal::Ptr>& point_normals = m_field_optimiser->point_normals_for_tier_and_frame( m_current_tier, m_current_frame );
+        size_t num_vertices = point_normals.size();
 
-            vtkIdType pid[2];
-            // Add location
+        // TEST Try setting point normals for the tangent array
+        vtkSmartPointer<vtkFloatArray> vtk_point_normals = vtkSmartPointer<vtkFloatArray>::New();
+        size_t num_vtk_points = point_normals.size() * 2;
+        vtk_point_normals->SetNumberOfComponents(3); //3d normals (ie x,y,z)
+        vtk_point_normals->SetNumberOfTuples(num_vtk_points);
+        size_t vtk_point_normal_idx = 0;
+        // TEST End
+
+        for ( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
+            Vector3f location = point_normals[vertex_idx]->point();
+            Vector3f normal   = point_normals[vertex_idx]->normal();
+
+            vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+            Vector3f pt = location + (normal * tan_scale_factor * 0.2);
+            pid[1] = pts->InsertNextPoint(pt.x(), pt.y(), pt.z());
 
-            // Add end of normal
-            Vector3f n = location + (normal * tan_scale_factor * 0.2);
-            pid[1] = pts->InsertNextPoint(n.x(), n.y(), n.z());
+            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
+            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
 
             // Line between them
             vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
@@ -727,6 +737,7 @@ void AnimeshMainWindow::update_normals_layer( ) {
             lines->InsertNextCell(line);
             colours->InsertNextTypedTuple(named_colours->GetColor3ub("Yellow").GetData());
         }
+        m_polydata_normals->GetPointData()->SetNormals(vtk_point_normals);
     }
     m_polydata_normals->SetPoints(pts);
     m_polydata_normals->SetLines(lines);
@@ -740,8 +751,7 @@ void AnimeshMainWindow::update_normals_layer( ) {
  */
 void AnimeshMainWindow::update_poly_data() {
     update_normals_layer();
-    update_main_tangent_vector_layer();
-    update_secondary_tangent_vector_layer( );
+    update_cross_field_layer();
     update_neighbours_layer( );
 }
 
@@ -753,8 +763,7 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
 
     init_normals_layer( renderer );
-    init_main_tangent_vector_layer( renderer );
-    init_secondary_tangent_vector_layer( renderer );
+    init_cross_field_layer( renderer );
     init_neighbours_layer( renderer );
 
     update_poly_data( );

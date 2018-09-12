@@ -32,3 +32,11 @@ void checkRotationMatrix(const std::string& matrix_name, const Eigen::Matrix3f& 
     assert(abs(expectI(1,1) - 1.0f) < EPSILON);
     assert(abs(expectI(2,2) - 1.0f) < EPSILON);
 }
+
+void checkNotZeroVector(const std::string& vector_name, const Eigen::Vector3f& v) {
+    using namespace std;
+    using namespace Eigen;
+
+    float length = v.norm();
+    assert(abs(length) > EPSILON);
+}

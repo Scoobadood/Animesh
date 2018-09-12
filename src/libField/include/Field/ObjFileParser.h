@@ -1,13 +1,28 @@
+#include "Field/PointNormal.h"
+
 #include <vector>
 #include <string>
 #include <Eigen/Core>
 
+namespace animesh {
+
+
 class ObjFileParser {
 public:
+	/**
+	 * Parse an OBJ file and return all PointNormals and adjacency.
+	 * @param file_name The name of the file.
+	 * @return A vector containing the points and a vector of adjacent point indices.
+	 */
+	std::pair<std::vector<PointNormal::Ptr>, std::multimap<size_t, size_t>>  parse_file_with_adjacency( const std::string& file_name );
 
-	ObjFileParser(std::string file_name);
-
-	std::vector<Eigen::Vector3f>		m_vertices;
-	std::vector<Eigen::Vector3f>		m_normals;
-	std::vector<std::vector<size_t>>	m_adjacency;
+	/**
+	 * Parse an OBJ file and return only PointNormals.
+	 * @param file_name The name of the file.
+	 * @return A vector containing the points and normals.
+	 */
+	std::vector<PointNormal::Ptr> parse_file( const std::string& file_name );
 };
+
+
+}

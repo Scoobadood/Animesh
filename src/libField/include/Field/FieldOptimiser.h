@@ -1,220 +1,254 @@
-#include <Field/Field.h>
+#include <Field/PointNormal.h>
 #include <Graph/GraphSimplifier.h>
 
 namespace animesh {
 
-using FieldGraph            = Graph<FieldElement *, void *>;
-using FieldGraphNode        = typename Graph<FieldElement *, void *>::GraphNode;
-using FieldGraphSimplifier    = GraphSimplifier<FieldElement *, void *>;
-using FieldGraphMapping    = GraphSimplifier<FieldElement *, void *>::GraphMapping;
-
-FieldElement * 
-back_project_fe( const FieldElement* fe, const Eigen::Matrix3f& minv);
-
-
 class FieldOptimiser {
+    /* ******************************************************************************************
+     *
+     * New representation data storage
+     *
+     * ******************************************************************************************/
+    using PointNormalGraph    = Graph<PointNormal::Ptr, void *>;
+    using PointNormalGraphPtr = std::shared_ptr<PointNormalGraph>;
+    using PointNormalGraphSimplifier = GraphSimplifier<PointNormal::Ptr, void *>;
+    using PointNormalGraphMapping = GraphSimplifier<PointNormal::Ptr, void *>::GraphMapping;
 
+    std::vector< /* tiers */ 
+    std::vector< /* frames */ 
+    std::vector< /* vertices */PointNormal::Ptr>>>      m_tiers;
+    std::vector<Eigen::Vector3f>                        m_tangents;
+    std::multimap<size_t, size_t>                       m_adjacency;
+    std::vector<PointNormalGraphPtr>                    m_graphs;
+    std::vector<PointNormalGraphMapping>                m_mappings;
+    std::vector</* tiers */
+    std::vector</* frames */
+    std::vector</* vertices */
+    std::pair<Eigen::Matrix3f, Eigen::Matrix3f>>>>      m_point_transforms;
+    bool                                                m_is_optimising;
+    bool                                                m_optimising_started_new_tier;
+    float                                               m_optimising_last_error;
+    int                                                 m_optimising_iterations_this_tier;
+    size_t                                              m_optimising_tier_idx;
+    PointNormalGraphPtr                                 m_optimising_current_tier;
+    std::vector<bool>                                   m_include_frames;
+    bool                                                m_tracing_enabled;
+
+    /* ******************************************************************************************
+     *
+     *   New public methods
+     *
+     * ******************************************************************************************/
 public:
     /**
-     * Construct with a Field to be optimised
+     * Build a FieldOptimiser to optimise the given data.
+     * Data consists of a number of frames as well as adjacency data.
+     * The frame data is assumed to be in correspondence.
+     *
+     * @param frames The frames of data.
+     * @param adjacency A mape describing adjacency. Indices in the map correspond to the point order in frames.
      */
-    FieldOptimiser(Field *field);
+    FieldOptimiser(const std::vector<std::vector<PointNormal::Ptr>>& frames, const std::multimap<std::size_t, std::size_t>& adjacency);
 
     /**
-     * Optimize the field in one go
+     * Return the vertex data for a specific tier and frame
+     */
+    const std::vector<PointNormal::Ptr>&
+    point_normals_for_tier_and_frame( std::size_t tier_idx, std::size_t frame_idx ) const;
+
+    /**
+     * Return the specific vertex for a tier, frame and vertex index
+     */
+    const PointNormal::Ptr&
+    point_normal_for_tier_and_frame( std::size_t tier_idx, std::size_t frame_idx, std::size_t vertex_idx ) const;
+
+    std::vector<Eigen::Vector3f>
+    propagate_tangents_up( const std::vector<Eigen::Vector3f>& tangents, std::size_t tier_idx ) const;
+
+    std::vector<Eigen::Vector3f>
+    propagate_tangents_down( const std::vector<Eigen::Vector3f>& tangents, std::size_t tier_idx ) const;
+
+    /**
+     * Reproject the tangents from frame 0 tier 0 into an arbitrary frame and tier by using the forward transformations
+     * and then reprojecting into tangent plane and normalising.
+     * @return The tangents as in tier and frame.
+     */
+    std::vector<Eigen::Vector3f>
+    compute_tangents_for_tier_and_frame(size_t tier_idx, size_t frame_idx) const;
+
+    /**
+     * @return The current error. This is calculated on the current tier when smoothing and tier0 when not.
+     */
+    float 
+    total_error() const;
+
+    /**
+     * Run the optimiser to completion.
      */
     void optimise();
 
     /**
-     * Randomise the field. Can only be performed when the field is not in the process of being optimised.
+     * Perform a single step of optimisation.
+     */
+    void
+    optimise_do_one_step();
+
+    /**
+     * @return the optimising index.
+     */
+    size_t 
+    optimising_tier_index( ) const;
+
+    /**
+     * @return true if the optimiser is running.
+     */
+    bool 
+    is_optimising( ) const;
+
+    /**
+     * Run the optimiser to completion.
      */
     void randomise();
-    /**
-     * Return if the optimising is not mid optimisation and has
-    */
-    void checkCanRandomise();
 
     /**
-     * Perform one step of omptimisation
+     * @return The number of tiers in the graph hierarchy.
      */
-    void optimise_one_step();
-
-    inline int num_tiers() const { return m_graph_hierarchy.size(); }
-
-    /**
-     * Current error in field
-     */
-    float current_error(int tier) const;
+    std::size_t
+    num_tiers() const;
 
     /**
-     * @Return the nth graph in the hierarchy where 0 is base.
+     * @return The number of frames
      */
-    FieldGraph *graph_at_tier(size_t tier) const;
+    std::size_t
+    num_frames() const;
 
     /**
-     * @Return the current tier being optimised or 0 if none
+     * Include or exclude the frame from smoothing.
      */
-    size_t optimising_tier_index() const;
-
-    /**
-     * @return the FE corresponding to the given one in a given tier and frame
-     */
-    const FieldElement*
-    get_corresponding_fe_in_frame( size_t frame_idx, size_t tier_idx, const FieldElement* src_fe  ) const;
-
-    std::vector<FieldElement*> 
-    get_corresponding_fes_in_frame(size_t frame_idx, size_t tier_idx, std::vector<FieldElement*> fes) const;
-
-    std::vector<FieldElement*>&
-    get_elements_at( size_t frame_idx, size_t tier_idx ) const;
-
-    const Eigen::Matrix3f&
-    get_transform_at( size_t frame_idx, size_t tier_idx, size_t node_idx ) const;
-
-    std::vector<Eigen::Matrix3f>&
-    get_transforms_at( size_t frame_idx, size_t tier_idx ) const;
-
     void
     enable_frame(size_t frame_idx, bool enable);
 
-    inline bool is_optimising() const {
-        return m_is_optimising;
-    }
+    /**
+     * @return true if a frame is included in smoothing, else false.
+     */
+    bool
+    is_frame_enabled(size_t frame_idx) const;
 
-    inline bool should_include_frame(size_t frame_idx) const { 
-        assert(frame_idx < m_include_frames.size());
-        return m_include_frames[frame_idx];
-    }
+    /**
+     * @return the numberof nodes in the given tier.
+     */
+    std::size_t 
+    num_nodes_in_tier( std::size_t tier_idx) const;
 
-    void
-    add_new_frame( const std::vector<Eigen::Vector3f>& vertices, const std::vector<Eigen::Vector3f>& normals);
+    /**
+     * @return The number of edges in the given tier.
+     */
+    std::size_t 
+    num_edges_in_tier( std::size_t tier_idx) const;
+
+    /**
+     * @return true if the frame is to be included in the optimisation.
+     */
+    bool
+    should_include_frame(std::size_t frame_idx) const;
+
+    /**
+     * @return a vector of vectors of indices for the neighbours of each point in a tier.
+     */
+    std::vector<std::vector<std::size_t>>
+    adjacency_for_tier(std::size_t tier_idx) const;
+
+    /**
+     * @return the mean edge length in the graph
+     */
+    float
+    mean_edge_length_for_tier(std::size_t tier_idx ) const;
 
 
+    /* ******************************************************************************************
+     *
+     *   New private methods
+     *
+     * ******************************************************************************************/
 private:
-    void 
-    set_tangent( size_t frame_idx, size_t tier_idx, size_t node_idx, const Eigen::Vector3f& tangent );
-    
-    std::vector<FieldElement *> 
-    copy_all_neighbours_for( std::size_t tier_idx, const FieldGraphNode * gn) const;
-
-
     /**
-    * Validate that building the hoerarchy did not generate any crappy data
-    */
-    void validate_hierarchy();
-
-    /**
-    * Validate that building the hoerarchy did not generate any crappy data
-    */
-    void validate_correspondences();
-
-    /**
-     * @return the index of the FE in the given vector or throw
-     * if not found.
+     * Initialise the FieldOptimiser given a set of inital frame data and adjacency information
      */
-    size_t index_of( const FieldElement *fe, const std::vector<FieldElement *>& elements ) const;
+    void initialise();
 
     /**
-     * @return the index of the GN in the given vector or throw
-     * if not found.
+     * @return The transformation matrix for a specific vertex from frame0 in tier_idx to frame_idx.
      */
-    size_t index_of( const FieldGraphNode *gn, const std::vector<FieldGraphNode *>& nodes ) const;
+    const Eigen::Matrix3f&
+    forward_transform_to( size_t tier_idx, size_t frame_idx, size_t node_idx ) const;
 
     /**
-     * We need nodes because the order of the tangents in new_tangents does NOT
-     * correspond to the order ofnodes in the graph rather the order of nodes in nodes.
+     * Computes the new tangent for a given node by averaging over all neighbours. Final result is
+     * projected back into tangent space for the given FE's normal
+     * @return The new vector.
+     */
+    Eigen::Vector3f 
+    compute_new_tangent_for_vertex(const std::vector<PointNormalGraphPtr>& graphs, size_t tier_idx, size_t vertex_idx) const;
+
+    /**
+     * Construct a vector of all neighbours of a given graph node in a specific tier.
+     * This method uses the graph to extract immediate neighbours at frame 0 in this tier
+     * and then identifies corresponding FieldElements in other frames and back-projects them to 
+     * frame 0 using the inverse transformation matrix constructed during initialisation.
+     *
+     * @param tier_idx The tier of the graph hierarchy to consider.
+     * @param vertex_idx The vertex within a frame for which we're calculating this.
+     * @return A pair of vectors, the first are normals and the second tangents for all neighbours of this vertex.
+     */
+    std::pair<std::vector<Eigen::Vector3f>, std::vector<Eigen::Vector3f>>
+    copy_all_neighbours_for(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx, std::size_t vertex_idx) const;
+
+
+    /**
+     * Compute new tangents for all vertices in a tier
+     * @param tier_idx The index of the graph tier to be optimised.
+     * @return True if the optimisation converged, otherwise false.
+     */
+    std::vector<Eigen::Vector3f>
+    compute_new_tangents_for_tier(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx) const;
+
+    /**
+     * Update the tangents (for currently optimising tier).  The provided vector of tangents is in 
+     * order specified by indices.
      */
     void
-    update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents, const std::vector<size_t>& indices );
+    update_tangents( const std::vector<Eigen::Vector3f>& new_tangents);
 
     /**
-     * Start optimising.
+     * Setup for optimisation. Build the hierarchical graph and
+     * construct correspondence maps.
      */
-    void setup_optimisation();
+    void
+    optimise_begin();
 
     /**
-     * For each tier of the graph hierarchy, build an equivalent set of correspondences
-     * to the newly generated FEs
+     * Start optimising a brand new tier of the hierarchical graph,
      */
-    void build_correspondences();
+    void
+    optimise_begin_tier();
 
     /**
-     * Mark optimisation as done.
+     * Handle end of optimising for a tier.
      */
-    void stop_optimising();
+    bool
+    optimise_end_tier();
 
     /**
-     * Start a brand ew optimisation session
+     * Optimisation has concluded.
      */
-    void setup_tier_optimisation();
-
-    /**
-     * Smooth the current tier of the hierarchy once and return true if it converged
-     * @param tier The Graph (tier) to be optimised
-     */
-    bool optimise_tier_once(std::size_t tier_idx);
+    void
+    optimise_end();
 
     /**
      * @return true if the optimisation operation has converged
      * (or has iterated enough times)
      * otherwise return false
      */
-    bool check_convergence(float new_error);
-
-    /**
-     * Smooth the specified node
-     * @return The new vector.
-     */
-    Eigen::Vector3f calculate_smoothed_node(std::size_t tier_idx, FieldGraphNode *gn) const;
-
-    /**
-     * @return the smoothness of the entire Field
-     */
-    float calculate_error(FieldGraph *tier) const;
-
-    /**
-     * @return the smoothness of one node
-     */
-    float calculate_error_for_node(FieldGraph *tier, FieldGraphNode *gn) const;
-
-    /**
-     * Generate a hierarchical graph by repeatedly simplifying until there are e.g. less than 20 nodes
-     * Stash the graphs and mappings into vectors.
-     * Tries to respect the parameters provided. If multiple paramters are provided it will terminate at
-     * the earliest.
-     * @param max_edges >0 means keep iterating until only this number of edges remain. 0 means don't care.
-     * @param max_nodes >0 means keep iterating until only this number of nodes remain. 0 means don't care.
-     * @param max_tiers >0 means keep iterating until only this number of tiers exist. 0 means don't care.
-     *
-     */
-    void generate_hierarchy(int max_tiers, int max_nodes, int max_edges);
-
-    void build_equivalent_fes( );
-    void build_transforms( );
-
-    size_t index(size_t frame_idx, size_t tier_idx) const;
-
-    Field *                             m_field;
-
-    /** A hierarchy of graphs **/
-    std::vector<FieldGraph *>           m_graph_hierarchy;
-    std::vector<FieldGraphMapping>      m_mapping_hierarchy;
-
-    std::vector<FieldElement*>   *      m_field_element_mappings;
-    std::vector<Eigen::Matrix3f> *      m_transforms;
-
-    /** Flags to determine whether or not to include a frame in smoothing ops. */
-    std::vector<bool>                   m_include_frames;
-
-    /** Flag to determine if we should trace field moothing */
-    bool m_tracing_enabled;
-
-    /** Smoothing in progress */
-    bool m_is_optimising;
-    bool m_optimising_started_new_tier;
-    float m_optimising_last_error;
-    int m_optimising_iterations_this_tier;
-    int m_optimising_tier_index;
-    FieldGraph *m_optimising_current_tier;
+    bool check_convergence(float new_error) const;
 };
 }

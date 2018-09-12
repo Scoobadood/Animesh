@@ -15,3 +15,5 @@ void checkPerpendicular( const std::string& vec1_name, const Eigen::Vector3f& ve
 
 
 void checkRotationMatrix( const std::string& matrix_name, const Eigen::Matrix3f& R);
+
+void checkNotZeroVector(const std::string& vector_name, const Eigen::Vector3f& v);

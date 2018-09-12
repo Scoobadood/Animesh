@@ -350,7 +350,7 @@ void TestGeom::check_results( const std::vector<Eigen::Vector3f>& P,
     for( size_t i = 0; i<BaseP.size(); ++i ) {
         Vector3f expected_p = P[i];
         Vector3f q = Q[i] - P2;
-        Vector3f predicted_p = ( m.inverse() * q ) + P1;
+        Vector3f predicted_p = ( m.transpose() * q ) + P1;
 
         ExpectVectorsAreNear(expected_p, predicted_p, EPSILON );
     }

@@ -191,7 +191,7 @@ Eigen::Matrix3f rotation_between(	const Eigen::Vector3f& point1,
 	in_plane_rot << std::cos( theta ), -std::sin( theta ), 0, std::sin( theta) , std::cos(theta), 0, 0, 0, 1;
 
 	// Total transformation is vvrN2' * in_plane_rot * vvrN1
-	Matrix3f result = vvrN2.inverse() * in_plane_rot * vvrN1;
+	Matrix3f result = vvrN2.transpose() * in_plane_rot * vvrN1;
 	for ( size_t i = 0; i < 9; ++i ) {
 		assert( !isnan(result(i)));
 		assert( !isinf(result(i)));

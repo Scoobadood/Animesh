@@ -5,8 +5,20 @@
 #include <set>
 #include <iostream>
 #include <list>
+#include <unordered_set>
 
 namespace animesh {
+
+struct vector_hash {
+    size_t operator()(const std::vector<size_t>& v) const {
+        std::hash<int> hasher;
+        size_t seed = 0;
+        for (int i : v) {
+            seed ^= hasher(i) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        }
+        return seed;
+    }
+};
 
 /**
  * A Graph representation that can handle hierarchical graphs.
@@ -271,7 +283,7 @@ public:
     std::vector<std::vector<std::size_t>> cycles( ) const {
         using namespace std;
 
-        vector<vector<size_t>> cycles;
+        unordered_set<vector<size_t>, vector_hash> cycles;
         for( size_t node_idx = 0; node_idx < num_nodes(); ++node_idx) {
             vector<size_t> path;
             list<vector<size_t>> paths;
@@ -288,8 +300,7 @@ public:
                         done = true;
                         // Maybe add to cycles (if not there already)
                         sort( begin(path), end(path));
-
-                        cycles.push_back( path );
+                        cycles.insert(path);
                     } else if ( /* neighbour not in path */ find( begin(current_path), end(current_path), neighbour) == end(current_path)) {
                         vector<size_t> new_path;
                         new_path.insert( end(new_path), begin(current_path), end(current_path));
@@ -302,7 +313,10 @@ public:
                 }
             }
         }
-        return cycles;
+        vector<vector<size_t>> cycles_vector;
+        cycles_vector.assign( cycles.begin(), cycles.end() );
+
+        return cycles_vector;
     }
 
 private:

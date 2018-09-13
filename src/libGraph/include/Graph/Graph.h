@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <iostream>
+#include <list>
 
 namespace animesh {
 
@@ -262,6 +263,46 @@ public:
      */
     std::vector<GraphNode *>& nodes( )  {
       return m_nodes;
+    }
+
+    /**
+     * Return a vector of cycles in the graph..
+     */
+    std::vector<std::vector<std::size_t>> cycles( ) const {
+        using namespace std;
+
+        vector<vector<size_t>> cycles;
+        for( size_t node_idx = 0; node_idx < num_nodes(); ++node_idx) {
+            vector<size_t> path;
+            list<vector<size_t>> paths;
+            path.push_back(node_idx);
+            paths.push_back(path);
+            bool done = false;
+            while( !done ) {
+                vector<size_t> current_path = paths.front();
+                paths.pop_front();
+                size_t last_node_idx = current_path.back();
+                vector<size_t> neighbours = neighbour_indices(nodes()[last_node_idx]);
+                for( auto neighbour : neighbours ) {
+                    if( (current_path.size() > 2 ) && (neighbour == path.front() ) ){
+                        done = true;
+                        // Maybe add to cycles (if not there already)
+                        sort( begin(path), end(path));
+
+                        cycles.push_back( path );
+                    } else if ( /* neighbour not in path */ find( begin(current_path), end(current_path), neighbour) == end(current_path)) {
+                        vector<size_t> new_path;
+                        new_path.insert( end(new_path), begin(current_path), end(current_path));
+                        new_path.push_back( neighbour );
+                        paths.push_back( new_path );
+                    }
+                }
+                if( paths.size() == 0 ) {
+                    done = true;
+                }
+            }
+        }
+        return cycles;
     }
 
 private:

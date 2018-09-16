@@ -40,7 +40,7 @@ public:
      * Nodes are containers for the data they represent
      */
     class GraphNode {
-    public: 
+    public:
         /**
          * Construct a GraphNode from data
          */
@@ -256,7 +256,7 @@ public:
         // Has edge if one of the mappings of node_a is node_b
         auto range = m_adjacency.equal_range (node_a);
         for( auto it = range.first; it != range.second; ++it ) {
-            if( it->second == node_b) 
+            if( it->second == node_b)
                 return true;
         }
         return false;
@@ -273,14 +273,14 @@ public:
     /**
      * @return the nodes of this graph
      */
-    std::vector<GraphNode *>& nodes( )  {
+    const std::vector<GraphNode *>& nodes( ) const {
       return m_nodes;
     }
 
     /**
      * Return a vector of cycles in the graph..
      */
-    std::vector<std::vector<std::size_t>> cycles( ) const {
+    std::unordered_set<std::vector<std::size_t>, vector_hash> cycles( ) const {
         using namespace std;
 
         unordered_set<vector<size_t>, vector_hash> cycles;
@@ -313,10 +313,7 @@ public:
                 }
             }
         }
-        vector<vector<size_t>> cycles_vector;
-        cycles_vector.assign( cycles.begin(), cycles.end() );
-
-        return cycles_vector;
+        return cycles;
     }
 
 private:

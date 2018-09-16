@@ -25,7 +25,9 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 add_executable( testGraph
     "tests/main.cpp"
     "tests/TestGraph.cpp"
-    "tests/TestGraphSimplifier.cpp")
+    "tests/TestGraphSimplifier.cpp"
+    "tests/TestGraphCycles.cpp"
+    )
 
 target_link_libraries(testGraph 
 	Graph 

@@ -19,107 +19,72 @@ void TestGraph::TearDown( ) {}
  * *                                                                    *
  * **********************************************************************/
 
-TEST_F(TestGraph, AddNodeByDataShouldAddNode) { 
+TEST_F(TestGraph, AddNodeByDataShouldAddNode) {
     graph.add_node( "a" );
 
     EXPECT_EQ( graph.num_nodes(), 1 );
 }
 
-TEST_F(TestGraph, AddNodeDirectShouldAddNode) { 
+TEST_F(TestGraph, AddNodeDirectShouldAddNode) {
     graph.add_node( gn1 );
 
     EXPECT_EQ( graph.num_nodes(), 1 );
 }
 
-TEST_F(TestGraph, AddNodeTwiceShouldAddTwoNodes) { 
+TEST_F(TestGraph, AddNodeTwiceShouldAddTwoNodes) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
 
     EXPECT_EQ( graph.num_nodes(), 2 );
 }
 
-TEST_F(TestGraph, AddEdgeWithNullFirstNodeShouldThrow) { 
-    try {
-        graph.add_edge( nullptr, gn1, 1.0, "edge data" );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "from node may not be null") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+TEST_F(TestGraph, AddEdgeWithNullFirstNodeShouldThrow) {
+  EXPECT_DEATH(
+        graph.add_edge( nullptr, gn1, 1.0, "edge data" ),
+        "from_node != nullptr");
 }
 
-TEST_F(TestGraph, AddEdgeWithNullSecondNodeShouldThrow) { 
-    try {
-        graph.add_edge( gn1, nullptr, 1.0, "edge data" );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "to node may not be null") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+TEST_F(TestGraph, AddEdgeWithNullSecondNodeShouldThrow) {
+  EXPECT_DEATH(
+        graph.add_edge( gn1, nullptr, 1.0, "edge data" ),
+        "to_node != nullptr");
 }
 
-TEST_F(TestGraph, AddEdgeWithNegativeWeightShouldThrow) { 
+TEST_F(TestGraph, AddEdgeWithNegativeWeightShouldThrow) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
 
-    try {
-        graph.add_edge( gn1, gn2, -1.0, "edge data" );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "weight must be positive") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_DEATH(
+        graph.add_edge( gn1, gn2, -1.0, "edge data" ),
+        "weight >= 0");
 }
 
-TEST_F(TestGraph, AddEdgeWithUnknownFirstNodeShouldThrow) { 
-    using namespace animesh; 
+TEST_F(TestGraph, AddEdgeWithUnknownFirstNodeShouldThrow) {
+    using namespace animesh;
 
     graph.add_node( gn2 );
 
     Graph<std::string, std::string>::GraphNode * gn_unknown = new animesh::Graph<std::string, std::string>::GraphNode( "x" );
 
-    try {
-        graph.add_edge( gn_unknown, gn2, 1.0, "edge data" );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "from node is unknown") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_DEATH(
+        graph.add_edge( gn_unknown, gn2, 1.0, "edge data" ),
+        "Assertion failed: .*add_edge.*");
 }
 
-TEST_F(TestGraph, AddEdgeWithUnknownSecondNodeShouldThrow) { 
-    using namespace animesh; 
+TEST_F(TestGraph, AddEdgeWithUnknownSecondNodeShouldThrow) {
+    using namespace animesh;
 
     graph.add_node( gn1 );
 
     Graph<std::string, std::string>::GraphNode * gn_unknown = new animesh::Graph<std::string, std::string>::GraphNode( "x" );
 
-    try {
-        graph.add_edge( gn1, gn_unknown, 1.0, "edge data" );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "to node is unknown") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_DEATH(
+        graph.add_edge( gn1, gn_unknown, 1.0, "edge data" ),
+        "Assertion failed: .*function add_edge.*");
 }
 
-TEST_F(TestGraph, AddEdgeIncreasesEdgeCount) { 
-    using namespace animesh; 
+TEST_F(TestGraph, AddEdgeIncreasesEdgeCount) {
+    using namespace animesh;
 
     graph.add_node( gn1 );
     graph.add_node( gn2 );
@@ -134,7 +99,7 @@ TEST_F(TestGraph, AddEdgeIncreasesEdgeCount) {
 
 
 
-TEST_F(TestGraph, AddGraphNodeIncreasesNodeCount) { 
+TEST_F(TestGraph, AddGraphNodeIncreasesNodeCount) {
     size_t before_count = graph.num_nodes( );
 
     graph.add_node( gn1 );
@@ -143,40 +108,26 @@ TEST_F(TestGraph, AddGraphNodeIncreasesNodeCount) {
     EXPECT_EQ( before_count + 1, after_count );
 }
 
-TEST_F(TestGraph, AddDuplicateGraphNodeShouldThrow) { 
+TEST_F(TestGraph, AddDuplicateGraphNodeShouldThrow) {
     graph.add_node( gn1 );
 
-    try {
-        graph.add_node( gn1 );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "can't add node to graph when it's already there") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_DEATH(
+        graph.add_node( gn1 ),
+        "Assert failed: .*add_node.*");
 }
 
-TEST_F(TestGraph, AddDuplicateEdgeShouldThrow) { 
+TEST_F(TestGraph, AddDuplicateEdgeShouldThrow) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
 
     graph.add_edge( gn1, gn2, 1.0, "edge data" );
 
-    try {
-        graph.add_edge( gn1, gn2, 1.0, "edge data" );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "can't insert duplicate edge") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_DEATH(
+        graph.add_edge( gn1, gn2, 1.0, "edge data" ),
+        "");
 }
 
-TEST_F(TestGraph, AddReverseEdgeShouldNotThrow) { 
+TEST_F(TestGraph, AddReverseEdgeShouldNotThrow) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
     graph.add_edge( gn1, gn2, 1.0, "edge data" );
@@ -184,7 +135,7 @@ TEST_F(TestGraph, AddReverseEdgeShouldNotThrow) {
     EXPECT_EQ( 2, graph.num_edges() );
 }
 
-TEST_F(TestGraph, UnlinkedNodesHaveNoNeighbours ) { 
+TEST_F(TestGraph, UnlinkedNodesHaveNoNeighbours ) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
 
@@ -192,7 +143,7 @@ TEST_F(TestGraph, UnlinkedNodesHaveNoNeighbours ) {
     EXPECT_EQ( 0, graph.neighbours( gn2 ).size() );
 }
 
-TEST_F(TestGraph, ToNodeOfEdgeIsNeighbourOfFromNode ) { 
+TEST_F(TestGraph, ToNodeOfEdgeIsNeighbourOfFromNode ) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
     graph.add_edge( gn1, gn2, 1.0, "edge data" );
@@ -201,7 +152,7 @@ TEST_F(TestGraph, ToNodeOfEdgeIsNeighbourOfFromNode ) {
     EXPECT_EQ( gn2, graph.neighbours( gn1 )[0] );
 }
 
-TEST_F(TestGraph, FromNodeOfEdgeIsNotNeighbourOfToNode ) { 
+TEST_F(TestGraph, FromNodeOfEdgeIsNotNeighbourOfToNode ) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
 

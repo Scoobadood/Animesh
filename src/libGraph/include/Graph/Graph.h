@@ -101,6 +101,14 @@ public:
        **                                                                            **
        ********************************************************************************/
 public:
+
+    /**
+     *
+     */
+    Graph( bool is_directed = false) {
+      m_is_directed = is_directed;
+    }
+
     /**
      * Add a node for the given data.
      * @param data The data to be added.
@@ -136,22 +144,34 @@ public:
         assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
         assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
         assert( !has_edge( from_node, to_node));
-
         m_adjacency.insert( make_pair( from_node, to_node));
-
+        // Undirected graphs we have symmetric adjacency.
+        if( !m_is_directed) {
+          m_adjacency.insert( make_pair( to_node, from_node));
+        }
+        // But edges are quite specific. Where important, we can flip edges.
         Edge * edge = new Edge( from_node, to_node, weight, edge_data);
         m_edges.push_back( edge );
 
         return edge;
     }
 
+    /**
+     * Remove an edge from the graph. If the graph is directed it will explicitly
+     * remove only an edge from from_node to to_node.
+     * <p/>
+     * If the Graph is undirected, it will remove any edge between from_node
+     * and to_node.
+     * <p/>
+     * Similarly for adjacencies
+     */
     void remove_edge(  GraphNode * from_node, GraphNode * to_node) {
         assert( from_node != nullptr );
         assert( to_node != nullptr );
         assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
         assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
 
-        // TODO: Perform actual delete
+        // Delete adjacency.
         auto range = equal_range (from_node);
         for( auto it = range.first; it != range.second; ++it ) {
             if( it->second == to_node) {
@@ -159,18 +179,33 @@ public:
                 break;
             }
         }
+        if( !m_is_directed) {
+          auto range = equal_range (to_node);
+          for( auto it = range.first; it != range.second; ++it ) {
+              if( it->second == from_node) {
+                  m_adjacency.erase(it);
+                  break;
+              }
+          }
+        }
 
         auto edge_iter = m_edges.begin();
         for ( ; edge_iter != m_edges.end(); ) {
-            if( ( (*edge_iter)->from_node() == from_node ) &&
-                ( (*edge_iter)->to_node() == to_node ) ) {
-
-                edge_iter = m_edges.erase(edge_iter);
-                break;
+          if(
+            ((*edge_iter)->from_node() == from_node )
+            && ((*edge_iter)->to_node() == to_node )) {
+              edge_iter = m_edges.erase(edge_iter);
+              break;
+          } else if(
+            !m_is_directed
+            && ((*edge_iter)->from_node() == to_node )
+            && ((*edge_iter)->to_node() == from_node )) {
+              edge_iter = m_edges.erase(edge_iter);
+              break;
             } else {
-                ++edge_iter;
+              ++edge_iter;
             }
-        }
+          }
     }
 
     /**
@@ -248,7 +283,8 @@ public:
     }
 
     /**
-     * @return true if there is an edge from node 1 to node 2
+     * @return true if there is an edge from node 1 to node 2. If the grpah is undirected,
+     * this will return true if there is an edge from node 2 to node 1.
      */
     bool has_edge( GraphNode * node_a, GraphNode * node_b ) {
         using namespace std;
@@ -320,6 +356,7 @@ private:
     std::vector<GraphNode *>                        m_nodes;
     std::vector<Edge *>                             m_edges;
     std::multimap<GraphNode*, GraphNode*>           m_adjacency;
+    bool                                            m_is_directed;
 };
 
 

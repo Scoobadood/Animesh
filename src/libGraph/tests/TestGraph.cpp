@@ -113,7 +113,7 @@ TEST_F(TestGraph, AddDuplicateGraphNodeShouldThrow) {
 
     EXPECT_DEATH(
         graph.add_node( gn1 ),
-        "Assert failed: .*add_node.*");
+        "Assertion failed: .*add_node.*");
 }
 
 TEST_F(TestGraph, AddDuplicateEdgeShouldThrow) {
@@ -127,12 +127,21 @@ TEST_F(TestGraph, AddDuplicateEdgeShouldThrow) {
         "");
 }
 
-TEST_F(TestGraph, AddReverseEdgeShouldNotThrow) {
+TEST_F(TestGraph, AddReverseEdgeShouldNotThrowInDirected) {
     graph.add_node( gn1 );
     graph.add_node( gn2 );
     graph.add_edge( gn1, gn2, 1.0, "edge data" );
     graph.add_edge( gn2, gn1, 1.0, "edge data" );
     EXPECT_EQ( 2, graph.num_edges() );
+}
+
+TEST_F(TestGraph, AddReverseEdgeShouldThrowInUndirected) {
+    undirected_graph.add_node( gn1 );
+    undirected_graph.add_node( gn2 );
+    undirected_graph.add_edge( gn1, gn2, 1.0, "edge data" );
+    EXPECT_DEATH(
+        undirected_graph.add_edge( gn2, gn1, 1.0, "edge data" ),
+        "");
 }
 
 TEST_F(TestGraph, UnlinkedNodesHaveNoNeighbours ) {

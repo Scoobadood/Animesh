@@ -9,193 +9,193 @@
 
 namespace animesh {
 
-struct vector_hash {
+  struct vector_hash {
     size_t operator()(const std::vector<size_t>& v) const {
-        std::hash<int> hasher;
-        size_t seed = 0;
-        for (int i : v) {
-            seed ^= hasher(i) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-        }
-        return seed;
+      std::hash<int> hasher;
+      size_t seed = 0;
+      for (int i : v) {
+        seed ^= hasher(i) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+      }
+      return seed;
     }
-};
+  };
 
-/**
- * A Graph representation that can handle hierarchical graphs.
- * The Graph is constructed over a set of Nodes and Edges
- */
-template <class NodeData, class EdgeData>
-class Graph {
-public:
+  /**
+  * A Graph representation that can handle hierarchical graphs.
+  * The Graph is constructed over a set of Nodes and Edges
+  */
+  template <class NodeData, class EdgeData>
+  class Graph {
+  public:
 
 
     /* ********************************************************************************
-       **                                                                            **
-       ** GraphNode                                                                  **
-       **                                                                            **
-       ********************************************************************************/
+    **                                                                            **
+    ** GraphNode                                                                  **
+    **                                                                            **
+    ********************************************************************************/
 
     /**
-     * A node in the graph.
-     * Nodes are containers for the data they represent
-     */
+    * A node in the graph.
+    * Nodes are containers for the data they represent
+    */
     class GraphNode {
     public:
-        /**
-         * Construct a GraphNode from data
-         */
-        GraphNode( const NodeData& data) : m_data{ data } {}
+      /**
+      * Construct a GraphNode from data
+      */
+      GraphNode( const NodeData& data) : m_data{ data } {}
 
-        /**
-         * Return the data from the node
-         */
-        inline NodeData data() const { return m_data; }
+      /**
+      * Return the data from the node
+      */
+      inline NodeData data() const { return m_data; }
 
-        /**
-         * Set the data in the node
-         */
-        inline void set_data( const NodeData& data ) { m_data = data; }
+      /**
+      * Set the data in the node
+      */
+      inline void set_data( const NodeData& data ) { m_data = data; }
 
     private:
-        /** The data held in this node */
-        NodeData  m_data;
+      /** The data held in this node */
+      NodeData  m_data;
     };
 
     /* ********************************************************************************
-       **                                                                            **
-       ** Edge                                                                       **
-       **                                                                            **
-       ********************************************************************************/
+    **                                                                            **
+    ** Edge                                                                       **
+    **                                                                            **
+    ********************************************************************************/
 
     /**
-     * An edge in the graph
-     */
+    * An edge in the graph
+    */
     class Edge {
     public:
-        Edge( GraphNode *from_node, GraphNode * to_node, float weight, const EdgeData& edge_data ) {
-            if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
-            if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
-            if ( weight < 0 ) throw std::invalid_argument( "weight must be positive" );
+      Edge( GraphNode *from_node, GraphNode * to_node, float weight, const EdgeData& edge_data ) {
+        if ( from_node == nullptr ) throw std::invalid_argument( "from node may not be null" );
+        if ( to_node == nullptr ) throw std::invalid_argument( "to node may not be null" );
+        if ( weight < 0 ) throw std::invalid_argument( "weight must be positive" );
 
-            m_from_node = from_node;
-            m_to_node = to_node;
-            m_weight = weight;
-            m_edge_data = edge_data;
-        }
+        m_from_node = from_node;
+        m_to_node = to_node;
+        m_weight = weight;
+        m_edge_data = edge_data;
+      }
 
-        GraphNode * from_node( ) const { return m_from_node; }
-        GraphNode * to_node( ) const { return m_to_node; }
-        float weight( ) const { return m_weight; }
-        EdgeData data( ) const { return m_edge_data; }
+      GraphNode * from_node( ) const { return m_from_node; }
+      GraphNode * to_node( ) const { return m_to_node; }
+      float weight( ) const { return m_weight; }
+      EdgeData data( ) const { return m_edge_data; }
 
     private:
-        GraphNode *     m_from_node;
-        GraphNode *     m_to_node;
-        float           m_weight;
-        EdgeData        m_edge_data;
+      GraphNode *     m_from_node;
+      GraphNode *     m_to_node;
+      float           m_weight;
+      EdgeData        m_edge_data;
     };
 
     /* ********************************************************************************
-       **                                                                            **
-       ** Graph public methods                                                       **
-       **                                                                            **
-       ********************************************************************************/
-public:
+    **                                                                            **
+    ** Graph public methods                                                       **
+    **                                                                            **
+    ********************************************************************************/
+  public:
 
     /**
-     *
-     */
+    *
+    */
     Graph( bool is_directed = false) {
       m_is_directed = is_directed;
     }
 
     /**
-     * Add a node for the given data.
-     * @param data The data to be added.
-     * @return a pointer to the node added
-     */
+    * Add a node for the given data.
+    * @param data The data to be added.
+    * @return a pointer to the node added
+    */
     GraphNode * add_node( const NodeData& data ) {
-        GraphNode * gn = new GraphNode( data );
-        add_node( gn );
-        return gn;
+      GraphNode * gn = new GraphNode( data );
+      add_node( gn );
+      return gn;
     }
 
     /**
-     * Add the given GraphNode so long as it doesn't already exist
-     * @param node The GraphNode
-     * @return a pointer to the node added
-     */
+    * Add the given GraphNode so long as it doesn't already exist
+    * @param node The GraphNode
+    * @return a pointer to the node added
+    */
     GraphNode * add_node( GraphNode * node ) {
-        assert( std::find( m_nodes.begin(), m_nodes.end( ), node ) == m_nodes.end() );
+      assert( std::find( m_nodes.begin(), m_nodes.end( ), node ) == m_nodes.end() );
 
-        m_nodes.push_back( node );
-        return node;
+      m_nodes.push_back( node );
+      return node;
     }
 
     /**
-     * Add an edge to the graph connecting two existing nodes
-     */
+    * Add an edge to the graph connecting two existing nodes
+    */
     Edge * add_edge( GraphNode * from_node, GraphNode * to_node, float weight, const EdgeData& edge_data) {
-        using namespace std;
+      using namespace std;
 
-        assert( from_node != nullptr );
-        assert( to_node != nullptr );
-        assert( weight >= 0 );
-        assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
-        assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
-        assert( !has_edge( from_node, to_node));
-        m_adjacency.insert( make_pair( from_node, to_node));
-        // Undirected graphs we have symmetric adjacency.
-        if( !m_is_directed) {
-          m_adjacency.insert( make_pair( to_node, from_node));
-        }
-        // But edges are quite specific. Where important, we can flip edges.
-        Edge * edge = new Edge( from_node, to_node, weight, edge_data);
-        m_edges.push_back( edge );
+      assert( from_node != nullptr );
+      assert( to_node != nullptr );
+      assert( weight >= 0 );
+      assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
+      assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
+      assert( !has_edge( from_node, to_node));
+      m_adjacency.insert( make_pair( from_node, to_node));
+      // Undirected graphs we have symmetric adjacency.
+      if( !m_is_directed) {
+        m_adjacency.insert( make_pair( to_node, from_node));
+      }
+      // But edges are quite specific. Where important, we can flip edges.
+      Edge * edge = new Edge( from_node, to_node, weight, edge_data);
+      m_edges.push_back( edge );
 
-        return edge;
+      return edge;
     }
 
     /**
-     * Remove an edge from the graph. If the graph is directed it will explicitly
-     * remove only an edge from from_node to to_node.
-     * <p/>
-     * If the Graph is undirected, it will remove any edge between from_node
-     * and to_node.
-     * <p/>
-     * Similarly for adjacencies
-     */
+    * Remove an edge from the graph. If the graph is directed it will explicitly
+    * remove only an edge from from_node to to_node.
+    * <p/>
+    * If the Graph is undirected, it will remove any edge between from_node
+    * and to_node.
+    * <p/>
+    * Similarly for adjacencies
+    */
     void remove_edge(  GraphNode * from_node, GraphNode * to_node) {
-        assert( from_node != nullptr );
-        assert( to_node != nullptr );
-        assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
-        assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
+      assert( from_node != nullptr );
+      assert( to_node != nullptr );
+      assert( std::find( m_nodes.begin(), m_nodes.end(), from_node ) != m_nodes.end() );
+      assert( std::find( m_nodes.begin(), m_nodes.end(), to_node ) != m_nodes.end() );
 
-        // Delete adjacency.
-        auto range = equal_range (from_node);
-        for( auto it = range.first; it != range.second; ++it ) {
-            if( it->second == to_node) {
-                m_adjacency.erase(it);
-                break;
-            }
+      // Delete adjacency.
+      auto range = equal_range (from_node);
+      for( auto it = range.first; it != range.second; ++it ) {
+        if( it->second == to_node) {
+          m_adjacency.erase(it);
+          break;
         }
-        if( !m_is_directed) {
-          auto range = equal_range (to_node);
-          for( auto it = range.first; it != range.second; ++it ) {
-              if( it->second == from_node) {
-                  m_adjacency.erase(it);
-                  break;
-              }
+      }
+      if( !m_is_directed) {
+        auto range = equal_range (to_node);
+        for( auto it = range.first; it != range.second; ++it ) {
+          if( it->second == from_node) {
+            m_adjacency.erase(it);
+            break;
           }
         }
+      }
 
-        auto edge_iter = m_edges.begin();
-        for ( ; edge_iter != m_edges.end(); ) {
-          if(
-            ((*edge_iter)->from_node() == from_node )
-            && ((*edge_iter)->to_node() == to_node )) {
-              edge_iter = m_edges.erase(edge_iter);
-              break;
+      auto edge_iter = m_edges.begin();
+      for ( ; edge_iter != m_edges.end(); ) {
+        if(
+          ((*edge_iter)->from_node() == from_node )
+          && ((*edge_iter)->to_node() == to_node )) {
+            edge_iter = m_edges.erase(edge_iter);
+            break;
           } else if(
             !m_is_directed
             && ((*edge_iter)->from_node() == to_node )
@@ -206,158 +206,206 @@ public:
               ++edge_iter;
             }
           }
-    }
-
-    /**
-     * @return the number of nodes in this graph
-     */
-    size_t num_nodes( ) const { return m_nodes.size(); }
-
-    /**
-     * @return the number of edges in this graph
-     */
-    size_t num_edges( ) const { return m_edges.size(); }
-
-    /**
-     * @return a vector of the neghbours of a given node
-     */
-    std::vector<GraphNode *> neighbours( GraphNode * node ) const {
-        std::vector<GraphNode *> data;
-        auto range = m_adjacency.equal_range (node);
-        for( auto it = range.first; it != range.second; ++it ) {
-            data.push_back(it->second);
         }
 
-        return data;
-    }
+        /**
+        * @return the number of nodes in this graph
+        */
+        size_t num_nodes( ) const { return m_nodes.size(); }
 
-    std::size_t index_of( const GraphNode * gn ) const {
-        size_t idx = 0;
-        for( GraphNode * test_node : m_nodes) {
+        /**
+        * @return the number of edges in this graph
+        */
+        size_t num_edges( ) const { return m_edges.size(); }
+
+        /**
+        * @return a vector of the neghbours of a given node
+        */
+        std::vector<GraphNode *> neighbours( GraphNode * node ) const {
+          std::vector<GraphNode *> data;
+          auto range = m_adjacency.equal_range (node);
+          for( auto it = range.first; it != range.second; ++it ) {
+            data.push_back(it->second);
+          }
+
+          return data;
+        }
+
+        std::size_t index_of( const GraphNode * gn ) const {
+          size_t idx = 0;
+          for( GraphNode * test_node : m_nodes) {
             if( gn == test_node ) {
-                return idx;
+              return idx;
             }
             idx++;
+          }
+          assert( "Node not found" == nullptr);
         }
-        assert( "Node not found" == nullptr);
-    }
 
-    /**
-     * TODO: This is O(Kn) in neighbours and nodes and is very expensive.
-     * Fix this in future.
-     * @return a vector of the neghbours of a given node
-     */
-    std::vector<size_t> neighbour_indices( GraphNode * node ) const {
-        using namespace std;
-        vector<GraphNode *> nodes = neighbours(node);
-        vector<size_t> indices;
-        for(GraphNode * gn : nodes ) {
+        /**
+        * TODO: This is O(Kn) in neighbours and nodes and is very expensive.
+        * Fix this in future.
+        * @return a vector of the neghbours of a given node
+        */
+        std::vector<size_t> neighbour_indices( GraphNode * node ) const {
+          using namespace std;
+          vector<GraphNode *> nodes = neighbours(node);
+          vector<size_t> indices;
+          for(GraphNode * gn : nodes ) {
             size_t i = 0;
             for( GraphNode * test_node : m_nodes) {
-                if( gn == test_node ) {
-                    indices.push_back( i );
-                    break;
-                } else {
-                    i++;
-                }
+              if( gn == test_node ) {
+                indices.push_back( i );
+                break;
+              } else {
+                i++;
+              }
             }
             // Fail. Node should have been found before here.
             if( i == m_nodes.size()) {
-                assert( "Node not found" == nullptr);
+              assert( "Node not found" == nullptr);
             }
+          }
+          return indices;
         }
-        return indices;
-    }
 
-    /**
-     * @return a vector of the neghbours' data for a given node
-     */
-    std::vector<NodeData> neighbours_data( const GraphNode * node ) const {
-        std::vector<NodeData> data;
-        auto range = m_adjacency.equal_range ( const_cast<GraphNode*>(node));
-        for( auto it = range.first; it != range.second; ++it ) {
+        /**
+        * @return a vector of the neghbours' data for a given node
+        */
+        std::vector<NodeData> neighbours_data( const GraphNode * node ) const {
+          std::vector<NodeData> data;
+          auto range = m_adjacency.equal_range ( const_cast<GraphNode*>(node));
+          for( auto it = range.first; it != range.second; ++it ) {
             data.push_back(it->second->data());
+          }
+
+          return data;
         }
 
-        return data;
-    }
+        /**
+        * @return true if there is an edge from node 1 to node 2. If the grpah is undirected,
+        * this will return true if there is an edge from node 2 to node 1.
+        */
+        bool has_edge( GraphNode * node_a, GraphNode * node_b ) {
+          using namespace std;
 
-    /**
-     * @return true if there is an edge from node 1 to node 2. If the grpah is undirected,
-     * this will return true if there is an edge from node 2 to node 1.
-     */
-    bool has_edge( GraphNode * node_a, GraphNode * node_b ) {
-        using namespace std;
-
-        // Has edge if one of the mappings of node_a is node_b
-        auto range = m_adjacency.equal_range (node_a);
-        for( auto it = range.first; it != range.second; ++it ) {
+          // Has edge if one of the mappings of node_a is node_b
+          auto range = m_adjacency.equal_range (node_a);
+          for( auto it = range.first; it != range.second; ++it ) {
             if( it->second == node_b)
-                return true;
+            return true;
+          }
+          return false;
         }
-        return false;
-    }
 
-    /**
-     * @return the edges
-     */
-    std::vector<Edge *>& edges( ) {
-      return m_edges;
-    }
+        /**
+        * @return the edges
+        */
+        std::vector<Edge *>& edges( ) {
+          return m_edges;
+        }
 
 
-    /**
-     * @return the nodes of this graph
-     */
-    const std::vector<GraphNode *>& nodes( ) const {
-      return m_nodes;
-    }
+        /**
+        * @return the nodes of this graph
+        */
+        const std::vector<GraphNode *>& nodes( ) const {
+          return m_nodes;
+        }
 
-    /**
-     * Return a vector of cycles in the graph..
-     */
-    std::unordered_set<std::vector<std::size_t>, vector_hash> cycles( ) const {
-        using namespace std;
+        /**
+        * Return true If the paths provided are identical, otherwise, false
+        */
+        bool paths_are_identical( std::vector<std::size_t> path1, std::vector<std::size_t> path2 ) const {
+          if( path1.size() != path2.size() ) {
+            return false;
+          }
 
-        unordered_set<vector<size_t>, vector_hash> cycles;
-        for( size_t node_idx = 0; node_idx < num_nodes(); ++node_idx) {
+          // Paths are same if they contain same nodes
+          for( auto node : path1 ) {
+            if( find(path2.begin(), path2.end(), node ) == path2.end()) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        /**
+         * Canonicalise the path by placing lowest index first while maintaining the order.
+         */
+         std::vector<size_t> canonicalise(std::vector<size_t> path ) const {
+           using namespace std;
+
+           size_t lowest_idx_idx = 0;
+           size_t lowest_idx = path[lowest_idx_idx];
+           for( size_t idx = 1; idx < path.size(); ++idx ) {
+             if( path[idx] < lowest_idx ) {
+               lowest_idx = path[idx];
+               lowest_idx_idx  = idx;
+             }
+           }
+
+           vector<size_t> canonical_v;
+           for( size_t idx = 0; idx < path.size(); ++idx ) {
+             canonical_v.push_back( path[ (lowest_idx_idx + idx) % path.size() ] );
+           }
+           return canonical_v;
+         }
+
+        /**
+        * Return a vector of cycles in the graph..
+        */
+        std::unordered_set<std::vector<std::size_t>, vector_hash> cycles( ) const {
+          using namespace std;
+
+          unordered_set<vector<size_t>, vector_hash> cycles;
+          for( size_t node_idx = 0; node_idx < num_nodes(); ++node_idx) {
             vector<size_t> path;
             list<vector<size_t>> paths;
             path.push_back(node_idx);
             paths.push_back(path);
             bool done = false;
             while( !done ) {
-                vector<size_t> current_path = paths.front();
-                paths.pop_front();
-                size_t last_node_idx = current_path.back();
-                vector<size_t> neighbours = neighbour_indices(nodes()[last_node_idx]);
-                for( auto neighbour : neighbours ) {
-                    if( (current_path.size() > 2 ) && (neighbour == path.front() ) ){
-                        done = true;
-                        // Maybe add to cycles (if not there already)
-                        sort( begin(path), end(path));
-                        cycles.insert(path);
-                    } else if ( /* neighbour not in path */ find( begin(current_path), end(current_path), neighbour) == end(current_path)) {
-                        vector<size_t> new_path;
-                        new_path.insert( end(new_path), begin(current_path), end(current_path));
-                        new_path.push_back( neighbour );
-                        paths.push_back( new_path );
+              vector<size_t> current_path = paths.front();
+              paths.pop_front();
+              size_t last_node_idx = current_path.back();
+              vector<size_t> neighbours = neighbour_indices(nodes()[last_node_idx]);
+              for( auto neighbour : neighbours ) {
+                if( (current_path.size() > 2 ) && (neighbour == path.front() ) ){
+                  done = true;
+                  // Maybe add to cycles (if not there already)
+                  bool path_known = false;
+                  for( auto known_path : cycles ) {
+                    if( paths_are_identical( current_path, known_path)) {
+                      path_known = true;
+                      break;
                     }
+                  }
+                  if( !path_known) {
+
+                    cycles.insert(canonicalise(current_path));
+                  }
+                } else if ( /* neighbour not in path */ find( begin(current_path), end(current_path), neighbour) == end(current_path)) {
+                  vector<size_t> new_path;
+                  new_path.insert( end(new_path), begin(current_path), end(current_path));
+                  new_path.push_back( neighbour );
+                  paths.push_back( new_path );
                 }
-                if( paths.size() == 0 ) {
-                    done = true;
-                }
+              }
+              if( paths.size() == 0 ) {
+                done = true;
+              }
             }
+          }
+          return cycles;
         }
-        return cycles;
+
+      private:
+        std::vector<GraphNode *>                        m_nodes;
+        std::vector<Edge *>                             m_edges;
+        std::multimap<GraphNode*, GraphNode*>           m_adjacency;
+        bool                                            m_is_directed;
+      };
+
+
     }
-
-private:
-    std::vector<GraphNode *>                        m_nodes;
-    std::vector<Edge *>                             m_edges;
-    std::multimap<GraphNode*, GraphNode*>           m_adjacency;
-    bool                                            m_is_directed;
-};
-
-
-}

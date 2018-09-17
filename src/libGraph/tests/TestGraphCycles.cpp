@@ -72,8 +72,8 @@ TEST_F(TestGraphCycles, PathEquivalencyWhenShiftedUndirected) {
 TEST_F(TestGraphCycles, PathEquivalencyWhenOppositeUndirected) {
 	using namespace std;
 
-	animesh::Path p1{ vector<size_t>{ 0, 1, 10 }};
-	animesh::Path p2{ vector<size_t>{ 0, 10, 1 }};
+	animesh::Path p1{ vector<size_t>{ 7, 8, 12, 13 }};
+	animesh::Path p2{ vector<size_t>{ 7, 13, 12, 8 }};
 	EXPECT_TRUE(p1.is_equivalent_to(p2));
 }
 
@@ -88,12 +88,8 @@ TEST_F(TestGraphCycles, NoPathEquivalencyWhenRandomUndirected) {
 TEST_F(TestGraphCycles, CyclesAreCorrect ) {
 	using namespace std;
 
-	unordered_set<animesh::Path> cycles = test_graph.cycles( );
-
 	// Note cycles are index order, not node value order`
-
-	vector<animesh::Path> expected_cycles =
-	{
+	vector<animesh::Path> expected_cycles = {
 		animesh::Path{ vector<size_t>{ 0, 1, 10 }},
 		animesh::Path{ vector<size_t>{ 1, 2, 9}},
 		animesh::Path{ vector<size_t>{ 2, 3, 4, 5, 6, 7, 8, 9}},
@@ -101,7 +97,10 @@ TEST_F(TestGraphCycles, CyclesAreCorrect ) {
 		animesh::Path{ vector<size_t>{ 12, 13, 15, 14}},
 		animesh::Path{ vector<size_t>{ 0, 10, 11, 12, 14}},
 	};
+
+	unordered_set<animesh::Path> cycles = test_graph.cycles( );
 	EXPECT_EQ( expected_cycles.size(), cycles.size());
+
 	for( auto expected_cycle : expected_cycles ) {
 		// Find it
 		bool found = false;

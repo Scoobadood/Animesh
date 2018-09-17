@@ -92,46 +92,52 @@ size_t std::hash<animesh::Path>::operator()(const animesh::Path& other_path) con
    * in same order with some offset.
    */
   bool Path::is_equivalent_to( Path path2 ) const {
+    using namespace std;
+
     // Not the same if not the same length
     if ( length() != path2.length() ) {
       return false;
     }
 
+    // Handle single item case
     size_t num_items = m_node_indices.size();
+    if( num_items == 1 ) {
+      return m_node_indices[0] == path2.m_node_indices[0];
+    }
+
+    // Find start of my list in other list
     size_t my_first = m_node_indices[0];
-    size_t their_first_idx = 0;
-    while (( their_first_idx < num_items) && (path2.m_node_indices[their_first_idx] != my_first) ) {
-      their_first_idx++;
-    }
-    // If first item not found in ytheir list, fail
-    if ( their_first_idx == num_items) {
-      return false;
-    }
-    // If there's only one item, we match
-    if ( num_items == 1 ) {
-      return true;
-    }
-
-    int increment;
-    if (m_node_indices[1] == path2.m_node_indices[(their_first_idx + 1) % num_items]) {
-      // both paths seem ordered same way
-      increment = 1;
-    } else if (( !m_is_directed ) && (m_node_indices[1] == path2.m_node_indices[(their_first_idx + num_items - 1) % num_items])) {
-      // Can be ordered down if not directed.
-      increment = -1;
-    } else {
-      // Either the second element doesn't match or we're a directed path and can't be reversed.
+    auto it = find( begin(path2.m_node_indices), end(path2.m_node_indices), my_first);
+    if( it == end( path2.m_node_indices)) {
       return false;
     }
 
-    for ( int my_idx = 0, their_idx = their_first_idx; my_idx < num_items; my_idx++, their_idx += increment  ) {
-      // if any corresponding elements don't match, fail
-      if ( m_node_indices[my_idx] != path2.m_node_indices[(their_idx + num_items) % num_items]) {
-        return false;
+    size_t their_first_idx = it - begin(path2.m_node_indices);
+
+    // Check forward
+    bool matched = true;
+    for ( int my_idx = 0, their_idx = their_first_idx; my_idx < num_items; ++my_idx, their_idx = ((their_idx + 1) % num_items)  ) {
+      if( m_node_indices[my_idx] != path2.m_node_indices[their_idx]) {
+        matched = false;
+        break;
       }
     }
-    // Must match
-    return true;
+
+    if( !matched ) {
+      // Check backwards if we can
+      bool can_be_reversed = ( !m_is_directed || !path2.m_is_directed);
+      if( can_be_reversed) {
+        matched = true;
+        for ( int my_idx = 0, their_idx = their_first_idx; my_idx < num_items; ++my_idx, their_idx = ((their_idx + num_items - 1) % num_items)  ) {
+          if( m_node_indices[my_idx] != path2.m_node_indices[their_idx]) {
+            matched = false;
+            break;
+          }
+        }
+      }
+    }
+
+    return matched;
   }
 
   /**

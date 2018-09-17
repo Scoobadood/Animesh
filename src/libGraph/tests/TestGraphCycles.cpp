@@ -1,6 +1,7 @@
 #include "TestGraphCycles.h"
 #include "Graph/Graph.h"
 #include <unordered_set>
+#include <vector>
 
 void TestGraphCycles::TearDown( ) {}
 
@@ -52,32 +53,63 @@ void TestGraphCycles::SetUp( ) {
 	test_graph.add_edge(gn[15], gn[16], 1.0, 0);
 }
 
+TEST_F(TestGraphCycles, PathEquivalencyWhenSameUndirected) {
+	using namespace std;
+
+	animesh::Path p1{ vector<size_t>{ 0, 1, 10 }};
+	animesh::Path p2{ vector<size_t>{ 0, 1, 10 }};
+	EXPECT_TRUE(p1.is_equivalent_to(p2));
+}
+
+TEST_F(TestGraphCycles, PathEquivalencyWhenShiftedUndirected) {
+	using namespace std;
+
+	animesh::Path p1{ vector<size_t>{ 0, 1, 10 }};
+	animesh::Path p2{ vector<size_t>{ 1, 10, 0 }};
+	EXPECT_TRUE(p1.is_equivalent_to(p2));
+}
+
+TEST_F(TestGraphCycles, PathEquivalencyWhenOppositeUndirected) {
+	using namespace std;
+
+	animesh::Path p1{ vector<size_t>{ 0, 1, 10 }};
+	animesh::Path p2{ vector<size_t>{ 0, 10, 1 }};
+	EXPECT_TRUE(p1.is_equivalent_to(p2));
+}
+
+TEST_F(TestGraphCycles, NoPathEquivalencyWhenRandomUndirected) {
+	using namespace std;
+
+	animesh::Path p1{ vector<size_t>{ 0, 1, 2, 3 }};
+	animesh::Path p2{ vector<size_t>{ 0, 1, 3, 2 }};
+	EXPECT_FALSE(p1.is_equivalent_to(p2));
+}
+
 TEST_F(TestGraphCycles, CyclesAreCorrect ) {
 	using namespace std;
 
-	unordered_set<vector<size_t>, animesh::vector_hash> cycles = test_graph.cycles( );
+	unordered_set<animesh::Path> cycles = test_graph.cycles( );
 
 	// Note cycles are index order, not node value order`
-	vector<vector<size_t>> expected_cycles =
+
+	vector<animesh::Path> expected_cycles =
 	{
-		{ 0, 1, 10 },
-		{ 1, 2, 9},
-		{ 2, 3, 4, 5, 6, 7, 8, 9},
-		{ 7, 13, 12, 8},
-		{12, 13, 15, 14},
-		{0, 10, 11, 12, 14},
+		animesh::Path{ vector<size_t>{ 0, 1, 10 }},
+		animesh::Path{ vector<size_t>{ 1, 2, 9}},
+		animesh::Path{ vector<size_t>{ 2, 3, 4, 5, 6, 7, 8, 9}},
+		animesh::Path{ vector<size_t>{ 7, 13, 12, 8}},
+		animesh::Path{ vector<size_t>{ 12, 13, 15, 14}},
+		animesh::Path{ vector<size_t>{ 0, 10, 11, 12, 14}},
 	};
 	EXPECT_EQ( expected_cycles.size(), cycles.size());
 	for( auto expected_cycle : expected_cycles ) {
 		// Find it
 		bool found = false;
 		for( auto actual_cycle : cycles) {
-			if( actual_cycle.size() != expected_cycle.size() ) {
+			if( actual_cycle.length() != expected_cycle.length() ) {
 				continue;
 			}
-			sort( expected_cycle.begin(), expected_cycle.end());
-			sort( actual_cycle.begin(), actual_cycle.end());
-			found = ( expected_cycle == actual_cycle ) ;
+			found = (expected_cycle.is_equivalent_to(actual_cycle));
 			if( found ) {
 				break;
 			}

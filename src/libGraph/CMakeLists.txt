@@ -1,10 +1,12 @@
-add_library(Graph INTERFACE)
+file(GLOB SOURCES "src/*.cpp")
 
-target_include_directories(Graph 
-	INTERFACE 
+add_library(Graph STATIC ${SOURCES})
+
+target_include_directories(Graph
+	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		${EIGEN3_INCLUDE_DIR})
-
+		${EIGEN3_INCLUDE_DIR}
+		PRIVATE src)
 
 # Depend on a library that we defined in the top-level file
 target_link_libraries(Graph)
@@ -29,8 +31,8 @@ add_executable( testGraph
     "tests/TestGraphCycles.cpp"
     )
 
-target_link_libraries(testGraph 
-	Graph 
+target_link_libraries(testGraph
+	Graph
 	gtest gmock
 	${CMAKE_THREAD_LIBS_INIT}
  )

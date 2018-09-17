@@ -21,7 +21,7 @@ using animesh::FieldOptimiser;
 
 /* ******************************************************************************************
  *
- *   New 
+ *   New
  *
  * ******************************************************************************************/
 using animesh::Graph;
@@ -36,11 +36,11 @@ using PointNormalGraphMapping = GraphSimplifier<PointNormal::Ptr, void *>::Graph
 /**
  * @return the error of a single vertex in a tier
  */
-float 
+float
 compute_error_for_vertex(
-    size_t vertex_idx, 
-    std::vector<size_t> neighbour_indices, 
-    const std::vector<PointNormal::Ptr>& vertices, 
+    size_t vertex_idx,
+    std::vector<size_t> neighbour_indices,
+    const std::vector<PointNormal::Ptr>& vertices,
     const std::vector<Eigen::Vector3f>& tangents ) {
     using namespace std;
     using namespace Eigen;
@@ -67,10 +67,10 @@ compute_error_for_vertex(
 /**
  * @return The current error in a tier of the graph
  */
-float 
+float
 compute_error_for_tier(
     const std::vector<PointNormal::Ptr>& vertices,
-    const PointNormalGraphPtr& graph, 
+    const PointNormalGraphPtr& graph,
     const std::vector<Eigen::Vector3f>& tangents ) {
     using namespace std;
 
@@ -207,7 +207,7 @@ index_of_point_in( const PointNormal::Ptr& p, const std::vector<PointNormal::Ptr
 /**
  * Allocate the vectors of vertices for each frame of each tier after tier 0
  */
-void 
+void
 allocate_tiers_and_frames(
           std::vector<std::vector<std::vector<PointNormal::Ptr>>>& tiers,
     const std::vector<PointNormalGraphPtr>&                        graphs) {
@@ -230,7 +230,7 @@ allocate_tiers_and_frames(
 /**
  * On entry:
  *    frames of vertices are allocated for each tier.
- *    graphs is a hierarchy of graphs. The size of which is the number of tiers we need 
+ *    graphs is a hierarchy of graphs. The size of which is the number of tiers we need
  * On exit:
  *    We have generated all vertices.
  */
@@ -284,7 +284,7 @@ populate_tiers_and_frames(
     }
 }
 
-/** 
+/**
  * Given a fully populated set of frames and tiers
  * Compute forward and backwards transforms between frame 0 and frame N in tier N
  */
@@ -343,14 +343,14 @@ generate_fwd_and_bkwd_transforms(
             tier_transforms.push_back( frame_transforms );
         }
         transforms.push_back( tier_transforms);
-    }    
+    }
     return transforms;
 }
 
 /**
  * Generate a set of random but correct tangents for the given tier (and frame-0)
  */
-std::vector<Eigen::Vector3f> 
+std::vector<Eigen::Vector3f>
 generate_random_tangents_for_tier(std::size_t tier_idx, const std::vector<std::vector<std::vector<PointNormal::Ptr>>>& tiers) {
     using namespace std;
     using namespace Eigen;
@@ -469,6 +469,8 @@ void FieldOptimiser::initialise( ) {
     m_graphs = result.first;
     m_mappings = result.second;
 
+    m_cycles = m_graphs[0]->cycles();
+
     m_is_optimising = false;
     m_optimising_started_new_tier = false;
     m_optimising_last_error = 0.0f;
@@ -566,7 +568,7 @@ FieldOptimiser::compute_tangents_for_tier_and_frame(size_t tier_idx, size_t fram
         }
     }
 
-    // FRAME propagation 
+    // FRAME propagation
     vector<Vector3f> frame_tangents;
     if( frame_idx != 0 ) {
         for( size_t vertex_idx = 0; vertex_idx < tier_tangents.size(); ++vertex_idx ) {
@@ -593,9 +595,9 @@ FieldOptimiser::compute_tangents_for_tier_and_frame(size_t tier_idx, size_t fram
 /**
  * @return The number of tiers in the graph hierarchy.
  */
-std::size_t 
-FieldOptimiser::num_tiers() const { 
-    return m_graphs.size(); 
+std::size_t
+FieldOptimiser::num_tiers() const {
+    return m_graphs.size();
 }
 
 /**
@@ -627,7 +629,7 @@ FieldOptimiser::is_frame_enabled(size_t frame_idx) const {
 /**
  * @return the numberof nodes in the given tier.
  */
-std::size_t 
+std::size_t
 FieldOptimiser::num_nodes_in_tier( std::size_t tier_idx) const {
     return m_graphs[tier_idx]->num_nodes();
 }
@@ -635,7 +637,7 @@ FieldOptimiser::num_nodes_in_tier( std::size_t tier_idx) const {
 /**
  * @return the numberof edges in the given tier.
  */
-std::size_t 
+std::size_t
 FieldOptimiser::num_edges_in_tier( std::size_t tier_idx) const {
     return m_graphs[tier_idx]->num_edges();
 }
@@ -643,7 +645,7 @@ FieldOptimiser::num_edges_in_tier( std::size_t tier_idx) const {
 /**
  * @return the optimising index.
  */
-size_t 
+size_t
 FieldOptimiser::optimising_tier_index( ) const {
     return m_optimising_tier_idx;
 }
@@ -651,7 +653,7 @@ FieldOptimiser::optimising_tier_index( ) const {
 /**
  * @return true if the optimiser is running.
  */
-bool 
+bool
 FieldOptimiser::is_optimising( ) const {
     return m_is_optimising;
 }
@@ -665,7 +667,7 @@ FieldOptimiser::is_optimising( ) const {
 /**
  * Construct a vector of all neighbours of a given graph node in a specific tier.
  * This method uses the graph to extract immediate neighbours at frame 0 in this tier
- * and then identifies corresponding FieldElements in other frames and back-projects them to 
+ * and then identifies corresponding FieldElements in other frames and back-projects them to
  * frame 0 using the inverse transformation matrix constructed during initialisation.
  *
  * @param tier_idx The tier of the graph hierarchy to consider.
@@ -674,8 +676,8 @@ FieldOptimiser::is_optimising( ) const {
  */
 std::pair<std::vector<Eigen::Vector3f>, std::vector<Eigen::Vector3f>>
 FieldOptimiser::copy_all_neighbours_for(
-    const std::vector<PointNormalGraphPtr>& graphs, 
-    std::size_t tier_idx, 
+    const std::vector<PointNormalGraphPtr>& graphs,
+    std::size_t tier_idx,
     std::size_t vertex_idx) const {
 
     using namespace std;
@@ -716,7 +718,7 @@ FieldOptimiser::copy_all_neighbours_for(
 
 
 /**
- * Update the tangents for the given tier of the graph.  The provided vector of tangents is in 
+ * Update the tangents for the given tier of the graph.  The provided vector of tangents is in
  * order specified by indices.
  */
 void
@@ -728,7 +730,7 @@ FieldOptimiser::update_tangents( const std::vector<Eigen::Vector3f>& new_tangent
 }
 
 /**
- * Perform orientation field optimisation. 
+ * Perform orientation field optimisation.
  * Continuously step until done.
  */
 void
@@ -741,7 +743,7 @@ FieldOptimiser::optimise() {
 /**
  * Randomise. Can only be performed when the field is not in the process of being optimised.
  */
-void 
+void
 FieldOptimiser::randomise() {
 
 
@@ -840,7 +842,7 @@ FieldOptimiser::optimise_do_one_step() {
  */
 std::vector<Eigen::Vector3f>
 FieldOptimiser::compute_new_tangents_for_tier(
-    const std::vector<PointNormalGraphPtr>& graphs, 
+    const std::vector<PointNormalGraphPtr>& graphs,
     std::size_t tier_idx) const {
 
     using namespace Eigen;
@@ -860,10 +862,10 @@ FieldOptimiser::compute_new_tangents_for_tier(
  * projected back into tangent space for the given FE's normal
  * @return The new vector.
  */
-Eigen::Vector3f 
+Eigen::Vector3f
 FieldOptimiser::compute_new_tangent_for_vertex(
-    const std::vector<PointNormalGraphPtr>& graphs, 
-    size_t tier_idx, 
+    const std::vector<PointNormalGraphPtr>& graphs,
+    size_t tier_idx,
     size_t vertex_idx) const {
     using namespace Eigen;
     using namespace std;
@@ -885,7 +887,7 @@ FieldOptimiser::compute_new_tangent_for_vertex(
         // TODO: Extract the edge weight from the graph node
         float edge_weight = 1.0f;
         new_tangent = average_rosy_vectors(new_tangent, this_vertex->normal(), weight,
-                                           neighbour_tangents[neighbour_idx], neighbour_normals[neighbour_idx], 
+                                           neighbour_tangents[neighbour_idx], neighbour_normals[neighbour_idx],
                                            edge_weight);
         weight += edge_weight;
     }
@@ -901,7 +903,7 @@ FieldOptimiser::compute_new_tangent_for_vertex(
 /**
  * @return The current error. This is calculated on the current tier when smoothing and tier0 when not.
  */
-float 
+float
 FieldOptimiser::total_error() const {
     using namespace std;
     using namespace Eigen;

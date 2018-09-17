@@ -14,8 +14,8 @@ class FieldOptimiser {
     using PointNormalGraphSimplifier = GraphSimplifier<PointNormal::Ptr, void *>;
     using PointNormalGraphMapping = GraphSimplifier<PointNormal::Ptr, void *>::GraphMapping;
 
-    std::vector< /* tiers */ 
-    std::vector< /* frames */ 
+    std::vector< /* tiers */
+    std::vector< /* frames */
     std::vector< /* vertices */PointNormal::Ptr>>>      m_tiers;
     std::vector<Eigen::Vector3f>                        m_tangents;
     std::multimap<size_t, size_t>                       m_adjacency;
@@ -33,6 +33,7 @@ class FieldOptimiser {
     PointNormalGraphPtr                                 m_optimising_current_tier;
     std::vector<bool>                                   m_include_frames;
     bool                                                m_tracing_enabled;
+    std::unordered_set<Path>                            m_cycles;
 
     /* ******************************************************************************************
      *
@@ -79,7 +80,7 @@ public:
     /**
      * @return The current error. This is calculated on the current tier when smoothing and tier0 when not.
      */
-    float 
+    float
     total_error() const;
 
     /**
@@ -96,13 +97,13 @@ public:
     /**
      * @return the optimising index.
      */
-    size_t 
+    size_t
     optimising_tier_index( ) const;
 
     /**
      * @return true if the optimiser is running.
      */
-    bool 
+    bool
     is_optimising( ) const;
 
     /**
@@ -137,13 +138,13 @@ public:
     /**
      * @return the numberof nodes in the given tier.
      */
-    std::size_t 
+    std::size_t
     num_nodes_in_tier( std::size_t tier_idx) const;
 
     /**
      * @return The number of edges in the given tier.
      */
-    std::size_t 
+    std::size_t
     num_edges_in_tier( std::size_t tier_idx) const;
 
     /**
@@ -187,13 +188,13 @@ private:
      * projected back into tangent space for the given FE's normal
      * @return The new vector.
      */
-    Eigen::Vector3f 
+    Eigen::Vector3f
     compute_new_tangent_for_vertex(const std::vector<PointNormalGraphPtr>& graphs, size_t tier_idx, size_t vertex_idx) const;
 
     /**
      * Construct a vector of all neighbours of a given graph node in a specific tier.
      * This method uses the graph to extract immediate neighbours at frame 0 in this tier
-     * and then identifies corresponding FieldElements in other frames and back-projects them to 
+     * and then identifies corresponding FieldElements in other frames and back-projects them to
      * frame 0 using the inverse transformation matrix constructed during initialisation.
      *
      * @param tier_idx The tier of the graph hierarchy to consider.
@@ -213,7 +214,7 @@ private:
     compute_new_tangents_for_tier(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx) const;
 
     /**
-     * Update the tangents (for currently optimising tier).  The provided vector of tangents is in 
+     * Update the tangents (for currently optimising tier).  The provided vector of tangents is in
      * order specified by indices.
      */
     void

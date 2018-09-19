@@ -107,7 +107,7 @@ void AnimeshMainWindow::on_action_open_triggered() {
     QDir startDirectory{"/Users"};
     QStringList file_names;
     if (dialog.exec()) {
-        file_names = dialog.selectedFiles();    
+        file_names = dialog.selectedFiles();
         if (!file_names.isEmpty()) {
             load_from(file_names);
         }
@@ -209,7 +209,7 @@ void AnimeshMainWindow::on_btnRandomise_clicked() {
 /**
  * Reset all controls once a file has been loaded.
  */
-void 
+void
 AnimeshMainWindow::file_loaded( ) {
     m_num_tiers = m_field_optimiser->num_tiers();
     m_num_frames = m_field_optimiser->num_frames();
@@ -230,7 +230,7 @@ AnimeshMainWindow::file_loaded( ) {
  * If file_names has more than one entry, they must all be files and we load them all
  * If it has one entry, it could be a directory or a file.
  */
-void 
+void
 AnimeshMainWindow::load_from( const QStringList& file_names ) {
     using namespace std;
     // Nothing
@@ -262,7 +262,7 @@ AnimeshMainWindow::load_from( const QStringList& file_names ) {
 /**
  * Load multiple files
  */
-void 
+void
 AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_names ) {
     using namespace std;
 
@@ -292,7 +292,7 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
 /**
  * Load from directory.
  */
-void 
+void
 AnimeshMainWindow::load_from_directory( const std::string& dir_name ) {
     using namespace std;
 
@@ -303,7 +303,7 @@ AnimeshMainWindow::load_from_directory( const std::string& dir_name ) {
 /**
  * Load from directory.
  */
-void 
+void
 AnimeshMainWindow::load_from_file( const std::string& file_name ) {
     using namespace std;
 
@@ -538,6 +538,15 @@ AnimeshMainWindow::init_normals_layer( vtkSmartPointer<vtkRenderer> renderer ) {
     renderer->AddActor(m_normals_actor);
 }
 
+/**
+ * Init the singularities layer
+ */
+void
+AnimeshMainWindow::init_singularities_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+  init_layer( renderer, m_polydata_singularities, m_singularities_actor);
+  renderer->AddActor(m_singularities_actor);
+}
+
 void
 AnimeshMainWindow::init_layer( vtkSmartPointer<vtkRenderer> renderer, vtkSmartPointer<vtkPolyData>& poly_data, vtkSmartPointer<vtkActor>& actor ) {
     poly_data = vtkSmartPointer<vtkPolyData>::New();
@@ -743,6 +752,49 @@ void AnimeshMainWindow::update_normals_layer( ) {
     m_polydata_normals->SetLines(lines);
     m_polydata_normals->GetCellData()->SetScalars(colours);
 }
+
+/**
+ * Update the singularities layer
+ */
+void
+AnimeshMainWindow::update_singularities_layer( ) {
+    using namespace std;
+    using namespace Eigen;
+
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> vertices = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colours->SetNumberOfComponents(3);
+
+    m_polydata_singularities->Initialize();
+    if (m_field_optimiser != nullptr) {
+        const vector<PointNormal::Ptr>& point_normals = m_field_optimiser->point_normals_for_tier_and_frame( m_current_tier, m_current_frame );
+        size_t num_vertices = point_normals.size();
+
+        vtkSmartPointer<vtkFloatArray> vtk_point_normals = vtkSmartPointer<vtkFloatArray>::New();
+        size_t num_vtk_points = point_normals.size();
+        vtk_point_normals->SetNumberOfComponents(3); //3d normals (ie x,y,z)
+        vtk_point_normals->SetNumberOfTuples(num_vtk_points);
+        size_t vtk_point_normal_idx = 0;
+
+        for ( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
+            Vector3f location = point_normals[vertex_idx]->point();
+            Vector3f normal   = point_normals[vertex_idx]->normal();
+
+            vtkIdType pid[num_vtk_points];
+            pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
+            vertices->InsertNextCell(1, pid);
+            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
+            colours->InsertNextTypedTuple(named_colours->GetColor3ub("Yellow").GetData());
+        }
+        m_polydata_singularities->GetPointData()->SetNormals(vtk_point_normals);
+    }
+    m_polydata_singularities->SetPoints(pts);
+    m_polydata_singularities->SetVerts(vertices);
+    m_polydata_singularities->GetCellData()->SetScalars(colours);
+}
+
 
 
 

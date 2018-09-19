@@ -32,31 +32,31 @@ private:
      * If file_names has more than one entry, they must all be files and we load them all
      * If it has one entry, it could be a directory or a file.
      */
-    void 
+    void
     load_from( const QStringList& file_names );
 
     /**
      * Load multiple files
      */
-    void 
+    void
     load_multiple_files( const std::vector<std::string>& file_names );
 
     /**
      * Load from directory.
      */
-    void 
+    void
     load_from_directory( const std::string& directory_name );
 
     /**
      * Load from file.
      */
-    void 
+    void
     load_from_file( const std::string& file_name );
 
     /**
      * Reset all controls once a file has been loaded.
     */
-    void 
+    void
     file_loaded( );
 
 
@@ -87,7 +87,7 @@ private:
     void
     update_include_checkbox( );
 
-    void 
+    void
     update_view_layers();
 
     void
@@ -139,6 +139,18 @@ private:
     init_neighbours_layer( vtkSmartPointer<vtkRenderer> renderer );
 
     /**
+     * Init the singularities layer
+     */
+    void
+    init_singularities_layer( vtkSmartPointer<vtkRenderer> renderer );
+
+    /**
+     * Update the singularities layer
+     */
+    void
+    update_singularities_layer();
+
+    /**
      * Utility to initialise any layer
      */
     void
@@ -165,7 +177,7 @@ private:
     void
     update_poly_data( );
 
-    vtkSmartPointer<vtkRenderer> 
+    vtkSmartPointer<vtkRenderer>
     set_up_renderer();
 
     void
@@ -184,11 +196,13 @@ private:
     vtkSmartPointer<vtkPolyData> m_polydata_cross_field;
     vtkSmartPointer<vtkPolyData> m_polydata_normals;
     vtkSmartPointer<vtkPolyData> m_polydata_neighbours;
+    vtkSmartPointer<vtkPolyData> m_polydata_singularities;
 
     // Actors
     vtkSmartPointer<vtkActor> m_cross_field_actor;
     vtkSmartPointer<vtkActor> m_normals_actor;
     vtkSmartPointer<vtkActor> m_neighbours_actor;
+    vtkSmartPointer<vtkActor> m_singularities_actor;
 
     // Number of tiers
     size_t m_num_tiers;
@@ -210,6 +224,7 @@ private:
     bool m_highlight_main_tangent;
     bool m_draw_normals;
     bool m_draw_neighbours;
+    bool m_draw_singularities;
 
 private slots:
     void on_action_open_triggered();

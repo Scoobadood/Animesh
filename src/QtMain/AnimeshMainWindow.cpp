@@ -793,12 +793,15 @@ AnimeshMainWindow::update_singularities_layer( ) {
         for ( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
             Vector3f location = get<0>(singularities[vertex_idx]);
             Vector3f normal   = get<1>(singularities[vertex_idx]);
+            int type          = get<2>(singularities[vertex_idx]);
 
             vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
             vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
-            colours->InsertNextTypedTuple(named_colours->GetColor3ub("Orange").GetData());
+
+            colours->InsertNextTypedTuple(named_colours->GetColor3ub(
+                (type == 1) ? "Red" : (type == 2) ? "Green" : "Blue").GetData());
         }
         m_polydata_singularities->GetPointData()->SetNormals(vtk_point_normals);
     }

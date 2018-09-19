@@ -748,13 +748,14 @@ FieldOptimiser::copy_all_neighbours_for(
 
        // Add to centroid.
        singularity_location = singularity_location + pn[from_node_idx]->point();
-       singularity_normal   = singularity_normal + pn[from_node_idx]->normal();
+       singularity_normal   = singularity_normal   + pn[from_node_idx]->normal();
 
-       total += ((to_k - from_k) % 4);
+       total += ((to_k - from_k + 4) % 4);
      }
-     if( total != 0 ) {
+     if( (total % 4) != 0 ) {
        // Compute singularity centroid
        singularity_location = singularity_location / cycle.length();
+       singularity_normal.normalize();
 
        // Add singularity to list.(centroid and type : 3 or 5)
        singularities.push_back( make_tuple(singularity_location, singularity_normal, total) );

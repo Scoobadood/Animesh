@@ -154,6 +154,7 @@ AnimeshMainWindow::update_view_layers() {
     m_draw_cross_field ? m_cross_field_actor->VisibilityOn() : m_cross_field_actor->VisibilityOff();
     m_draw_normals ? m_normals_actor->VisibilityOn() : m_normals_actor->VisibilityOff();
     m_draw_neighbours ? m_neighbours_actor->VisibilityOn() : m_neighbours_actor->VisibilityOff();
+    m_draw_singularities ? m_singularities_actor->VisibilityOn() : m_singularities_actor->VisibilityOff();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
@@ -182,6 +183,11 @@ AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled) {
     update_view_layers();
 }
 
+void
+AnimeshMainWindow::on_cbSingularities_stateChanged(int enabled) {
+    m_draw_singularities = ui->cbSingularities->isChecked();
+    update_view_layers();
+}
 
 void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
     set_current_frame( new_frame_idx - 1 );
@@ -451,6 +457,7 @@ AnimeshMainWindow::disable_display_checkboxes() {
     ui->cbSecondaryTangents->setEnabled(false);
     ui->cbNormals->setEnabled(false);
     ui->cbNeighbours->setEnabled(false);
+    ui->cbSingularities->setEnabled(false);
 }
 
 void
@@ -459,6 +466,7 @@ AnimeshMainWindow::enable_display_checkboxes() {
     ui->cbSecondaryTangents->setEnabled(true);
     ui->cbNormals->setEnabled(true);
     ui->cbNeighbours->setEnabled(true);
+    ui->cbSingularities->setEnabled(true);
 }
 
 void
@@ -468,6 +476,7 @@ AnimeshMainWindow::init_display_checkboxes() {
     ui->cbSecondaryTangents->setChecked(true);
     ui->cbNormals->setChecked(false);
     ui->cbNeighbours->setChecked(false);
+    ui->cbSingularities->setEnabled(false);
 }
 
 void
@@ -544,6 +553,7 @@ AnimeshMainWindow::init_normals_layer( vtkSmartPointer<vtkRenderer> renderer ) {
 void
 AnimeshMainWindow::init_singularities_layer( vtkSmartPointer<vtkRenderer> renderer ) {
   init_layer( renderer, m_polydata_singularities, m_singularities_actor);
+  m_singularities_actor -> GetProperty()->SetPointSize(10);
   renderer->AddActor(m_singularities_actor);
 }
 
@@ -786,7 +796,7 @@ AnimeshMainWindow::update_singularities_layer( ) {
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
             vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
-            colours->InsertNextTypedTuple(named_colours->GetColor3ub("Yellow").GetData());
+            colours->InsertNextTypedTuple(named_colours->GetColor3ub("Orange").GetData());
         }
         m_polydata_singularities->GetPointData()->SetNormals(vtk_point_normals);
     }
@@ -805,6 +815,7 @@ void AnimeshMainWindow::update_poly_data() {
     update_normals_layer();
     update_cross_field_layer();
     update_neighbours_layer( );
+    update_singularities_layer();
 }
 
 /**
@@ -817,6 +828,7 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
     init_normals_layer( renderer );
     init_cross_field_layer( renderer );
     init_neighbours_layer( renderer );
+    init_singularities_layer( renderer);
 
     update_poly_data( );
 

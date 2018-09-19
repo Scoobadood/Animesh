@@ -239,6 +239,7 @@ private slots:
     void on_cb_include_frame_stateChanged(int arg1);
     void on_hs_frame_selector_valueChanged(int value);
     void on_sbGraphLevel_valueChanged(int new_graph_level);
+    void on_cbSingularities_stateChanged(int arg1);
 };
 
 #endif // ANIMESHMAINWINDOW_H

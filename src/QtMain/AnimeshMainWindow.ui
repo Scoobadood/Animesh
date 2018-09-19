@@ -192,6 +192,13 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QCheckBox" name="cbSingularities">
+              <property name="text">
+               <string>Singularities</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>

@@ -51,6 +51,17 @@ size_t std::hash<animesh::Path>::operator()(const animesh::Path& other_path) con
   }
 
   /**
+   * @return A Path with same nodes as this ut in reverse order.
+   */
+  Path Path::reverse() const {
+    Path reverse_path{m_is_directed};
+    for( auto it = m_node_indices.rbegin(); it != m_node_indices.rend(); ++it ) {
+      reverse_path.push_back(*it);
+    }
+    return reverse_path;
+  }
+
+  /**
    * Strict equality operator.
    * Must be same items in same order
    */

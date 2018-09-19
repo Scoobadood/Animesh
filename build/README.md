@@ -5,3 +5,4 @@ Fix up the singularities by:
 * Ensuring all graph loops are clockwise
 
 # Next
+Order cycles to be clockwise after building graph in initialise code.

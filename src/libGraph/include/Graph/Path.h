@@ -39,6 +39,11 @@ namespace animesh {
     size_t last() const;
 
     /**
+     * @return A Path with same nodes as this ut in reverse order.
+     */
+    Path reverse() const;
+
+    /**
      * Strict equality operator.
      * Must be same items in same order
      */

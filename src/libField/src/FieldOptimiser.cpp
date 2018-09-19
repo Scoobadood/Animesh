@@ -202,7 +202,49 @@ index_of_point_in( const PointNormal::Ptr& p, const std::vector<PointNormal::Ptr
     throw runtime_error{ "Not found" };
 }
 
+/**
+ * For a Graph, compute the minimal cycles and then ensure they are oriented
+ * clockwise
+ */
+std::vector<animesh::Path>
+compute_cycles(const PointNormalGraphPtr& graph) {
+  using namespace std;
+  using namespace Eigen;
 
+  vector<animesh::Path> ordered_cycles;
+  vector<animesh::Path> cycles = graph->cycles();
+  Vector3f z{0, 0, 1};
+  for( auto cycle : cycles) {
+    // Guaranteed that a cycle has at least 3 nodes
+    PointNormal::Ptr p1 = graph->nodes()[cycle[0]]->data();
+    PointNormal::Ptr p2 = graph->nodes()[cycle[1]]->data();
+    PointNormal::Ptr p3 = graph->nodes()[cycle[2]]->data();
+
+    Vector3f edge1 = p2->point() - p1->point();
+    Vector3f edge2 = p3->point() - p2->point();
+    if( ( edge1.cross(edge2) ).dot(z) == -1 ) {
+      ordered_cycles.push_back( cycle);
+    } else {
+      ordered_cycles.push_back( cycle.reverse());
+    }
+  }
+  return ordered_cycles;
+}
+
+/**
+ * For a stack of graphs, compute the minimal cycles and then ensure they are oriented
+ * clockwise
+ */
+std::vector<std::vector<animesh::Path>>
+compute_cycles(const std::vector<PointNormalGraphPtr>& graphs) {
+  using namespace std;
+
+  vector<vector<animesh::Path>> cycles;
+  for( size_t tier_idx = 0; tier_idx < graphs.size(); ++tier_idx) {
+    cycles.push_back(compute_cycles(graphs[tier_idx]));
+  }
+  return cycles;
+}
 
 /**
  * Allocate the vectors of vertices for each frame of each tier after tier 0
@@ -469,9 +511,7 @@ void FieldOptimiser::initialise( ) {
     m_graphs = result.first;
     m_mappings = result.second;
 
-    for( size_t tier_idx = 0; tier_idx < m_graphs.size(); ++tier_idx) {
-      m_cycles.push_back( m_graphs[tier_idx]->cycles());
-    }
+    m_cycles = compute_cycles(m_graphs);
 
     m_is_optimising = false;
     m_optimising_started_new_tier = false;

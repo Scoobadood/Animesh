@@ -777,6 +777,7 @@ FieldOptimiser::copy_all_neighbours_for(
      int total = 0;
      Vector3f singularity_location = Vector3f::Zero();
      Vector3f singularity_normal = Vector3f::Zero();
+     
      for( size_t from_idx = 0; from_idx < cycle.length(); ++from_idx) {
        size_t from_node_idx = cycle[from_idx];
        size_t to_node_idx = cycle[ (from_idx + 1 ) % cycle.length()];

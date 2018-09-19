@@ -798,7 +798,10 @@ AnimeshMainWindow::update_singularities_layer( ) {
             vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
-            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
+
+            float nn[] = {0.0f, 0.0f, 1.0f};
+//            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
+            vtk_point_normals->SetTuple(vtk_point_normal_idx++, nn) ;
 
             colours->InsertNextTypedTuple(named_colours->GetColor3ub(
                 (type == 1) ? "Red" : (type == 2) ? "Green" : "Blue").GetData());

@@ -313,7 +313,7 @@ public:
   /**
   * Return a vector of cycles in the graph..
   */
-  std::unordered_set<Path> cycles( ) const {
+  std::vector<Path> cycles( ) const {
     using namespace std;
 
     unordered_set<Path> cycles;
@@ -353,7 +353,9 @@ public:
         }
       }
     }
-    return cycles;
+    vector<Path> cycle_vector;
+    cycle_vector.assign(cycles.begin(), cycles.end());
+    return cycle_vector;
   }
 
 private:

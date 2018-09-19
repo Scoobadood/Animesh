@@ -33,7 +33,7 @@ class FieldOptimiser {
     PointNormalGraphPtr                                 m_optimising_current_tier;
     std::vector<bool>                                   m_include_frames;
     bool                                                m_tracing_enabled;
-    std::unordered_set<Path>                            m_cycles;
+    std::vector<std::vector<Path>>                      m_cycles;
 
     /* ******************************************************************************************
      *
@@ -68,6 +68,14 @@ public:
 
     std::vector<Eigen::Vector3f>
     propagate_tangents_down( const std::vector<Eigen::Vector3f>& tangents, std::size_t tier_idx ) const;
+
+    /**
+     * Update Singularities by:
+     * Walk the graph loops for the graph at the current tier and compute 'k' for each edge
+     * Sum for each loop and use to identify and locate singularities.
+     */
+     std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>>
+     get_singularities_for_tier_and_frame(std::size_t tier_idx, std::size_t frame_idx) const;
 
     /**
      * Reproject the tangents from frame 0 tier 0 into an arbitrary frame and tier by using the forward transformations

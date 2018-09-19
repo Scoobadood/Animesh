@@ -98,7 +98,7 @@ TEST_F(TestGraphCycles, CyclesAreCorrect ) {
 		animesh::Path{ vector<size_t>{ 0, 10, 11, 12, 14}},
 	};
 
-	unordered_set<animesh::Path> cycles = test_graph.cycles( );
+	vector<animesh::Path> cycles = test_graph.cycles( );
 	EXPECT_EQ( expected_cycles.size(), cycles.size());
 
 	for( auto expected_cycle : expected_cycles ) {

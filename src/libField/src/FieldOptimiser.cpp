@@ -469,7 +469,9 @@ void FieldOptimiser::initialise( ) {
     m_graphs = result.first;
     m_mappings = result.second;
 
-    m_cycles = m_graphs[0]->cycles();
+    for( size_t tier_idx = 0; tier_idx < m_graphs.size(); ++tier_idx) {
+      m_cycles.push_back( m_graphs[tier_idx]->cycles());
+    }
 
     m_is_optimising = false;
     m_optimising_started_new_tier = false;
@@ -716,6 +718,50 @@ FieldOptimiser::copy_all_neighbours_for(
     return make_pair(nbr_normals, nbr_tangents);
 }
 
+/**
+ * Update Singularities by:
+ * Walk the graph loops for the graph at the current tier and compute 'k' for each edge
+ * Sum for each loop and use to identify and locate singularities.
+ */
+ std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>>
+ FieldOptimiser::get_singularities_for_tier_and_frame(std::size_t tier_idx, std::size_t frame_idx) const {
+   using namespace std;
+   using namespace Eigen;
+
+   const vector<PointNormal::Ptr>& pn = point_normals_for_tier_and_frame(tier_idx, frame_idx);
+   vector<Vector3f> tangents = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+   vector<tuple<Vector3f, Vector3f, int>> singularities;
+
+   for( size_t cycle_idx = 0; cycle_idx < m_cycles[tier_idx].size(); ++cycle_idx) {
+     const Path& cycle = m_cycles[tier_idx][cycle_idx];
+     int total = 0;
+     Vector3f singularity_location = Vector3f::Zero();
+     Vector3f singularity_normal = Vector3f::Zero();
+     for( size_t from_idx = 0; from_idx < cycle.length(); ++from_idx) {
+       size_t from_node_idx = cycle[from_idx];
+       size_t to_node_idx = cycle[ (from_idx + 1 ) % cycle.length()];
+
+       // Compute Rosy counts for from and to
+       int to_k = 0, from_k = 0;
+       best_rosy_vector_pair( tangents[from_node_idx], pn[from_node_idx]->normal(),
+                              tangents[to_node_idx], pn[to_node_idx]->normal());
+
+       // Add to centroid.
+       singularity_location = singularity_location + pn[from_node_idx]->point();
+       singularity_normal   = singularity_normal + pn[from_node_idx]->normal();
+
+       total += (to_k - from_k);
+     }
+     if( total != 0 ) {
+       // Compute singularity centroid
+       singularity_location = singularity_location / cycle.length();
+
+       // Add singularity to list.(centroid and type : 3 or 5)
+       singularities.push_back( make_tuple(singularity_location, singularity_normal, total) );
+     }
+   }
+   return singularities;
+ }
 
 /**
  * Update the tangents for the given tier of the graph.  The provided vector of tangents is in

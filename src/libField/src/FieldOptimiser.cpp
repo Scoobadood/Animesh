@@ -100,7 +100,7 @@ up_propagate( const PointNormal::Ptr& p1, const PointNormal::Ptr& p2 ) {
     Vector3f new_point  = (p1->point() + p2->point()) / 2.0;
     Vector3f new_normal = (p1->normal() + p2->normal()).normalized();
 
-    PointNormal::Ptr pn = make_shared<PointNormal>(PointNormal{new_point, new_normal});
+    PointNormal::Ptr pn = make_shared<PointNormal>(PointNormal{p1->point(), p1->normal()});
     return pn;
 }
 

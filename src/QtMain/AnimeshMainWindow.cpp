@@ -779,18 +779,20 @@ AnimeshMainWindow::update_singularities_layer( ) {
 
     m_polydata_singularities->Initialize();
     if (m_field_optimiser != nullptr) {
-        const vector<PointNormal::Ptr>& point_normals = m_field_optimiser->point_normals_for_tier_and_frame( m_current_tier, m_current_frame );
-        size_t num_vertices = point_normals.size();
+      std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>>
+      singularities = m_field_optimiser->get_singularities_for_tier_and_frame(m_current_tier, m_current_frame);
+
+        size_t num_vertices = singularities.size();
 
         vtkSmartPointer<vtkFloatArray> vtk_point_normals = vtkSmartPointer<vtkFloatArray>::New();
-        size_t num_vtk_points = point_normals.size();
+        size_t num_vtk_points = num_vertices;
         vtk_point_normals->SetNumberOfComponents(3); //3d normals (ie x,y,z)
         vtk_point_normals->SetNumberOfTuples(num_vtk_points);
         size_t vtk_point_normal_idx = 0;
 
         for ( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
-            Vector3f location = point_normals[vertex_idx]->point();
-            Vector3f normal   = point_normals[vertex_idx]->normal();
+            Vector3f location = get<0>(singularities[vertex_idx]);
+            Vector3f normal   = get<1>(singularities[vertex_idx]);
 
             vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());

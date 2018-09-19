@@ -743,14 +743,14 @@ FieldOptimiser::copy_all_neighbours_for(
 
        // Compute Rosy counts for from and to
        int to_k = 0, from_k = 0;
-       best_rosy_vector_pair( tangents[from_node_idx], pn[from_node_idx]->normal(),
-                              tangents[to_node_idx], pn[to_node_idx]->normal());
+       best_rosy_vector_pair( tangents[from_node_idx], pn[from_node_idx]->normal(), from_k,
+                              tangents[to_node_idx], pn[to_node_idx]->normal(), to_k);
 
        // Add to centroid.
        singularity_location = singularity_location + pn[from_node_idx]->point();
        singularity_normal   = singularity_normal + pn[from_node_idx]->normal();
 
-       total += (to_k - from_k);
+       total += ((to_k - from_k) % 4);
      }
      if( total != 0 ) {
        // Compute singularity centroid

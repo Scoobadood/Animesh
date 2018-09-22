@@ -5,11 +5,4 @@ Fix up the singularities by:
 * Ensuring all graph loops are clockwise
 
 # Next
-ObjFileParser seems to be doing a poor job on Sphere
-There are no tests for it.
-Make some.
-
-Problem was we were adding adjacency twice for each face, i.e. 1 adj 2 and 2 adj 1
-For ObjFileParser, this should be implicit since edge relationships are undirected.
-Removing this makes local tests pass and we should handle any interpretation of
-adjacency in other layers of the stack.
+Fix the Graph tests which are computing an incorrect number of cycles for sphere

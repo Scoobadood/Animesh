@@ -55,21 +55,23 @@ void TestGraphCycles::TearDown( ) {}
 }
 
 void TestGraphCycles::SetUp( ) {
-	using namespace animesh;
-	using namespace std;
+  using namespace animesh;
+  using namespace std;
 
-	m_test_graph = setup_test_graph();
+  m_test_graph = setup_test_graph();
 
-	// Load the sphere
-	ObjFileParser parser;
-	pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency("../data/sphere10x10/sphere10x10.obj");
-	vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
-	for( auto pt : results.first) {
-		gn2.push_back(m_sphere10x10.add_node(pt));
-	}
-	for( auto e: results.second) {
-		m_sphere10x10.add_edge(gn2[e.first], gn2[e.second], 1.0, 0);
-	}
+  // Load the sphere
+  ObjFileParser parser;
+  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency("../data/sphere10x10/sphere10x10.obj");
+  vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
+  for( auto pt : results.first) {
+    gn2.push_back(m_sphere10x10.add_node(pt));
+  }
+  for( auto e: results.second) {
+    if( !m_sphere10x10.has_edge(gn2[e.first], gn2[e.second])) {
+      m_sphere10x10.add_edge(gn2[e.first], gn2[e.second], 1.0, 0);
+    }
+  }
 }
 
 TEST_F(TestGraphCycles, PathEquivalencyWhenSameUndirected) {

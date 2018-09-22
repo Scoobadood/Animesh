@@ -20,14 +20,14 @@ void split(const std::string &s, char delim, Out result) {
     }
 }
 
-std::vector<std::string> 
+std::vector<std::string>
 split(const std::string &s, char delim) {
     std::vector<std::string> elems;
     split(s, delim, std::back_inserter(elems));
     return elems;
 }
 
-void 
+void
 handle_vertex_line( const std::string& line, std::vector<Eigen::Vector3f>& vertices ) {
 	using namespace std;
 	using namespace Eigen;
@@ -40,7 +40,7 @@ handle_vertex_line( const std::string& line, std::vector<Eigen::Vector3f>& verti
 	vertices.push_back(v);
 }
 
-void 
+void
 handle_normal_line( const std::string& line, std::vector<Eigen::Vector3f>& normals ) {
 	using namespace std;
 	using namespace Eigen;
@@ -55,10 +55,10 @@ handle_normal_line( const std::string& line, std::vector<Eigen::Vector3f>& norma
 }
 
 /**
- * Handle lines of the form f v//vn v//vn v//vn 
+ * Handle lines of the form f v//vn v//vn v//vn
  * Where each is a face and v are the indices of vertices and vn of normals
  */
-void 
+void
 handle_face_line_with_adjacency( const std::string& line, std::vector<size_t>& face_vertex_idx, std::vector<size_t>& face_normal_idx, std::vector<std::vector<size_t>>& face_vertices) {
 	using namespace std;
 	using namespace Eigen;
@@ -79,7 +79,7 @@ handle_face_line_with_adjacency( const std::string& line, std::vector<size_t>& f
 	face_vertices.push_back(verts);
 }
 
-void 
+void
 handle_face_line_without_face_vertices( const std::string& line, std::vector<size_t>& face_vertex_idx, std::vector<size_t>& face_normal_idx) {
 	using namespace std;
 	using namespace Eigen;
@@ -97,11 +97,18 @@ handle_face_line_without_face_vertices( const std::string& line, std::vector<siz
 	}
 }
 
-void 
-compute_vertex_normals( size_t num_vertices, 
-						const std::vector<size_t>& face_vertex_indices, 
-						const std::vector<size_t>& face_normal_indices, 
-						const std::vector<Eigen::Vector3f>& given_normals, 
+
+/**
+ * Given a set of all face indices and face normal indices
+ * Compute the mean vertex normals for each given vertex by
+ * averaging the normal for that vertex over every face it appears in.
+ *
+ */
+void
+compute_vertex_normals( size_t num_vertices,
+						const std::vector<size_t>& face_vertex_indices,
+						const std::vector<size_t>& face_normal_indices,
+						const std::vector<Eigen::Vector3f>& given_normals,
 						std::vector<Eigen::Vector3f>& vertex_normals ) {
 	using namespace Eigen;
 
@@ -142,7 +149,7 @@ ObjFileParser::parse_file_with_adjacency( const std::string& file_name ) {
 			// Normals
 			if( line[1] == 'n') {
 				handle_normal_line( line, given_normals);
-			} 
+			}
 			// Vertices
 			else {
 				handle_vertex_line( line, given_vertices );
@@ -174,7 +181,6 @@ ObjFileParser::parse_file_with_adjacency( const std::string& file_name ) {
 			size_t second = adj[(idx + 1) % n];
 			assert( second < num_vertices);
 			adjacency.insert( make_pair( first, second));
-			adjacency.insert( make_pair( second, first ) );
 		}
 	}
 	return make_pair(point_normals, adjacency);
@@ -200,7 +206,7 @@ ObjFileParser::parse_file( const std::string& file_name ) {
 			// Normals
 			if( line[1] == 'n') {
 				handle_normal_line( line, given_normals);
-			} 
+			}
 			// Vertices
 			else {
 				handle_vertex_line( line, given_vertices );

@@ -45,7 +45,6 @@ using animesh::PointNormal;
 std::vector<std::string> get_files_in_directory( std::string directory_name ) {
     using namespace std;
 
-    ObjFileParser parser;
     vector<string> file_names;
     files_in_directory( directory_name, file_names, []( string name ) {
         using namespace std;

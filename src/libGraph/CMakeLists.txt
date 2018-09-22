@@ -33,6 +33,7 @@ add_executable( testGraph
 
 target_link_libraries(testGraph
 	Graph
+	Field
 	gtest gmock
 	${CMAKE_THREAD_LIBS_INIT}
  )

@@ -769,37 +769,43 @@ FieldOptimiser::copy_all_neighbours_for(
    using namespace Eigen;
 
    const vector<PointNormal::Ptr>& pn = point_normals_for_tier_and_frame(tier_idx, frame_idx);
-   vector<Vector3f> tangents = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+   const vector<Vector3f>& tangents = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
    vector<tuple<Vector3f, Vector3f, int>> singularities;
 
-   for( size_t cycle_idx = 0; cycle_idx < m_cycles[tier_idx].size(); ++cycle_idx) {
-     const Path& cycle = m_cycles[tier_idx][cycle_idx];
-     int total = 0;
-     Vector3f singularity_location = Vector3f::Zero();
-     Vector3f singularity_normal = Vector3f::Zero();
-     
+   cout << "------------------------------------------" << endl;
+   cout << "Finding singularities. Checking " << m_cycles[tier_idx].size() << " cycles" << endl;
+   cout << "------------------------------------------" << endl;
+
+   for( auto cycle : m_cycles[tier_idx]) {
+     // Index is zeroed.
+     int index = 0;
      for( size_t from_idx = 0; from_idx < cycle.length(); ++from_idx) {
        size_t from_node_idx = cycle[from_idx];
        size_t to_node_idx = cycle[ (from_idx + 1 ) % cycle.length()];
 
-       // Compute Rosy counts for from and to
+       // Compute rotations for from and to.
        int to_k = 0, from_k = 0;
        best_rosy_vector_pair( tangents[from_node_idx], pn[from_node_idx]->normal(), from_k,
                               tangents[to_node_idx], pn[to_node_idx]->normal(), to_k);
 
-       // Add to centroid.
-       singularity_location = singularity_location + pn[from_node_idx]->point();
-       singularity_normal   = singularity_normal   + pn[from_node_idx]->normal();
-
-       total += ((to_k - from_k + 4) % 4);
+       index = index + to_k - from_k;
      }
-     if( (total % 4) != 0 ) {
+     if( (index % 4) != 0 ) {
+       cout << "Found singularity" << endl;
+       // This is a singularity, compute location and normal.
+       Vector3f singularity_location = Vector3f::Zero();
+       Vector3f singularity_normal = Vector3f::Zero();
+       for( size_t from_idx = 0; from_idx < cycle.length(); ++from_idx) {
+         size_t from_node_idx = cycle[from_idx];
+         size_t to_node_idx = cycle[ (from_idx + 1 ) % cycle.length()];
+         singularity_location = singularity_location + pn[from_node_idx]->point();
+         singularity_normal   = singularity_normal   + pn[from_node_idx]->normal();
+       }
        // Compute singularity centroid
        singularity_location = singularity_location / cycle.length();
        singularity_normal.normalize();
-
        // Add singularity to list.(centroid and type : 3 or 5)
-       singularities.push_back( make_tuple(singularity_location, singularity_normal, total) );
+       singularities.push_back( make_tuple(singularity_location, singularity_normal, index) );
      }
    }
    return singularities;

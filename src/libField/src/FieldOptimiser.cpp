@@ -127,9 +127,10 @@ initialise_tier0_graph(const std::vector<PointNormal::Ptr>& data, const std::mul
 
     PointNormalGraphPtr graph = make_shared<PointNormalGraph>();
 
+    // Avoids nlogn performance of btree lookup using upper_bound()
     for( auto it = adjacency.begin(); it != adjacency.end(); ) {
         size_t vertex_idx = it->first;
-        PointNormalGraph::GraphNode * node = graph->add_node( data[vertex_idx] );
+        graph->add_node( data[vertex_idx] );
         do {
             ++it;
         } while( it != adjacency.end() && it->first == vertex_idx);

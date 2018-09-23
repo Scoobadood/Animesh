@@ -14,14 +14,14 @@ public:
 	 * @param file_name The name of the file.
 	 * @return A vector containing the points and a vector of adjacent point indices.
 	 */
-	std::pair<std::vector<PointNormal::Ptr>, std::multimap<size_t, size_t>>  parse_file_with_adjacency( const std::string& file_name );
+	std::pair<std::vector<PointNormal::Ptr>, std::multimap<size_t, size_t>>  parse_file_with_adjacency( const std::string& file_name, bool face_wise = false );
 
 	/**
 	 * Parse an OBJ file and return only PointNormals.
 	 * @param file_name The name of the file.
 	 * @return A vector containing the points and normals.
 	 */
-	std::vector<PointNormal::Ptr> parse_file( const std::string& file_name );
+	std::vector<PointNormal::Ptr> parse_file( const std::string& file_name, bool face_wise = false );
 };
 
 

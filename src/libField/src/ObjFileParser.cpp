@@ -134,7 +134,7 @@ compute_vertex_normals( size_t num_vertices,
  * @return A vector containing the points and a vector of adjacent point indices.
  */
 std::pair<std::vector<PointNormal::Ptr>, std::multimap<size_t, size_t>>
-ObjFileParser::parse_file_with_adjacency( const std::string& file_name ) {
+ObjFileParser::parse_file_with_adjacency( const std::string& file_name, bool face_wise ) {
 	using namespace std;
 	using namespace Eigen;
 
@@ -192,7 +192,7 @@ ObjFileParser::parse_file_with_adjacency( const std::string& file_name ) {
  * @return A vector containing the points and normals.
  */
 std::vector<PointNormal::Ptr>
-ObjFileParser::parse_file( const std::string& file_name ) {
+ObjFileParser::parse_file( const std::string& file_name, bool face_wise ) {
 	using namespace std;
 	using namespace Eigen;
 

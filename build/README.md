@@ -5,8 +5,11 @@ Fix up the singularities by:
 * Ensuring all graph loops are clockwise
 
 # Next
-Cycles now work correctly but we still have a peculiar number of singularities for the sphere.
+Purpose of this branch is to enable the use of faces as the location of orientation fields rather than vertices.
 
-(5 + 3).
+We will do this by modifying ObjFileParser
+* Add a parameter to the parse() methods to include a 'vertex oriented' or 'face oriented' flag
+* Add a new parsing method to generate point normals for each face rather than per vertex.
 
-Could be because combing is not working. We should investigate that.
+# Later
+We will load the mesh itself separately for rendering.

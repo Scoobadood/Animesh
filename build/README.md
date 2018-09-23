@@ -5,5 +5,8 @@ Fix up the singularities by:
 * Ensuring all graph loops are clockwise
 
 # Next
-Make Cycles subclass Paths
-Make Paths have virtual methods for comparison etc.
+Cycles now work correctly but we still have a peculiar number of singularities for the sphere.
+
+(5 + 3).
+
+Could be because combing is not working. We should investigate that.

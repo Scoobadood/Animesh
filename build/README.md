@@ -5,4 +5,5 @@ Fix up the singularities by:
 * Ensuring all graph loops are clockwise
 
 # Next
-Fix the Graph tests which are computing an incorrect number of cycles for sphere
+Make Cycles subclass Paths
+Make Paths have virtual methods for comparison etc.

@@ -316,43 +316,65 @@ public:
   std::vector<Path> cycles( ) const {
     using namespace std;
 
-    unordered_set<Path> cycles;
+    vector<Path> cycles;
+
+    // For each node
     for ( size_t node_idx = 0; node_idx < num_nodes(); ++node_idx) {
+
       Path path;
       path.push_back(node_idx);
 
       list<Path> paths;
       paths.push_back(path);
+
       bool done = false;
+
+      // Explore all paths from node to find shortest cycle(s)
       while ( !done ) {
-        Path current_path = paths.front();
-        paths.pop_front();
-        size_t last_node_idx = current_path.last();
-        vector<size_t> neighbours = neighbour_indices(nodes()[last_node_idx]);
-        for ( auto neighbour : neighbours ) {
-          if ( (current_path.length() > 2 ) && (neighbour == path.first() ) ) {
+        // Grow each path by adding a neighbour not in the path
+        list<Path> new_paths;
+        for( auto path : paths ) {
+          size_t last_node_idx = path.last();
+          vector<size_t> neighbours = neighbour_indices(nodes()[last_node_idx]);
+          for ( auto neighbour : neighbours ) {
+            if(!path.contains( neighbour ) || (path[0] == neighbour && path.length() > 2)) {
+              Path new_path{ path, neighbour};
+              new_paths.push_back( new_path );
+            }
+          }
+        }
+        paths = new_paths;
+
+        // Check if we have a cycle yet
+        for( auto path : paths ) {
+          // // TESTS
+          // cout << "Considering path : ";
+          // for( int i=0; i<path.length(); i++) { cout << path[i] << " ";}
+          // // TESTS
+          if( path.is_cycle()) {
             done = true;
-            // Maybe add to cycles (if not there already)
-            bool path_known = false;
-            for ( auto known_path : cycles ) {
-              if ( current_path.is_equivalent_to(known_path)) {
-                path_known = true;
+            // cout << " -- it's a cycle";
+            // Check whether a variant of this cycle is already known
+            bool cycle_is_known = false;
+            for ( auto known_cycles : cycles ) {
+              if ( path.is_equivalent_to(known_cycles)) {
+                cycle_is_known = true;
                 break;
               }
             }
-            if ( !path_known) {
-              cycles.insert(current_path.canonicalise());
+
+            // If not, then add this cycle to my list
+            if ( !cycle_is_known) {
+              cycles.push_back(path);
+              // cout << " -- added";
+            } else {
+              // cout << " -- already known";
             }
-          } else if ( /* neighbour not in path */ !current_path.contains( neighbour )) {
-            Path new_path{ current_path, neighbour};
-            paths.push_back( new_path );
           }
-          if ( paths.size() == 0 ) {
-            done = true;
-          }
+          // cout << endl;
         }
-      }
-    }
+      } // Consider next path
+    }// Next node starting point
     vector<Path> cycle_vector;
     cycle_vector.assign(cycles.begin(), cycles.end());
     return cycle_vector;

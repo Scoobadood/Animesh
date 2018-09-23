@@ -55,7 +55,7 @@ best_rosy_vector_pair( const Eigen::Vector3f& target_vector, const Eigen::Vector
 
 			const float dp = target_candidates[best_target_idx].dot(source_candidates[best_source_idx]);
 			target_k = best_target_idx;
-			source_k = (dp > 0.0f) ? best_source_idx : best_source_idx + 2;
+			source_k = (dp >= 0.0f) ? best_source_idx : best_source_idx + 2;
 			return std::make_pair(target_candidates[best_target_idx], source_candidates[best_source_idx] * std::copysign( 1.0f, dp ));
 		}
 

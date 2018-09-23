@@ -770,7 +770,7 @@ FieldOptimiser::copy_all_neighbours_for(
    using namespace Eigen;
 
    const vector<PointNormal::Ptr>& pn = point_normals_for_tier_and_frame(tier_idx, frame_idx);
-   const vector<Vector3f>& tangents = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+   const vector<Vector3f>& tangents   = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
    vector<tuple<Vector3f, Vector3f, int>> singularities;
 
    cout << "------------------------------------------" << endl;
@@ -802,10 +802,9 @@ FieldOptimiser::copy_all_neighbours_for(
          singularity_location = singularity_location + pn[from_node_idx]->point();
          singularity_normal   = singularity_normal   + pn[from_node_idx]->normal();
        }
-       // Compute singularity centroid
        singularity_location = singularity_location / cycle.length();
        singularity_normal.normalize();
-       // Add singularity to list.(centroid and type : 3 or 5)
+       // Add singularity to list.(centroid and type : 1, 2 or 3)
        singularities.push_back( make_tuple(singularity_location, singularity_normal, index) );
      }
    }
@@ -973,7 +972,6 @@ FieldOptimiser::compute_new_tangent_for_vertex(
     pair<vector<Vector3f>, vector<Vector3f>> neighbour_data = copy_all_neighbours_for( graphs, tier_idx, vertex_idx);
     vector<Vector3f> neighbour_normals = neighbour_data.first;
     vector<Vector3f> neighbour_tangents = neighbour_data.second;
-
 
     // Merge all neighbours; implicitly using optiminsing tier tangents
     Vector3f new_tangent = m_tangents[vertex_idx];

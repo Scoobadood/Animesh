@@ -59,12 +59,16 @@ handle_normal_line( const std::string& line, std::vector<Eigen::Vector3f>& norma
  * Where each is a face and v are the indices of vertices and vn of normals
  */
 void
-handle_face_line( const std::string& line, std::vector<size_t>& face_vertex_idx, std::vector<size_t>& face_normal_idx, std::vector<std::vector<size_t>>& face_vertices) {
+handle_face_line(
+  const std::string& line,
+  std::vector<size_t>& face_vertex_idx,
+  std::vector<size_t>& face_normal_idx,
+  std::vector<std::vector<std::pair<std::size_t, std::size_t>>>& faces) {
 	using namespace std;
 	using namespace Eigen;
 
 	vector<string> tokens = split(line, ' ');
-	vector<size_t> verts;
+	vector<pair<size_t, size_t>> verts;
 	size_t idx = 1;
 	while( idx < tokens.size()) {
 		// Form is int/int/int
@@ -73,10 +77,10 @@ handle_face_line( const std::string& line, std::vector<size_t>& face_vertex_idx,
 		int vn_idx = stoi(terms[2]) - 1;
 		face_vertex_idx.push_back(v_idx);
 		face_normal_idx.push_back(vn_idx);
-		verts.push_back(v_idx);
+		verts.push_back(make_pair(v_idx, vn_idx));
 		idx++;
 	}
-	face_vertices.push_back(verts);
+	faces.push_back(verts);
 }
 
 void
@@ -85,7 +89,7 @@ read_data(const std::string&                      file_name,
           std::vector<Eigen::Vector3f>&           given_normals,
           std::vector<std::size_t>&               face_vertex_indices,
           std::vector<std::size_t>&               face_normal_indices,
-          std::vector<std::vector<std::size_t>>&  face_vertices) {
+          std::vector<std::vector<std::pair<std::size_t, std::size_t>>>& faces) {
   using namespace std;
 	using namespace Eigen;
 
@@ -101,7 +105,7 @@ read_data(const std::string&                      file_name,
         handle_vertex_line( line, given_vertices );
       }
     } else if( line[0] == 'f' ) {
-      handle_face_line( line, face_vertex_indices, face_normal_indices, face_vertices);
+      handle_face_line( line, face_vertex_indices, face_normal_indices, faces);
     }
   });
 }
@@ -163,16 +167,16 @@ compute_point_normals_from_vertices(
 
 // Finally compute face_vertices
 std::multimap<std::size_t, std::size_t>
-compute_adjacency_from_vertices( const std::vector<std::vector<std::size_t>>& face_vertices ) {
+compute_adjacency_from_vertices( const std::vector<std::vector<std::pair<std::size_t, std::size_t>>>& faces ) {
   using namespace std;
 
   multimap<size_t, size_t> adjacency;
 
-  for( auto adj : face_vertices ) {
-    size_t n = adj.size();
+  for( auto face : faces ) {
+    size_t n = face.size();
     for( size_t idx=0; idx < n; ++idx ) {
-      size_t first = adj[idx];
-      size_t second = adj[(idx + 1) % n];
+      size_t first = face[idx].first;
+      size_t second = face[(idx + 1) % n].first;
       adjacency.insert( make_pair( first, second));
     }
   }
@@ -184,7 +188,7 @@ std::vector<PointNormal::Ptr>
 compute_point_normals_from_faces(
   const std::vector<Eigen::Vector3f>&           given_vertices,
   const std::vector<Eigen::Vector3f>&           given_normals,
-  const std::vector<std::vector<std::size_t>>&  faces) {
+  const std::vector<std::vector<std::pair<std::size_t, std::size_t>>>& faces) {
 
     using namespace std;
     using namespace Eigen;
@@ -193,16 +197,16 @@ compute_point_normals_from_faces(
 
     // For each face, compute centre and normal and edge maps
     for( size_t face_idx = 0; face_idx < faces.size(); ++face_idx ) {
-      auto face_vertices = faces[face_idx];
+      auto face_vertex_normals = faces[face_idx];
       Vector3f face_centre = Vector3f::Zero();
       Vector3f face_normal = Vector3f::Zero();
-      for( auto face_vertex_idx = 0; face_vertex_idx < face_vertices.size(); ++face_vertex_idx) {
-        size_t vertex_idx = face_vertices[face_vertex_idx];
-        face_centre = face_centre + given_vertices[vertex_idx];
-        face_normal = face_normal + given_normals[vertex_idx];
+      for( size_t face_vertex_idx = 0; face_vertex_idx < face_vertex_normals.size(); ++face_vertex_idx) {
+        auto face_vertex_normal = face_vertex_normals[face_vertex_idx];
+        face_centre = face_centre + given_vertices[face_vertex_normal.first];
+        face_normal = face_normal + given_normals[face_vertex_normal.second];
       }
       // Make the normal and centre
-      PointNormal::Ptr pnp{new PointNormal( face_centre / face_vertices.size(), face_normal.normalized()  )};
+      PointNormal::Ptr pnp{new PointNormal( face_centre / face_vertex_normals.size(), face_normal.normalized()  )};
       point_normals.push_back(pnp);
     }
 
@@ -218,15 +222,15 @@ compute_point_normals_from_faces(
  * We want a multimap of
  */
 std::multimap<std::size_t, std::size_t>
-compute_adjacency_from_faces( const std::vector<std::vector<std::size_t>>& faces ) {
+compute_adjacency_from_faces( const std::vector<std::vector<std::pair<std::size_t, std::size_t>>>& faces ) {
   using namespace std;
 
   // Construct edges->faces map
   map<pair<size_t, size_t>, vector<size_t>> edge_to_faces;
   for( size_t face_idx = 0; face_idx < faces.size(); ++face_idx ) {
     for( size_t face_vertex_idx = 0; face_vertex_idx < faces[face_idx].size(); ++face_vertex_idx ) {
-        size_t from_idx = faces[face_idx][face_vertex_idx];
-        size_t to_idx = faces[face_idx][(face_vertex_idx + 1) % faces[face_idx].size()];
+        size_t from_idx = faces[face_idx][face_vertex_idx].first;
+        size_t to_idx = faces[face_idx][(face_vertex_idx + 1) % faces[face_idx].size()].first;
         pair<size_t, size_t> edge = from_idx < to_idx ? make_pair(from_idx, to_idx) : make_pair( to_idx, from_idx );
         edge_to_faces[edge].push_back( face_idx);
     }
@@ -257,7 +261,7 @@ ObjFileParser::parse_file( const std::string& file_name, bool with_adjacency, bo
 	vector<Vector3f> 		given_normals;
 	vector<size_t>  		face_vertex_indices;
 	vector<size_t>  		face_normal_indices;
-	vector<vector<size_t>>	faces;
+	vector<vector<pair<size_t,size_t>>>	faces;
 
   read_data( file_name, given_vertices, given_normals, face_vertex_indices, face_normal_indices, faces );
 

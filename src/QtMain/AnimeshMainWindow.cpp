@@ -41,6 +41,7 @@ using animesh::FieldOptimiser;
 using animesh::ObjFileParser;
 using animesh::PointNormal;
 
+const bool FACE_WISE = true;
 
 std::vector<std::string> get_files_in_directory( std::string directory_name ) {
     using namespace std;
@@ -282,12 +283,12 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
 
     vector<vector<PointNormal::Ptr>>    frames;
     multimap<size_t, size_t>            adjacency;
-    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file( file_names[0], true );
+    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file( file_names[0], true, FACE_WISE );
     frames.push_back( results.first );
     adjacency = results.second;
 
     for( size_t file_idx = 1; file_idx < file_names.size(); ++file_idx ) {
-        vector<PointNormal::Ptr> frame_data = parser.parse_file( file_names[file_idx] ).first;
+        vector<PointNormal::Ptr> frame_data = parser.parse_file( file_names[file_idx], FACE_WISE ).first;
         frames.push_back(frame_data);
     }
     m_field_optimiser = new FieldOptimiser(frames, adjacency);

@@ -59,7 +59,7 @@ handle_normal_line( const std::string& line, std::vector<Eigen::Vector3f>& norma
  * Where each is a face and v are the indices of vertices and vn of normals
  */
 void
-handle_face_line_with_adjacency( const std::string& line, std::vector<size_t>& face_vertex_idx, std::vector<size_t>& face_normal_idx, std::vector<std::vector<size_t>>& face_vertices) {
+handle_face_line( const std::string& line, std::vector<size_t>& face_vertex_idx, std::vector<size_t>& face_normal_idx, std::vector<std::vector<size_t>>& face_vertices) {
 	using namespace std;
 	using namespace Eigen;
 
@@ -80,22 +80,32 @@ handle_face_line_with_adjacency( const std::string& line, std::vector<size_t>& f
 }
 
 void
-handle_face_line_without_face_vertices( const std::string& line, std::vector<size_t>& face_vertex_idx, std::vector<size_t>& face_normal_idx) {
-	using namespace std;
+read_data(const std::string&                      file_name,
+          std::vector<Eigen::Vector3f>&           given_vertices,
+          std::vector<Eigen::Vector3f>&           given_normals,
+          std::vector<std::size_t>&               face_vertex_indices,
+          std::vector<std::size_t>&               face_normal_indices,
+          std::vector<std::vector<std::size_t>>&  face_vertices) {
+  using namespace std;
 	using namespace Eigen;
 
-	vector<string> tokens = split(line, ' ');
-	size_t idx = 1;
-	while( idx < tokens.size()) {
-		// Form is int/int/int
-		vector<string> terms = split( tokens[idx], '/');
-		int v_idx = stoi(terms[0]) - 1;
-		int vn_idx = stoi(terms[2]) - 1;
-		face_vertex_idx.push_back(v_idx);
-		face_normal_idx.push_back(vn_idx);
-		idx++;
-	}
+
+  process_file_by_lines( file_name, [&](const string& line){
+    if (line[0] == 'v' ) {
+      // Normals
+      if( line[1] == 'n') {
+        handle_normal_line( line, given_normals);
+      }
+      // Vertices
+      else {
+        handle_vertex_line( line, given_vertices );
+      }
+    } else if( line[0] == 'f' ) {
+      handle_face_line( line, face_vertex_indices, face_normal_indices, face_vertices);
+    }
+  });
 }
+
 
 
 /**
@@ -127,39 +137,16 @@ compute_vertex_normals( size_t num_vertices,
 	}
 }
 
+std::vector<PointNormal::Ptr>
+compute_point_normals_from_vertices(
+  const std::vector<Eigen::Vector3f>&   given_vertices,
+  const std::vector<Eigen::Vector3f>&   given_normals,
+  const std::vector<std::size_t>&       face_vertex_indices,
+  const std::vector<std::size_t>&       face_normal_indices ) {
 
-/**
- * Parse an OBJ file and return all PointNormals and face_vertices.
- * @param file_name The name of the file.
- * @return A vector containing the points and a vector of adjacent point indices.
- */
-std::pair<std::vector<PointNormal::Ptr>, std::multimap<size_t, size_t>>
-ObjFileParser::parse_file_with_adjacency( const std::string& file_name, bool face_wise ) {
-	using namespace std;
-	using namespace Eigen;
+    using namespace std;
 
-	vector<Vector3f>		given_vertices;
-	vector<Vector3f> 		given_normals;
-	vector<size_t>  		face_vertex_indices;
-	vector<size_t>  		face_normal_indices;
-	vector<vector<size_t>>	face_vertices;
-
-	process_file_by_lines( file_name, [&](const string& line){
-		if (line[0] == 'v' ) {
-			// Normals
-			if( line[1] == 'n') {
-				handle_normal_line( line, given_normals);
-			}
-			// Vertices
-			else {
-				handle_vertex_line( line, given_vertices );
-			}
-		} else if( line[0] == 'f' ) {
-			handle_face_line_with_adjacency( line, face_vertex_indices, face_normal_indices, face_vertices);
-		}
-	});
-
-	// Compute points and normals
+  // Compute points and normals
 	size_t num_vertices = given_vertices.size();
 	vector<Eigen::Vector3f> vertex_normals;
 	compute_vertex_normals( num_vertices, face_vertex_indices, face_normal_indices, given_normals, vertex_normals );
@@ -171,28 +158,98 @@ ObjFileParser::parse_file_with_adjacency( const std::string& file_name, bool fac
 		point_normals.push_back(pnp);
 	}
 
-	// Finally compute face_vertices
-	multimap<size_t, size_t> adjacency;
-	for( auto adj : face_vertices ) {
-		size_t n = adj.size();
-		for( size_t idx=0; idx < n; ++idx ) {
-			size_t first = adj[idx];
-			assert( first < num_vertices);
-			size_t second = adj[(idx + 1) % n];
-			assert( second < num_vertices);
-			adjacency.insert( make_pair( first, second));
-		}
-	}
-	return make_pair(point_normals, adjacency);
+  return point_normals;
+}
+
+// Finally compute face_vertices
+std::multimap<std::size_t, std::size_t>
+compute_adjacency_from_vertices( const std::vector<std::vector<std::size_t>>& face_vertices ) {
+  using namespace std;
+
+  multimap<size_t, size_t> adjacency;
+
+  for( auto adj : face_vertices ) {
+    size_t n = adj.size();
+    for( size_t idx=0; idx < n; ++idx ) {
+      size_t first = adj[idx];
+      size_t second = adj[(idx + 1) % n];
+      adjacency.insert( make_pair( first, second));
+    }
+  }
+  return adjacency;
+}
+
+
+std::vector<PointNormal::Ptr>
+compute_point_normals_from_faces(
+  const std::vector<Eigen::Vector3f>&           given_vertices,
+  const std::vector<Eigen::Vector3f>&           given_normals,
+  const std::vector<std::vector<std::size_t>>&  faces) {
+
+    using namespace std;
+    using namespace Eigen;
+
+    vector<PointNormal::Ptr> point_normals;
+
+    // For each face, compute centre and normal and edge maps
+    for( size_t face_idx = 0; face_idx < faces.size(); ++face_idx ) {
+      auto face_vertices = faces[face_idx];
+      Vector3f face_centre = Vector3f::Zero();
+      Vector3f face_normal = Vector3f::Zero();
+      for( auto face_vertex_idx = 0; face_vertex_idx < face_vertices.size(); ++face_vertex_idx) {
+        size_t vertex_idx = face_vertices[face_vertex_idx];
+        face_centre = face_centre + given_vertices[vertex_idx];
+        face_normal = face_normal + given_normals[vertex_idx];
+      }
+      // Make the normal and centre
+      PointNormal::Ptr pnp{new PointNormal( face_centre / face_vertices.size(), face_normal.normalized()  )};
+      point_normals.push_back(pnp);
+    }
+
+    return point_normals;
+  }
+
+/**
+ * Determine adjacency for nodes where each node is a face based on shared edges in then
+ * graph.
+ * A face is adjacent to another face if they share an edge.
+ * Actually sharing more than one vertex is sufficient as this defines an edge
+ * We have a vector of vectors of vertex indices
+ * We want a multimap of
+ */
+std::multimap<std::size_t, std::size_t>
+compute_adjacency_from_faces( const std::vector<std::vector<std::size_t>>& faces ) {
+  using namespace std;
+
+  // Construct edges->faces map
+  map<pair<size_t, size_t>, vector<size_t>> edge_to_faces;
+  for( size_t face_idx = 0; face_idx < faces.size(); ++face_idx ) {
+    for( size_t face_vertex_idx = 0; face_vertex_idx < faces[face_idx].size(); ++face_vertex_idx ) {
+        size_t from_idx = faces[face_idx][face_vertex_idx];
+        size_t to_idx = faces[face_idx][(face_vertex_idx + 1) % faces[face_idx].size()];
+        pair<size_t, size_t> edge = from_idx < to_idx ? make_pair(from_idx, to_idx) : make_pair( to_idx, from_idx );
+        edge_to_faces[edge].push_back( face_idx);
+    }
+  }
+
+  // For each edge, all faces that share it are adjacent.
+  multimap<size_t, size_t> adjacency;
+  for( auto edge_face : edge_to_faces) {
+    vector<size_t> adjacent_faces = edge_face.second;
+    assert( adjacent_faces.size() == 2 );
+    adjacency.insert(make_pair(adjacent_faces[0], adjacent_faces[1]));
+  }
+
+  return adjacency;
 }
 
 /**
- * Parse an OBJ file and return only PointNormals.
+ * Parse an OBJ file and return all PointNormals and face_vertices.
  * @param file_name The name of the file.
- * @return A vector containing the points and normals.
+ * @return A vector containing the points and a vector of adjacent point indices.
  */
-std::vector<PointNormal::Ptr>
-ObjFileParser::parse_file( const std::string& file_name, bool face_wise ) {
+std::pair<std::vector<PointNormal::Ptr>, std::multimap<size_t, size_t>>
+ObjFileParser::parse_file( const std::string& file_name, bool with_adjacency, bool face_wise ) {
 	using namespace std;
 	using namespace Eigen;
 
@@ -200,32 +257,24 @@ ObjFileParser::parse_file( const std::string& file_name, bool face_wise ) {
 	vector<Vector3f> 		given_normals;
 	vector<size_t>  		face_vertex_indices;
 	vector<size_t>  		face_normal_indices;
+	vector<vector<size_t>>	faces;
 
-	process_file_by_lines( file_name, [&](const string& line){
-		if (line[0] == 'v' ) {
-			// Normals
-			if( line[1] == 'n') {
-				handle_normal_line( line, given_normals);
-			}
-			// Vertices
-			else {
-				handle_vertex_line( line, given_vertices );
-			}
-		} else if( line[0] == 'f' ) {
-			handle_face_line_without_face_vertices( line, face_vertex_indices, face_normal_indices);
-		}
-	});
+  read_data( file_name, given_vertices, given_normals, face_vertex_indices, face_normal_indices, faces );
 
-	// Compute points and normals
-	size_t num_vertices = given_vertices.size();
-	vector<Eigen::Vector3f> vertex_normals;
-	compute_vertex_normals( num_vertices, face_vertex_indices, face_normal_indices, given_normals, vertex_normals );
+  vector<PointNormal::Ptr> point_normals;
+  multimap<size_t, size_t> adjacency;
 
-	// Stash verts and norms
-	vector<PointNormal::Ptr> results;
-	for( size_t i = 0; i < num_vertices; ++i ) {
-		PointNormal::Ptr pnp{new PointNormal(given_vertices[i], vertex_normals[i].normalized())};
-		results.push_back( pnp );
-	}
-	return results;
+  if( face_wise) {
+    point_normals = compute_point_normals_from_faces(given_vertices, given_normals, faces);
+    if( with_adjacency) {
+      adjacency = compute_adjacency_from_faces(faces);
+    }
+  } else {
+    point_normals = compute_point_normals_from_vertices( given_vertices, given_normals, face_vertex_indices, face_normal_indices );
+    if( with_adjacency) {
+      adjacency = compute_adjacency_from_vertices(faces);
+    }
+  }
+
+	return make_pair(point_normals, adjacency);
 }

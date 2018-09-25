@@ -282,12 +282,12 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
 
     vector<vector<PointNormal::Ptr>>    frames;
     multimap<size_t, size_t>            adjacency;
-    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency( file_names[0] );
+    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file( file_names[0], true );
     frames.push_back( results.first );
     adjacency = results.second;
 
     for( size_t file_idx = 1; file_idx < file_names.size(); ++file_idx ) {
-        vector<PointNormal::Ptr> frame_data = parser.parse_file( file_names[file_idx] );
+        vector<PointNormal::Ptr> frame_data = parser.parse_file( file_names[file_idx] ).first;
         frames.push_back(frame_data);
     }
     m_field_optimiser = new FieldOptimiser(frames, adjacency);
@@ -315,7 +315,7 @@ AnimeshMainWindow::load_from_file( const std::string& file_name ) {
     ObjFileParser parser;
     vector<vector<PointNormal::Ptr>>    frames;
     multimap<size_t, size_t>            adjacency;
-    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency( file_name);
+    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file( file_name, true);
     frames.push_back( results.first );
     adjacency = results.second;
     m_field_optimiser = new FieldOptimiser(frames, adjacency);

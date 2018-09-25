@@ -61,7 +61,7 @@ setup_sphere() {
 
   ObjFileParser parser;
   Graph<animesh::PointNormal::Ptr,int> sphere;
-  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency("../data/sphere10x10/sphere10x10.obj");
+  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file("../data/sphere10x10/sphere10x10.obj", true);
   vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
   for( auto pt : results.first) {
     gn2.push_back(sphere.add_node(pt));
@@ -81,7 +81,7 @@ setup_cube() {
 
   ObjFileParser parser;
   Graph<animesh::PointNormal::Ptr,int> cube;
-  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file_with_adjacency("../data/cube/cube.obj");
+  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file("../data/cube/cube.obj", true);
   vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
   for( auto pt : results.first) {
     gn2.push_back(cube.add_node(pt));

@@ -55,13 +55,13 @@ void TestGraphCycles::TearDown( ) {}
 }
 
 animesh::Graph<animesh::PointNormal::Ptr,int>
-setup_sphere(bool face_wise) {
+setup_object(const std::string& file_name, bool face_wise) {
   using namespace std;
   using namespace animesh;
 
   ObjFileParser parser;
   Graph<animesh::PointNormal::Ptr,int> sphere;
-  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file("../data/sphere10x10/sphere10x10.obj", true, face_wise);
+  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file(file_name, true, face_wise);
   vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
   for( auto pt : results.first) {
     gn2.push_back(sphere.add_node(pt));
@@ -74,25 +74,6 @@ setup_sphere(bool face_wise) {
   return sphere;
 }
 
-animesh::Graph<animesh::PointNormal::Ptr,int>
-setup_cube(bool face_wise) {
-  using namespace std;
-  using namespace animesh;
-
-  ObjFileParser parser;
-  Graph<animesh::PointNormal::Ptr,int> cube;
-  pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file("../data/cube/cube.obj", true, face_wise);
-  vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
-  for( auto pt : results.first) {
-    gn2.push_back(cube.add_node(pt));
-  }
-  for( auto e: results.second) {
-    if( !cube.has_edge(gn2[e.first], gn2[e.second])) {
-      cube.add_edge(gn2[e.first], gn2[e.second], 1.0, 0);
-    }
-  }
-  return cube;
-}
 
 void TestGraphCycles::SetUp( ) {
   using namespace animesh;
@@ -177,7 +158,7 @@ TEST_F(TestGraphCycles, ReversedShiftedCyclesAreEquivalent) {
 TEST_F(TestGraphCycles, SphereCycleCountIs100) {
   // Load the sphere
   animesh::Graph<animesh::PointNormal::Ptr,int> sphere10x10;
-  sphere10x10 = setup_sphere(false);
+  sphere10x10 = setup_object("../data/sphere10x10/sphere10x10.obj", false);
 
 	EXPECT_EQ( 100, sphere10x10.cycles().size());
 }
@@ -185,22 +166,30 @@ TEST_F(TestGraphCycles, SphereCycleCountIs100) {
 TEST_F(TestGraphCycles, SphereFaceCycleCountIs92) {
   // Load the sphere
   animesh::Graph<animesh::PointNormal::Ptr,int> sphere10x10;
-  sphere10x10 = setup_sphere(true);
+  sphere10x10 = setup_object("../data/sphere10x10/sphere10x10.obj", true);
 
 	EXPECT_EQ( 92, sphere10x10.cycles().size());
+}
+
+TEST_F(TestGraphCycles, SphereFaceCycleCountIs22) {
+  // Load the sphere
+  animesh::Graph<animesh::PointNormal::Ptr,int> sphere5x5;
+  sphere5x5 = setup_object("../data/Sphere5x5/sphere.obj", true);
+
+	EXPECT_EQ( 22, sphere5x5.cycles().size());
 }
 
 // 0,1,2,3,0     0,1,5,4,0
 // 0,3,7,4,0     6,2,3,7,6
 // 6,2,1,5,6     6,7,4,5,6
 TEST_F(TestGraphCycles, CubeCycleCountIs6) {
-  animesh::Graph<animesh::PointNormal::Ptr,int>  cube = setup_cube(false);
+  animesh::Graph<animesh::PointNormal::Ptr,int>  cube = setup_object("../data/Cube1x1/cube.obj", false);
 
 	EXPECT_EQ( 6, cube.cycles().size());
 }
 
 TEST_F(TestGraphCycles, CubeFaceCycleCountIs8) {
-  animesh::Graph<animesh::PointNormal::Ptr,int>  cube = setup_cube(true);
+  animesh::Graph<animesh::PointNormal::Ptr,int>  cube = setup_object("../data/Cube1x1/cube.obj", true);
 
   // 8 vertices
 	EXPECT_EQ( 8, cube.cycles().size());

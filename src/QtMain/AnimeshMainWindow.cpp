@@ -41,7 +41,7 @@ using animesh::FieldOptimiser;
 using animesh::ObjFileParser;
 using animesh::PointNormal;
 
-const bool FACE_WISE = true;
+const bool FACE_WISE = false;
 
 std::vector<std::string> get_files_in_directory( std::string directory_name ) {
     using namespace std;
@@ -804,7 +804,7 @@ AnimeshMainWindow::update_singularities_layer( ) {
             vtk_point_normals->SetTuple(vtk_point_normal_idx++, nn) ;
 
             colours->InsertNextTypedTuple(named_colours->GetColor3ub(
-                (type == 1) ? "Red" : (type == 2) ? "Green" : "Blue").GetData());
+                (type == 1) ? "Red" : (type == 2) ? "Green" : "Cyan").GetData());
         }
         m_polydata_singularities->GetPointData()->SetNormals(vtk_point_normals);
     }

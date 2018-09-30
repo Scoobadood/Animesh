@@ -788,10 +788,11 @@ FieldOptimiser::copy_all_neighbours_for(
        best_rosy_vector_pair( tangents[from_node_idx], pn[from_node_idx]->normal(), from_k,
                               tangents[to_node_idx], pn[to_node_idx]->normal(), to_k);
 
-       index = index + 4 + to_k - from_k;
+       index = index + 4 + from_k - to_k;
      }
-     if( (index % 4) != 0 ) {
-       cout << "Found singularity (" << (index%4) << ")" << endl;
+     index = index % 4;
+     if( index != 0 ) {
+       cout << "Found singularity (" << index << ")" << endl;
        // This is a singularity, compute location and normal.
        Vector3f singularity_location = Vector3f::Zero();
        Vector3f singularity_normal = Vector3f::Zero();

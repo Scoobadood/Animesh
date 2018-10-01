@@ -1,36 +1,38 @@
-# SING-2
-Fix up the singularities by:
-* Rendering the colours correctly
-* Displaying a count of valency 3, 5 and extreme (2 or 6)
-* Ensuring all graph loops are clockwise
+# Fix cycle extraction on cloth.
 
-# Next
-Purpose of this branch is to enable the use of faces as the location of orientation fields rather than vertices.
+Cloth samples have far fewer nodes than the 32x32 sphere but seem to take far longer to import.  Given the connectivity is the same, there must be some underlying problem in the code causing this.
 
-We will do this by modifying ObjFileParser
-* Add a parameter to the parse() methods to include a 'vertex oriented' or 'face oriented' flag
-* Add a new parsing method to generate point normals for each face rather than per vertex.
+## Approach
+We'll set up tests in TestGraphCycles to load planar and deformed cloth and explore why it takes so long to parse.
 
 
-// to parse with adjacency:
-For each face
-  compute the centroid (using mean v) and normal (using mean vn)
+## Refactor UI code
+This is a stepping stone on the way. The idea is to be more clear about where the events are triggered, where the model is updated and polled as well as where the UI is instructed to update.
 
-A face is adjacent to another if they share an edge.
-So we must compute a list of edges
-  As we parse each face we have edges
-  We need to be able to find an edge rapidly and dereference to a face index
-  naive implementation is to have a map<pair<int,int>, pair<int,int>>
+# Singularities
+## Change
+When a single smooth or complete smooth is performed.
+When a frame changes
+When the graph changes
+When a new file is loaded
 
-  first pair is an edge <from_vtx,to_vtx>
-  second pair is the face pair they separate <face_1, face_2>
+## Display
+Count of each type
+UI overlay
 
-  then adjacency is given by walking the values of the map
+## Compute
+When there is a change
+Render when draw is on
+No explicit update method, just a call to fetch values
 
-  
+## Action
+### Factor out singularities_changed() method
+If draw is on, get new values and call renders
+If draw is off do nothing
 
+### In toggle
+When toggled off update views (turn off layer)
+When toggled on get new values and call renders
 
-
-
-# Later
-We will load the mesh itself separately for rendering.
+### maybe_update
+get new values and call renders

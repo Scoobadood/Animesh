@@ -131,6 +131,8 @@ void AnimeshMainWindow::on_btnSmoothCompletely_clicked() {
     assert(m_field_optimiser);
 
     m_field_optimiser->optimise();
+    maybe_update_singularities();
+    update_metrics();
     update_view();
 }
 
@@ -140,6 +142,7 @@ void AnimeshMainWindow::on_btnSmoothOnce_clicked() {
     ui->btnRandomise->setEnabled(false);
     m_field_optimiser->optimise_do_one_step();
     set_current_tier(m_field_optimiser->optimising_tier_index());
+    maybe_update_singularities();
     update_graph_tier_selector();
     update_metrics();
     update_view();
@@ -185,8 +188,11 @@ AnimeshMainWindow::on_cbNeighbours_stateChanged(int enabled) {
 
 void
 AnimeshMainWindow::on_cbSingularities_stateChanged(int enabled) {
-    m_draw_singularities = ui->cbSingularities->isChecked();
-    update_view_layers();
+    m_draw_singularities = (enabled == Qt::Checked);
+    maybe_update_singularities( );
+    update_metrics( );
+    update_singularities_layer();
+    update_view_layers( );
 }
 
 void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
@@ -407,6 +413,21 @@ AnimeshMainWindow::update_metrics() {
     ui->txtEdgeCount->setText(
         QString::number(m_field_optimiser->num_edges_in_tier(m_current_tier)));
     ui->txtResidual->setText(QString::number(m_field_optimiser->total_error()));
+
+    if(m_draw_singularities) {
+      ui->lblSingularities->setVisible(true);
+      ui->txtSingRed->setVisible(true);
+      ui->txtSingBlue->setVisible(true);
+      ui->txtSingGreen->setVisible(true);
+      ui->txtSingRed->setText(QString::number(m_num_red_singularities));
+      ui->txtSingBlue->setText(QString::number(m_num_blue_singularities));
+      ui->txtSingGreen->setText(QString::number(m_num_green_singularities));
+    } else {
+      ui->lblSingularities->setVisible(false);
+      ui->txtSingRed->setVisible(false);
+      ui->txtSingBlue->setVisible(false);
+      ui->txtSingGreen->setVisible(false);
+    }
 }
 
 void
@@ -506,6 +527,34 @@ AnimeshMainWindow::update_frame_selector_range( ) {
             set_current_frame(actual_num_frames - 1);
         }
     }
+}
+
+void
+AnimeshMainWindow::maybe_update_singularities( ) {
+  using namespace std;
+
+  if( (m_field_optimiser == nullptr ) || (!m_draw_singularities)) {
+    return;
+  }
+
+  m_singularities = m_field_optimiser->get_singularities_for_tier_and_frame(m_current_tier, m_current_frame);
+  m_num_red_singularities = m_num_blue_singularities = m_num_green_singularities = 0;
+  for( auto s : m_singularities ) {
+    size_t type =get<2>(s);
+    switch( type ) {
+      case 1:
+        m_num_red_singularities++;
+        break;
+      case 2:
+        m_num_green_singularities++;
+        break;
+      case 3:
+        m_num_blue_singularities++;
+        break;
+      default:
+        cerr << "Unrecognised singularity type " << type << endl;
+    }
+  }
 }
 
 void
@@ -779,10 +828,8 @@ AnimeshMainWindow::update_singularities_layer( ) {
 
     m_polydata_singularities->Initialize();
     if (m_field_optimiser != nullptr) {
-      std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>>
-      singularities = m_field_optimiser->get_singularities_for_tier_and_frame(m_current_tier, m_current_frame);
 
-        size_t num_vertices = singularities.size();
+        size_t num_vertices = m_singularities.size();
 
         vtkSmartPointer<vtkFloatArray> vtk_point_normals = vtkSmartPointer<vtkFloatArray>::New();
         size_t num_vtk_points = num_vertices;
@@ -790,18 +837,17 @@ AnimeshMainWindow::update_singularities_layer( ) {
         vtk_point_normals->SetNumberOfTuples(num_vtk_points);
         size_t vtk_point_normal_idx = 0;
 
-        for ( size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
-            Vector3f location = get<0>(singularities[vertex_idx]);
-            Vector3f normal   = get<1>(singularities[vertex_idx]);
-            int type          = get<2>(singularities[vertex_idx]);
+        for ( auto singularity : m_singularities ) {
+            Vector3f location = get<0>(singularity);
+            Vector3f normal   = get<1>(singularity);
+            int type          = get<2>(singularity);
 
             vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
 
             float nn[] = {0.0f, 0.0f, 1.0f};
-//            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
-            vtk_point_normals->SetTuple(vtk_point_normal_idx++, nn) ;
+            vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
 
             colours->InsertNextTypedTuple(named_colours->GetColor3ub(
                 (type == 1) ? "Red" : (type == 2) ? "Green" : "Cyan").GetData());

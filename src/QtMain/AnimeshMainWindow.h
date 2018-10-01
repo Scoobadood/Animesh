@@ -150,6 +150,9 @@ private:
     void
     update_singularities_layer();
 
+    void
+    maybe_update_singularities( );
+
     /**
      * Utility to initialise any layer
      */
@@ -218,6 +221,13 @@ private:
 
     // Length to use for tangents
     float tan_scale_factor = 1.0f;
+
+    // Singularity counts
+    size_t m_num_red_singularities;
+    size_t m_num_blue_singularities;
+    size_t m_num_green_singularities;
+    std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>> m_singularities;
+
 
     // Things to draw
     bool m_draw_cross_field;

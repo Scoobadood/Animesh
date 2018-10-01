@@ -195,6 +195,17 @@ TEST_F(TestGraphCycles, CubeFaceCycleCountIs8) {
 	EXPECT_EQ( 8, cube.cycles().size());
 }
 
+// 289 vertices
+// 256 faces
+// Should be one cycle per face in node mode
+TEST_F(TestGraphCycles, ClothPlaneCycleCountIs256) {
+  animesh::Graph<animesh::PointNormal::Ptr,int>  cloth = setup_object("../data/Cloth Plane/cloth2_1.obj", false);
+
+  // 256 vertices
+  auto actual_cycles = cloth.cycles();
+	EXPECT_EQ( 256, actual_cycles.size());
+}
+
 TEST_F(TestGraphCycles, CyclesAreCorrect ) {
 	using namespace std;
 

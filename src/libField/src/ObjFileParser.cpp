@@ -240,8 +240,11 @@ compute_adjacency_from_faces( const std::vector<std::vector<std::pair<std::size_
   multimap<size_t, size_t> adjacency;
   for( auto edge_face : edge_to_faces) {
     vector<size_t> adjacent_faces = edge_face.second;
-    assert( adjacent_faces.size() == 2 );
-    adjacency.insert(make_pair(adjacent_faces[0], adjacent_faces[1]));
+    // Shared edge or boundary edge
+    assert( adjacent_faces.size() == 2 || adjacent_faces.size() == 1);
+    if( adjacent_faces.size() == 2) {
+      adjacency.insert(make_pair(adjacent_faces[0], adjacent_faces[1]));
+    }
   }
 
   return adjacency;

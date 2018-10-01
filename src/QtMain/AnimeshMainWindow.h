@@ -103,6 +103,12 @@ private:
     enable_display_checkboxes();
 
     void
+    disable_singularities_checkbox();
+
+    void
+    enable_singularities_checkbox();
+
+    void
     init_display_checkboxes();
 
     void

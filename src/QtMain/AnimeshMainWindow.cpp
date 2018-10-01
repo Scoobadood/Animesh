@@ -355,6 +355,11 @@ void AnimeshMainWindow::set_current_tier( size_t new_tier_idx ) {
         return;
 
     m_current_tier = new_tier_idx;
+    if( m_current_tier == 0 ) {
+      enable_singularities_checkbox( );
+    } else {
+      disable_singularities_checkbox( );
+    }
     update_graph_tier_selector();
     update_metrics();
     update_view();
@@ -491,6 +496,16 @@ AnimeshMainWindow::enable_display_checkboxes() {
 }
 
 void
+AnimeshMainWindow::enable_singularities_checkbox() {
+    ui->cbSingularities->setEnabled(true);
+}
+
+void
+AnimeshMainWindow::disable_singularities_checkbox() {
+    ui->cbSingularities->setEnabled(false);
+}
+
+void
 AnimeshMainWindow::init_display_checkboxes() {
     disable_display_checkboxes();
     ui->cbMainTangent->setChecked(true);
@@ -534,6 +549,10 @@ AnimeshMainWindow::maybe_update_singularities( ) {
   using namespace std;
 
   if( (m_field_optimiser == nullptr ) || (!m_draw_singularities)) {
+    return;
+  }
+  // We only render singularities on the first tier.
+  if( m_current_tier != 0 ) {
     return;
   }
 

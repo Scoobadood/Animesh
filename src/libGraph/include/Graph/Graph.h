@@ -310,6 +310,7 @@ public:
   const std::vector<GraphNode *>& nodes( ) const {
     return m_nodes;
   }
+  
   /**
   * Return a vector of cycles in the graph..
   */

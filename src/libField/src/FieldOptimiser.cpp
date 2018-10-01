@@ -232,21 +232,6 @@ compute_cycles(const PointNormalGraphPtr& graph) {
 }
 
 /**
- * For a stack of graphs, compute the minimal cycles and then ensure they are oriented
- * clockwise
- */
-std::vector<std::vector<animesh::Path>>
-compute_cycles(const std::vector<PointNormalGraphPtr>& graphs) {
-  using namespace std;
-
-  vector<vector<animesh::Path>> cycles;
-  for( size_t tier_idx = 0; tier_idx < graphs.size(); ++tier_idx) {
-    cycles.push_back(compute_cycles(graphs[tier_idx]));
-  }
-  return cycles;
-}
-
-/**
  * Allocate the vectors of vertices for each frame of each tier after tier 0
  */
 void
@@ -511,7 +496,7 @@ void FieldOptimiser::initialise( ) {
     m_graphs = result.first;
     m_mappings = result.second;
 
-    m_cycles = compute_cycles(m_graphs);
+    m_cycles = compute_cycles(m_graphs[0]);
 
     m_is_optimising = false;
     m_optimising_started_new_tier = false;
@@ -773,10 +758,10 @@ FieldOptimiser::copy_all_neighbours_for(
    vector<tuple<Vector3f, Vector3f, int>> singularities;
 
    cout << "------------------------------------------" << endl;
-   cout << "Finding singularities. Checking " << m_cycles[tier_idx].size() << " cycles" << endl;
+   cout << "Finding singularities. Checking " << m_cycles.size() << " cycles" << endl;
    cout << "------------------------------------------" << endl;
 
-   for( auto cycle : m_cycles[tier_idx]) {
+   for( auto cycle : m_cycles) {
      // Index is zeroed.
      int index = 0;
      for( size_t from_idx = 0; from_idx < cycle.length(); ++from_idx) {

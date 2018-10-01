@@ -60,18 +60,18 @@ setup_object(const std::string& file_name, bool face_wise) {
   using namespace animesh;
 
   ObjFileParser parser;
-  Graph<animesh::PointNormal::Ptr,int> sphere;
+  Graph<animesh::PointNormal::Ptr,int> object;
   pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file(file_name, true, face_wise);
   vector<Graph<PointNormal::Ptr, int>::GraphNode*> gn2;
   for( auto pt : results.first) {
-    gn2.push_back(sphere.add_node(pt));
+    gn2.push_back(object.add_node(pt));
   }
   for( auto e: results.second) {
-    if( !sphere.has_edge(gn2[e.first], gn2[e.second])) {
-      sphere.add_edge(gn2[e.first], gn2[e.second], 1.0, 0);
+    if( !object.has_edge(gn2[e.first], gn2[e.second])) {
+      object.add_edge(gn2[e.first], gn2[e.second], 1.0, 0);
     }
   }
-  return sphere;
+  return object;
 }
 
 
@@ -204,6 +204,16 @@ TEST_F(TestGraphCycles, ClothPlaneCycleCountIs256) {
   // 256 vertices
   auto actual_cycles = cloth.cycles();
 	EXPECT_EQ( 256, actual_cycles.size());
+}
+
+// 16x16 faces
+// But each cycle covers 4 faces
+// Should be 64 cyles
+TEST_F(TestGraphCycles, ClothPlaneFaceCycleCountIs256) {
+  animesh::Graph<animesh::PointNormal::Ptr,int>  cloth = setup_object("../data/Cloth Plane/cloth2_1.obj", true);
+
+  auto actual_cycles = cloth.cycles();
+	EXPECT_EQ( 64, actual_cycles.size());
 }
 
 TEST_F(TestGraphCycles, CyclesAreCorrect ) {

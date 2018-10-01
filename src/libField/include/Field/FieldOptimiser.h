@@ -33,7 +33,7 @@ class FieldOptimiser {
     PointNormalGraphPtr                                 m_optimising_current_tier;
     std::vector<bool>                                   m_include_frames;
     bool                                                m_tracing_enabled;
-    std::vector<std::vector<Path>>                      m_cycles;
+    std::vector<Path>                                   m_cycles;
 
     /* ******************************************************************************************
      *

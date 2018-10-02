@@ -151,6 +151,13 @@ private:
     init_singularities_layer( vtkSmartPointer<vtkRenderer> renderer );
 
     /**
+     * init the mesh layer
+     */
+    void
+    init_mesh_layer( vtkSmartPointer<vtkRenderer> renderer );
+
+
+    /**
      * Update the singularities layer
      */
     void
@@ -176,6 +183,12 @@ private:
      */
     void
     update_neighbours_layer( );
+
+    /**
+     * Update the mesh layer
+     */
+    void
+    update_mesh_layer( );
 
     void
     update_frame_range( );
@@ -206,12 +219,14 @@ private:
     vtkSmartPointer<vtkPolyData> m_polydata_normals;
     vtkSmartPointer<vtkPolyData> m_polydata_neighbours;
     vtkSmartPointer<vtkPolyData> m_polydata_singularities;
+    vtkSmartPointer<vtkPolyData> m_polydata_mesh;
 
     // Actors
     vtkSmartPointer<vtkActor> m_cross_field_actor;
     vtkSmartPointer<vtkActor> m_normals_actor;
     vtkSmartPointer<vtkActor> m_neighbours_actor;
     vtkSmartPointer<vtkActor> m_singularities_actor;
+    vtkSmartPointer<vtkActor> m_mesh_actor;
 
     // Number of tiers
     size_t m_num_tiers;
@@ -241,6 +256,7 @@ private:
     bool m_draw_normals;
     bool m_draw_neighbours;
     bool m_draw_singularities;
+    bool m_draw_mesh;
 
 private slots:
     void on_action_open_triggered();
@@ -256,6 +272,7 @@ private slots:
     void on_hs_frame_selector_valueChanged(int value);
     void on_sbGraphLevel_valueChanged(int new_graph_level);
     void on_cbSingularities_stateChanged(int arg1);
+    void on_cb_mesh_stateChanged(int arg1);
 };
 
 #endif // ANIMESHMAINWINDOW_H

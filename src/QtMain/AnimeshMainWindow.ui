@@ -446,6 +446,13 @@
               </property>
              </widget>
             </item>
+            <item>
+             <widget class="QCheckBox" name="cb_mesh">
+              <property name="text">
+               <string>Mesh</string>
+              </property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>

@@ -24,6 +24,7 @@
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkPointData.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkPolygon.h"
 #include "vtkProperty.h"
 #include "vtkRenderer.h"
 #include "vtkRendererCollection.h"
@@ -158,6 +159,7 @@ AnimeshMainWindow::update_view_layers() {
     m_draw_normals ? m_normals_actor->VisibilityOn() : m_normals_actor->VisibilityOff();
     m_draw_neighbours ? m_neighbours_actor->VisibilityOn() : m_neighbours_actor->VisibilityOff();
     m_draw_singularities ? m_singularities_actor->VisibilityOn() : m_singularities_actor->VisibilityOff();
+    m_draw_mesh ? m_mesh_actor->VisibilityOn() : m_mesh_actor->VisibilityOff();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
@@ -193,6 +195,12 @@ AnimeshMainWindow::on_cbSingularities_stateChanged(int enabled) {
     update_metrics( );
     update_singularities_layer();
     update_view_layers( );
+}
+
+
+void AnimeshMainWindow::on_cb_mesh_stateChanged(int enabled) {
+  m_draw_mesh = (enabled == Qt::Checked);
+  update_view_layers( );
 }
 
 void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
@@ -611,6 +619,23 @@ void AnimeshMainWindow::init_neighbours_layer( vtkSmartPointer<vtkRenderer> rend
 }
 
 /**
+ * init the mesh layer
+ */
+void
+AnimeshMainWindow::init_mesh_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+  m_polydata_mesh = vtkSmartPointer<vtkPolyData>::New();
+  vtkSmartPointer<vtkOpenGLPolyDataMapper> mapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
+  mapper->SetInputData(m_polydata_mesh);
+  m_mesh_actor = vtkSmartPointer<vtkActor>::New();
+  m_mesh_actor->SetMapper(mapper);
+  m_mesh_actor->GetProperty()->SetPointSize(3);
+  m_mesh_actor->GetProperty()->SetLineWidth(3);
+  m_mesh_actor->GetProperty()->SetOpacity(1.0);
+  renderer->AddActor(m_mesh_actor);
+}
+
+
+/**
  * Init the main tangent vector layer
  */
 void AnimeshMainWindow::init_cross_field_layer( vtkSmartPointer<vtkRenderer> renderer ) {
@@ -890,7 +915,126 @@ AnimeshMainWindow::update_singularities_layer( ) {
     m_polydata_singularities->GetCellData()->SetScalars(colours);
 }
 
+/**
+ * Update the mesh layer
+ */
+void AnimeshMainWindow::update_mesh_layer() {
+    using namespace Eigen;
+    using namespace std;
 
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkCellArray> faces = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colours->SetNumberOfComponents(3);
+
+    m_polydata_mesh->Initialize();
+
+    if (m_field_optimiser != nullptr) {
+      // Get the mesh for this frame
+
+        size_t num_vertices = 8;
+
+        // Vertices
+        vtkIdType pid[num_vertices];
+        size_t vertex_idx = 0;
+        for( int x=-1; x<=1; x+=2) {
+          for( int y=-1; y<=1; y+=2) {
+            for( int z=-1; z<=1; z+=2) {
+              pid[vertex_idx] = pts->InsertNextPoint(x, y, z);
+              vertex_idx++;
+            }
+          }
+        }
+
+        vtkIdType face0[4] = {0, 2, 3, 1};
+        vtkIdType face1[4] = {0, 4, 6, 2};
+        vtkIdType face2[4] = {0, 4, 5, 1};
+        vtkIdType face3[4] = {7, 6, 4, 5};
+        vtkIdType face4[4] = {7, 5, 1, 3};
+        vtkIdType face5[4] = {7, 3, 2, 6};
+
+        faces->InsertNextCell(4, face0);
+        faces->InsertNextCell(4, face1);
+        faces->InsertNextCell(4, face2);
+        faces->InsertNextCell(4, face3);
+        faces->InsertNextCell(4, face4);
+        faces->InsertNextCell(4, face5);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+
+        // Edges
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[0]);
+        line->GetPointIds()->SetId(1, pid[1]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[1]);
+        line->GetPointIds()->SetId(1, pid[3]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[3]);
+        line->GetPointIds()->SetId(1, pid[2]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[2]);
+        line->GetPointIds()->SetId(1, pid[0]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[4]);
+        line->GetPointIds()->SetId(1, pid[5]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[5]);
+        line->GetPointIds()->SetId(1, pid[7]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[7]);
+        line->GetPointIds()->SetId(1, pid[6]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[6]);
+        line->GetPointIds()->SetId(1, pid[4]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[0]);
+        line->GetPointIds()->SetId(1, pid[4]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[1]);
+        line->GetPointIds()->SetId(1, pid[5]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[2]);
+        line->GetPointIds()->SetId(1, pid[6]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+        line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pid[3]);
+        line->GetPointIds()->SetId(1, pid[7]);
+        lines->InsertNextCell(line);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+    }
+    m_polydata_mesh->SetPoints(pts);
+    // m_polydata_mesh->SetLines(lines);
+    m_polydata_mesh->SetPolys(faces);
+    m_polydata_mesh->GetCellData()->SetScalars(colours);
+}
 
 
 /**
@@ -901,6 +1045,7 @@ void AnimeshMainWindow::update_poly_data() {
     update_cross_field_layer();
     update_neighbours_layer( );
     update_singularities_layer();
+    update_mesh_layer();
 }
 
 /**
@@ -914,6 +1059,7 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
     init_cross_field_layer( renderer );
     init_neighbours_layer( renderer );
     init_singularities_layer( renderer);
+    init_mesh_layer( renderer );
 
     update_poly_data( );
 

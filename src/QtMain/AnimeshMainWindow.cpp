@@ -549,6 +549,7 @@ AnimeshMainWindow::update_frame_selector_range( ) {
     size_t control_num_frames = ui->hs_frame_selector->maximum();
     if ( control_num_frames != actual_num_frames) {
         ui->hs_frame_selector->setMaximum(actual_num_frames);
+        ui->hs_frame_selector->setTickInterval(1);
         ui->lbl_last_frame->setText(QString::number(actual_num_frames));
         if ( m_current_frame >= actual_num_frames) {
             set_current_frame(actual_num_frames - 1);

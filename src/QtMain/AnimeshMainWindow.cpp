@@ -464,16 +464,10 @@ AnimeshMainWindow::update_include_checkbox() {
 
   bool frame_is_included = m_field_optimiser->is_frame_enabled(m_current_frame);
   ui->cb_include_frame->setChecked(frame_is_included);
-
-  size_t frames_included = 0;
-  for( size_t i=0; i<m_field_optimiser->num_frames(); ++i ) {
-    if ( m_field_optimiser->is_frame_enabled(i) ) frames_included++;
-  }
-
-  if(( frames_included > 1) || !frame_is_included) {
-    ui->cb_include_frame->setEnabled(true);
-  } else {
+  if( m_current_frame == 0 ) {
     ui->cb_include_frame->setEnabled(false);
+  } else {
+    ui->cb_include_frame->setEnabled(true);
   }
 }
 

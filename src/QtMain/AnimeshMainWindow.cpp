@@ -289,16 +289,20 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
         assert (file_exists( file_name, is_directory ) && !is_directory );
     }
 
+    // Sort files alphanumerically
+    vector<string> sorted_file_names = file_names;
+    sort(sorted_file_names.begin(), sorted_file_names.end());
+
     ObjFileParser parser;
 
     vector<vector<PointNormal::Ptr>>    frames;
     multimap<size_t, size_t>            adjacency;
-    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file( file_names[0], true, FACE_WISE );
+    pair<vector<PointNormal::Ptr>, multimap<size_t, size_t>> results = parser.parse_file( sorted_file_names[0], true, FACE_WISE );
     frames.push_back( results.first );
     adjacency = results.second;
 
-    for( size_t file_idx = 1; file_idx < file_names.size(); ++file_idx ) {
-        vector<PointNormal::Ptr> frame_data = parser.parse_file( file_names[file_idx], FACE_WISE ).first;
+    for( size_t file_idx = 1; file_idx < sorted_file_names.size(); ++file_idx ) {
+        vector<PointNormal::Ptr> frame_data = parser.parse_file( sorted_file_names[file_idx], FACE_WISE ).first;
         frames.push_back(frame_data);
     }
     m_field_optimiser = new FieldOptimiser(frames, adjacency);

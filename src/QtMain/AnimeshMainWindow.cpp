@@ -201,13 +201,12 @@ void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
 
 void AnimeshMainWindow::on_cb_include_frame_stateChanged(int enabled) {
   if ( m_field_optimiser == nullptr ) return;
-  bool should_be_checked = m_field_optimiser->is_frame_enabled(m_current_frame);
-  if( (should_be_checked && (enabled == Qt::Checked )) ||
-      (!should_be_checked && (enabled == Qt::Unchecked)) ) {
-       return;
-     }
+  bool requested_state = (enabled == Qt::Checked);
+  bool actual_state = m_field_optimiser->is_frame_enabled(m_current_frame);
 
-  m_field_optimiser->enable_frame(m_current_frame, true);
+  if( requested_state == actual_state ) return;
+
+  m_field_optimiser->enable_frame(m_current_frame, requested_state);
   update_include_checkbox( );
 }
 

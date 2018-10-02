@@ -200,10 +200,15 @@ void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
 }
 
 void AnimeshMainWindow::on_cb_include_frame_stateChanged(int enabled) {
-    if ( m_field_optimiser == nullptr ) return;
-    if ( m_current_frame == 0 ) return;
+  if ( m_field_optimiser == nullptr ) return;
+  bool should_be_checked = m_field_optimiser->is_frame_enabled(m_current_frame);
+  if( (should_be_checked && (enabled == Qt::Checked )) ||
+      (!should_be_checked && (enabled == Qt::Unchecked)) ) {
+       return;
+     }
 
-    m_field_optimiser->enable_frame(m_current_frame, ui->cb_include_frame->isChecked());
+  m_field_optimiser->enable_frame(m_current_frame, true);
+  update_include_checkbox( );
 }
 
 void AnimeshMainWindow::on_btnRandomise_clicked() {
@@ -456,11 +461,21 @@ AnimeshMainWindow::init_include_checkbox() {
 
 void
 AnimeshMainWindow::update_include_checkbox() {
-    if ( m_field_optimiser == nullptr || m_current_frame == 0) {
-        ui->cb_include_frame->setEnabled(false);
-    }
+  if( m_field_optimiser == nullptr ) return;
+
+  bool frame_is_included = m_field_optimiser->is_frame_enabled(m_current_frame);
+  ui->cb_include_frame->setChecked(frame_is_included);
+
+  size_t frames_included = 0;
+  for( size_t i=0; i<m_field_optimiser->num_frames(); ++i ) {
+    if ( m_field_optimiser->is_frame_enabled(i) ) frames_included++;
+  }
+
+  if(( frames_included > 1) || !frame_is_included) {
+    ui->cb_include_frame->setEnabled(true);
+  } else {
     ui->cb_include_frame->setEnabled(false);
-    ui->cb_include_frame->setChecked( m_field_optimiser->is_frame_enabled(m_current_frame) );
+  }
 }
 
 void

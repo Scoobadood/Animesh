@@ -1,34 +1,18 @@
-# Fix cycle extraction on cloth.
+# Fix include in smooth CBs
+When there are multiple frames, we should be able to exclude any of them from the smooth.  Checkboxes should be enabled once data is loaded.
 
-Cloth samples have far fewer nodes than the 32x32 sphere but seem to take far longer to import.  Given the connectivity is the same, there must be some underlying problem in the code causing this.
+Checkboxes should all be checked to start with.
 
-## Approach
-We'll set up tests in TestGraphCycles to load planar and deformed cloth and explore why it takes so long to parse.
+Checkboxes should remain enabled until there is only one left checked. This one cannot be unchecked and should be disabled.
 
+## Step 1.
+Make sure they default to disabled in creator file
 
-+--+--+--+--+--+
-|  |  |  |  |  |
-+--+--+--+--+--+
-|  |  |  |  |  |
-+--+--+--+--+--+
-|  |  |  |  |  |
-+--+--+--+--+--+
-|  |  |  |  |  |
-+--+--+--+--+--+
-|  |  |  |  |  |
-+--+--+--+--+--+
+## Step 2.
+On loading, enable them all and check them all.
 
-Interrupting the code shows paths of length 14 which are way larger than expected.
-Discovered cycles are still only 4 long which is as expected.
-Hypothesis:
-Due to earlier cycles being extracted, it is not possible to find a path for later nodes in the graph which don't already exist. The algorithm keeps searching because there are unexplored paths however those paths are long and tortuous and exhaustively searching the space is expensive.
-How could be disprove this:
-We could find the termination conditions for the cycle extraction code.
+## Step 3.
+On unchecking a checkbox, count how many are still checked. If it's 1, disable that checked box.
 
-**Why doesn't this fail in the test cases?**
-OK, Stepping through the code we find that it _does_ work for the tier0 graph. However the tier3 one locks up. So there is no point seeking explanations in the tier 0 graph, we need to see how tier3 looks. We should be able to dump this from code.
-50 nodes
-112 edges
-
-**Simple fix**
-Disable singularity computation on tiers which are not 0. These tiers are only for helping with debug anyway and ultimately we won't render them.
+## Step 4.
+On checking a box, count how many are checked If it's more than 1, enable all check boxes.

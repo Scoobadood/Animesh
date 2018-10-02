@@ -535,6 +535,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
             <widget class="QCheckBox" name="cb_include_frame">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="minimumSize">
               <size>
                <width>200</width>
@@ -543,6 +546,9 @@
              </property>
              <property name="text">
               <string>Include in smoothing</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>

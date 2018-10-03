@@ -933,102 +933,22 @@ void AnimeshMainWindow::update_mesh_layer() {
 
     if (m_field_optimiser != nullptr) {
       // Get the mesh for this frame
+      pair<vector<Vector3f>, vector<vector<size_t>>> mesh = get_mesh_for_frame(m_current_frame);
 
-        size_t num_vertices = 8;
+      size_t vertex_idx = 0;
+      for( auto point : mesh.first ) {
+        pts->InsertNextPoint(point.x(), point.y(), point.z());
+      }
 
-        // Vertices
-        vtkIdType pid[num_vertices];
-        size_t vertex_idx = 0;
-        for( int x=-1; x<=1; x+=2) {
-          for( int y=-1; y<=1; y+=2) {
-            for( int z=-1; z<=1; z+=2) {
-              pid[vertex_idx] = pts->InsertNextPoint(x, y, z);
-              vertex_idx++;
-            }
-          }
+      for( auto face_vertices : mesh.second ) {
+        vtkSmartPointer<vtkPolygon> face = vtkSmartPointer<vtkPolygon>::New();
+        face->GetPointIds()->SetNumberOfIds( face_vertices.size() );
+        for(size_t i=0; i<face_vertices.size(); ++i ) {
+            face->GetPointIds()->SetId(i, face_vertices[i]);
         }
-
-        vtkIdType face0[4] = {0, 2, 3, 1};
-        vtkIdType face1[4] = {0, 4, 6, 2};
-        vtkIdType face2[4] = {0, 4, 5, 1};
-        vtkIdType face3[4] = {7, 6, 4, 5};
-        vtkIdType face4[4] = {7, 5, 1, 3};
-        vtkIdType face5[4] = {7, 3, 2, 6};
-
-        faces->InsertNextCell(4, face0);
-        faces->InsertNextCell(4, face1);
-        faces->InsertNextCell(4, face2);
-        faces->InsertNextCell(4, face3);
-        faces->InsertNextCell(4, face4);
-        faces->InsertNextCell(4, face5);
+        faces->InsertNextCell(face);
         colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
-
-        // Edges
-        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[0]);
-        line->GetPointIds()->SetId(1, pid[1]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[1]);
-        line->GetPointIds()->SetId(1, pid[3]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[3]);
-        line->GetPointIds()->SetId(1, pid[2]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[2]);
-        line->GetPointIds()->SetId(1, pid[0]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[4]);
-        line->GetPointIds()->SetId(1, pid[5]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[5]);
-        line->GetPointIds()->SetId(1, pid[7]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[7]);
-        line->GetPointIds()->SetId(1, pid[6]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[6]);
-        line->GetPointIds()->SetId(1, pid[4]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[0]);
-        line->GetPointIds()->SetId(1, pid[4]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[1]);
-        line->GetPointIds()->SetId(1, pid[5]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[2]);
-        line->GetPointIds()->SetId(1, pid[6]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
-        line = vtkSmartPointer<vtkLine>::New();
-        line->GetPointIds()->SetId(0, pid[3]);
-        line->GetPointIds()->SetId(1, pid[7]);
-        lines->InsertNextCell(line);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("Magenta").GetData());
+      }
     }
     m_polydata_mesh->SetPoints(pts);
     // m_polydata_mesh->SetLines(lines);
@@ -1036,6 +956,33 @@ void AnimeshMainWindow::update_mesh_layer() {
     m_polydata_mesh->GetCellData()->SetScalars(colours);
 }
 
+
+/**
+ */
+std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
+AnimeshMainWindow::get_mesh_for_frame(std::size_t frame_id) {
+  using namespace std;
+  using namespace Eigen;
+  vector<Vector3f> vertices;
+  vertices.push_back( Vector3f{ -1.0f, -1.0f, -1.0f });
+  vertices.push_back( Vector3f{ -1.0f, -1.0f,  1.0f });
+  vertices.push_back( Vector3f{ -1.0f,  1.0f, -1.0f });
+  vertices.push_back( Vector3f{ -1.0f,  1.0f,  1.0f });
+  vertices.push_back( Vector3f{  1.0f, -1.0f, -1.0f });
+  vertices.push_back( Vector3f{  1.0f, -1.0f,  1.0f });
+  vertices.push_back( Vector3f{  1.0f,  1.0f, -1.0f });
+  vertices.push_back( Vector3f{  1.0f,  1.0f,  1.0f });
+
+  vector<vector<size_t>> faces;
+  faces.push_back( vector<size_t>{ 0, 2, 3, 1} );
+  faces.push_back( vector<size_t>{ 0, 4, 5, 1} );
+  faces.push_back( vector<size_t>{ 0, 4, 6, 2} );
+  faces.push_back( vector<size_t>{ 7, 3, 2, 6} );
+  faces.push_back( vector<size_t>{ 7, 5, 1, 3} );
+  faces.push_back( vector<size_t>{ 7, 6, 4, 5} );
+
+  return make_pair(vertices, faces);
+}
 
 /**
  * Reconstruct the given polydata from the field

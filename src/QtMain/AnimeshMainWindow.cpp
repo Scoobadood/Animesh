@@ -24,6 +24,7 @@
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkPointData.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkPolygon.h"
 #include "vtkProperty.h"
 #include "vtkRenderer.h"
 #include "vtkRendererCollection.h"
@@ -42,6 +43,7 @@ using animesh::ObjFileParser;
 using animesh::PointNormal;
 
 const bool FACE_WISE = false;
+const float OFF_SURFACE_FRACTION = 0.1f;
 
 std::vector<std::string> get_files_in_directory( std::string directory_name ) {
     using namespace std;
@@ -158,6 +160,7 @@ AnimeshMainWindow::update_view_layers() {
     m_draw_normals ? m_normals_actor->VisibilityOn() : m_normals_actor->VisibilityOff();
     m_draw_neighbours ? m_neighbours_actor->VisibilityOn() : m_neighbours_actor->VisibilityOff();
     m_draw_singularities ? m_singularities_actor->VisibilityOn() : m_singularities_actor->VisibilityOff();
+    m_draw_mesh ? m_mesh_actor->VisibilityOn() : m_mesh_actor->VisibilityOff();
     ui->qvtkWidget->GetRenderWindow()->Render();
 }
 
@@ -193,6 +196,12 @@ AnimeshMainWindow::on_cbSingularities_stateChanged(int enabled) {
     update_metrics( );
     update_singularities_layer();
     update_view_layers( );
+}
+
+
+void AnimeshMainWindow::on_cb_mesh_stateChanged(int enabled) {
+  m_draw_mesh = (enabled == Qt::Checked);
+  update_view_layers( );
 }
 
 void AnimeshMainWindow::on_hs_frame_selector_valueChanged(int new_frame_idx) {
@@ -301,9 +310,13 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
     frames.push_back( results.first );
     adjacency = results.second;
 
+    m_meshes.push_back( parser.parse_file_raw( sorted_file_names[0]) );
+
+
     for( size_t file_idx = 1; file_idx < sorted_file_names.size(); ++file_idx ) {
         vector<PointNormal::Ptr> frame_data = parser.parse_file( sorted_file_names[file_idx], FACE_WISE ).first;
         frames.push_back(frame_data);
+        m_meshes.push_back( parser.parse_file_raw( sorted_file_names[file_idx]) );
     }
     m_field_optimiser = new FieldOptimiser(frames, adjacency);
     file_loaded();
@@ -334,6 +347,9 @@ AnimeshMainWindow::load_from_file( const std::string& file_name ) {
     frames.push_back( results.first );
     adjacency = results.second;
     m_field_optimiser = new FieldOptimiser(frames, adjacency);
+
+    // Load mesh
+    m_meshes.push_back( parser.parse_file_raw( file_name) );
     file_loaded();
 }
 
@@ -612,6 +628,23 @@ void AnimeshMainWindow::init_neighbours_layer( vtkSmartPointer<vtkRenderer> rend
 }
 
 /**
+ * init the mesh layer
+ */
+void
+AnimeshMainWindow::init_mesh_layer( vtkSmartPointer<vtkRenderer> renderer ) {
+  m_polydata_mesh = vtkSmartPointer<vtkPolyData>::New();
+  vtkSmartPointer<vtkOpenGLPolyDataMapper> mapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
+  mapper->SetInputData(m_polydata_mesh);
+  m_mesh_actor = vtkSmartPointer<vtkActor>::New();
+  m_mesh_actor->SetMapper(mapper);
+  m_mesh_actor->GetProperty()->SetPointSize(3);
+  m_mesh_actor->GetProperty()->SetLineWidth(3);
+  m_mesh_actor->GetProperty()->SetOpacity(1.0);
+  renderer->AddActor(m_mesh_actor);
+}
+
+
+/**
  * Init the main tangent vector layer
  */
 void AnimeshMainWindow::init_cross_field_layer( vtkSmartPointer<vtkRenderer> renderer ) {
@@ -754,7 +787,9 @@ void AnimeshMainWindow::update_cross_field_layer() {
             Vector3f tangent = tangents[vertex_idx];
             Vector3f normal = point_normals[vertex_idx]->normal();
 
-            locations[0] = point_normals[vertex_idx]->point();
+            Vector3f off_surface = normal * OFF_SURFACE_FRACTION;
+
+            locations[0] = point_normals[vertex_idx]->point() + off_surface;
             locations[1] = locations[0] + (tangent * tan_scale_factor);
             locations[2] = locations[0] - (tangent * tan_scale_factor);
             Vector3f ninety = tangent.cross(normal);
@@ -776,9 +811,9 @@ void AnimeshMainWindow::update_cross_field_layer() {
 
                 unsigned char rgba[4];
                 if ( (line_idx == 1) && m_highlight_main_tangent) {
-                    named_colours->GetColor("red", rgba);
+                    named_colours->GetColor("white", rgba);
                 } else {
-                    named_colours->GetColor("grey", rgba);
+                    named_colours->GetColor("black", rgba);
                 }
                 colours->InsertNextTypedTuple(rgba);
             }
@@ -874,6 +909,9 @@ AnimeshMainWindow::update_singularities_layer( ) {
             Vector3f normal   = get<1>(singularity);
             int type          = get<2>(singularity);
 
+            Vector3f off_surface = normal * OFF_SURFACE_FRACTION;
+            location = location + off_surface;
+
             vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
@@ -891,7 +929,46 @@ AnimeshMainWindow::update_singularities_layer( ) {
     m_polydata_singularities->GetCellData()->SetScalars(colours);
 }
 
+/**
+ * Update the mesh layer
+ */
+void AnimeshMainWindow::update_mesh_layer() {
+    using namespace Eigen;
+    using namespace std;
 
+    vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkCellArray> faces = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkNamedColors> named_colours = vtkSmartPointer<vtkNamedColors>::New();
+    vtkSmartPointer<vtkUnsignedCharArray> colours = vtkSmartPointer<vtkUnsignedCharArray>::New();
+    colours->SetNumberOfComponents(3);
+
+    m_polydata_mesh->Initialize();
+
+    if (m_field_optimiser != nullptr) {
+      // Get the mesh for this frame
+      pair<vector<Vector3f>, vector<vector<size_t>>> mesh = get_mesh_for_frame(m_current_frame);
+
+      size_t vertex_idx = 0;
+      for( auto point : mesh.first ) {
+        pts->InsertNextPoint(point.x(), point.y(), point.z());
+      }
+
+      for( auto face_vertices : mesh.second ) {
+        vtkSmartPointer<vtkPolygon> face = vtkSmartPointer<vtkPolygon>::New();
+        face->GetPointIds()->SetNumberOfIds( face_vertices.size() );
+        for(size_t i=0; i<face_vertices.size(); ++i ) {
+            face->GetPointIds()->SetId(i, face_vertices[i]);
+        }
+        faces->InsertNextCell(face);
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("SteelBlue").GetData());
+      }
+    }
+    m_polydata_mesh->SetPoints(pts);
+    // m_polydata_mesh->SetLines(lines);
+    m_polydata_mesh->SetPolys(faces);
+    m_polydata_mesh->GetCellData()->SetScalars(colours);
+}
 
 
 /**
@@ -902,6 +979,12 @@ void AnimeshMainWindow::update_poly_data() {
     update_cross_field_layer();
     update_neighbours_layer( );
     update_singularities_layer();
+    update_mesh_layer();
+}
+
+const std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
+AnimeshMainWindow::get_mesh_for_frame(std::size_t frame_id) const {
+  return m_meshes[frame_id];
 }
 
 /**
@@ -915,8 +998,11 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
     init_cross_field_layer( renderer );
     init_neighbours_layer( renderer );
     init_singularities_layer( renderer);
+    init_mesh_layer( renderer );
 
     update_poly_data( );
+
+    renderer->SetBackground(0.282f, 0.239f, 0.545f); // DarkSlateBlue
 
     return renderer;
 }

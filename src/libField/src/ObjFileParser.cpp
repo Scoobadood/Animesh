@@ -285,3 +285,30 @@ ObjFileParser::parse_file( const std::string& file_name, bool with_adjacency, bo
 
 	return make_pair(point_normals, adjacency);
 }
+
+/**
+ * Parse an OBJ file and return only points and faces
+ * @param file_name The name of the file.
+ * @return A pair of vectros containing the points and face vertex indices.
+ */
+std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
+ObjFileParser::parse_file_raw( const std::string& file_name ) {
+  using namespace std;
+  using namespace Eigen;
+
+  vector<Vector3f>		given_vertices;
+	vector<Vector3f> 		given_normals;
+	vector<size_t>  		face_vertex_indices;
+	vector<size_t>  		face_normal_indices;
+	vector<vector<pair<size_t,size_t>>>	faces;
+  read_data( file_name, given_vertices, given_normals, face_vertex_indices, face_normal_indices, faces );
+  vector<vector<size_t>> face_points;
+  for( auto face_data : faces ) {
+    vector<size_t> face_point_data;
+    for( auto face_point_normal : face_data ) {
+      face_point_data.push_back( face_point_normal.first);
+    }
+    face_points.push_back( face_point_data );
+  }
+  return make_pair( given_vertices, face_points );
+}

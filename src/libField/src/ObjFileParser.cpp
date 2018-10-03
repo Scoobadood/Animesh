@@ -246,7 +246,6 @@ compute_adjacency_from_faces( const std::vector<std::vector<std::pair<std::size_
       adjacency.insert(make_pair(adjacent_faces[0], adjacent_faces[1]));
     }
   }
-
   return adjacency;
 }
 

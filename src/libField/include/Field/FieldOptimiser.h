@@ -16,7 +16,7 @@ class FieldOptimiser {
 
     std::vector< /* tiers */
     std::vector< /* frames */
-    std::vector< /* vertices */PointNormal::Ptr>>>      m_tiers;
+    std::vector< /* vertices */PointNormal::Ptr>>>      m_point_normals;
     std::vector<Eigen::Vector3f>                        m_tangents;
     std::multimap<size_t, size_t>                       m_adjacency;
     std::vector<PointNormalGraphPtr>                    m_graphs;

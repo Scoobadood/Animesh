@@ -42,7 +42,7 @@ using animesh::FieldOptimiser;
 using animesh::ObjFileParser;
 using animesh::PointNormal;
 
-const bool FACE_WISE = false;
+const bool FACE_WISE = true;
 const float OFF_SURFACE_FRACTION = 0.1f;
 
 std::vector<std::string> get_files_in_directory( std::string directory_name ) {
@@ -315,7 +315,7 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
 
 
     for( size_t file_idx = 1; file_idx < sorted_file_names.size(); ++file_idx ) {
-        vector<PointNormal::Ptr> frame_data = parser.parse_file( sorted_file_names[file_idx], FACE_WISE ).first;
+        vector<PointNormal::Ptr> frame_data = parser.parse_file( sorted_file_names[file_idx], false, FACE_WISE ).first;
         frames.push_back(frame_data);
         m_meshes.push_back( parser.parse_file_raw( sorted_file_names[file_idx]) );
     }

@@ -276,12 +276,13 @@ populate_tiers_and_frames(
     for (size_t tier_idx = 1; tier_idx < num_tiers; ++tier_idx) {
         PointNormalGraphPtr graph = graphs[tier_idx];
 
-        // Now add vertex data for all frames
+        // Now add node data for all frames
         int parent_idx = 0;
         size_t num_vertices = graph->num_nodes();
         for (size_t vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx ) {
             auto gn = graph->nodes()[vertex_idx];
 
+            // Set frame 0
             PointNormal::Ptr parent_in_frame_0 = gn->data();
             tiers[tier_idx][0][vertex_idx] = parent_in_frame_0;
 
@@ -417,7 +418,7 @@ FieldOptimiser::FieldOptimiser(const std::vector<std::vector<PointNormal::Ptr>>&
     for( auto frame : frames ) {
         tier0.push_back(frame);
     }
-    m_tiers.push_back( tier0 );
+    m_point_normals.push_back( tier0 );
     m_adjacency = adjacency;
 
     initialise();
@@ -428,7 +429,7 @@ FieldOptimiser::FieldOptimiser(const std::vector<std::vector<PointNormal::Ptr>>&
  */
 const std::vector<PointNormal::Ptr>&
 FieldOptimiser::point_normals_for_tier_and_frame( std::size_t tier_idx, std::size_t frame_idx ) const {
-    return m_tiers[tier_idx][frame_idx];
+    return m_point_normals[tier_idx][frame_idx];
 }
 
 /**
@@ -436,7 +437,7 @@ FieldOptimiser::point_normals_for_tier_and_frame( std::size_t tier_idx, std::siz
  */
 const PointNormal::Ptr&
 FieldOptimiser::point_normal_for_tier_and_frame( std::size_t tier_idx, std::size_t frame_idx, std::size_t vertex_idx ) const {
-    return m_tiers[tier_idx][frame_idx][vertex_idx];
+    return m_point_normals[tier_idx][frame_idx][vertex_idx];
 }
 
 
@@ -505,11 +506,11 @@ void FieldOptimiser::initialise( ) {
     m_optimising_current_tier = nullptr;
     m_tracing_enabled = false;
 
-    allocate_tiers_and_frames(m_tiers, m_graphs);
-    populate_tiers_and_frames(m_tiers, m_graphs, m_mappings);
-    m_point_transforms = generate_fwd_and_bkwd_transforms(m_tiers, m_graphs );
+    allocate_tiers_and_frames(m_point_normals, m_graphs);
+    populate_tiers_and_frames(m_point_normals, m_graphs, m_mappings);
+    m_point_transforms = generate_fwd_and_bkwd_transforms(m_point_normals, m_graphs );
     // Implicitly tier 0 tangents
-    m_tangents = generate_random_tangents_for_tier(0 , m_tiers);
+    m_tangents = generate_random_tangents_for_tier(0 , m_point_normals);
     for( size_t idx = 0; idx < num_frames(); idx++ ) {
         m_include_frames.push_back( true );
     }
@@ -527,7 +528,7 @@ FieldOptimiser::propagate_tangents_up( const std::vector<Eigen::Vector3f>& tange
 
     assert( tier_idx < m_mappings.size() );
 
-    size_t num_tangents_at_next_tier = m_tiers[tier_idx+1][0].size();
+    size_t num_tangents_at_next_tier = m_point_normals[tier_idx+1][0].size();
     vector<Vector3f> new_tangents;
     new_tangents.resize( num_tangents_at_next_tier, Vector3f::Zero());
 
@@ -539,7 +540,7 @@ FieldOptimiser::propagate_tangents_up( const std::vector<Eigen::Vector3f>& tange
         vertex_idx++;
     }
     for( size_t tan_idx = 0; tan_idx < num_tangents_at_next_tier; ++tan_idx ) {
-        new_tangents[tan_idx] = reproject_to_tangent_space(new_tangents[tan_idx], m_tiers[tier_idx+1][0][tan_idx]->normal());
+        new_tangents[tan_idx] = reproject_to_tangent_space(new_tangents[tan_idx], m_point_normals[tier_idx+1][0][tan_idx]->normal());
         new_tangents[tan_idx] = new_tangents[tan_idx].normalized();
     }
 
@@ -555,7 +556,7 @@ FieldOptimiser::propagate_tangents_down( const std::vector<Eigen::Vector3f>& tan
 
     vector<Vector3f> new_tangents;
 
-    new_tangents.resize( m_tiers[tier_idx-1][0].size(), Vector3f::Zero());
+    new_tangents.resize( m_point_normals[tier_idx-1][0].size(), Vector3f::Zero());
     size_t vertex_idx = 0;
     for( PointNormalGraphNode * gn : m_graphs[tier_idx]->nodes()) {
         vector<PointNormalGraphNode *> children = m_mappings[tier_idx-1].child_nodes(gn);
@@ -601,7 +602,7 @@ FieldOptimiser::compute_tangents_for_tier_and_frame(size_t tier_idx, size_t fram
             Matrix3f m = forward_transform_to( tier_idx, frame_idx, vertex_idx);
             Vector3f t = tier_tangents[vertex_idx];
             Vector3f new_tan = m * t;
-            new_tan = reproject_to_tangent_space( new_tan, m_tiers[tier_idx][frame_idx][vertex_idx]->normal());
+            new_tan = reproject_to_tangent_space( new_tan, m_point_normals[tier_idx][frame_idx][vertex_idx]->normal());
             new_tan.normalize();
             frame_tangents.push_back(new_tan);
         }
@@ -631,7 +632,7 @@ FieldOptimiser::num_tiers() const {
  */
 std::size_t
 FieldOptimiser::num_frames() const {
-    return m_tiers[0].size();
+    return m_point_normals[0].size();
 }
 
 
@@ -709,7 +710,7 @@ FieldOptimiser::copy_all_neighbours_for(
     using namespace std;
     using namespace Eigen;
 
-    size_t num_frames = m_tiers[0].size();
+    size_t num_frames = m_point_normals[0].size();
     vector<Vector3f>  nbr_normals;
     vector<Vector3f>  nbr_tangents;
 
@@ -717,11 +718,11 @@ FieldOptimiser::copy_all_neighbours_for(
     auto node = graphs[tier_idx]->nodes()[vertex_idx];
     vector<size_t> nbr_indices = graphs[tier_idx]->neighbour_indices(node);
     for( size_t nbr_idx : nbr_indices) {
-        nbr_normals.push_back( m_tiers[tier_idx][0][nbr_idx]->normal());
+        nbr_normals.push_back( m_point_normals[tier_idx][0][nbr_idx]->normal());
         nbr_tangents.push_back(m_tangents[nbr_idx]);
     }
 
-    Vector3f this_vertex_normal = m_tiers[tier_idx][0][vertex_idx]->normal();
+    Vector3f this_vertex_normal = m_point_normals[tier_idx][0][vertex_idx]->normal();
     //  Copy temporal neighbours transformed to frame 0
     for (size_t frame_idx = 1; frame_idx < num_frames; ++frame_idx) {
         if(!m_include_frames[frame_idx] )
@@ -730,7 +731,7 @@ FieldOptimiser::copy_all_neighbours_for(
         // Get forward transformed tangents
         vector<Vector3f> tangents_in_frame = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
         for( size_t nbr_idx : nbr_indices) {
-            nbr_normals.push_back( m_tiers[tier_idx][frame_idx][nbr_idx]->normal());
+            nbr_normals.push_back( m_point_normals[tier_idx][frame_idx][nbr_idx]->normal());
 
             Matrix3f back_transform = m_point_transforms[tier_idx][frame_idx][vertex_idx].second;
             Vector3f back_transformed_tangent = back_transform * tangents_in_frame[nbr_idx];
@@ -992,7 +993,7 @@ FieldOptimiser::total_error() const {
     PointNormalGraphPtr graph = m_graphs[tier_idx];
     vector<Vector3f> tangents = compute_tangents_for_tier_and_frame(tier_idx,0);
 
-    float error = compute_error_for_tier( m_tiers[tier_idx][0], graph, tangents );
+    float error = compute_error_for_tier( m_point_normals[tier_idx][0], graph, tangents );
     return error;
 }
 

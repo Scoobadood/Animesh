@@ -310,6 +310,7 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
     frames.push_back( results.first );
     adjacency = results.second;
 
+    m_meshes.clear();
     m_meshes.push_back( parser.parse_file_raw( sorted_file_names[0]) );
 
 
@@ -349,6 +350,7 @@ AnimeshMainWindow::load_from_file( const std::string& file_name ) {
     m_field_optimiser = new FieldOptimiser(frames, adjacency);
 
     // Load mesh
+    m_meshes.clear();
     m_meshes.push_back( parser.parse_file_raw( file_name) );
     file_loaded();
 }

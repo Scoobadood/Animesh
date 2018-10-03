@@ -1,2 +1,5 @@
-# Load and Render Mesh
-Done
+# Fix facewise load bug
+
+Bug out when loading cloth facewise.
+
+Figure out why.

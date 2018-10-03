@@ -415,7 +415,6 @@ FieldOptimiser::FieldOptimiser(const std::vector<std::vector<PointNormal::Ptr>>&
     //vector< /*tiers*/ vector< /*frames*/ vector< /*vertices*/ PointNormal::Ptr> > >
     vector<vector<PointNormal::Ptr>> tier0;
     for( auto frame : frames ) {
-        assert( frame.size() == num_vertices);
         tier0.push_back(frame);
     }
     m_tiers.push_back( tier0 );

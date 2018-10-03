@@ -9,8 +9,7 @@
 [x] Add a label
 [x] Set min and max based on frame count
 [x] Update field to return points based on current frame
-[ ] Call this from visualisation code.
+[x] Call this from visualisation code.
 
 ##Test
-[ ] Construct (separate code) a series of point clouds with increasingly sharp folds
-
+[x] Construct (separate code) a series of point clouds with increasingly sharp folds

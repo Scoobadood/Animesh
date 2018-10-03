@@ -14,7 +14,7 @@ It will never change and so does not need to be updated.
 
 ## Loading
 We currently load single and multiple files using the ObjFileParser.  This gives us vertices or faces and adjacency back.
-We also need to load specific face data for the mesh sufficicnet to construct the overlay. This may require the ObjFileParser to be broken into chunks.
+We also need to load specific face data for the mesh sufficient to construct the overlay. This may require the ObjFileParser to be broken into chunks.
 
 ## Storage
 Since there will be a separate mesh per layer, we will need to redraw the layer when the frame changes.
@@ -29,6 +29,3 @@ Add toggle on and off.
 Populate with simple cube data to test.
 
 # Next Step
-Build a PolyLine layer for mesh.
-
-Implement init_mesh_layer and update_mesh_layer.

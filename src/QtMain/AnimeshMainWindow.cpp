@@ -43,6 +43,7 @@ using animesh::ObjFileParser;
 using animesh::PointNormal;
 
 const bool FACE_WISE = false;
+const float OFF_SURFACE_FRACTION = 0.1f;
 
 std::vector<std::string> get_files_in_directory( std::string directory_name ) {
     using namespace std;
@@ -309,9 +310,13 @@ AnimeshMainWindow::load_multiple_files( const std::vector<std::string>& file_nam
     frames.push_back( results.first );
     adjacency = results.second;
 
+    m_meshes.push_back( parser.parse_file_raw( sorted_file_names[0]) );
+
+
     for( size_t file_idx = 1; file_idx < sorted_file_names.size(); ++file_idx ) {
         vector<PointNormal::Ptr> frame_data = parser.parse_file( sorted_file_names[file_idx], FACE_WISE ).first;
         frames.push_back(frame_data);
+        m_meshes.push_back( parser.parse_file_raw( sorted_file_names[file_idx]) );
     }
     m_field_optimiser = new FieldOptimiser(frames, adjacency);
     file_loaded();
@@ -342,6 +347,9 @@ AnimeshMainWindow::load_from_file( const std::string& file_name ) {
     frames.push_back( results.first );
     adjacency = results.second;
     m_field_optimiser = new FieldOptimiser(frames, adjacency);
+
+    // Load mesh
+    m_meshes.push_back( parser.parse_file_raw( file_name) );
     file_loaded();
 }
 
@@ -778,7 +786,9 @@ void AnimeshMainWindow::update_cross_field_layer() {
             Vector3f tangent = tangents[vertex_idx];
             Vector3f normal = point_normals[vertex_idx]->normal();
 
-            locations[0] = point_normals[vertex_idx]->point();
+            Vector3f off_surface = normal * OFF_SURFACE_FRACTION;
+
+            locations[0] = point_normals[vertex_idx]->point() + off_surface;
             locations[1] = locations[0] + (tangent * tan_scale_factor);
             locations[2] = locations[0] - (tangent * tan_scale_factor);
             Vector3f ninety = tangent.cross(normal);
@@ -800,9 +810,9 @@ void AnimeshMainWindow::update_cross_field_layer() {
 
                 unsigned char rgba[4];
                 if ( (line_idx == 1) && m_highlight_main_tangent) {
-                    named_colours->GetColor("red", rgba);
+                    named_colours->GetColor("white", rgba);
                 } else {
-                    named_colours->GetColor("grey", rgba);
+                    named_colours->GetColor("black", rgba);
                 }
                 colours->InsertNextTypedTuple(rgba);
             }
@@ -898,6 +908,9 @@ AnimeshMainWindow::update_singularities_layer( ) {
             Vector3f normal   = get<1>(singularity);
             int type          = get<2>(singularity);
 
+            Vector3f off_surface = normal * OFF_SURFACE_FRACTION;
+            location = location + off_surface;
+
             vtkIdType pid[num_vtk_points];
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
@@ -947,7 +960,7 @@ void AnimeshMainWindow::update_mesh_layer() {
             face->GetPointIds()->SetId(i, face_vertices[i]);
         }
         faces->InsertNextCell(face);
-        colours->InsertNextTypedTuple(named_colours->GetColor3ub("White").GetData());
+        colours->InsertNextTypedTuple(named_colours->GetColor3ub("SteelBlue").GetData());
       }
     }
     m_polydata_mesh->SetPoints(pts);
@@ -958,33 +971,6 @@ void AnimeshMainWindow::update_mesh_layer() {
 
 
 /**
- */
-std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
-AnimeshMainWindow::get_mesh_for_frame(std::size_t frame_id) {
-  using namespace std;
-  using namespace Eigen;
-  vector<Vector3f> vertices;
-  vertices.push_back( Vector3f{ -1.0f, -1.0f, -1.0f });
-  vertices.push_back( Vector3f{ -1.0f, -1.0f,  1.0f });
-  vertices.push_back( Vector3f{ -1.0f,  1.0f, -1.0f });
-  vertices.push_back( Vector3f{ -1.0f,  1.0f,  1.0f });
-  vertices.push_back( Vector3f{  1.0f, -1.0f, -1.0f });
-  vertices.push_back( Vector3f{  1.0f, -1.0f,  1.0f });
-  vertices.push_back( Vector3f{  1.0f,  1.0f, -1.0f });
-  vertices.push_back( Vector3f{  1.0f,  1.0f,  1.0f });
-
-  vector<vector<size_t>> faces;
-  faces.push_back( vector<size_t>{ 0, 2, 3, 1} );
-  faces.push_back( vector<size_t>{ 0, 4, 5, 1} );
-  faces.push_back( vector<size_t>{ 0, 4, 6, 2} );
-  faces.push_back( vector<size_t>{ 7, 3, 2, 6} );
-  faces.push_back( vector<size_t>{ 7, 5, 1, 3} );
-  faces.push_back( vector<size_t>{ 7, 6, 4, 5} );
-
-  return make_pair(vertices, faces);
-}
-
-/**
  * Reconstruct the given polydata from the field
  */
 void AnimeshMainWindow::update_poly_data() {
@@ -993,6 +979,11 @@ void AnimeshMainWindow::update_poly_data() {
     update_neighbours_layer( );
     update_singularities_layer();
     update_mesh_layer();
+}
+
+const std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
+AnimeshMainWindow::get_mesh_for_frame(std::size_t frame_id) const {
+  return m_meshes[frame_id];
 }
 
 /**
@@ -1009,6 +1000,8 @@ vtkSmartPointer<vtkRenderer> AnimeshMainWindow::set_up_renderer() {
     init_mesh_layer( renderer );
 
     update_poly_data( );
+
+    renderer->SetBackground(0.282f, 0.239f, 0.545f); // DarkSlateBlue
 
     return renderer;
 }

@@ -211,6 +211,9 @@ private:
     void
     compute_scale();
 
+    const std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
+    get_mesh_for_frame(std::size_t frame_id) const;
+
     // Optimiser
     animesh::FieldOptimiser *m_field_optimiser;
 
@@ -250,8 +253,7 @@ private:
     std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>> m_singularities;
 
     // Mesh data
-    std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
-    get_mesh_for_frame(std::size_t frame_id);
+    std::vector<std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>> m_meshes;
 
     // Things to draw
     bool m_draw_cross_field;

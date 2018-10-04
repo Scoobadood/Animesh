@@ -1,11 +1,11 @@
-# Fix facewise load bug
+# MLE002 Master
 
-Bug out when loading cloth facewise.
+This branch is the main branch for Milestone 2; applying the orientation field to disparate point clouds.
 
-Bug is in update_neighbours_layer when transitioning from one frame to another.
+The main activities will be:
 
-With cloth2 sequence, the problem seems to be that adjacency and frame[0] pointnormals have 256 elements while frame 1 has 289.
-This corresponds to 16x16 faces = 256 graph nodes but in frame 1, 17x17 vertices in frame 1
-This suggests initialing future frames is buggy.
+Build a preprocessing step which loads disparate point clouds and places them into correspondence
+Do the first thing while also constructing a graph of vertices for the orientation field
+And also computing deformations between nodes across frames.
 
-Bug was happening because we were loading 2nd and subsequent frames of a multi-file load using 'false' for facewise as we'd forgotten a parameter.
+Then apply the orientation field construction.

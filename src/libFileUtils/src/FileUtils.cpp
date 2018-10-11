@@ -12,11 +12,18 @@
 #include <pwd.h>
 #include <string.h>
 
+const char PATH_SEPARATOR =
+#ifdef _WIN32
+                            '\\';
+#else
+                            '/';
+#endif
+
 /**
  * Return true if a string matches the given template
  * The template is of the form <prexifx><nnn...><suffix>.<extension>
  * Where prefix is a string, there are a number of digits and a suffix
- * This is a utility function to get around the fact that despite appearances to the contrary, 
+ * This is a utility function to get around the fact that despite appearances to the contrary,
  * gcc 4.8.n does NOT support regexes
  * We use this function to match input colour, depth and scene flow file names
  * @param prefix The prefix
@@ -26,9 +33,9 @@
  * @param test_string The candidate string to match
  * @return true if it matches else false
  */
-bool match_file_name( const std::string& prefix, 
-                        int num_digits, 
-                        const std::string& suffix, 
+bool match_file_name( const std::string& prefix,
+                        int num_digits,
+                        const std::string& suffix,
                         const std::string& extension,
                         const std::string& test_string ) {
     bool matches = false;
@@ -36,8 +43,8 @@ bool match_file_name( const std::string& prefix,
     std::string error_message;
 
     // Must be the right length to start with. Any can be non-zero but at least one must be
-    if( ( test_string.length()  > 0 ) || 
-        ( prefix.length() > 0 )       || 
+    if( ( test_string.length()  > 0 ) ||
+        ( prefix.length() > 0 )       ||
         ( suffix.length() > 0 )       ||
         ( extension.length() > 0 )    ||
         ( num_digits > 0 ) ) {
@@ -207,7 +214,7 @@ bool read_last_line( std::string file_name, std::string& text ) {
                 getline( fin, text );
                 read_ok = true;
                 done = true;
-            } 
+            }
 
             // Otherwise, if we're at the start of the file
             else if ( fin.tellg() < 0 ) {
@@ -267,3 +274,46 @@ const std::string path_to_file_on_desktop( const std::string& file_name ) {
     return path_string;
 }
 
+
+/**
+ * Extract the file name and extension from a fully qualified path
+ */
+ const std::pair<std::string, std::string>
+ get_file_name_and_extension( const std::string& path ) {
+   using namespace std;
+
+   if( path.length() == 0) return make_pair("", "");
+   // Find last instance of path separator
+   size_t last_sep = path.find_last_of( PATH_SEPARATOR );
+   // Find last nstance of '.'
+   size_t last_dot = path.find_last_of( '.' );
+
+   // no extension if last_dot < last_sep or equal to npos
+   string extension;
+   string modified_path = path;
+   if( (last_dot == string::npos)               // No dot in the path OR
+       || ( (last_sep != string::npos )         // There's a separator AND
+            && (last_dot < last_sep )))         // The last dot is before it
+       {
+     extension = "";
+   } else {
+     if( last_dot == path.length() - 1 ) {    //  the dot is at the end of the string OR
+       extension = "";
+     } else {
+       extension = path.substr(last_dot+1);
+     }
+     modified_path = path.substr(0,last_dot);
+   }
+
+   // Now get the file name;
+   //  path is empty. or there's no separator or there is one and it could be beginning or end
+   string file_name;
+   if( modified_path.length() == 0 || last_sep == modified_path.length() - 1 ) {
+     file_name = "";
+   } else if( last_sep != string::npos ){
+     file_name = modified_path.substr(last_sep+1);
+   } else {
+     file_name = modified_path;
+   }
+   return make_pair(file_name, extension);
+}

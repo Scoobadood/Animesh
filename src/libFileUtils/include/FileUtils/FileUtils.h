@@ -34,7 +34,7 @@ void files_in_directory( const std::string& directory, std::vector<std::string>&
  * Return true if a string matches the given template
  * The template is of the form <prexifx><nnn...><suffix>.<extension>
  * Where prefix is a string, there are a number of digits and a suffix
- * This is a utility function to get around the fact that despite appearances to the contrary, 
+ * This is a utility function to get around the fact that despite appearances to the contrary,
  * gcc 4.8.n does NOT support regexes
  * We use this function to match input colour, depth and scene flow file names
  * @param prefix The prefix
@@ -65,6 +65,12 @@ const char * get_home_directory( );
  * @return a std::string with the path to the CWD
  */
 std::string get_cwd();
+
+/**
+ * Extract the file name and extension from a fully qualified path
+ */
+ const std::pair<std::string, std::string> get_file_name_and_extension( const std::string& path );
+
 
 /**
  * Get the path to a file on the desktop

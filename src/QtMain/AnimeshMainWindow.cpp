@@ -918,7 +918,6 @@ AnimeshMainWindow::update_singularities_layer( ) {
             pid[0] = pts->InsertNextPoint(location.x(), location.y(), location.z());
             vertices->InsertNextCell(1, pid);
 
-            float nn[] = {0.0f, 0.0f, 1.0f};
             vtk_point_normals->SetTuple(vtk_point_normal_idx++, normal.data()) ;
 
             colours->InsertNextTypedTuple(named_colours->GetColor3ub(
@@ -951,7 +950,6 @@ void AnimeshMainWindow::update_mesh_layer() {
       // Get the mesh for this frame
       pair<vector<Vector3f>, vector<vector<size_t>>> mesh = get_mesh_for_frame(m_current_frame);
 
-      size_t vertex_idx = 0;
       for( auto point : mesh.first ) {
         pts->InsertNextPoint(point.x(), point.y(), point.z());
       }

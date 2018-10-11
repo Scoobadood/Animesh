@@ -29,7 +29,7 @@ Path::Path(const Path& other_path, size_t new_node) {
 }
 
 /**
-* @return The lenght of the path in nodes.
+* @return The length of the path in nodes.
 */
 size_t Path::length( ) const {
   return m_node_indices.size();

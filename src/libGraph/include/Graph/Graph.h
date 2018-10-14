@@ -128,6 +128,7 @@ public:
     assert( std::find( m_nodes.begin(), m_nodes.end( ), node ) == m_nodes.end() );
 
     m_nodes.push_back( node );
+    m_node_indices.insert(std::make_pair(node, m_nodes.size() - 1));
     return node;
   }
 
@@ -231,14 +232,9 @@ public:
   }
 
   std::size_t index_of( const GraphNode * gn ) const {
-    size_t idx = 0;
-    for ( GraphNode * test_node : m_nodes) {
-      if ( gn == test_node ) {
-        return idx;
-      }
-      idx++;
-    }
-    assert( "Node not found" == nullptr);
+    auto it = m_node_indices.find(const_cast<GraphNode*>(gn));
+    assert( it != m_node_indices.end());
+    return it->second;
   }
 
   /**
@@ -248,22 +244,12 @@ public:
   */
   std::vector<size_t> neighbour_indices( GraphNode * node ) const {
     using namespace std;
+
     vector<GraphNode *> nodes = neighbours(node);
     vector<size_t> indices;
-    for (GraphNode * gn : nodes ) {
-      size_t i = 0;
-      for ( GraphNode * test_node : m_nodes) {
-        if ( gn == test_node ) {
-          indices.push_back( i );
-          break;
-        } else {
-          i++;
-        }
-      }
-      // Fail. Node should have been found before here.
-      if ( i == m_nodes.size()) {
-        assert( "Node not found" == nullptr);
-      }
+
+    for( auto node: nodes ) {
+      indices.push_back(index_of(node));
     }
     return indices;
   }
@@ -310,7 +296,7 @@ public:
   const std::vector<GraphNode *>& nodes( ) const {
     return m_nodes;
   }
-  
+
   /**
   * Return a vector of cycles in the graph..
   */
@@ -385,6 +371,7 @@ private:
   std::vector<GraphNode *>                        m_nodes;
   std::vector<Edge *>                             m_edges;
   std::multimap<GraphNode*, GraphNode*>           m_adjacency;
+  std::map<GraphNode*, size_t>                    m_node_indices;
   bool                                            m_is_directed;
 };
 }

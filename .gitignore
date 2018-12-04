@@ -6,4 +6,7 @@ lib/
 src/cmake-build-debug
 **/.idea/workspace.xml
 **/.idea/tasks.xml
+**/*.trace/
 
+**/CMakeLists.txt.user
+build-QtMain-Desktop_Qt_5_12_0_clang_64bit-Default/

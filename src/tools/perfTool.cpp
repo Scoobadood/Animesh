@@ -146,7 +146,7 @@ void timeObj( const std::string& file_name ) {
   int total_time_ms = chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
 
   // Dump in tabular format
-  cout << "|" << setw(17) << get_file_name_and_extension(file_name).first << " |"
+  cout << "|" << setw(19) << get_file_name_and_extension(file_name).first << " |"
         << setw(7) << optimiser->num_frames() << " |"
         << setw(7) << optimiser->num_tiers() << " |"
         << setw(7) << optimiser->num_nodes_in_tier(0) << " |"
@@ -154,11 +154,20 @@ void timeObj( const std::string& file_name ) {
         << setw(11) << load_time_ms << " |"
         << setw(11) << optimise_time_ms << " |"
         << setw(11) << total_time_ms <<  " |" << endl;
-  cout << "+------------------+--------+--------+--------+--------+------------+------------+------------+" << endl;
+  cout << "+--------------------+--------+--------+--------+--------+------------+------------+------------+" << endl;
 }
 
 int main( int argc, char *argv[] ) {
+  using namespace std;
+
   if( argc < 2 ) return 1;
+
+  cout << "+--------------------+--------+--------+--------+--------+--------------------------------------+" << endl;
+  cout << "|                    |        |        |        |        | Times (ms)                           |" << endl;
+  cout << "|      Test          | Frames | Tiers  |  Vert  | Edges  |------------+------------+------------+" << endl;
+  cout << "|                    |        |        |        |        |    Load    |  Optimise  |   Total    |" << endl;
+  cout << "+--------------------+--------+--------+--------+--------+------------+------------+------------+" << endl;
+
   for( int i=1; i<argc; ++i) {
     timeObj(argv[i]);
   }

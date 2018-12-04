@@ -484,6 +484,52 @@ FieldOptimiser::forward_transform_to( size_t tier_idx, size_t frame_idx, size_t 
 }
 
 /**
+ * Mark all tangents dirty
+ */
+void
+FieldOptimiser::mark_all_tangents_dirty( ) {
+  size_t num_flags = num_tiers() * num_frames();
+  for( size_t flag_idx = 0; flag_idx < num_flags; ++flag_idx) {
+    m_tangent_dirty_flags[flag_idx] = true;
+  }
+}
+
+/**
+ * Mark tangent dirty
+ */
+void
+FieldOptimiser::mark_tangent_dirty(std::size_t tier_idx, std::size_t frame_idx, bool is_dirty) {
+  m_tangent_dirty_flags[flag_index(tier_idx, frame_idx)] = is_dirty;
+}
+
+/**
+ * @return true if the given tangents are dirty
+ */
+ bool FieldOptimiser::tangent_is_dirty(std::size_t tier_idx, std::size_t frame_idx) {
+   return m_tangent_dirty_flags[flag_index(tier_idx, frame_idx)];
+ }
+
+/**
+ * Randomise tangents in tier0, frame 0
+ */
+void
+FieldOptimiser::initialise_tangents( ) {
+  using namespace std;
+  using namespace Eigen;
+
+  size_t num_flags = num_tiers() * num_frames();
+  m_tangent_dirty_flags = new bool[num_flags];
+  m_tangents = new vector<Vector3f>[num_flags];
+
+  mark_all_tangents_dirty( );
+
+  // Initialise tier 0, frame 0 tangents
+  vector<Vector3f> tangents = generate_random_tangents_for_tier(0 , m_point_normals);
+  m_tangents[0].insert(end(m_tangents[0]), begin(tangents), end(tangents));
+  m_tangent_dirty_flags[0] = false;
+}
+
+/**
  * Initialise the optimiser by:
  * - Generate tier 0 graph (using adjacency)
  * - Generating graph hierarchy (from tier 0)
@@ -509,8 +555,10 @@ void FieldOptimiser::initialise( ) {
     allocate_tiers_and_frames(m_point_normals, m_graphs);
     populate_tiers_and_frames(m_point_normals, m_graphs, m_mappings);
     m_point_transforms = generate_fwd_and_bkwd_transforms(m_point_normals, m_graphs );
-    // Implicitly tier 0 tangents
-    m_tangents = generate_random_tangents_for_tier(0 , m_point_normals);
+
+    initialise_tangents( );
+
+    // Initialise frame inclusion flags
     for( size_t idx = 0; idx < num_frames(); idx++ ) {
         m_include_frames.push_back( true );
     }
@@ -571,46 +619,104 @@ FieldOptimiser::propagate_tangents_down( const std::vector<Eigen::Vector3f>& tan
 
 
 /**
- * Reproject the tangents from frame 0 tier 0 into an arbitrary frame and tier by using the forward transformations
- * and then reprojecting into tangent plane and normalising.
- * @return The tangents as in tier and frame.
+ * Update the tangents in cache and invalidate any that change a sa consequence.
+ * This method should not be called by clients who should prefer update_tangents(tier,values);
  */
-std::vector<Eigen::Vector3f>
-FieldOptimiser::compute_tangents_for_tier_and_frame(size_t tier_idx, size_t frame_idx) const {
+void
+FieldOptimiser::set_tangents( std::size_t tier_idx, size_t frame_idx, const std::vector<Eigen::Vector3f>& tangents ) {
+  using namespace std;
+
+  size_t idx = flag_index(tier_idx, frame_idx);
+  m_tangents[idx].clear();
+  m_tangents[idx].insert(end(m_tangents[idx]), begin(tangents), end(tangents));
+
+  mark_tangent_dirty( tier_idx, frame_idx, false);
+
+  if( frame_idx == 0 ) {
+    // Invalidate other frames for this tier
+    for( size_t f_idx = 1; f_idx < num_frames(); ++f_idx) {
+      mark_tangent_dirty(tier_idx, f_idx);
+    }
+  }
+}
+
+/**
+ * Recompute the tangents for the requested tier and frame.
+ * Ideally we will propagate directly from frame 0 for a given tier
+ * If that is not possible (frame 0 is dirty) then we'll propagate up or down
+ * from the closest tier first.
+ * We save all work products
+ */
+void
+FieldOptimiser::recompute_tangents_for_tier_and_frame(size_t tier_idx, size_t frame_idx) {
     using namespace std;
     using namespace Eigen;
 
-    size_t current_tier_idx = m_optimising_tier_idx;
-    vector<Vector3f> tier_tangents;
-    tier_tangents.insert(end(tier_tangents), begin(m_tangents), end(m_tangents));
-    if( current_tier_idx < tier_idx ) {
-        while( current_tier_idx < tier_idx ) {
-            tier_tangents = propagate_tangents_up( tier_tangents, current_tier_idx );
-            current_tier_idx++;
+    // Handle trivial case
+    if( !tangent_is_dirty( tier_idx, frame_idx ) ) {
+      return;
+    }
+
+    // Optionally roll nearest tier to this tier
+    if( tangent_is_dirty( tier_idx, 0 ) ) {
+
+      // Find closest good tier
+      size_t offset = 1;
+      size_t closest_tier;
+      while( true ) {
+        size_t upper_bound = tier_idx + offset;
+        if( upper_bound < num_tiers() ) {
+          if( !tangent_is_dirty(upper_bound, 0) ) {
+            closest_tier = upper_bound;
+            break;
+          }
+        } else if ( tier_idx >= offset ) {
+          size_t lower_bound = tier_idx - offset;
+          if( !tangent_is_dirty(lower_bound, 0) ) {
+            closest_tier = lower_bound;
+            break;
+          }
+        } else {
+          // Out of range. This shouldn't happen.
+          assert( "Couldn't find a non-dirty flag" == nullptr);
         }
-    } else if ( current_tier_idx > tier_idx ) {
-        while( current_tier_idx > tier_idx) {
-            tier_tangents = propagate_tangents_down( tier_tangents, current_tier_idx );
-            current_tier_idx--;
-        }
+        offset ++;
+      }
+
+      // Roll closest tier to this tier
+      size_t closest_idx = flag_index(closest_tier, 0);
+      vector<Vector3f> tier_tangents = m_tangents[closest_idx];
+      assert(tier_tangents.size() > 0);
+      while( closest_tier < tier_idx ) {
+        tier_tangents = propagate_tangents_up( tier_tangents, closest_tier );
+        closest_tier++;
+
+        set_tangents(closest_tier, 0, tier_tangents);
+      }
+      while( closest_tier > tier_idx) {
+          tier_tangents = propagate_tangents_down( tier_tangents, closest_tier );
+          closest_tier--;
+
+          set_tangents(closest_tier, 0, tier_tangents);
+      }
     }
 
     // FRAME propagation
-    vector<Vector3f> frame_tangents;
-    if( frame_idx != 0 ) {
-        for( size_t vertex_idx = 0; vertex_idx < tier_tangents.size(); ++vertex_idx ) {
-            Matrix3f m = forward_transform_to( tier_idx, frame_idx, vertex_idx);
-            Vector3f t = tier_tangents[vertex_idx];
-            Vector3f new_tan = m * t;
-            new_tan = reproject_to_tangent_space( new_tan, m_point_normals[tier_idx][frame_idx][vertex_idx]->normal());
-            new_tan.normalize();
-            frame_tangents.push_back(new_tan);
-        }
+    if( frame_idx > 0 ) {
+      size_t source_frame_idx = flag_index(tier_idx, 0);
+      vector<Vector3f> source_tangents = m_tangents[source_frame_idx];
+
+      vector<Vector3f> target_tangents;
+      for( size_t vertex_idx = 0; vertex_idx < source_tangents.size(); ++vertex_idx ) {
+          Matrix3f m = forward_transform_to( tier_idx, frame_idx, vertex_idx);
+          Vector3f t = source_tangents[vertex_idx];
+          Vector3f new_tan = m * t;
+          new_tan = reproject_to_tangent_space( new_tan, m_point_normals[tier_idx][frame_idx][vertex_idx]->normal());
+          new_tan.normalize();
+          target_tangents.push_back(new_tan);
+      }
+      set_tangents(tier_idx, frame_idx, target_tangents );
     }
-    else {
-        frame_tangents.insert(end(frame_tangents), begin(tier_tangents), end(tier_tangents));
-    }
-    return frame_tangents;
 }
 
 
@@ -705,7 +811,7 @@ std::pair<std::vector<Eigen::Vector3f>, std::vector<Eigen::Vector3f>>
 FieldOptimiser::copy_all_neighbours_for(
     const std::vector<PointNormalGraphPtr>& graphs,
     std::size_t tier_idx,
-    std::size_t vertex_idx) const {
+    std::size_t vertex_idx) {
 
     using namespace std;
     using namespace Eigen;
@@ -719,7 +825,7 @@ FieldOptimiser::copy_all_neighbours_for(
     vector<size_t> nbr_indices = graphs[tier_idx]->neighbour_indices(node);
     for( size_t nbr_idx : nbr_indices) {
         nbr_normals.push_back( m_point_normals[tier_idx][0][nbr_idx]->normal());
-        nbr_tangents.push_back(m_tangents[nbr_idx]);
+        nbr_tangents.push_back(get_tangent_for_tier_frame_vertex(tier_idx, 0, nbr_idx));
     }
 
     Vector3f this_vertex_normal = m_point_normals[tier_idx][0][vertex_idx]->normal();
@@ -729,7 +835,7 @@ FieldOptimiser::copy_all_neighbours_for(
             continue;
 
         // Get forward transformed tangents
-        vector<Vector3f> tangents_in_frame = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+        vector<Vector3f> tangents_in_frame = get_tangents_for_tier_frame(tier_idx, frame_idx);
         for( size_t nbr_idx : nbr_indices) {
             nbr_normals.push_back( m_point_normals[tier_idx][frame_idx][nbr_idx]->normal());
 
@@ -749,12 +855,12 @@ FieldOptimiser::copy_all_neighbours_for(
  * Sum for each loop and use to identify and locate singularities.
  */
  std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>>
- FieldOptimiser::get_singularities_for_tier_and_frame(std::size_t tier_idx, std::size_t frame_idx) const {
+ FieldOptimiser::get_singularities_for_tier_and_frame(std::size_t tier_idx, std::size_t frame_idx) {
    using namespace std;
    using namespace Eigen;
 
    const vector<PointNormal::Ptr>& pn = point_normals_for_tier_and_frame(tier_idx, frame_idx);
-   const vector<Vector3f>& tangents   = compute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+   const vector<Vector3f>& tangents   = get_tangents_for_tier_frame(tier_idx, frame_idx);
    vector<tuple<Vector3f, Vector3f, int>> singularities;
 
    cout << "------------------------------------------" << endl;
@@ -796,16 +902,25 @@ FieldOptimiser::copy_all_neighbours_for(
    return singularities;
  }
 
-/**
- * Update the tangents for the given tier of the graph.  The provided vector of tangents is in
- * order specified by indices.
- */
+ /**
+  * Update the tangents for the given tier of the graph. (And implicitly, frame 0).
+  */
 void
-FieldOptimiser::update_tangents( const std::vector<Eigen::Vector3f>& new_tangents) {
+FieldOptimiser::update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents) {
     using namespace std;
 
-    m_tangents.clear();
-    m_tangents.insert( end(m_tangents), begin(new_tangents), end(new_tangents));
+    // Mark all tangents dirty
+    for( size_t tier_idx = 0; tier_idx < num_tiers(); ++tier_idx ) {
+      for( size_t frame_idx = 0; frame_idx < num_frames(); ++frame_idx) {
+        m_tangent_dirty_flags[flag_index(tier_idx, frame_idx)] = true;
+      }
+    }
+
+    // Set for tier, frame = 0
+    size_t idx = flag_index( tier_idx, 0);
+    m_tangents[idx].clear();
+    m_tangents[idx].insert( end(m_tangents[idx]), begin(new_tangents), end(new_tangents));
+    m_tangent_dirty_flags[idx] = false;
 }
 
 /**
@@ -842,9 +957,6 @@ void FieldOptimiser::optimise_begin(){
     using namespace std;
     using namespace Eigen;
 
-    // Assume we're on tier 0; copy tans
-    update_tangents( compute_tangents_for_tier_and_frame(m_graphs.size() - 1, 0));
-
     m_optimising_tier_idx = m_graphs.size() - 1;
     m_optimising_current_tier = m_graphs[m_optimising_tier_idx];
     m_optimising_started_new_tier = true;
@@ -865,7 +977,6 @@ void FieldOptimiser::optimise_begin_tier(){
 
 bool FieldOptimiser::optimise_end_tier(){
     if (m_optimising_tier_idx != 0) {
-        update_tangents(propagate_tangents_down(m_tangents, m_optimising_tier_idx) );
         m_optimising_tier_idx--;
         m_mappings[m_optimising_tier_idx].propagate();
         m_optimising_current_tier = m_graphs[m_optimising_tier_idx];
@@ -902,7 +1013,7 @@ FieldOptimiser::optimise_do_one_step() {
 
     // Smooth the tier, possible starting a new one
     vector<Vector3f> new_tangents = compute_new_tangents_for_tier(m_graphs, m_optimising_tier_idx);
-    update_tangents(new_tangents);
+    update_tangents(m_optimising_tier_idx, new_tangents);
     m_optimising_iterations_this_tier++;
     float new_error = total_error();
     bool is_converged = check_convergence(new_error);
@@ -922,7 +1033,7 @@ FieldOptimiser::optimise_do_one_step() {
 std::vector<Eigen::Vector3f>
 FieldOptimiser::compute_new_tangents_for_tier(
     const std::vector<PointNormalGraphPtr>& graphs,
-    std::size_t tier_idx) const {
+    std::size_t tier_idx) {
 
     using namespace Eigen;
     using namespace std;
@@ -945,7 +1056,7 @@ Eigen::Vector3f
 FieldOptimiser::compute_new_tangent_for_vertex(
     const std::vector<PointNormalGraphPtr>& graphs,
     size_t tier_idx,
-    size_t vertex_idx) const {
+    size_t vertex_idx) {
     using namespace Eigen;
     using namespace std;
 
@@ -959,7 +1070,7 @@ FieldOptimiser::compute_new_tangent_for_vertex(
     vector<Vector3f> neighbour_tangents = neighbour_data.second;
 
     // Merge all neighbours; implicitly using optiminsing tier tangents
-    Vector3f new_tangent = m_tangents[vertex_idx];
+    Vector3f new_tangent = get_tangent_for_tier_frame_vertex(tier_idx, 0, vertex_idx);
     float weight = 0;
     for ( size_t neighbour_idx = 0; neighbour_idx < neighbour_normals.size(); ++neighbour_idx) {
         // TODO: Extract the edge weight from the graph node
@@ -972,6 +1083,38 @@ FieldOptimiser::compute_new_tangent_for_vertex(
     return new_tangent;
 }
 
+/**
+ * Check whether a tier/frame tangents are dirty and if so, refresh them.
+ */
+void
+FieldOptimiser::check_and_refresh_tangents(size_t tier_idx, size_t frame_idx) {
+  using namespace std;
+  using namespace Eigen;
+
+  size_t tier_frame_idx = flag_index(tier_idx,frame_idx);
+  if( m_tangent_dirty_flags[tier_frame_idx] == true) {
+    recompute_tangents_for_tier_and_frame(tier_idx, frame_idx);
+  }
+}
+
+/**
+ * @return the specific tangent for a frame, tier and vertex
+ */
+Eigen::Vector3f
+FieldOptimiser::get_tangent_for_tier_frame_vertex(size_t tier_idx, size_t frame_idx, size_t vertex_idx) {
+  check_and_refresh_tangents( tier_idx, frame_idx);
+  return m_tangents[flag_index(tier_idx, frame_idx)][vertex_idx];
+}
+
+/**
+ * @return all tangents for a frame and tier
+ */
+std::vector<Eigen::Vector3f>
+FieldOptimiser::get_tangents_for_tier_frame(size_t tier_idx, size_t frame_idx) {
+  check_and_refresh_tangents( tier_idx, frame_idx);
+  return m_tangents[flag_index(tier_idx, frame_idx)];
+}
+
 /* ******************************************************************************************
  *
  *   Error calculations
@@ -982,7 +1125,7 @@ FieldOptimiser::compute_new_tangent_for_vertex(
  * @return The current error. This is calculated on the current tier when smoothing and tier0 when not.
  */
 float
-FieldOptimiser::total_error() const {
+FieldOptimiser::total_error() {
     using namespace std;
     using namespace Eigen;
 
@@ -991,7 +1134,7 @@ FieldOptimiser::total_error() const {
         tier_idx = m_optimising_tier_idx;
     }
     PointNormalGraphPtr graph = m_graphs[tier_idx];
-    vector<Vector3f> tangents = compute_tangents_for_tier_and_frame(tier_idx,0);
+    vector<Vector3f> tangents = get_tangents_for_tier_frame(tier_idx,0);
 
     float error = compute_error_for_tier( m_point_normals[tier_idx][0], graph, tangents );
     return error;

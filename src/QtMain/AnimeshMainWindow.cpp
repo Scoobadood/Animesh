@@ -771,7 +771,7 @@ void AnimeshMainWindow::update_cross_field_layer() {
     m_polydata_cross_field->Initialize();
     if (m_field_optimiser != nullptr) {
         const vector<PointNormal::Ptr>& point_normals = m_field_optimiser->point_normals_for_tier_and_frame( m_current_tier, m_current_frame );
-        vector<Vector3f>                tangents = m_field_optimiser->compute_tangents_for_tier_and_frame( m_current_tier, m_current_frame );
+        vector<Vector3f>                tangents = m_field_optimiser->get_tangents_for_tier_frame( m_current_tier, m_current_frame );
         size_t                          num_vertices = point_normals.size();
 
         // TEST Try setting point normals for the tangent array

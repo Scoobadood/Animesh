@@ -13,7 +13,7 @@ gain a performance lift by either
 
 ## Lets consider fixed data structures
 
-There ate N nodes in the graph.
+There are N nodes in the graph.
 We expect that a minimal cycle would be 3 or 4 steps long though we might allow for longer, say 10.
 That would mean storing 10*N `size_t`s to represent all possible paths.
 For 100,000 nodes, this would be 8MB which is not a huge amount of memory.

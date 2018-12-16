@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
+# Build type flags
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
+
 # Add the binary tree to the search path for inlcude files
 file(GLOB SOURCES "*.cpp")
 
@@ -8,7 +12,7 @@ find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Need vtk
-find_package(VTK REQUIRED NO_MODULE) 
+find_package(VTK REQUIRED NO_MODULE)
 include_directories(${VTK_USE_FILE})
 include(${VTK_USE_FILE})
 
@@ -24,11 +28,11 @@ set(CMAKE_AUTOUIC ON)
 
 
 # Building the executable
-add_executable(QtAnimesh 
+add_executable(QtAnimesh
 	AnimeshMainWindow.ui
    	${SOURCES})
 
-target_link_libraries(QtAnimesh 
+target_link_libraries(QtAnimesh
 	Args
 	Field
 	FileUtils
@@ -37,6 +41,6 @@ target_link_libraries(QtAnimesh
 	Qt5::Widgets
 	${VTK_LIBRARIES} )
 
-target_compile_features(QtAnimesh 
-	PUBLIC 
+target_compile_features(QtAnimesh
+	PUBLIC
 		cxx_std_11)

@@ -17,7 +17,7 @@ class FieldOptimiser {
     std::vector< /* tiers */
     std::vector< /* frames */
     std::vector< /* vertices */PointNormal::Ptr>>>      m_point_normals;
-    std::vector<Eigen::Vector3f>                        m_tangents;
+//    std::vector<Eigen::Vector3f>                        m_tangents;
     std::multimap<size_t, size_t>                       m_adjacency;
     std::vector<PointNormalGraphPtr>                    m_graphs;
     std::vector<PointNormalGraphMapping>                m_mappings;
@@ -34,6 +34,8 @@ class FieldOptimiser {
     std::vector<bool>                                   m_include_frames;
     bool                                                m_tracing_enabled;
     std::vector<Path>                                   m_cycles;
+    std::vector<Eigen::Vector3f>                        *m_tangents;
+    bool                                                *m_tangent_dirty_flags;
 
     /* ******************************************************************************************
      *
@@ -75,21 +77,73 @@ public:
      * Sum for each loop and use to identify and locate singularities.
      */
      std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, int>>
-     get_singularities_for_tier_and_frame(std::size_t tier_idx, std::size_t frame_idx) const;
+     get_singularities_for_tier_and_frame(std::size_t tier_idx, std::size_t frame_idx);
+
+     /**
+      * Recompute the tangents for the requested tier and frame.
+      * Ideally we will propagate directly from frame 0 for a given tier
+      * If that is not possible (frame 0 is dirty) then we'll propagate up or down
+      * from the closest tier first.
+      * We save all work products
+      */
+    void
+    recompute_tangents_for_tier_and_frame(size_t tier_idx, size_t frame_idx);
 
     /**
-     * Reproject the tangents from frame 0 tier 0 into an arbitrary frame and tier by using the forward transformations
-     * and then reprojecting into tangent plane and normalising.
-     * @return The tangents as in tier and frame.
+     * Mark all tangents dirty
+     */
+    void
+    mark_all_tangents_dirty( );
+
+    /**
+     * Mark tangent dirty
+     */
+    void
+    mark_tangent_dirty(std::size_t tier_idx, std::size_t frame_idx, bool is_dirty = true);
+
+    /**
+     * Update the tangents in cache and invalidate any that change a sa consequence.
+     * This method should not be called by clients who should prefer update_tangents(tier,values);
+     */
+    void
+    set_tangents( std::size_t tier_idx, size_t frame_idx, const std::vector<Eigen::Vector3f>& tangents );
+
+    /**
+     * @return true if the given tangents are dirty
+     */
+     bool tangent_is_dirty(std::size_t tier_idx, std::size_t frame_idx);
+
+    /**
+     * Compute the tangent flag index for a given tier and frame
+     */
+     inline size_t
+     flag_index(std::size_t tier_idx, std::size_t frame_idx) const {
+       return tier_idx * num_frames() + frame_idx;
+     }
+
+    /**
+     * @return the specific tangent for a frame, tier and vertex
+     */
+    Eigen::Vector3f
+    get_tangent_for_tier_frame_vertex(size_t tier_idx, size_t frame_idx, size_t nbr_idx);
+
+    /**
+     * Check whether a tier/frame tangents are dirty and if so, refresh them.
+     */
+    void
+    check_and_refresh_tangents(size_t tier_idx, size_t frame_idx);
+
+    /**
+     * @return all tangents for a frame and tier
      */
     std::vector<Eigen::Vector3f>
-    compute_tangents_for_tier_and_frame(size_t tier_idx, size_t frame_idx) const;
+    get_tangents_for_tier_frame(size_t tier_idx, size_t frame_idx);
 
     /**
      * @return The current error. This is calculated on the current tier when smoothing and tier0 when not.
      */
     float
-    total_error() const;
+    total_error();
 
     /**
      * Run the optimiser to completion.
@@ -185,6 +239,15 @@ private:
      */
     void initialise();
 
+
+    /**
+     * Randomise tangents in tier0, frame 0 then propagate these changes to all other
+     * tiers and frames.
+     * Clear the dirty flags.
+     */
+    void
+    initialise_tangents( );
+
     /**
      * @return The transformation matrix for a specific vertex from frame0 in tier_idx to frame_idx.
      */
@@ -197,7 +260,7 @@ private:
      * @return The new vector.
      */
     Eigen::Vector3f
-    compute_new_tangent_for_vertex(const std::vector<PointNormalGraphPtr>& graphs, size_t tier_idx, size_t vertex_idx) const;
+    compute_new_tangent_for_vertex(const std::vector<PointNormalGraphPtr>& graphs, size_t tier_idx, size_t vertex_idx);
 
     /**
      * Construct a vector of all neighbours of a given graph node in a specific tier.
@@ -210,7 +273,7 @@ private:
      * @return A pair of vectors, the first are normals and the second tangents for all neighbours of this vertex.
      */
     std::pair<std::vector<Eigen::Vector3f>, std::vector<Eigen::Vector3f>>
-    copy_all_neighbours_for(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx, std::size_t vertex_idx) const;
+    copy_all_neighbours_for(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx, std::size_t vertex_idx);
 
 
     /**
@@ -219,14 +282,14 @@ private:
      * @return True if the optimisation converged, otherwise false.
      */
     std::vector<Eigen::Vector3f>
-    compute_new_tangents_for_tier(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx) const;
+    compute_new_tangents_for_tier(const std::vector<PointNormalGraphPtr>& graphs, std::size_t tier_idx);
 
     /**
      * Update the tangents (for currently optimising tier).  The provided vector of tangents is in
      * order specified by indices.
      */
     void
-    update_tangents( const std::vector<Eigen::Vector3f>& new_tangents);
+    update_tangents( size_t tier_idx, const std::vector<Eigen::Vector3f>& new_tangents);
 
     /**
      * Setup for optimisation. Build the hierarchical graph and

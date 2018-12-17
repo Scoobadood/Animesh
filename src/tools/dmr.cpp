@@ -1,5 +1,3 @@
-#define GL_SILENCE_DEPRECATION
-
 // Include standard headers
 #include <iostream>
 #include <cmath>
@@ -9,7 +7,7 @@
 // Include GLFW
 #include <GLFW/glfw3.h>
 
-#include "mesh.hpp"
+#include "model.hpp"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -46,36 +44,8 @@ int main() {
 	glViewport(0, 0, windowWidth, windowHeight);
 	glfwMakeContextCurrent(window);
 
-	std::vector<Vertex> vertices {
-		{
-			glm::vec3{-0.5f, -0.5f, 0.0f},
-			glm::vec3{ 0.0f,  0.0f, 1.0f},
-			glm::vec2{ 0.0f,  0.0f}
-		}, 
-		{
-			glm::vec3{ 0.5f, -0.5f, 0.0f},
-			glm::vec3{ 0.0f,  0.0f, 1.0f},
-			glm::vec2{ 0.0f,  0.0f}
-		},
-		{
-			glm::vec3{ 0.5f,  0.5f, 0.0f},
-			glm::vec3{ 0.0f,  0.0f, 1.0f},
-			glm::vec2{ 0.0f,  0.0f}
-		},
-		{
-			glm::vec3{-0.5f,  0.5f, 0.0f},
-			glm::vec3{ 0.0f,  0.0f, 1.0f},
-			glm::vec2{ 0.0f,  0.0f}
-		}
-	};
-	std::vector<unsigned int> indices{
-		0, 1, 2, 0, 2, 3
-	};
 
-	std::vector<Texture> textures{};
-	Mesh m{vertices, indices, textures};
-
-	Shader s1{"vertex_shader.glsl", "v_col_frag_shader.glsl"};
+	Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-04.obj"};
 	Shader s2{"vertex_shader.glsl", "u_col_frag_shader.glsl"};
 
 	while(!glfwWindowShouldClose(window)) {
@@ -91,7 +61,7 @@ int main() {
 		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 		s2.use();
 		s2.setFloat( "greenShade", greenValue);
-		m.draw(s2);
+		model.draw(s2);
 
 		// Display
 	    glfwSwapBuffers(window);

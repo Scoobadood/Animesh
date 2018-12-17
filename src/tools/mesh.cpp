@@ -72,9 +72,6 @@ void Mesh::setupMesh() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoords));
 
     glBindVertexArray(0);
-}  
+}
 
-void Model::draw(Shader shader) {
-    for(unsigned int i = 0; i < meshes.size(); i++)
-        meshes[i].draw(shader);
-}  
+

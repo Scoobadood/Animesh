@@ -29,7 +29,8 @@ target_compile_features(perf_tool
 # Depth map renderer
 add_executable(dmr
    	dmr.cpp
-      mesh.cpp)
+      mesh.cpp
+      model.cpp)
 
 
 # GLFW
@@ -50,13 +51,16 @@ IF(APPLE)
    SET(EXTRA_LIBS ${COCOA_LIBRARY} ${GLUT_LIBRARY} ${OpenGL_LIBRARY})
 ENDIF (APPLE)
 
-# ASSIM
+# ASSIMP
 find_package(assimp REQUIRED)
+if (assimp_FOUND)
+    set(ASSIMP_LIBRARY "assimp")
+    add_library(${ASSIMP_LIBRARY} SHARED IMPORTED)
+    set_target_properties(${ASSIMP_LIBRARY} PROPERTIES IMPORTED_LOCATION "${ASSIMP_LIBRARY_DIRS}/libassimp.dylib")
+endif(assimp_FOUND)
+target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
 
-# link_directories(/usr/X11/lib)
-# SET(EXTRA_LIBS GL X11 GLU glut)
-# include_directories(/usr/X11/include/)
-target_link_libraries(dmr ${EXTRA_LIBS} glfw ${assimp_library})
+add_definitions(-DGL_SILENCE_DEPRECATION)
 
 target_compile_features(dmr
 	PUBLIC

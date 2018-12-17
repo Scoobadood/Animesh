@@ -28,11 +28,15 @@ target_compile_features(perf_tool
 
 # Depth map renderer
 add_executable(dmr
-   	dmr.cpp)
+   	dmr.cpp
+      mesh.cpp)
 
 
 # GLFW
 find_package(glfw3 3.2 REQUIRED)
+
+# GLM
+find_package(glm REQUIRED)
 
 # OpenGL
 IF(APPLE)
@@ -46,10 +50,13 @@ IF(APPLE)
    SET(EXTRA_LIBS ${COCOA_LIBRARY} ${GLUT_LIBRARY} ${OpenGL_LIBRARY})
 ENDIF (APPLE)
 
+# ASSIM
+find_package(assimp REQUIRED)
+
 # link_directories(/usr/X11/lib)
 # SET(EXTRA_LIBS GL X11 GLU glut)
 # include_directories(/usr/X11/include/)
-target_link_libraries(dmr ${EXTRA_LIBS} glfw)
+target_link_libraries(dmr ${EXTRA_LIBS} glfw ${assimp_library})
 
 target_compile_features(dmr
 	PUBLIC

@@ -2,5 +2,5 @@
 out vec4 FragColor;
 uniform float greenShade;
 void main() {
-  FragColor = vec4(0.0, greenShade, 0.0, 1.0);
+  FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);
 }

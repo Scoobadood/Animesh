@@ -65,9 +65,7 @@ int main() {
 
 		// 3. Update colour of uniform
 		float timeValue = glfwGetTime();
-		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
 		s2.use();
-		s2.setFloat( "greenShade", greenValue);
 		GLuint transformLoc = glGetUniformLocation(s2.ID, "transform");
 		trans = glm::rotate(trans, glm::radians(.01f), glm::vec3(0.0, 1.0, 0.0));
 		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));

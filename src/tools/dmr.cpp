@@ -49,12 +49,21 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 
-	Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-04.obj"};
+	Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube/cube.obj"};
+	// Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-04.obj"};
+	// Shader s2{"vertex_shader.glsl", "geom_shader.glsl", "u_col_frag_shader.glsl"};
 	Shader s2{"vertex_shader.glsl", "u_col_frag_shader.glsl"};
 
-	glm::mat4 trans = glm::mat4(1.0f);
-	trans = glm::rotate(trans, glm::radians(-90.0f), glm::vec3(0.0, 1.0, 0.0));
-	
+	// Set up transform
+	glm::mat4 worldTransform = glm::mat4(1.0f);
+	glm::mat4 viewTransform = glm::mat4(1.0f);
+	viewTransform[3][2] = -4.3;
+	glm::mat4 projectionTransform = glm::perspective(55.0f, 1.f, 0.1f, 10.f);
+
+	GLuint modelMatrixLoc = glGetUniformLocation(s2.ID, "modelMatrix");
+	GLuint viewMatrixLoc = glGetUniformLocation(s2.ID, "viewMatrix");
+	GLuint projectionMatrixLoc = glGetUniformLocation(s2.ID, "projectionMatrix");
+
 	while(!glfwWindowShouldClose(window)) {
 		// Input
 		handleInput(window);
@@ -66,9 +75,11 @@ int main() {
 		// 3. Update colour of uniform
 		float timeValue = glfwGetTime();
 		s2.use();
-		GLuint transformLoc = glGetUniformLocation(s2.ID, "transform");
-		trans = glm::rotate(trans, glm::radians(.01f), glm::vec3(0.0, 1.0, 0.0));
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+		glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, glm::value_ptr(worldTransform));
+		worldTransform = glm::rotate(worldTransform, glm::radians(.1f), glm::vec3(0.0, 1.0, 0.0));
+		glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE, glm::value_ptr(viewTransform));
+		glUniformMatrix4fv(projectionMatrixLoc, 1, GL_FALSE, glm::value_ptr(projectionTransform));
+
 		model.draw(s2);
 
 		// Display

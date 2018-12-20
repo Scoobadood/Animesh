@@ -52,18 +52,6 @@ int main() {
 	Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-04.obj"};
 	Shader s2{"vertex_shader.glsl", "u_col_frag_shader.glsl"};
 
-	// Set up transform
-	// glm::mat4 trans = glm::mat4(1.0f);
-	// trans = glm::rotate(trans, glm::radians(-90.0f), glm::vec3(0.0, 1.0, 0.0));
-	// trans = glm::identity();
-	// GLuint transformLoc = glGetUniformLocation(s2.ID, "transform");
-	// glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-	float identity[] = {
-		1.0f, 0.0f, 0.0f, 0.0f, 
-		0.0f, 1.0f, 0.0f, 0.0f, 
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f 
-	};
 	glm::mat4 trans = glm::mat4(1.0f);
 	trans = glm::rotate(trans, glm::radians(-90.0f), glm::vec3(0.0, 1.0, 0.0));
 	

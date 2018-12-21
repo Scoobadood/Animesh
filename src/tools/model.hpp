@@ -15,6 +15,8 @@ class Model {
             loadModel(path);
         }
 
+        GLuint writeToTexture();
+
         void draw(Shader shader);   
 
     private:

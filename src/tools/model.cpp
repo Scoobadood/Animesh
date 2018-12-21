@@ -11,6 +11,44 @@ void Model::draw(Shader shader) {
     }
 }
 
+/**
+ * Write to a texture as set of vertices 
+ * v1, v2, v3 per triangle
+ * Assumes only one mesh.
+ */
+GLuint Model::writeToTexture() {
+    using namespace std;
+
+    // Unpack all faces into vector of floats
+    vector<float> coords;
+    for( auto i : meshes[0].indices) {
+        glm::vec3 position = meshes[0].vertices[i].position;
+        coords.push_back(position.x);
+        coords.push_back(position.y);
+        coords.push_back(position.z);
+    }
+
+    int numFaces = coords.size() / 3;
+
+    // Assume a 512x512 texture, unclamped floats
+    GLuint textureId;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_1D, textureId);
+    glTexImage1D(GL_TEXTURE_1D,     // target
+                 0,                 // level
+                 GL_RGB32F, 
+                 coords.size() / 3, // Num vertices 
+                 0,                 // Border - must be 0
+                 GL_RGB,            // Provided format
+                 GL_FLOAT,   // Each RGB is a float
+                 coords.data());
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    return textureId;
+}
+
+
 void Model::loadModel(const std::string& path) {
 	using namespace std;
 

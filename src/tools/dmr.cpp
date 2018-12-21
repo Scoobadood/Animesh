@@ -21,7 +21,6 @@ void handleInput(GLFWwindow *window) {
 	}
 }
 
-
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -60,6 +59,10 @@ int main() {
 	GLuint modelMatrixLoc = glGetUniformLocation(depthShader.ID, "modelMatrix");
 	GLuint viewMatrixLoc = glGetUniformLocation(depthShader.ID, "viewMatrix");
 	GLuint projectionMatrixLoc = glGetUniformLocation(depthShader.ID, "projectionMatrix");
+
+	// Store data to texture
+	GLuint tex = model.writeToTexture();
+	assert( tex != 0 );
 
 	while(!glfwWindowShouldClose(window)) {
 		// Input

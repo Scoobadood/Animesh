@@ -48,6 +48,7 @@ int main() {
 	Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube/cube.obj"};
 	// Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-04.obj"};
 	Shader depthShader{"vertex_shader.glsl", "depth_frag_shader.glsl"};
+	Shader vertexShader{"rt_vertex_shader.glsl", "rt_fragment_shader.glsl"};
 
 	// Set up transform
 	glm::mat4 worldTransform = glm::mat4(1.0f);

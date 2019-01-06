@@ -12,7 +12,9 @@
 // Include other non Apple libs here.
 #endif
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures) {
+Mesh::Mesh( std::vector<Vertex> vertices, 
+            std::vector<unsigned int> indices, 
+            std::vector<Texture> textures) {
 	this->vertices = vertices;
     this->indices = indices;
     this->textures = textures;
@@ -48,7 +50,14 @@ void Mesh::draw(Shader shader) {
 }  
 
 void Mesh::setupMesh() {
+    GLenum err;
+
+    // Get me a vertex array
     glGenVertexArrays(1, &VAO);
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "setupMesh error: " << std::hex << "0x" << err << std::endl;
+    }
+
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
   

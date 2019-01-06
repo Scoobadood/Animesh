@@ -35,7 +35,9 @@ private:
                 ? "FRAGMENT" 
                 : (shaderType == GL_GEOMETRY_SHADER)
                     ? "GEOMETRY"
-                    : "VERTEX")
+                    : (shaderType == GL_VERTEX_SHADER)
+                        ? "VERTEX"
+                        : "COMPUTE")
                 << infoLog << std::endl;
         }
         return shader;

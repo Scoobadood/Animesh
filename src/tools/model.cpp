@@ -13,7 +13,7 @@ void Model::draw(Shader shader) {
 
 /**
  * Write to a texture as set of vertices 
- * v1, v2, v3 per triangle
+ * v1, v2, v3 and index per triangle
  * Assumes only one mesh.
  */
 GLuint Model::writeToTexture() {
@@ -21,11 +21,18 @@ GLuint Model::writeToTexture() {
 
     // Unpack all faces into vector of floats
     vector<float> coords;
+    // Push back number of triangles but four times
+    float numTriangles = meshes[0].indices.size() / 3;
+    coords.push_back(numTriangles);
+    coords.push_back(numTriangles);
+    coords.push_back(numTriangles);
+    coords.push_back(numTriangles);
     for( auto i : meshes[0].indices) {
         glm::vec3 position = meshes[0].vertices[i].position;
         coords.push_back(position.x);
         coords.push_back(position.y);
         coords.push_back(position.z);
+        coords.push_back(float(i));
     }
 
     int numFaces = coords.size() / 3;
@@ -33,17 +40,20 @@ GLuint Model::writeToTexture() {
     // Assume a 512x512 texture, unclamped floats
     GLuint textureId;
     glGenTextures(1, &textureId);
-    glBindTexture(GL_TEXTURE_1D, textureId);
-    glTexImage1D(GL_TEXTURE_1D,     // target
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexImage2D(GL_TEXTURE_2D,     // target
                  0,                 // level
-                 GL_RGB32F, 
-                 coords.size() / 3, // Num vertices 
+                 GL_RGBA32F,        // Use 32 bit floats
+                 512, // Width
+                 512, // Heights 
                  0,                 // Border - must be 0
-                 GL_RGB,            // Provided format
-                 GL_FLOAT,   // Each RGB is a float
+                 GL_RGBA,           // Provided format
+                 GL_FLOAT,          // Each RGB is a float
                  coords.data());
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     return textureId;
 }
@@ -64,6 +74,8 @@ void Model::loadModel(const std::string& path) {
 }  
 
 void Model::processNode(aiNode *node, const aiScene *scene) {
+    std::cout << "Model::processNode" << std::endl;
+
     // process all the node's meshes (if any)
     for(unsigned int i = 0; i < node->mNumMeshes; i++) {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]]; 
@@ -77,6 +89,7 @@ void Model::processNode(aiNode *node, const aiScene *scene) {
 }
 
 Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
+    std::cout << "Model::processMesh" << std::endl;
 	using namespace std;
 
 	vector<Vertex> vertices;
@@ -133,6 +146,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type, const std::string& typeName) {
 	using namespace std;
 
+    std::cout << "Model::loadMaterialTextures" << std::endl;
     vector<Texture> textures;
     for(unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
         aiString str;
@@ -160,12 +174,17 @@ std::vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType 
 
 GLuint textureFromFile(const char *path, const std::string &directory, bool gamma) {
 	using namespace std;
+    std::cout << "Model::textureFromFile" << std::endl;
 
     string filename = string(path);
     filename = directory + '/' + filename;
 
     GLuint textureID;
     glGenTextures(1, &textureID);
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "textureFromFile error: " << std::hex << "0x" << err << std::endl;
+    }
 
     int width, height, nrComponents;
     unsigned char *data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);

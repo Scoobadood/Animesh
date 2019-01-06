@@ -29,9 +29,16 @@ target_compile_features(perf_tool
 # Depth map renderer
 add_executable(dmr
    	dmr.cpp
+    glutils.cpp
       mesh.cpp
       model.cpp)
 
+# Data Generator
+add_executable(dat_gen
+    dat_gen.cpp
+    glutils.cpp
+      mesh.cpp
+      model.cpp)
 
 # GLFW
 find_package(glfw3 3.2 REQUIRED)
@@ -58,10 +65,8 @@ if (assimp_FOUND)
     add_library(${ASSIMP_LIBRARY} SHARED IMPORTED)
     set_target_properties(${ASSIMP_LIBRARY} PROPERTIES IMPORTED_LOCATION "${ASSIMP_LIBRARY_DIRS}/libassimp.dylib")
 endif(assimp_FOUND)
+
 target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
+target_link_libraries(dat_gen ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
 
 add_definitions(-DGL_SILENCE_DEPRECATION)
-
-target_compile_features(dmr
-	PUBLIC
-		cxx_std_11)

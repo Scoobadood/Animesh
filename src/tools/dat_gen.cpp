@@ -1,92 +1,163 @@
-/*
- * Generate cheat data.
- * Given an input OBJ file, moves the camera around the object and
- * for each frame generates an output 
- * - PNG file showing depth map
- * - PNG with nearest vertex index (1 - based) or 0 for none
- */
+// Getting started with OpenCL tutorial
+// by Sam Lapere, 2016, http://raytracey.blogspot.com
+// Code based on http://simpleopencl.blogspot.com/2013/06/tutorial-simple-start-with-opencl-and-c.html
 
-#include "glutils.hpp"
-#include "Shader.hpp"
-#include "model.hpp"
-
-// Matrix libraries
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-// IO
 #include <iostream>
-#include <fstream>
+#include <vector>
 
-void makeTransformMatrices( glm::mat4& world, glm::mat4& view, glm::mat4& project ) {
-	// Set up transform
-	world = glm::mat4(1.0f);
-	view = glm::mat4(1.0f);
-	view[3][2] = -5;
+#ifdef __APPLE__
+#include "cl.hpp"
+#else /// your stuff for linux
+#include <CL/cl.hpp> // main OpenCL include file 
+#endif
 
-	project = glm::perspective(55.0f, 1.f, 0.1f, 10.f);
-}
+using namespace cl;
 
+///////////////////
+// OPENCL KERNEL //
+///////////////////
 
-GLuint generateTexture( int tex_w, int tex_h) {
-	// dimensions of the image
-	GLuint tex_output;
-	glGenTextures(1, &tex_output);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, tex_output);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, tex_w, tex_h, 0, GL_RGBA, GL_FLOAT,
-	 NULL);
-	glBindImageTexture(0, tex_output, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-	return tex_output;
-}
+// the OpenCL kernel in this tutorial is a simple program that adds two float arrays in parallel
+// the source code of the OpenCL kernel is passed as a string to the host
+// the "__global" keyword denotes that "global" device memory is used, which can be read and written
+// to by all work items (threads) and all work groups on the device and can also be read/written by the host (CPU)
 
-int main() {
-    int windowWidth = 800;
-    int windowHeight = 600;
-	GLFWwindow* window = initGL(windowWidth, windowHeight);
+	const char* KERNEL_SOURCE =
+	    " __kernel void parallel_add(__global float* x, __global float* y, __global float* z){ "
+	    " const int i = get_global_id(0); " // get a unique number identifying the work item in the global pool
+	    " z[i] = y[i] + x[i];    " // add two arrays
+	    "}";
 
-	Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube/cube.obj"};
-	// Model model{"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-04.obj"};
-	Shader depthShader{"vertex_shader.glsl", "depth_frag_shader.glsl"};
+unsigned int selectPlatform(const std::vector<Platform>& platforms) {
+	using namespace std;
 
-		// Set up transform
-	glm::mat4 worldTransform, viewTransform, projectionTransform;
-	makeTransformMatrices(worldTransform, viewTransform, projectionTransform);
-
-	GLuint tex_output = generateTexture(512, 512);
-
-	int work_grp_cnt[3];
-
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
-
-	std::cout << "max global (total) work group size x:" << work_grp_cnt[0] 
-			<< " y:" << work_grp_cnt[1]
-			<< " z:" << work_grp_cnt[2]
-			<< std::endl;
-
-	// ---------------------------------------------------------
-	while(!glfwWindowShouldClose(window)) {
-		// Input
-		handleInput(window);
-
-		// Clear BG
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Render textur to full screen quad
-
-		// Display
-	    glfwSwapBuffers(window);
-	    glfwPollEvents();    
+	// Show the names of all available OpenCL platforms
+	cout << "Available OpenCL platforms: \n\n";
+	for (unsigned int i = 0; i < platforms.size(); i++) {
+		cout << "\t" << i + 1 << ": " << platforms[i].getInfo<CL_PLATFORM_NAME>() << endl;
 	}
 
-	glfwTerminate();
-    return 0;
+	// Choose and create an OpenCL platform
+	cout << endl << "Enter the number of the OpenCL platform you want to use: ";
+	unsigned int input = 0;
+	cin >> input;
+
+	// Handle incorrect user input
+	while (input < 1 || input > platforms.size()) {
+		cin.clear(); //clear errors/bad flags on cin
+		cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
+		cout << "No such platform." << endl << "Enter the number of the OpenCL platform you want to use: ";
+		cin >> input;
+	}
+
+	return input;
+}
+
+unsigned int selectDevice(const std::vector<Device>& devices) {
+	using namespace std;
+
+	// Print the names of all available OpenCL devices on the chosen platform
+	cout << "Available OpenCL devices on this platform: " << endl << endl;
+	for (unsigned int i = 0; i < devices.size(); i++) {
+		cout << "\t" << i + 1 << ": " << devices[i].getInfo<CL_DEVICE_NAME>() << endl;
+	}
+
+	// Choose an OpenCL device
+	cout << endl << "Enter the number of the OpenCL device you want to use: ";
+	unsigned int input = 0;
+	cin >> input;
+
+	// Handle incorrect user input
+	while (input < 1 || input > devices.size()) {
+		cin.clear(); //clear errors/bad flags on cin
+		cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
+		cout << "No such device. Enter the number of the OpenCL device you want to use: ";
+		cin >> input;
+	}
+
+	return input;
+}
+
+int main()
+{
+	using namespace std;
+
+	// Find all available OpenCL platforms (e.g. AMD, Nvidia, Intel)
+	vector<Platform> platforms;
+	Platform::get(&platforms);
+
+	// Select one
+	unsigned int input = selectPlatform(platforms);
+	Platform platform = platforms[input - 1];
+	cout << "Using OpenCL platform: \t" << platform.getInfo<CL_PLATFORM_NAME>() << endl;
+
+	// Find all available OpenCL devices (e.g. CPU, GPU or integrated GPU)
+	vector<Device> devices;
+	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+	// Select one
+	input = selectDevice(devices);
+	Device device = devices[input - 1];
+	cout << endl << "Using OpenCL device: \t" << device.getInfo<CL_DEVICE_NAME>() << endl << endl;
+
+	// Create an OpenCL context on that device to manage all the OpenCL resources
+	Context context = Context(device);
+
+	// Create an OpenCL program by performing runtime source compilation
+	Program program = Program(context, KERNEL_SOURCE);
+
+	// Build the program and check for compilation errors
+	cl_int result = program.build({ device }, "");
+	if (result) {
+		cout << "Error during compilation! (" << result << ")" << endl;
+	}
+
+// Create a kernel (entry point in the OpenCL source program)
+// kernels are the basic units of executable code that run on the OpenCL device
+// the kernel forms the starting point into the OpenCL program, analogous to main() in CPU code
+// kernels can be called from the host (CPU)
+	Kernel kernel = Kernel(program, "parallel_add");
+
+// Create input data arrays on the host (= CPU)
+	const int numElements = 10;
+	float cpuArrayA[numElements] = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f };
+	float cpuArrayB[numElements] = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f };
+	float cpuOutput[numElements] = {}; // empty array for storing the results of the OpenCL program
+
+// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
+// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
+	Buffer clBufferA = Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numElements * sizeof(cl_int), cpuArrayA);
+	Buffer clBufferB = Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numElements * sizeof(cl_int), cpuArrayB);
+	Buffer clOutput = Buffer(context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int), NULL);
+
+// Specify the arguments for the OpenCL kernel
+// (the arguments are __global float* x, __global float* y and __global float* z)
+	kernel.setArg(0, clBufferA); // first argument
+	kernel.setArg(1, clBufferB); // second argument
+	kernel.setArg(2, clOutput);  // third argument
+
+// Create a command queue for the OpenCL device
+// the command queue allows kernel execution commands to be sent to the device
+	CommandQueue queue = CommandQueue(context, device);
+
+// Determine the global and local number of "work items"
+// The global work size is the total number of work items (threads) that execute in parallel
+// Work items executing together on the same compute unit are grouped into "work groups"
+// The local work size defines the number of work items in each work group
+// Important: global_work_size must be an integer multiple of local_work_size
+	std::size_t global_work_size = numElements;
+	std::size_t local_work_size = 10; // could also be 1, 2 or 5 in this example
+// when local_work_size equals 10, all ten number pairs from both arrays will be added together in one go
+
+// Launch the kernel and specify the global and local number of work items (threads)
+	queue.enqueueNDRangeKernel(kernel, NULL, global_work_size, local_work_size);
+
+// Read and copy OpenCL output to CPU
+// the "CL_TRUE" flag blocks the read operation until all work items have finished their computation
+	queue.enqueueReadBuffer(clOutput, CL_TRUE, 0, numElements * sizeof(cl_float), cpuOutput);
+
+// Print results to console
+	for (int i = 0; i < numElements; i++) {
+		cout << cpuArrayA[i] << " + " << cpuArrayB[i] << " = " << cpuOutput[i] << endl;
+	}
 }

@@ -36,7 +36,6 @@ add_executable(dmr
 # Data Generator
 add_executable(dat_gen
     dat_gen.cpp
-    glutils.cpp
       mesh.cpp
       model.cpp)
 
@@ -58,6 +57,16 @@ IF(APPLE)
    SET(EXTRA_LIBS ${COCOA_LIBRARY} ${GLUT_LIBRARY} ${OpenGL_LIBRARY})
 ENDIF (APPLE)
 
+
+# OpenCL 
+find_package(OpenCL REQUIRED)
+IF(APPLE)
+   INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
+   FIND_LIBRARY(OpenCL_LIBRARY OpenCL )
+   MARK_AS_ADVANCED (OpenCL_LIBRARY)
+ENDIF (APPLE)
+
+
 # ASSIMP
 find_package(assimp REQUIRED)
 if (assimp_FOUND)
@@ -67,6 +76,8 @@ if (assimp_FOUND)
 endif(assimp_FOUND)
 
 target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
-target_link_libraries(dat_gen ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
+
+target_link_libraries(dat_gen glm OpenCL::OpenCL ${EXTRA_LIBS} ${ASSIMP_LIBRARY})
 
 add_definitions(-DGL_SILENCE_DEPRECATION)
+add_definitions(-DCL_SILENCE_DEPRECATION)

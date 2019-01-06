@@ -4,6 +4,9 @@
 
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 #ifdef __APPLE__
 #include "cl.hpp"
@@ -13,20 +16,25 @@
 
 using namespace cl;
 
-///////////////////
-// OPENCL KERNEL //
-///////////////////
+std::string loadCode( const std::string& kernelPath ) {
+	using namespace std;
 
-// the OpenCL kernel in this tutorial is a simple program that adds two float arrays in parallel
-// the source code of the OpenCL kernel is passed as a string to the host
-// the "__global" keyword denotes that "global" device memory is used, which can be read and written
-// to by all work items (threads) and all work groups on the device and can also be read/written by the host (CPU)
+	string code;
+	ifstream file;
+	file.exceptions (ifstream::failbit | ifstream::badbit);
+	try {
+		file.open(kernelPath);
+		stringstream stream;
+		stream << file.rdbuf();
+		file.close();
+		code   = stream.str();
+	}
+	catch (ifstream::failure e) {
+		cout << "ERROR::FILE_NOT_SUCCESFULLY_READ" << endl;
+	}
+	return code;
+}
 
-	const char* KERNEL_SOURCE =
-	    " __kernel void parallel_add(__global float* x, __global float* y, __global float* z){ "
-	    " const int i = get_global_id(0); " // get a unique number identifying the work item in the global pool
-	    " z[i] = y[i] + x[i];    " // add two arrays
-	    "}";
 
 unsigned int selectPlatform(const std::vector<Platform>& platforms) {
 	using namespace std;
@@ -78,8 +86,57 @@ unsigned int selectDevice(const std::vector<Device>& devices) {
 	return input;
 }
 
-int main()
-{
+
+inline float clamp(float x){ return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
+
+// convert RGB float in range [0,1] to int in range [0, 255]
+inline int toInt(float x){ return int(clamp(x) * 255 + .5); }
+
+
+void saveImage(const std::string& fileName, const cl_float3* data, unsigned int width, unsigned int height) {
+	using namespace std;
+
+	// write image to PPM file, a very simple image file format
+	// PPM files can be opened with IrfanView (download at www.irfanview.com) or GIMP
+	std::ofstream saveFile{fileName, std::ios::out};
+	saveFile << "P3" << endl;
+	saveFile << width << " " << height << endl << 255 << endl;
+	// loop over pixels, write RGB values
+	int i = 0;
+	for (int h = 0; h < height; h++){
+		for (int w = 0; w < width; w++){
+			if( i % 10000 == 0) {
+				cout << "i: " << i << ",  data[i] " << data[i].x << endl;
+			}
+			saveFile << toInt(data[i].s[0]) << " " 
+					 << toInt(data[i].s[1]) << " " 
+					 << toInt(data[i].s[2]) << " ";
+			i++;
+		}
+		saveFile << endl;
+	}
+	saveFile.close();
+}
+
+void buildProgram( Program& program, const Device& device ) {
+	using namespace std;
+
+	cl_int result = program.build({ device }, "");
+	if (result) {
+		if (result == CL_BUILD_PROGRAM_FAILURE) {
+			string name     = device.getInfo<CL_DEVICE_NAME>();
+			string buildlog = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+			cerr << "Build log for " << name << ":" << endl
+			     << buildlog << endl;    		// Print the log
+		}
+		else {
+			cout << "Error during compilation! (" << result << ")" << endl;
+		}
+		exit( -1 );
+	}
+}
+
+int main() {
 	using namespace std;
 
 	// Find all available OpenCL platforms (e.g. AMD, Nvidia, Intel)
@@ -104,60 +161,73 @@ int main()
 	Context context = Context(device);
 
 	// Create an OpenCL program by performing runtime source compilation
-	Program program = Program(context, KERNEL_SOURCE);
+	string kernelSource = loadCode( "red_green.cl");
+	Program program{context, kernelSource};
 
-	// Build the program and check for compilation errors
-	cl_int result = program.build({ device }, "");
-	if (result) {
-		cout << "Error during compilation! (" << result << ")" << endl;
+	// Build the program and check for compilation errors (exit on fail)
+	buildProgram(program, device);
+
+	// Create a kernel (entry point in the OpenCL source program)
+	// kernels are the basic units of executable code that run on the OpenCL device
+	// the kernel forms the starting point into the OpenCL program, analogous to main() in CPU code
+	// kernels can be called from the host (CPU)
+	cl_int err;
+	Kernel kernel{program, "red_green", &err};
+	if( err != CL_SUCCESS) {
+		cerr << "Failed to create kernel " << err << endl;
+	} else {
+		cout << "Kernel created" << endl;
 	}
 
-// Create a kernel (entry point in the OpenCL source program)
-// kernels are the basic units of executable code that run on the OpenCL device
-// the kernel forms the starting point into the OpenCL program, analogous to main() in CPU code
-// kernels can be called from the host (CPU)
-	Kernel kernel = Kernel(program, "parallel_add");
+	// Create input data arrays on the host (= CPU)
+	const unsigned int width = 640;
+	const unsigned int height = 480;
+	const unsigned int numElements = width * height;
+	cl_float3 *cpuImageData = new cl_float3[numElements];
+	for( int i=0; i<numElements; i++ ) {
+		cpuImageData[i].x = 99.;
+		cpuImageData[i].y = 53.;
+		cpuImageData[i].z = 17.;
+		cpuImageData[i].w = 42.;
+	}
 
-// Create input data arrays on the host (= CPU)
-	const int numElements = 10;
-	float cpuArrayA[numElements] = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f };
-	float cpuArrayB[numElements] = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f };
-	float cpuOutput[numElements] = {}; // empty array for storing the results of the OpenCL program
+	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
+	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
+	Buffer gpuImageBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_float3)};
 
-// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
-// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
-	Buffer clBufferA = Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numElements * sizeof(cl_int), cpuArrayA);
-	Buffer clBufferB = Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numElements * sizeof(cl_int), cpuArrayB);
-	Buffer clOutput = Buffer(context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int), NULL);
+	// Specify the arguments for the OpenCL kernel
+	// (the arguments are __global float* x, __global float* y and __global float* z)
+	kernel.setArg(0, gpuImageBuffer); // first argument
+	kernel.setArg(1, width); // second argument
+	kernel.setArg(2, height);  // third argument
 
-// Specify the arguments for the OpenCL kernel
-// (the arguments are __global float* x, __global float* y and __global float* z)
-	kernel.setArg(0, clBufferA); // first argument
-	kernel.setArg(1, clBufferB); // second argument
-	kernel.setArg(2, clOutput);  // third argument
-
-// Create a command queue for the OpenCL device
-// the command queue allows kernel execution commands to be sent to the device
+	// Create a command queue for the OpenCL device
+	// the command queue allows kernel execution commands to be sent to the device
 	CommandQueue queue = CommandQueue(context, device);
 
-// Determine the global and local number of "work items"
-// The global work size is the total number of work items (threads) that execute in parallel
-// Work items executing together on the same compute unit are grouped into "work groups"
-// The local work size defines the number of work items in each work group
-// Important: global_work_size must be an integer multiple of local_work_size
+	// Determine the global and local number of "work items"
+	// The global work size is the total number of work items (threads) that execute in parallel
+	// Work items executing together on the same compute unit are grouped into "work groups"
+	// The local work size defines the number of work items in each work group
+	// Important: global_work_size must be an integer multiple of local_work_size
 	std::size_t global_work_size = numElements;
-	std::size_t local_work_size = 10; // could also be 1, 2 or 5 in this example
-// when local_work_size equals 10, all ten number pairs from both arrays will be added together in one go
+	std::size_t local_work_size = 32; // could also be 1, 2 or 5 in this example
 
-// Launch the kernel and specify the global and local number of work items (threads)
-	queue.enqueueNDRangeKernel(kernel, NULL, global_work_size, local_work_size);
-
-// Read and copy OpenCL output to CPU
-// the "CL_TRUE" flag blocks the read operation until all work items have finished their computation
-	queue.enqueueReadBuffer(clOutput, CL_TRUE, 0, numElements * sizeof(cl_float), cpuOutput);
-
-// Print results to console
-	for (int i = 0; i < numElements; i++) {
-		cout << cpuArrayA[i] << " + " << cpuArrayB[i] << " = " << cpuOutput[i] << endl;
+	// Launch the kernel and specify the global and local number of work items (threads)
+	err = queue.enqueueNDRangeKernel(kernel, NULL, global_work_size, local_work_size);
+	if( err != CL_SUCCESS) {
+		cerr << "Failed to enqueue kernel " << err << endl;
 	}
+//	queue.finish();
+
+	// Read and copy OpenCL output to CPU
+	// the "CL_TRUE" flag blocks the read operation until all work items have finished their computation
+	err = queue.enqueueReadBuffer(gpuImageBuffer, CL_TRUE, 0, numElements * sizeof(cl_float3), cpuImageData);
+	if( err != CL_SUCCESS) {
+		cerr << "Failed to read buffer " << err << endl;
+	}
+
+	// Save result to image file
+	saveImage("/Users/dave/Desktop/red_green.ppm", cpuImageData, width, height);
+	delete[] cpuImageData;
 }

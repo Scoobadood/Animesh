@@ -36,54 +36,87 @@ std::string loadCode( const std::string& kernelPath ) {
 }
 
 
-unsigned int selectPlatform(const std::vector<Platform>& platforms) {
+Platform selectPlatform() {
 	using namespace std;
 
-	// Show the names of all available OpenCL platforms
-	cout << "Available OpenCL platforms: \n\n";
-	for (unsigned int i = 0; i < platforms.size(); i++) {
-		cout << "\t" << i + 1 << ": " << platforms[i].getInfo<CL_PLATFORM_NAME>() << endl;
+	// Find all available OpenCL platforms (e.g. AMD, Nvidia, Intel)
+	vector<Platform> platforms;
+	Platform::get(&platforms);
+
+	if( platforms.size() == 0 ) {
+		cerr << "No OpenCL platform available" << endl;
+		exit(-1);
 	}
 
-	// Choose and create an OpenCL platform
-	cout << endl << "Enter the number of the OpenCL platform you want to use: ";
-	unsigned int input = 0;
-	cin >> input;
+	Platform platform;
+	if( platforms.size() == 1 ) {
+		platform = platforms[0];
+	} else {
+		// Show the names of all available OpenCL platforms
+		cout << "Available OpenCL platforms: \n\n";
+		for (unsigned int i = 0; i < platforms.size(); i++) {
+			cout << "\t" << i + 1 << ": " << platforms[i].getInfo<CL_PLATFORM_NAME>() << endl;
+		}
 
-	// Handle incorrect user input
-	while (input < 1 || input > platforms.size()) {
-		cin.clear(); //clear errors/bad flags on cin
-		cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
-		cout << "No such platform." << endl << "Enter the number of the OpenCL platform you want to use: ";
+		// Choose and create an OpenCL platform
+		cout << endl << "Enter the number of the OpenCL platform you want to use: ";
+		unsigned int input = 0;
 		cin >> input;
-	}
 
-	return input;
+		// Handle incorrect user input
+		while (input < 1 || input > platforms.size()) {
+			cin.clear(); //clear errors/bad flags on cin
+			cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
+			cout << "No such platform." << endl << "Enter the number of the OpenCL platform you want to use: ";
+			cin >> input;
+		}
+
+		platform = platforms[input-1];
+	}
+	cout << "Using OpenCL platform: \t" << platform.getInfo<CL_PLATFORM_NAME>() << endl;
+	return platform;
 }
 
-unsigned int selectDevice(const std::vector<Device>& devices) {
+Device selectDevice(Platform& platform) {
 	using namespace std;
 
-	// Print the names of all available OpenCL devices on the chosen platform
-	cout << "Available OpenCL devices on this platform: " << endl << endl;
-	for (unsigned int i = 0; i < devices.size(); i++) {
-		cout << "\t" << i + 1 << ": " << devices[i].getInfo<CL_DEVICE_NAME>() << endl;
+	// Find all available OpenCL devices (e.g. CPU, GPU or integrated GPU)
+	vector<Device> devices;
+	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+	if( devices.size() == 0 ) {
+		cerr << "No devices available on platform " << platform.getInfo<CL_PLATFORM_NAME>() << endl;
+		exit(-1);
 	}
 
-	// Choose an OpenCL device
-	cout << endl << "Enter the number of the OpenCL device you want to use: ";
-	unsigned int input = 0;
-	cin >> input;
+	Device device;
 
-	// Handle incorrect user input
-	while (input < 1 || input > devices.size()) {
-		cin.clear(); //clear errors/bad flags on cin
-		cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
-		cout << "No such device. Enter the number of the OpenCL device you want to use: ";
+	if( devices.size() == 1 ) {
+		device = devices[0];
+	} else {
+		// Print the names of all available OpenCL devices on the chosen platform
+		cout << "Available OpenCL devices on this platform: " << endl << endl;
+		for (unsigned int i = 0; i < devices.size(); i++) {
+			cout << "\t" << i + 1 << ": " << devices[i].getInfo<CL_DEVICE_NAME>() << endl;
+		}
+
+		// Choose an OpenCL device
+		cout << endl << "Enter the number of the OpenCL device you want to use: ";
+		unsigned int input = 0;
 		cin >> input;
-	}
 
-	return input;
+		// Handle incorrect user input
+		while (input < 1 || input > devices.size()) {
+			cin.clear(); //clear errors/bad flags on cin
+			cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
+			cout << "No such device. Enter the number of the OpenCL device you want to use: ";
+			cin >> input;
+		}
+		device = devices[input - 1];
+	}
+	cout << endl << "Using OpenCL device: \t" << device.getInfo<CL_DEVICE_NAME>() << endl << endl;
+
+	return device;
 }
 
 
@@ -139,23 +172,8 @@ void buildProgram( Program& program, const Device& device ) {
 int main() {
 	using namespace std;
 
-	// Find all available OpenCL platforms (e.g. AMD, Nvidia, Intel)
-	vector<Platform> platforms;
-	Platform::get(&platforms);
-
-	// Select one
-	unsigned int input = selectPlatform(platforms);
-	Platform platform = platforms[input - 1];
-	cout << "Using OpenCL platform: \t" << platform.getInfo<CL_PLATFORM_NAME>() << endl;
-
-	// Find all available OpenCL devices (e.g. CPU, GPU or integrated GPU)
-	vector<Device> devices;
-	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
-
-	// Select one
-	input = selectDevice(devices);
-	Device device = devices[input - 1];
-	cout << endl << "Using OpenCL device: \t" << device.getInfo<CL_DEVICE_NAME>() << endl << endl;
+	Platform platform = selectPlatform( );
+	Device device = selectDevice(platform);
 
 	// Create an OpenCL context on that device to manage all the OpenCL resources
 	Context context = Context(device);

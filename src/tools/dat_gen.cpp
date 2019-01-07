@@ -173,6 +173,15 @@ void buildProgram( Program& program, const Device& device ) {
 	}
 }
 
+void loadMesh( const std::string& filename, 
+				cl_float3 ** cpuVertices, 
+				cl_int3   ** cpuFaces, 
+				unsigned int* numVertices, 
+				unsigned int* numFaces) {
+
+}
+
+
 int main() {
 	using namespace std;
 
@@ -207,18 +216,30 @@ int main() {
 	const unsigned int numElements = width * height;
 	cl_float * cpuDepthData  = new cl_float[numElements];
 	cl_int   * cpuVertexData = new cl_int[numElements];
+	cl_float3* cpuVertices;
+	cl_int3  * cpuFaces;
+	unsigned int numVertices;
+	unsigned int numFaces;
+
+	loadMesh( "mesh_file_name.obj", &cpuVertices, &cpuFaces, &numVertices, &numFaces);
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
 	Buffer gpuDepthBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_float)};
 	Buffer gpuVertexBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int)};
+	Buffer gpuVertices{context, CL_MEM_READ_ONLY, numVertices * sizeof(cl_float3)};
+	Buffer gpuFaces{context, CL_MEM_READ_ONLY, numFaces * sizeof(cl_int3)};
 
 	// Specify the arguments for the OpenCL kernel
-	// (the arguments are __global float* x, __global float* y and __global float* z)
-	kernel.setArg(0, gpuDepthBuffer);		// first argument
-	kernel.setArg(1, gpuVertexBuffer);		// first argument
-	kernel.setArg(2, width);				// second argument
-	kernel.setArg(3, height);  				// third argument
+	//
+	kernel.setArg(0, numVertices);
+	kernel.setArg(1, gpuVertices);			// Vertices of mesh
+	kernel.setArg(2, numFaces);
+	kernel.setArg(3, gpuFaces);				// Faces of mesh as 3 vertex indices CCW
+	kernel.setArg(4, gpuDepthBuffer);		// Depth image rendered to here
+	kernel.setArg(5, gpuVertexBuffer);		// Vertex image rendered to here
+	kernel.setArg(6, width);				// Width of output images
+	kernel.setArg(7, height);  				// Height of output images
 
 	// Create a command queue for the OpenCL device
 	// the command queue allows kernel execution commands to be sent to the device

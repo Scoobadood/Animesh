@@ -15,11 +15,11 @@ typedef struct Camera{
 	float focalDistance;
 } Camera;
 
-Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, const Camera * cam);
+Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam);
 bool intersectRayWithFace(const Ray ray, __global float3 * vertices, const int3 face, float * dist );
-int intersectRayWithMesh( const Ray ray, const int numVertices, __global float3 * vertices, const int numFaces, __global int3 * faces, float3 * intersection );
+int intersectRayWithMesh( const Ray ray, const int numVertices, __global float3 * vertices, const int numFaces, __global int3 * faces, float * distance );
 
-Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, const Camera * cam) {
+Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam) {
 	/* create a local coordinate frame for the camera */
 	float3 rendercamview = normalize(cam->view); 
 	float3 rendercamup = normalize(cam->up); 
@@ -65,7 +65,7 @@ bool intersectRayWithFace(const Ray ray,
 
     float3 surf_norm = cross(edge1, edge2);
     float  angle = dot(surf_norm, ray.direction);
-    if( angle > 0)
+    if( angle < 0)
     	return false; // This triangle isn't facing me
 
     float3 h = cross(ray.direction,edge2);
@@ -95,24 +95,25 @@ bool intersectRayWithFace(const Ray ray,
         return false;
 }
 
+
+/*
+ * Compute intersection of ray with mesh
+ */
 int intersectRayWithMesh( const Ray ray,
                           const int numVertices,
                           __global float3 * vertices,
                           const int numFaces,
                           __global int3 * faces,
-                          float3 * intersection ) {
-
-
-	float dist = INFINITY;
+                          float * distance ) {
+	*distance = INFINITY;
 	int bestF = -1;
 	for (int f = 0; f < numFaces; f++ ) {
-		float idist;
-		if ( intersectRayWithFace(ray, vertices, faces[f], &idist)) {
-			dist = min( idist, dist);
+		float dist;
+		if ( intersectRayWithFace(ray, vertices, faces[f], &dist)) {
+			*distance = min( dist, *distance);
 			bestF = f;
 		}
 	}
-	*intersection = ray.origin + ray.direction * dist;
 	return bestF;
 }
 
@@ -120,54 +121,43 @@ int intersectRayWithMesh( const Ray ray,
  * Perform raytracing
  */
 __kernel void ray_trace(
-    int numVertices,
-    __global float3 * vertices,
-    int numFaces,
-    __global int3 * faces,
-    __global float* depth,
-    __global unsigned int* vertex,
-    int width, int height) {
+    int numVertices,  __global float3 * vertices,	/* Vertex data for model */
+    int numFaces, __global int3 * faces,			/* Face data for model */
+    __global Camera * camera,						/* Camera position and orientation */
+    __global float* depth,							/* Output depth data */
+    __global unsigned int* vertex,					/* Ouptut vertex data  */
+    int width, int height) {						/* Dimensions of output data */
 
-	Camera camera;
-	camera.position      = (float3)(10.0, 10.0, 10.0);
-	camera.view          = (float3)(-1.0,  -1.0,  -1.0);
-	camera.up            = (float3)(0.0,  1.0,  0.0);
-	camera.resolution    = (float2)(640.0, 480.0);
-	float fovX = 45.0;
-	float aspectRatio    = camera.resolution.y / camera.resolution.x;
-	float fovY = (atan(tan(fovX * PI / 360.0) * aspectRatio) * 360.0) / PI;
-	camera.fov           = (float2)(fovX, fovY);
-	camera.focalDistance = 5.0;
-
-	// Get x,y coord of pixel
+	// Get pixel coordinates from work id
 	const int work_item_id = get_global_id(0);
 	int x = work_item_id % width; /* x-coordinate of the pixel */
 	int y = work_item_id / width; /* y-coordinate of the pixel */
 
-	// Create the ray
-	Ray ray = createCamRay(x, y, width, height, &camera);
+	// Create the ray from cam to view
+	Ray ray = createCamRay(x, y, width, height, camera);
 
 	// Intersect the ray with the mesh
-	float3 intersection;
-	int intersectedFaceIdx = intersectRayWithMesh(ray, numVertices, vertices, numFaces, faces, &intersection);
-
-	// Compute the depth at this point
+	float range;
+	int intersectedFaceIdx = intersectRayWithMesh(ray, numVertices, vertices, numFaces, faces, &range);
 	if( intersectedFaceIdx >= 0 ) {
-		depth[work_item_id] = intersection.z;
+		// Compute the depth at this point
+		depth[work_item_id] = range;
 
+		// Compute nearest vertex index
 		int3 face = faces[intersectedFaceIdx];
+		float3 intersection = ray.origin + (range * ray.direction);
 		float d0 = length(intersection - vertices[face.s0]);
 		float d1 = length(intersection - vertices[face.s1]);
 		float d2 = length(intersection - vertices[face.s2]);
-
 		vertex[work_item_id] = ((d0 > d1) && (d0 > d2)) 
 			? face.s0 
 			: ((d1 > d0) && (d1 > d2)) 
 				? face.s1 
 				: face.s2;
 	} else {
+		// Ray mised mesh
 		depth[work_item_id] = 0.0;
-		vertex[work_item_id] = -1;
+		vertex[work_item_id] = 0;
 	}
 }
 

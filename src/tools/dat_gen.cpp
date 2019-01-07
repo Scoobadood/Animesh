@@ -7,6 +7,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <math.h>
 
 #ifdef __APPLE__
 #include "cl.hpp"
@@ -15,6 +16,24 @@
 #endif
 
 using namespace cl;
+
+typedef struct Camera{
+	cl_float3 position;		
+	cl_float3 view;			
+	cl_float3 up;			
+	cl_float2 resolution;	
+	cl_float2 fov;		
+	cl_float focalDistance;
+} Camera;
+
+
+float inline deg2rad(float deg) {
+	return (deg * M_PI) / 180.0;
+}
+
+float inline rad2deg(float rad) {
+	return (rad * 180.0) / M_PI;
+}
 
 std::string loadCode( const std::string& kernelPath ) {
 	using namespace std;
@@ -210,6 +229,14 @@ void loadMesh( const std::string& filename,
 	*numVertices = 8;
 }
 
+void initCamera( Camera & camera ) {
+	camera.position = cl_float3{2.0, 2.0, 10.0};
+	camera.view = cl_float3{0.0,  0.0,  -1.0};
+	camera.up = cl_float3{0.0,  1.0,  0.0};
+	camera.resolution = cl_float2{640, 480};
+	camera.fov = cl_float2{45.0,  45.0};
+	camera.focalDistance = 5.0;
+}
 
 int main() {
 	using namespace std;
@@ -249,6 +276,8 @@ int main() {
 	cl_int3  * cpuFaces;
 	unsigned int numVertices;
 	unsigned int numFaces;
+	Camera cpuCamera;
+	initCamera(cpuCamera);
 
 	loadMesh( "mesh_file_name.obj", &cpuVertices, &cpuFaces, &numVertices, &numFaces);
 
@@ -258,6 +287,7 @@ int main() {
 	Buffer gpuVertexBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int)};
 	Buffer gpuVertices{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numVertices * sizeof(cl_float3), cpuVertices};
 	Buffer gpuFaces{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numFaces * sizeof(cl_int3), cpuFaces};
+	Buffer gpuCamera{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cpuCamera), (void *)&cpuCamera};
 
 	delete[] cpuVertices;
 	delete[] cpuFaces;
@@ -268,10 +298,11 @@ int main() {
 	kernel.setArg(1, gpuVertices);			// Vertices of mesh
 	kernel.setArg(2, numFaces);
 	kernel.setArg(3, gpuFaces);				// Faces of mesh as 3 vertex indices CCW
-	kernel.setArg(4, gpuDepthBuffer);		// Depth image rendered to here
-	kernel.setArg(5, gpuVertexBuffer);		// Vertex image rendered to here
-	kernel.setArg(6, width);				// Width of output images
-	kernel.setArg(7, height);  				// Height of output images
+	kernel.setArg(4, gpuCamera);			// Camera
+	kernel.setArg(5, gpuDepthBuffer);		// Depth image rendered to here
+	kernel.setArg(6, gpuVertexBuffer);		// Vertex image rendered to here
+	kernel.setArg(7, width);				// Width of output images
+	kernel.setArg(8, height);  				// Height of output images
 
 	// Create a command queue for the OpenCL device
 	// the command queue allows kernel execution commands to be sent to the device
@@ -302,14 +333,13 @@ int main() {
 		cerr << "Failed to read buffer " << err << endl;
 	}
 
-
 	saveImage( "/Users/dave/Desktop/depth.pgm", width, height, 
 		 [cpuDepthData](int i) {
-            return (toInt(cpuDepthData[i] * 255));
-         }, 255);
+		 	return isinf(cpuDepthData[i]) ? 0 : (int)ceil(cpuDepthData[i]);
+         }, 0);
 	saveImage( "/Users/dave/Desktop/vertex.pgm", width, height, 
 		 [cpuVertexData](int i) {
-    	    return (cpuVertexData[i]);
+            return cpuVertexData[i];
      	}, 0);
 
 

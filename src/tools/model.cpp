@@ -58,6 +58,22 @@ GLuint Model::writeToTexture() {
     return textureId;
 }
 
+void Model::data(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices ) const {
+    vertices.clear();
+    indices.clear();
+    unsigned int baseIdx = 0;
+    for(unsigned int i = 0; i < meshes.size(); i++) {
+        for( auto v : meshes[i].vertices) {
+            vertices.push_back(v);
+        }
+        for( auto idx : meshes[i].indices) {
+            indices.push_back(idx + baseIdx);
+        }
+        baseIdx = vertices.size();
+    }
+}
+
+
 
 void Model::loadModel(const std::string& path) {
 	using namespace std;

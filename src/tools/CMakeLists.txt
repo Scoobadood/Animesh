@@ -36,8 +36,8 @@ add_executable(dmr
 # Data Generator
 add_executable(dat_gen
     dat_gen.cpp
-      mesh.cpp
-      model.cpp)
+      mesh_cl.cpp
+      model_cl.cpp)
 
 # GLFW
 find_package(glfw3 3.2 REQUIRED)

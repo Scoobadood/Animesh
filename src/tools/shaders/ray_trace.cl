@@ -150,10 +150,10 @@ __kernel void ray_trace(
 		float d1 = length(intersection - vertices[face.s1]);
 		float d2 = length(intersection - vertices[face.s2]);
 		vertex[work_item_id] = ((d0 > d1) && (d0 > d2)) 
-			? face.s0 
+			? face.s0 + 1 
 			: ((d1 > d0) && (d1 > d2)) 
-				? face.s1 
-				: face.s2;
+				? face.s1 + 1 
+				: face.s2 + 1;
 	} else {
 		// Ray mised mesh
 		depth[work_item_id] = 0.0;

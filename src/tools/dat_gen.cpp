@@ -2,6 +2,8 @@
 // by Sam Lapere, 2016, http://raytracey.blogspot.com
 // Code based on http://simpleopencl.blogspot.com/2013/06/tutorial-simple-start-with-opencl-and-c.html
 
+#include "model_cl.hpp"
+
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -17,12 +19,12 @@
 
 using namespace cl;
 
-typedef struct Camera{
-	cl_float3 position;		
-	cl_float3 view;			
-	cl_float3 up;			
-	cl_float2 resolution;	
-	cl_float2 fov;		
+typedef struct Camera {
+	cl_float3 position;
+	cl_float3 view;
+	cl_float3 up;
+	cl_float2 resolution;
+	cl_float2 fov;
 	cl_float focalDistance;
 } Camera;
 
@@ -62,13 +64,13 @@ Platform selectPlatform() {
 	vector<Platform> platforms;
 	Platform::get(&platforms);
 
-	if( platforms.size() == 0 ) {
+	if ( platforms.size() == 0 ) {
 		cerr << "No OpenCL platform available" << endl;
 		exit(-1);
 	}
 
 	Platform platform;
-	if( platforms.size() == 1 ) {
+	if ( platforms.size() == 1 ) {
 		platform = platforms[0];
 	} else {
 		// Show the names of all available OpenCL platforms
@@ -90,7 +92,7 @@ Platform selectPlatform() {
 			cin >> input;
 		}
 
-		platform = platforms[input-1];
+		platform = platforms[input - 1];
 	}
 	cout << "Using OpenCL platform: \t" << platform.getInfo<CL_PLATFORM_NAME>() << endl;
 	return platform;
@@ -103,14 +105,14 @@ Device selectDevice(Platform& platform) {
 	vector<Device> devices;
 	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
-	if( devices.size() == 0 ) {
+	if ( devices.size() == 0 ) {
 		cerr << "No devices available on platform " << platform.getInfo<CL_PLATFORM_NAME>() << endl;
 		exit(-1);
 	}
 
 	Device device;
 
-	if( devices.size() == 1 ) {
+	if ( devices.size() == 1 ) {
 		device = devices[0];
 	} else {
 		// Print the names of all available OpenCL devices on the chosen platform
@@ -139,10 +141,10 @@ Device selectDevice(Platform& platform) {
 }
 
 
-inline float clamp(float x){ return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
+inline float clamp(float x) { return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
 
 // convert RGB float in range [0,1] to int in range [0, 255]
-inline int toInt(float x){ return int(clamp(x) * 255 + .5); }
+inline int toInt(float x) { return int(clamp(x) * 255 + .5); }
 
 
 template<typename Func>
@@ -153,9 +155,9 @@ void saveImage(const std::string& fileName, unsigned int width, unsigned int hei
 	saveFile << "P2" << endl;
 	saveFile << width << " " << height << endl;
 
-	if( maxValue == 0 ) {
-		for (int i = 0; i < height * width; i++){
-			if( dataFunction(i) > maxValue ) {
+	if ( maxValue == 0 ) {
+		for (int i = 0; i < height * width; i++) {
+			if ( dataFunction(i) > maxValue ) {
 				maxValue = dataFunction(i);
 			}
 		}
@@ -164,10 +166,10 @@ void saveImage(const std::string& fileName, unsigned int width, unsigned int hei
 
 	// loop over pixels, write greyscale values
 	int i = 0;
-	for (int h = 0; h < height; h++){
-		for (int w = 0; w < width; w++){
+	for (int h = 0; h < height; h++) {
+		for (int w = 0; w < width; w++) {
 			int v = dataFunction(i);
-			if( i % 10000 == 0 ) cout << "i: " << i << ", data[i] : " << v << endl;
+			if ( i % 10000 == 0 ) cout << "i: " << i << ", data[i] : " << v << endl;
 			saveFile << v << " ";
 			i++;
 		}
@@ -194,48 +196,157 @@ void buildProgram( Program& program, const Device& device ) {
 	}
 }
 
-void loadMesh( const std::string& filename, 
-				cl_float3 ** cpuVertices, 
-				cl_int3   ** cpuFaces, 
-				unsigned int* numVertices, 
-				unsigned int* numFaces) {
-	cl_float3 * verts = new cl_float3[8];
-	verts[0] = {-1.0, -1.0, -1.0};
-	verts[1] = { 1.0, -1.0, -1.0};
-	verts[2] = { 1.0,  1.0, -1.0};
-	verts[3] = {-1.0,  1.0, -1.0};
-	verts[4] = {-1.0, -1.0,  1.0};
-	verts[5] = { 1.0, -1.0,  1.0};
-	verts[6] = { 1.0,  1.0,  1.0};
-	verts[7] = {-1.0,  1.0,  1.0};
 
-	cl_int3 * faces = new cl_int3[12];
-	faces[0] = { 0, 1, 2};
-	faces[1] = { 0, 2, 3};
-	faces[2] = { 1, 5, 6};
-	faces[3] = { 1, 6, 2};
-	faces[4] = { 5, 4, 7};
-	faces[5] = { 5, 7, 6};
-	faces[6] = { 4, 0, 3};
-	faces[7] = { 4, 3, 7};
-	faces[8] = { 2, 6, 7};
-	faces[9] = { 2, 7, 3};
-	faces[10] = { 0, 4, 5};
-	faces[11] = { 0, 5, 1};
+void loadMesh( const std::string& filename,
+               cl_float3 ** cpuVertices,
+               cl_int3   ** cpuFaces,
+               unsigned int* pNumVertices,
+               unsigned int* pNumFaces) {
 
+	using namespace std;
+
+	Model model{filename};
+	vector<Vertex> vertices;
+	vector<unsigned int> indices;
+	model.data(vertices, indices);
+
+	unsigned int numVertices = vertices.size();
+	cl_float3 * verts = new cl_float3[numVertices];
+	for ( int i = 0; i < numVertices; ++i) {
+		verts[i] = cl_float3{vertices[i].position.x, vertices[i].position.y, vertices[i].position.z };
+	}
+
+	unsigned int numFaces = indices.size() / 3;
+	cl_int3 * faces = new cl_int3[numFaces];
+	for ( int i = 0; i < numFaces; ++i) {
+		faces[i] = cl_int3{(int)indices[i * 3], (int)indices[i * 3 + 1], (int)indices[i * 3 + 2]};
+	}
+
+	/*
+
+		cl_float3 * verts = new cl_float3[8];
+		verts[0] = {-1.0, -1.0, -1.0};
+		verts[1] = { 1.0, -1.0, -1.0};
+		verts[2] = { 1.0,  1.0, -1.0};
+		verts[3] = {-1.0,  1.0, -1.0};
+		verts[4] = {-1.0, -1.0,  1.0};
+		verts[5] = { 1.0, -1.0,  1.0};
+		verts[6] = { 1.0,  1.0,  1.0};
+		verts[7] = {-1.0,  1.0,  1.0};
+
+		cl_int3 * faces = new cl_int3[12];
+		faces[0] = { 0, 1, 2};
+		faces[1] = { 0, 2, 3};
+		faces[2] = { 1, 5, 6};
+		faces[3] = { 1, 6, 2};
+		faces[4] = { 5, 4, 7};
+		faces[5] = { 5, 7, 6};
+		faces[6] = { 4, 0, 3};
+		faces[7] = { 4, 3, 7};
+		faces[8] = { 2, 6, 7};
+		faces[9] = { 2, 7, 3};
+		faces[10] = { 0, 4, 5};
+		faces[11] = { 0, 5, 1};
+	*/
 	*cpuVertices = verts;
 	*cpuFaces = faces;
-	*numFaces = 12;
-	*numVertices = 8;
+	*pNumFaces = numFaces;
+	*pNumVertices = numVertices;
 }
 
-void initCamera( Camera & camera ) {
-	camera.position = cl_float3{2.0, 2.0, 10.0};
-	camera.view = cl_float3{0.0,  0.0,  -1.0};
-	camera.up = cl_float3{0.0,  1.0,  0.0};
-	camera.resolution = cl_float2{640, 480};
-	camera.fov = cl_float2{45.0,  45.0};
-	camera.focalDistance = 5.0;
+void loadCameraFromFile( const std::string& filename, Camera& camera ) {
+	using namespace std;
+
+	bool fl_position, fl_view, fl_up, fl_resolution, fl_fov, fl_f;
+	fl_position = fl_view = fl_up = fl_resolution = fl_fov = fl_f = false;
+
+	ifstream file;
+	file.exceptions (ifstream::failbit | ifstream::badbit);
+
+
+	try {
+		file.open(filename);
+	}
+	catch (ifstream::failure e) {
+		cout << "ERROR::CAMFILE::NOT_FOUND " << filename << endl;
+		cerr << strerror(errno) << endl;
+		return;
+	}
+
+	file.exceptions (ifstream::goodbit);
+	string line;
+	while ( getline(file, line) ) {
+		istringstream is_line(line);
+		string key;
+		if ( getline(is_line, key, '=') ) {
+			string value;
+			if ( getline(is_line, value) ) {
+				// Handle the line
+				if ( key == "position") {
+					istringstream pos(value);
+					string val;
+					getline(pos, val, ',');
+					float x = stof(val);
+					getline(pos, val, ',');
+					float y = stof(val);
+					getline(pos, val);
+					float z = stof(val);
+					camera.position = cl_float3{x, y, z};
+					fl_position = true;
+				} else if ( key == "view" ) {
+					istringstream pos(value);
+					string val;
+					getline(pos, val, ',');
+					float x = stof(val);
+					getline(pos, val, ',');
+					float y = stof(val);
+					getline(pos, val);
+					float z = stof(val);
+					camera.view = cl_float3{x, y, z};
+					fl_view = true;
+				} else if ( key == "up" ) {
+					istringstream pos(value);
+					string val;
+					getline(pos, val, ',');
+					float x = stof(val);
+					getline(pos, val, ',');
+					float y = stof(val);
+					getline(pos, val);
+					float z = stof(val);
+					camera.up = cl_float3{x, y, z};
+					fl_up = true;
+				} else if ( key == "resolution" ) {
+					istringstream pos(value);
+					string val;
+					getline(pos, val, ',');
+					float x = stof(val);
+					getline(pos, val);
+					float y = stof(val);
+					camera.resolution = cl_float2{x, y};
+					fl_resolution = true;
+				} else if ( key == "fov" ) {
+					istringstream pos(value);
+					string val;
+					getline(pos, val, ',');
+					float x = stof(val);
+					getline(pos, val);
+					float y = stof(val);
+					camera.fov = cl_float2{x, y};
+					fl_fov = true;
+				} else if ( key == "f" ) {
+					camera.focalDistance = stof(value);
+					fl_f = true;
+				} else {
+					cerr << "ERROR::CAMFILE::UNKNOWN_KEY " << key << endl;
+				}
+			}
+		}
+	}
+
+
+	if ( !( fl_position && fl_view && fl_up && fl_resolution && fl_fov && fl_f ) ) {
+		cerr << "ERROR::CAMFILE::MISSING_KEY" << endl;
+	}
 }
 
 int main() {
@@ -260,7 +371,7 @@ int main() {
 	// kernels can be called from the host (CPU)
 	cl_int err;
 	Kernel kernel{program, "ray_trace", &err};
-	if( err != CL_SUCCESS) {
+	if ( err != CL_SUCCESS) {
 		cerr << "Failed to create kernel " << err << endl;
 	} else {
 		cout << "Kernel created" << endl;
@@ -277,9 +388,9 @@ int main() {
 	unsigned int numVertices;
 	unsigned int numFaces;
 	Camera cpuCamera;
-	initCamera(cpuCamera);
+	loadCameraFromFile("camera.txt", cpuCamera);
 
-	loadMesh( "mesh_file_name.obj", &cpuVertices, &cpuFaces, &numVertices, &numFaces);
+	loadMesh( "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/quadsphere/quadsphere.obj", &cpuVertices, &cpuFaces, &numVertices, &numFaces);
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
@@ -318,29 +429,29 @@ int main() {
 
 	// Launch the kernel and specify the global and local number of work items (threads)
 	err = queue.enqueueNDRangeKernel(kernel, NULL, global_work_size, local_work_size);
-	if( err != CL_SUCCESS) {
+	if ( err != CL_SUCCESS) {
 		cerr << "Failed to enqueue kernel " << err << endl;
 	}
 
 	// Read and copy Depth data back to CPU and save
 	// the "CL_TRUE" flag blocks the read operation until all work items have finished their computation
 	err = queue.enqueueReadBuffer(gpuDepthBuffer, CL_TRUE, 0, numElements * sizeof(cl_float), cpuDepthData);
-	if( err != CL_SUCCESS) {
+	if ( err != CL_SUCCESS) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
 	err = queue.enqueueReadBuffer(gpuVertexBuffer, CL_TRUE, 0, numElements * sizeof(cl_int), cpuVertexData);
-	if( err != CL_SUCCESS) {
+	if ( err != CL_SUCCESS) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
 
-	saveImage( "/Users/dave/Desktop/depth.pgm", width, height, 
-		 [cpuDepthData](int i) {
-		 	return isinf(cpuDepthData[i]) ? 0 : (int)ceil(cpuDepthData[i]);
-         }, 0);
-	saveImage( "/Users/dave/Desktop/vertex.pgm", width, height, 
-		 [cpuVertexData](int i) {
-            return cpuVertexData[i];
-     	}, 0);
+	saveImage( "/Users/dave/Desktop/depth.pgm", width, height,
+	[cpuDepthData](int i) {
+		return isinf(cpuDepthData[i]) ? 0 : (int)ceil(cpuDepthData[i]);
+	}, 0);
+	saveImage( "/Users/dave/Desktop/vertex.pgm", width, height,
+	[cpuVertexData](int i) {
+		return cpuVertexData[i];
+	}, 0);
 
 
 	delete[] cpuDepthData;

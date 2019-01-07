@@ -129,7 +129,7 @@ inline int toInt(float x){ return int(clamp(x) * 255 + .5); }
 template<typename Func>
 void saveImage(const std::string& fileName, unsigned int width, unsigned int height, Func dataFunction, int maxValue ) {
 	using namespace std;
-	
+
 	std::ofstream saveFile{fileName, std::ios::out};
 	saveFile << "P2" << endl;
 	saveFile << width << " " << height << endl;
@@ -153,27 +153,6 @@ void saveImage(const std::string& fileName, unsigned int width, unsigned int hei
 		saveFile << endl;
 	}
 	saveFile.close();
-
-
-}
-
-void saveDepthImage(const std::string& fileName, const cl_float* data, unsigned int width, unsigned int height) {
-	using namespace std;
-
-	saveImage( fileName, width, height, 
-		 [data](int i) {
-            return (toInt(data[i] * 255));
-         }, 255);
-}
-
-void saveVertexImage(const std::string& fileName, const cl_int* data, unsigned int width, unsigned int height) {
-	using namespace std;
-
-	saveImage( fileName, width, height, 
-		 [data](int i) {
-            return (data[i]);
-         }, 0);
-
 }
 
 void buildProgram( Program& program, const Device& device ) {
@@ -265,13 +244,22 @@ int main() {
 	if( err != CL_SUCCESS) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
-	saveDepthImage("/Users/dave/Desktop/depth.pgm", cpuDepthData, width, height);
-	delete[] cpuDepthData;
-
 	err = queue.enqueueReadBuffer(gpuVertexBuffer, CL_TRUE, 0, numElements * sizeof(cl_int), cpuVertexData);
 	if( err != CL_SUCCESS) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
-	saveVertexImage("/Users/dave/Desktop/vertex.pgm", cpuVertexData, width, height);
+
+
+	saveImage( "/Users/dave/Desktop/depth.pgm", width, height, 
+		 [cpuDepthData](int i) {
+            return (toInt(cpuDepthData[i] * 255));
+         }, 255);
+	saveImage( "/Users/dave/Desktop/vertex.pgm", width, height, 
+		 [cpuVertexData](int i) {
+    	    return (cpuVertexData[i]);
+     	}, 0);
+
+
+	delete[] cpuDepthData;
 	delete[] cpuVertexData;
 }

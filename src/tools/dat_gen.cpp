@@ -126,29 +126,54 @@ inline float clamp(float x){ return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
 inline int toInt(float x){ return int(clamp(x) * 255 + .5); }
 
 
-void saveImage(const std::string& fileName, const cl_float3* data, unsigned int width, unsigned int height) {
+template<typename Func>
+void saveImage(const std::string& fileName, unsigned int width, unsigned int height, Func dataFunction, int maxValue ) {
 	using namespace std;
-
-	// write image to PPM file, a very simple image file format
-	// PPM files can be opened with IrfanView (download at www.irfanview.com) or GIMP
+	
 	std::ofstream saveFile{fileName, std::ios::out};
-	saveFile << "P3" << endl;
-	saveFile << width << " " << height << endl << 255 << endl;
-	// loop over pixels, write RGB values
+	saveFile << "P2" << endl;
+	saveFile << width << " " << height << endl;
+
+	if( maxValue == 0 ) {
+		for (int i = 0; i < height * width; i++){
+			if( dataFunction(i) > maxValue ) {
+				maxValue = dataFunction(i);
+			}
+		}
+	}
+	saveFile << maxValue << endl;
+
+	// loop over pixels, write greyscale values
 	int i = 0;
 	for (int h = 0; h < height; h++){
 		for (int w = 0; w < width; w++){
-			if( i % 10000 == 0) {
-				cout << "i: " << i << ",  data[i] " << data[i].x << endl;
-			}
-			saveFile << toInt(data[i].s[0]) << " " 
-					 << toInt(data[i].s[1]) << " " 
-					 << toInt(data[i].s[2]) << " ";
+			saveFile << dataFunction(i) << " ";
 			i++;
 		}
 		saveFile << endl;
 	}
 	saveFile.close();
+
+
+}
+
+void saveDepthImage(const std::string& fileName, const cl_float* data, unsigned int width, unsigned int height) {
+	using namespace std;
+
+	saveImage( fileName, width, height, 
+		 [data](int i) {
+            return (toInt(data[i] * 255));
+         }, 255);
+}
+
+void saveVertexImage(const std::string& fileName, const cl_int* data, unsigned int width, unsigned int height) {
+	using namespace std;
+
+	saveImage( fileName, width, height, 
+		 [data](int i) {
+            return (data[i]);
+         }, 0);
+
 }
 
 void buildProgram( Program& program, const Device& device ) {
@@ -176,10 +201,10 @@ int main() {
 	Device device = selectDevice(platform);
 
 	// Create an OpenCL context on that device to manage all the OpenCL resources
-	Context context = Context(device);
+	Context context{device};
 
 	// Create an OpenCL program by performing runtime source compilation
-	string kernelSource = loadCode( "red_green.cl");
+	string kernelSource = loadCode( "ray_trace.cl");
 	Program program{context, kernelSource};
 
 	// Build the program and check for compilation errors (exit on fail)
@@ -190,34 +215,31 @@ int main() {
 	// the kernel forms the starting point into the OpenCL program, analogous to main() in CPU code
 	// kernels can be called from the host (CPU)
 	cl_int err;
-	Kernel kernel{program, "red_green", &err};
+	Kernel kernel{program, "ray_trace", &err};
 	if( err != CL_SUCCESS) {
 		cerr << "Failed to create kernel " << err << endl;
 	} else {
 		cout << "Kernel created" << endl;
 	}
 
-	// Create input data arrays on the host (= CPU)
+	// Create data arrays on the host (= CPU)
 	const unsigned int width = 640;
 	const unsigned int height = 480;
 	const unsigned int numElements = width * height;
-	cl_float3 *cpuImageData = new cl_float3[numElements];
-	for( int i=0; i<numElements; i++ ) {
-		cpuImageData[i].x = 99.;
-		cpuImageData[i].y = 53.;
-		cpuImageData[i].z = 17.;
-		cpuImageData[i].w = 42.;
-	}
+	cl_float * cpuDepthData  = new cl_float[numElements];
+	cl_int   * cpuVertexData = new cl_int[numElements];
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
-	Buffer gpuImageBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_float3)};
+	Buffer gpuDepthBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_float)};
+	Buffer gpuVertexBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int)};
 
 	// Specify the arguments for the OpenCL kernel
 	// (the arguments are __global float* x, __global float* y and __global float* z)
-	kernel.setArg(0, gpuImageBuffer); // first argument
-	kernel.setArg(1, width); // second argument
-	kernel.setArg(2, height);  // third argument
+	kernel.setArg(0, gpuDepthBuffer);		// first argument
+	kernel.setArg(1, gpuVertexBuffer);		// first argument
+	kernel.setArg(2, width);				// second argument
+	kernel.setArg(3, height);  				// third argument
 
 	// Create a command queue for the OpenCL device
 	// the command queue allows kernel execution commands to be sent to the device
@@ -236,16 +258,20 @@ int main() {
 	if( err != CL_SUCCESS) {
 		cerr << "Failed to enqueue kernel " << err << endl;
 	}
-//	queue.finish();
 
-	// Read and copy OpenCL output to CPU
+	// Read and copy Depth data back to CPU and save
 	// the "CL_TRUE" flag blocks the read operation until all work items have finished their computation
-	err = queue.enqueueReadBuffer(gpuImageBuffer, CL_TRUE, 0, numElements * sizeof(cl_float3), cpuImageData);
+	err = queue.enqueueReadBuffer(gpuDepthBuffer, CL_TRUE, 0, numElements * sizeof(cl_float), cpuDepthData);
 	if( err != CL_SUCCESS) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
+	saveDepthImage("/Users/dave/Desktop/depth.pgm", cpuDepthData, width, height);
+	delete[] cpuDepthData;
 
-	// Save result to image file
-	saveImage("/Users/dave/Desktop/red_green.ppm", cpuImageData, width, height);
-	delete[] cpuImageData;
+	err = queue.enqueueReadBuffer(gpuVertexBuffer, CL_TRUE, 0, numElements * sizeof(cl_int), cpuVertexData);
+	if( err != CL_SUCCESS) {
+		cerr << "Failed to read buffer " << err << endl;
+	}
+	saveVertexImage("/Users/dave/Desktop/vertex.pgm", cpuVertexData, width, height);
+	delete[] cpuVertexData;
 }

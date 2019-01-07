@@ -147,7 +147,9 @@ void saveImage(const std::string& fileName, unsigned int width, unsigned int hei
 	int i = 0;
 	for (int h = 0; h < height; h++){
 		for (int w = 0; w < width; w++){
-			saveFile << dataFunction(i) << " ";
+			int v = dataFunction(i);
+			if( i % 10000 == 0 ) cout << "i: " << i << ", data[i] : " << v << endl;
+			saveFile << v << " ";
 			i++;
 		}
 		saveFile << endl;
@@ -178,7 +180,34 @@ void loadMesh( const std::string& filename,
 				cl_int3   ** cpuFaces, 
 				unsigned int* numVertices, 
 				unsigned int* numFaces) {
+	cl_float3 * verts = new cl_float3[8];
+	verts[0] = {-1.0, -1.0, -1.0};
+	verts[1] = { 1.0, -1.0, -1.0};
+	verts[2] = { 1.0,  1.0, -1.0};
+	verts[3] = {-1.0,  1.0, -1.0};
+	verts[4] = {-1.0, -1.0,  1.0};
+	verts[5] = { 1.0, -1.0,  1.0};
+	verts[6] = { 1.0,  1.0,  1.0};
+	verts[7] = {-1.0,  1.0,  1.0};
 
+	cl_int3 * faces = new cl_int3[12];
+	faces[0] = { 0, 1, 2};
+	faces[1] = { 0, 2, 3};
+	faces[2] = { 1, 5, 6};
+	faces[3] = { 1, 6, 2};
+	faces[4] = { 5, 4, 7};
+	faces[5] = { 5, 7, 6};
+	faces[6] = { 4, 0, 3};
+	faces[7] = { 4, 3, 7};
+	faces[8] = { 2, 6, 7};
+	faces[9] = { 2, 7, 3};
+	faces[10] = { 0, 4, 5};
+	faces[11] = { 0, 5, 1};
+
+	*cpuVertices = verts;
+	*cpuFaces = faces;
+	*numFaces = 12;
+	*numVertices = 8;
 }
 
 
@@ -227,8 +256,11 @@ int main() {
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
 	Buffer gpuDepthBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_float)};
 	Buffer gpuVertexBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int)};
-	Buffer gpuVertices{context, CL_MEM_READ_ONLY, numVertices * sizeof(cl_float3)};
-	Buffer gpuFaces{context, CL_MEM_READ_ONLY, numFaces * sizeof(cl_int3)};
+	Buffer gpuVertices{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numVertices * sizeof(cl_float3), cpuVertices};
+	Buffer gpuFaces{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numFaces * sizeof(cl_int3), cpuFaces};
+
+	delete[] cpuVertices;
+	delete[] cpuFaces;
 
 	// Specify the arguments for the OpenCL kernel
 	//

@@ -19,6 +19,10 @@
 
 using namespace cl;
 
+
+const std::string CAMERA_FILE = "";
+const std::string OBJECT_FILE = "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/quadsphere/quadsphere.obj";
+
 typedef struct Camera {
 	cl_float3 position;
 	cl_float3 view;
@@ -388,9 +392,9 @@ int main() {
 	unsigned int numVertices;
 	unsigned int numFaces;
 	Camera cpuCamera;
-	loadCameraFromFile("camera.txt", cpuCamera);
+	loadCameraFromFile(CAMERA_FILE, cpuCamera);
 
-	loadMesh( "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/quadsphere/quadsphere.obj", &cpuVertices, &cpuFaces, &numVertices, &numFaces);
+	loadMesh( OBJECT_FILE, &cpuVertices, &cpuFaces, &numVertices, &numFaces);
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write

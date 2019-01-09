@@ -23,7 +23,6 @@
 using namespace cl;
 
 const std::string CAMERA_FILE = "camera.txt";
-const std::string OBJECT_FILE = "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-08.obj";
 
 float inline deg2rad(float deg) {
 	return (deg * M_PI) / 180.0;
@@ -165,7 +164,9 @@ void saveImage(const std::string& fileName, unsigned int width, unsigned int hei
 	for (int h = 0; h < height; h++) {
 		for (int w = 0; w < width; w++) {
 			int v = dataFunction(i);
-			if ( i % 10000 == 0 ) cout << "i: " << i << ", data[i] : " << v << endl;
+			#ifdef DEBUG_FILE_WRITE
+				if ( i % 10000 == 0 ) cout << "i: " << i << ", data[i] : " << v << endl;
+			#endif
 			saveFile << v << " ";
 			i++;
 		}
@@ -226,8 +227,26 @@ void loadMesh( const std::string& filename,
 	*pNumFaces = numFaces;
 }
 
-int main() {
+int main(int argc, char * argv[]) {
 	using namespace std;
+
+	if( argc < 2 ) {
+		cerr << "ERROR::NOMODEL" << endl;
+		exit(-1);
+	}
+
+	std::string model_filename = argv[1];
+	std::string camera_filename;
+	if( argc == 3 ) {
+		camera_filename = argv[2];
+	} else {
+		if( argc > 3 ) {
+			cerr << "ERROR::INVALID_ARGS" << endl;
+		} else {
+			camera_filename = CAMERA_FILE;
+		}
+	}
+
 
 	Platform platform = selectPlatform( );
 	Device device = selectDevice(platform);
@@ -264,9 +283,9 @@ int main() {
 	cl_int3  * cpuFaces;
 	unsigned int numVertices;
 	unsigned int numFaces;
-	Camera cpuCamera = loadCameraFromFile(CAMERA_FILE);
+	Camera cpuCamera = loadCameraFromFile(camera_filename);
 
-	loadMesh( OBJECT_FILE, &cpuVertices, &cpuFaces, &numVertices, &numFaces);
+	loadMesh( model_filename, &cpuVertices, &cpuFaces, &numVertices, &numFaces);
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write

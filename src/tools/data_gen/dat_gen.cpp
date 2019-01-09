@@ -20,6 +20,8 @@
 
 #include <FileUtils/ObjFileParser.h>
 
+#define DEFAULT_DEVICE 3
+
 using namespace cl;
 
 const std::string CAMERA_FILE = "camera.txt";
@@ -110,6 +112,9 @@ Device selectDevice(Platform& platform) {
 	if ( devices.size() == 1 ) {
 		device = devices[0];
 	} else {
+	#ifdef DEFAULT_DEVICE
+		device = devices[DEFAULT_DEVICE - 1];
+	#else
 		// Print the names of all available OpenCL devices on the chosen platform
 		cout << "Available OpenCL devices on this platform: " << endl << endl;
 		for (unsigned int i = 0; i < devices.size(); i++) {
@@ -129,6 +134,7 @@ Device selectDevice(Platform& platform) {
 			cin >> input;
 		}
 		device = devices[input - 1];
+	#endif
 	}
 	cout << endl << "Using OpenCL device: \t" << device.getInfo<CL_DEVICE_NAME>() << endl << endl;
 

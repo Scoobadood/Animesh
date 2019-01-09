@@ -243,14 +243,16 @@ int main(int argc, char * argv[]) {
 
 	std::string model_filename = argv[1];
 	std::string camera_filename;
-	if( argc == 3 ) {
+	if( argc > 2 ) {
 		camera_filename = argv[2];
 	} else {
-		if( argc > 3 ) {
-			cerr << "ERROR::INVALID_ARGS" << endl;
-		} else {
-			camera_filename = CAMERA_FILE;
-		}
+		camera_filename = CAMERA_FILE;
+	}
+	string suffix = "";
+	if( argc > 4 ) {
+		cerr << "ERROR::INVALID_ARGS" << endl;
+	} else {
+		suffix = argv[3];
 	}
 
 
@@ -345,14 +347,15 @@ int main(int argc, char * argv[]) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
 
-	saveImage( "/Users/dave/Desktop/depth.pgm", width, height,
+	string depthFileName = "/Users/dave/Desktop/depth" + suffix + ".pgm";
+	saveImage( depthFileName, width, height,
 	[cpuDepthData](int i) {
 		float depth = cpuDepthData[i];
 		if(isinf(depth)) return 0;
 		return (int)(depth * 255);
 	}, 0);
-	// 8431 vertices
-	saveImage( "/Users/dave/Desktop/vertex.pgm", width, height,
+	string vertexFileName = "/Users/dave/Desktop/vertex" + suffix + ".pgm";
+	saveImage( vertexFileName, width, height,
 	[cpuVertexData](int i) {
 		return cpuVertexData[i];
 	}, 0);

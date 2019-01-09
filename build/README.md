@@ -5,6 +5,11 @@ This branch is the main branch for Milestone 2; applying the orientation field t
 The outline plan is as follows
 
 1. Generate ground truth "cheat" data for a non-trivial blend shape
+~~* Build basic tools~~
+~~* Externalise source file, cam properties to command prompt~~
+~~* Run for a number of angles and poses~~
+
+
 
 2. Assign storage for field
 a. Load all frames data and establish point correspondences (which may be sloppy). Use this to determine the total number of unique surfels in the space. and allocate storage for them

@@ -1,5 +1,5 @@
 #include "perfTool.h"
-#include "Field/ObjFileParser.h"
+#include "FileUtils/ObjFileParser.h"
 #include "Field/FieldOptimiser.h"
 #include "FileUtils/FileUtils.h"
 

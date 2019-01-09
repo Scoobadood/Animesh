@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gtest/gtest.h"
-#include "Field/PointNormal.h"
+#include "Geom/geom.h"
 #include <Graph/Graph.h>
 
 class TestGraphCycles : public ::testing::Test {

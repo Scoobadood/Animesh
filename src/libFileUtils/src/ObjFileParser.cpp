@@ -1,7 +1,7 @@
 
-#include <Field/ObjFileParser.h>
-#include <Field/PointNormal.h>
+#include <FileUtils/ObjFileParser.h>
 #include <FileUtils/FileUtils.h>
+#include <Geom/geom.h>
 #include <iostream>
 #include <map>
 

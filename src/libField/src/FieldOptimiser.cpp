@@ -1,6 +1,6 @@
 #include <Field/FieldOptimiser.h>
-#include <Field/Checks.h>
-#include <Field/PointNormal.h>
+#include <Geom/Checks.h>
+#include <Geom/geom.h>
 
 #include <RoSy/RoSy.h>
 #include <Eigen/Geometry>

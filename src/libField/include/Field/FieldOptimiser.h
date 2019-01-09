@@ -1,4 +1,4 @@
-#include <Field/PointNormal.h>
+#include <Geom/geom.h>
 #include <Graph/GraphSimplifier.h>
 
 namespace animesh {

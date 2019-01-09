@@ -15,14 +15,14 @@ target_include_directories(
 	PRIVATE 
 		src)
 
-target_link_libraries( 
-	Geom 
-		Field)
+# target_link_libraries( 
+# 	Geom 
+# 		Field)
 
 
 # This makes the project importable from the build directory
 export( TARGETS Geom
-	FILE RoSyLibraryConfig.cmake)
+	FILE GeomLibraryConfig.cmake)
 
 
 # Every library has unit tests, of course

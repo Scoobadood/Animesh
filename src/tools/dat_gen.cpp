@@ -17,11 +17,13 @@
 #include <CL/cl.hpp> // main OpenCL include file 
 #endif
 
+#include <FileUtils/ObjFileParser.h>
+
 using namespace cl;
 
 
-const std::string CAMERA_FILE = "";
-const std::string OBJECT_FILE = "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/quadsphere/quadsphere.obj";
+const std::string CAMERA_FILE = "camera.txt";
+const std::string OBJECT_FILE = "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-08.obj";
 
 typedef struct Camera {
 	cl_float3 position;
@@ -209,53 +211,29 @@ void loadMesh( const std::string& filename,
 
 	using namespace std;
 
-	Model model{filename};
-	vector<Vertex> vertices;
-	vector<unsigned int> indices;
-	model.data(vertices, indices);
+    animesh::ObjFileParser parser;
+    pair<vector<Eigen::Vector3f>, vector<vector<std::size_t>>> thing = parser.parse_file_raw(filename);
 
-	unsigned int numVertices = vertices.size();
-	cl_float3 * verts = new cl_float3[numVertices];
-	for ( int i = 0; i < numVertices; ++i) {
-		verts[i] = cl_float3{vertices[i].position.x, vertices[i].position.y, vertices[i].position.z };
+    unsigned int numVertices = thing.first.size();
+    unsigned int numFaces	 = thing.second.size();
+
+	*cpuVertices = new cl_float3[numVertices];
+	*cpuFaces =  new cl_int3[numFaces];
+
+	for (int j = 0; j < numVertices; ++j) {
+		(*cpuVertices)[j] = cl_float3{
+			thing.first[j].x(), 
+			thing.first[j].y(), 
+			thing.first[j].z() };
 	}
-
-	unsigned int numFaces = indices.size() / 3;
-	cl_int3 * faces = new cl_int3[numFaces];
-	for ( int i = 0; i < numFaces; ++i) {
-		faces[i] = cl_int3{(int)indices[i * 3], (int)indices[i * 3 + 1], (int)indices[i * 3 + 2]};
+	for( int j=0; j< numFaces; ++j ) {
+		(*cpuFaces)[j] = cl_int3{
+			(int)thing.second[j][0], 
+			 (int)thing.second[j][1], 
+			 (int)thing.second[j][2]};
 	}
-
-	/*
-
-		cl_float3 * verts = new cl_float3[8];
-		verts[0] = {-1.0, -1.0, -1.0};
-		verts[1] = { 1.0, -1.0, -1.0};
-		verts[2] = { 1.0,  1.0, -1.0};
-		verts[3] = {-1.0,  1.0, -1.0};
-		verts[4] = {-1.0, -1.0,  1.0};
-		verts[5] = { 1.0, -1.0,  1.0};
-		verts[6] = { 1.0,  1.0,  1.0};
-		verts[7] = {-1.0,  1.0,  1.0};
-
-		cl_int3 * faces = new cl_int3[12];
-		faces[0] = { 0, 1, 2};
-		faces[1] = { 0, 2, 3};
-		faces[2] = { 1, 5, 6};
-		faces[3] = { 1, 6, 2};
-		faces[4] = { 5, 4, 7};
-		faces[5] = { 5, 7, 6};
-		faces[6] = { 4, 0, 3};
-		faces[7] = { 4, 3, 7};
-		faces[8] = { 2, 6, 7};
-		faces[9] = { 2, 7, 3};
-		faces[10] = { 0, 4, 5};
-		faces[11] = { 0, 5, 1};
-	*/
-	*cpuVertices = verts;
-	*cpuFaces = faces;
-	*pNumFaces = numFaces;
 	*pNumVertices = numVertices;
+	*pNumFaces = numFaces;
 }
 
 void loadCameraFromFile( const std::string& filename, Camera& camera ) {
@@ -450,8 +428,11 @@ int main() {
 
 	saveImage( "/Users/dave/Desktop/depth.pgm", width, height,
 	[cpuDepthData](int i) {
-		return isinf(cpuDepthData[i]) ? 0 : (int)ceil(cpuDepthData[i]);
+		float depth = cpuDepthData[i];
+		if(isinf(depth)) return 0;
+		return (int)(depth * 255);
 	}, 0);
+	// 8431 vertices
 	saveImage( "/Users/dave/Desktop/vertex.pgm", width, height,
 	[cpuVertexData](int i) {
 		return cpuVertexData[i];

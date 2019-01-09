@@ -1,10 +1,21 @@
-#include <Eigen/Geometry>
 #include <Geom/geom.h>
+#include <Geom/Checks.h>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <vector>
 #include <iostream>
 
 const float EPSILON = 1e-4;
 
+
+using animesh::PointNormal;
+
+PointNormal::PointNormal( Eigen::Vector3f point, Eigen::Vector3f normal) {
+	checkNotZeroVector("Normal", normal);
+	m_point = point;
+
+	m_normal = normal.normalized();
+}
 
 /**
  * Compute the angle between two vectors

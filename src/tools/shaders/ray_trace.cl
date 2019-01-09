@@ -65,7 +65,7 @@ bool intersectRayWithFace(const Ray ray,
 
     float3 surf_norm = cross(edge1, edge2);
     float  angle = dot(surf_norm, ray.direction);
-    if( angle < 0)
+    if( angle > 0)
     	return false; // This triangle isn't facing me
 
     float3 h = cross(ray.direction,edge2);
@@ -110,8 +110,10 @@ int intersectRayWithMesh( const Ray ray,
 	for (int f = 0; f < numFaces; f++ ) {
 		float dist;
 		if ( intersectRayWithFace(ray, vertices, faces[f], &dist)) {
-			*distance = min( dist, *distance);
-			bestF = f;
+			if( *distance > dist ) {
+				*distance = dist;
+				bestF = f;
+			}
 		}
 	}
 	return bestF;

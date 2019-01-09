@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include <Field/FieldOptimiser.h>
-#include <Field/ObjFileParser.h>
+#include <FileUtils/ObjFileParser.h>
 
 #include "vtkObject.h"
 #include "vtkPolyData.h"

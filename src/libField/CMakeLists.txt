@@ -31,6 +31,7 @@ add_executable( testField
 
 target_link_libraries( testField
 	Field
+	FileUtils
 	Graph 
 	gtest 
 	gmock

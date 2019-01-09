@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
+file(GLOB SOURCES "*.cpp")
+
 # GLM
 find_package(glm REQUIRED)
 
@@ -36,10 +38,12 @@ if (assimp_FOUND)
 endif(assimp_FOUND)
 
 # Data Generator
-add_executable(dat_gen
-    dat_gen.cpp
-      mesh_cl.cpp
-      model_cl.cpp)
+add_executable(dat_gen ${SOURCES})
+
+target_include_directories(
+  dat_gen PUBLIC 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+
 
 target_link_libraries(dat_gen 
   FileUtils

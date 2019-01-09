@@ -53,15 +53,7 @@ IF(APPLE)
                      OpenGL_LIBRARY)
    SET(EXTRA_LIBS ${COCOA_LIBRARY} ${GLUT_LIBRARY} ${OpenGL_LIBRARY})
 ENDIF (APPLE)
-
-
-# OpenCL 
-find_package(OpenCL REQUIRED)
-IF(APPLE)
-   INCLUDE_DIRECTORIES ( /System/Library/Frameworks )
-   FIND_LIBRARY(OpenCL_LIBRARY OpenCL )
-   MARK_AS_ADVANCED (OpenCL_LIBRARY)
-ENDIF (APPLE)
+add_definitions(-DGL_SILENCE_DEPRECATION)
 
 
 # ASSIMP
@@ -73,6 +65,3 @@ if (assimp_FOUND)
 endif(assimp_FOUND)
 
 target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
-
-add_definitions(-DGL_SILENCE_DEPRECATION)
-add_definitions(-DCL_SILENCE_DEPRECATION)

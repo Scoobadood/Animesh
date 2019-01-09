@@ -3,6 +3,7 @@
 // Code based on http://simpleopencl.blogspot.com/2013/06/tutorial-simple-start-with-opencl-and-c.html
 
 #include "model_cl.hpp"
+#include "Camera.h"
 
 #include <iostream>
 #include <vector>
@@ -21,19 +22,8 @@
 
 using namespace cl;
 
-
 const std::string CAMERA_FILE = "camera.txt";
 const std::string OBJECT_FILE = "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-08.obj";
-
-typedef struct Camera {
-	cl_float3 position;
-	cl_float3 view;
-	cl_float3 up;
-	cl_float2 resolution;
-	cl_float2 fov;
-	cl_float focalDistance;
-} Camera;
-
 
 float inline deg2rad(float deg) {
 	return (deg * M_PI) / 180.0;
@@ -236,101 +226,6 @@ void loadMesh( const std::string& filename,
 	*pNumFaces = numFaces;
 }
 
-void loadCameraFromFile( const std::string& filename, Camera& camera ) {
-	using namespace std;
-
-	bool fl_position, fl_view, fl_up, fl_resolution, fl_fov, fl_f;
-	fl_position = fl_view = fl_up = fl_resolution = fl_fov = fl_f = false;
-
-	ifstream file;
-	file.exceptions (ifstream::failbit | ifstream::badbit);
-
-
-	try {
-		file.open(filename);
-	}
-	catch (ifstream::failure e) {
-		cout << "ERROR::CAMFILE::NOT_FOUND " << filename << endl;
-		cerr << strerror(errno) << endl;
-		return;
-	}
-
-	file.exceptions (ifstream::goodbit);
-	string line;
-	while ( getline(file, line) ) {
-		istringstream is_line(line);
-		string key;
-		if ( getline(is_line, key, '=') ) {
-			string value;
-			if ( getline(is_line, value) ) {
-				// Handle the line
-				if ( key == "position") {
-					istringstream pos(value);
-					string val;
-					getline(pos, val, ',');
-					float x = stof(val);
-					getline(pos, val, ',');
-					float y = stof(val);
-					getline(pos, val);
-					float z = stof(val);
-					camera.position = cl_float3{x, y, z};
-					fl_position = true;
-				} else if ( key == "view" ) {
-					istringstream pos(value);
-					string val;
-					getline(pos, val, ',');
-					float x = stof(val);
-					getline(pos, val, ',');
-					float y = stof(val);
-					getline(pos, val);
-					float z = stof(val);
-					camera.view = cl_float3{x, y, z};
-					fl_view = true;
-				} else if ( key == "up" ) {
-					istringstream pos(value);
-					string val;
-					getline(pos, val, ',');
-					float x = stof(val);
-					getline(pos, val, ',');
-					float y = stof(val);
-					getline(pos, val);
-					float z = stof(val);
-					camera.up = cl_float3{x, y, z};
-					fl_up = true;
-				} else if ( key == "resolution" ) {
-					istringstream pos(value);
-					string val;
-					getline(pos, val, ',');
-					float x = stof(val);
-					getline(pos, val);
-					float y = stof(val);
-					camera.resolution = cl_float2{x, y};
-					fl_resolution = true;
-				} else if ( key == "fov" ) {
-					istringstream pos(value);
-					string val;
-					getline(pos, val, ',');
-					float x = stof(val);
-					getline(pos, val);
-					float y = stof(val);
-					camera.fov = cl_float2{x, y};
-					fl_fov = true;
-				} else if ( key == "f" ) {
-					camera.focalDistance = stof(value);
-					fl_f = true;
-				} else {
-					cerr << "ERROR::CAMFILE::UNKNOWN_KEY " << key << endl;
-				}
-			}
-		}
-	}
-
-
-	if ( !( fl_position && fl_view && fl_up && fl_resolution && fl_fov && fl_f ) ) {
-		cerr << "ERROR::CAMFILE::MISSING_KEY" << endl;
-	}
-}
-
 int main() {
 	using namespace std;
 
@@ -369,8 +264,7 @@ int main() {
 	cl_int3  * cpuFaces;
 	unsigned int numVertices;
 	unsigned int numFaces;
-	Camera cpuCamera;
-	loadCameraFromFile(CAMERA_FILE, cpuCamera);
+	Camera cpuCamera = loadCameraFromFile(CAMERA_FILE);
 
 	loadMesh( OBJECT_FILE, &cpuVertices, &cpuFaces, &numVertices, &numFaces);
 

@@ -1,44 +1,5 @@
 cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
-
-add_subdirectory( data_gen )
-
-# OBJ File Converter
-add_executable(obj_conv
-   	obj_converter.cpp)
-
-target_link_libraries(obj_conv
-	FileUtils)
-
-target_compile_features(obj_conv
-	PUBLIC
-		cxx_std_11)
-
-# Perf Tool
-add_executable(perf_tool
-   	perfTool.cpp)
-
-target_link_libraries(perf_tool
-  Args
-	Field
-	FileUtils
-	Graph
-	RoSy)
-
-target_compile_features(perf_tool
-	PUBLIC
-		cxx_std_11)
-
-# Depth map renderer
-add_executable(dmr
-   	dmr.cpp
-    glutils.cpp
-      mesh.cpp
-      model.cpp)
-
-# GLFW
-find_package(glfw3 3.2 REQUIRED)
-
 # GLM
 find_package(glm REQUIRED)
 
@@ -53,6 +14,7 @@ IF(APPLE)
                      OpenGL_LIBRARY)
    SET(EXTRA_LIBS ${COCOA_LIBRARY} ${GLUT_LIBRARY} ${OpenGL_LIBRARY})
 ENDIF (APPLE)
+add_definitions(-DGL_SILENCE_DEPRECATION)
 
 
 # OpenCL 
@@ -62,6 +24,7 @@ IF(APPLE)
    FIND_LIBRARY(OpenCL_LIBRARY OpenCL )
    MARK_AS_ADVANCED (OpenCL_LIBRARY)
 ENDIF (APPLE)
+add_definitions(-DCL_SILENCE_DEPRECATION)
 
 
 # ASSIMP
@@ -72,7 +35,16 @@ if (assimp_FOUND)
     set_target_properties(${ASSIMP_LIBRARY} PROPERTIES IMPORTED_LOCATION "${ASSIMP_LIBRARY_DIRS}/libassimp.dylib")
 endif(assimp_FOUND)
 
-target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
+# Data Generator
+add_executable(dat_gen
+    dat_gen.cpp
+      mesh_cl.cpp
+      model_cl.cpp)
 
-add_definitions(-DGL_SILENCE_DEPRECATION)
-add_definitions(-DCL_SILENCE_DEPRECATION)
+target_link_libraries(dat_gen 
+  FileUtils
+  glm 
+  OpenCL::OpenCL 
+  ${EXTRA_LIBS} 
+  ${ASSIMP_LIBRARY})
+

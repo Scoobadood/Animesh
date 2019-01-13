@@ -52,3 +52,20 @@ TEST_F(TestObjFileParser, ParseSphereNinetyNodesHave4Neighbours) {
    }
    EXPECT_EQ(90, actual_nodes_with_4_neighbours);
 }
+
+TEST_F(TestObjFileParser, ParseCubeHasCorrectNormals) {
+  using namespace std;
+  using namespace Eigen;
+  using namespace animesh;
+
+  pair<vector<Vector3f>, vector<pair<vector<size_t>,Vector3f>>> results = parser.parse_file_raw_with_normals("../data/Cube1x1/cube.obj");
+
+  EXPECT_EQ(8, results.first.size());
+  EXPECT_EQ(6, results.second.size());
+  EXPECT_EQ(-1, results.second[0].second.y());
+  EXPECT_EQ(1, results.second[1].second.y());
+  EXPECT_EQ(1, results.second[2].second.x());
+  EXPECT_EQ(1, results.second[3].second.z());
+  EXPECT_EQ(-1, results.second[4].second.x());
+  EXPECT_EQ(-1, results.second[5].second.z());
+}

@@ -1,6 +1,7 @@
 
 __constant float PI = 3.14159265359f;
 
+// A ray in 3D space
 typedef struct Ray {
 	float3 origin;
 	float3 direction;
@@ -16,8 +17,21 @@ typedef struct Camera{
 } Camera;
 
 Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam);
-bool intersectRayWithFace(const Ray ray, __global float3 * vertices, const int3 face, float * dist );
-int intersectRayWithMesh( const Ray ray, const int numVertices, __global float3 * vertices, const int numFaces, __global int3 * faces, float * distance );
+bool intersectRayWithFace(const Ray ray,
+                          const float3 v0,
+                          const float3 v1,
+                          const float3 v2,
+                          const float3 face_normal,
+                          float * p_distance );
+bool intersectRayWithMesh( const Ray ray,					
+                           const int numVertices,
+                           __global float3 * vertices,
+                           const int numFaces,
+                           __global int3 * faces,
+                           __global float3 * faceNormals,
+                           float * distance,
+                           int3 * intersectedFace );
+
 
 Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam) {
 	/* create a local coordinate frame for the camera */
@@ -50,73 +64,117 @@ Ray createCamRay(const int x_coord, const int y_coord, const int width, const in
 	return ray;
 }
 
+
+
+/**
+ * Determine if a ray intersects a particular triangle.
+ * @param ray The ray
+ * @param v0 The vertices of the triangle
+ * @param v1 The vertices of the triangle
+ * @param v2 The vertices of the triangle
+ * @param face_normal The normal to the face
+ * @param p_distance Pointer to the distance from ray origin of intersection.
+ * @return true if the ray intersects the triangle. Otherwise false.
+ */
 bool intersectRayWithFace(const Ray ray,
-                          __global float3 * vertices,
-                          const int3 face,
-                          float * pt ) {
+                          const float3 v0,
+                          const float3 v1,
+                          const float3 v2,
+                          const float3 face_normal,
+                          float * p_distance ) {
     const float EPSILON = 0.0000001;
 
-    float3 vertex0 = vertices[face.s0];
-    float3 vertex1 = vertices[face.s1];
-    float3 vertex2 = vertices[face.s2];
+    // Eliminate faces which face away from POV
+    float  angle = dot(face_normal, ray.direction);
+    if( angle > 0) {
+    	return false;
+    }
 
-    float3 edge1 = vertex1 - vertex0;
-    float3 edge2 = vertex2 - vertex0;
+    // Determine if there's an intersection
+    float3 edge1 = v1 - v0;
+    float3 edge2 = v2 - v0;
 
-    float3 surf_norm = cross(edge1, edge2);
-    float  angle = dot(surf_norm, ray.direction);
-    if( angle > 0)
-    	return false; // This triangle isn't facing me
-
+    // Check if ray is parallel to the face
     float3 h = cross(ray.direction,edge2);
     float a = dot(edge1, h);
-    if (a > -EPSILON && a < EPSILON)
-        return false;    // This ray is parallel to this triangle.
+    if (a > -EPSILON && a < EPSILON) {
+        return false;
+    }
 
     float f = 1.0/a;
-    float3 s = ray.origin - vertex0;
+    float3 s = ray.origin - v0;
     float u = f * (dot(s, h));
-    if (u < 0.0 || u > 1.0)
+    if (u < 0.0 || u > 1.0) {
         return false;
+    }
 
     float3 q = cross(s,edge1);
     float v = f * dot(ray.direction, q);
-    if (v < 0.0 || u + v > 1.0)
+    if (v < 0.0 || u + v > 1.0) {
         return false;
+    }
 
+    // Here we know there's an intersection
     // At this stage we can compute t to find out where the intersection point is on the line.
     float t = f * dot(edge2,q);
-    // ray intersection
     if (t > EPSILON) {
-    	*pt = t;
+    	*p_distance = t;
         return true;
     }
-    else // This means that there is a line intersection but not a ray intersection.
+
+ 	// This means that there is a line intersection but not a ray intersection.
+ 	// i.e. the ray intersects 'behind' the ray origin
+    else {
         return false;
+    }
 }
 
 
-/*
+/**
  * Compute intersection of ray with mesh
+ * @param ray The ray to intersect
+ * @param numVertices The number of vertices in the mesh
+ * @param vertices The vertex coordinates as float3
+ * @param numFaces The number of faces in the mesh
+ * @param faces The faces, represented as three indices into vertices
+ * @param faceNormals The face normals
+ * @param distance The range to any intersection found
+ * @param intersectedFace The face that was intersected if there was one.
+ * @return true If there was an intersection else false.
  */
-int intersectRayWithMesh( const Ray ray,
-                          const int numVertices,
-                          __global float3 * vertices,
-                          const int numFaces,
-                          __global int3 * faces,
-                          float * distance ) {
-	*distance = INFINITY;
-	int bestF = -1;
-	for (int f = 0; f < numFaces; f++ ) {
-		float dist;
-		if ( intersectRayWithFace(ray, vertices, faces[f], &dist)) {
-			if( *distance > dist ) {
-				*distance = dist;
-				bestF = f;
+bool intersectRayWithMesh( const Ray ray,					
+                           const int numVertices,
+                           __global float3 * vertices,
+                           const int numFaces,
+                           __global int3 * faces,
+                           __global float3 * face_normals,
+                           float * p_distance,
+                           int3 * p_intersected_face ) {
+
+	bool  did_intersect = false;
+	float closest_intersection = INFINITY;
+	int3  intersected_face;
+
+	for (int i = 0; i < numFaces; i++ ) {
+		int3 face = faces[i];
+		float3 face_normal = face_normals[i];
+		float distance;
+		float3 v0, v1, v2;
+		v0 = vertices[face.s0];
+		v1 = vertices[face.s1];
+		v2 = vertices[face.s2];
+		if ( intersectRayWithFace(ray, v0, v1, v2, face_normal, &distance)) {
+			if( distance < closest_intersection ) {
+				closest_intersection = distance;
+				intersected_face = face;
+				did_intersect = true;
 			}
 		}
 	}
-	return bestF;
+
+	*p_distance = closest_intersection;
+	*p_intersected_face = intersected_face;
+	return did_intersect;
 }
 
 /**
@@ -125,37 +183,49 @@ int intersectRayWithMesh( const Ray ray,
 __kernel void ray_trace(
     int numVertices,  __global float3 * vertices,	/* Vertex data for model */
     int numFaces, __global int3 * faces,			/* Face data for model */
+    __global float3 * faceNormals,
     __global Camera * camera,						/* Camera position and orientation */
     __global float* depth,							/* Output depth data */
     __global unsigned int* vertex,					/* Ouptut vertex data  */
     int width, int height) {						/* Dimensions of output data */
 
-	// Get pixel coordinates from work id
 	const int work_item_id = get_global_id(0);
-	int x = work_item_id % width; /* x-coordinate of the pixel */
-	int y = work_item_id / width; /* y-coordinate of the pixel */
+	const int x = work_item_id % width; /* x-coordinate of the pixel */
+	const int y = work_item_id / width; /* y-coordinate of the pixel */
 
 	// Create the ray from cam to view
 	Ray ray = createCamRay(x, y, width, height, camera);
 
 	// Intersect the ray with the mesh
 	float range;
-	int intersectedFaceIdx = intersectRayWithMesh(ray, numVertices, vertices, numFaces, faces, &range);
-	if( intersectedFaceIdx >= 0 ) {
+	int3 intersectedFace;
+	if( intersectRayWithMesh(ray, numVertices, vertices, numFaces, faces, faceNormals, &range, &intersectedFace)) {
 		// Compute the depth at this point
 		depth[work_item_id] = range;
 
-		// Compute nearest vertex index
-		int3 face = faces[intersectedFaceIdx];
+		// Compute _nearest_ vertex index
 		float3 intersection = ray.origin + (range * ray.direction);
-		float d0 = length(intersection - vertices[face.s0]);
-		float d1 = length(intersection - vertices[face.s1]);
-		float d2 = length(intersection - vertices[face.s2]);
-		vertex[work_item_id] = ((d0 > d1) && (d0 > d2)) 
-			? face.s0 + 1 
-			: ((d1 > d0) && (d1 > d2)) 
-				? face.s1 + 1 
-				: face.s2 + 1;
+		float3 v0 = vertices[intersectedFace.s0];
+		float3 v1 = vertices[intersectedFace.s1];
+		float3 v2 = vertices[intersectedFace.s2];
+		float d0 = distance(intersection, v0);
+		float d1 = distance(intersection, v1);
+		float d2 = distance(intersection, v2);
+		int idx;
+		if( d0 < d1 ) {
+			if( d0 < d2) {
+				idx = intersectedFace.s0 + 1;
+			} else {
+				idx = intersectedFace.s2 + 1;
+			}
+		} else {
+			if( d1 < d2 ) {
+				idx = intersectedFace.s1 + 1;
+			} else {
+				idx = intersectedFace.s2 + 1;
+			}
+		}
+		vertex[work_item_id] = idx;
 	} else {
 		// Ray mised mesh
 		depth[work_item_id] = 0.0;

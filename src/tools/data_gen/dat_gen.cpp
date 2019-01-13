@@ -203,31 +203,43 @@ void buildProgram( Program& program, const Device& device ) {
 void loadMesh( const std::string& filename,
                cl_float3 ** cpuVertices,
                cl_int3   ** cpuFaces,
+               cl_float3 ** cpuFaceNormals,
                unsigned int* pNumVertices,
                unsigned int* pNumFaces) {
 
 	using namespace std;
+	using namespace Eigen;
 
     animesh::ObjFileParser parser;
-    pair<vector<Eigen::Vector3f>, vector<vector<std::size_t>>> thing = parser.parse_file_raw(filename);
+    pair<vector<Eigen::Vector3f>, vector<pair<vector<std::size_t>,Vector3f>>> object_data = parser.parse_file_raw_with_normals(filename);
 
-    unsigned int numVertices = thing.first.size();
-    unsigned int numFaces	 = thing.second.size();
+    unsigned int numVertices = object_data.first.size();
+    unsigned int numFaces	 = object_data.second.size();
 
 	*cpuVertices = new cl_float3[numVertices];
-	*cpuFaces =  new cl_int3[numFaces];
+	*cpuFaces = new cl_int3[numFaces];
+	*cpuFaceNormals = new cl_float3[numFaces];
 
-	for (int j = 0; j < numVertices; ++j) {
-		(*cpuVertices)[j] = cl_float3{
-			thing.first[j].x(), 
-			thing.first[j].y(), 
-			thing.first[j].z() };
+	for (int i = 0; i < numVertices; ++i) {
+		(*cpuVertices)[i] = cl_float3{
+			object_data.first[i].x(), 
+			object_data.first[i].y(), 
+			object_data.first[i].z() };
 	}
-	for( int j=0; j< numFaces; ++j ) {
-		(*cpuFaces)[j] = cl_int3{
-			(int)thing.second[j][0], 
-			 (int)thing.second[j][1], 
-			 (int)thing.second[j][2]};
+	for( int i=0; i< numFaces; ++i ) {
+		pair<vector<std::size_t>,Vector3f> face_data = object_data.second[i];
+		vector<std::size_t> face_vertex_indices = face_data.first;
+		Vector3f face_normal = face_data.second;
+
+		(*cpuFaces)[i] = cl_int3{
+			(int)face_vertex_indices[0], 
+			 (int)face_vertex_indices[1], 
+			 (int)face_vertex_indices[2]};
+
+		(*cpuFaceNormals)[i] = cl_float3{
+			face_normal.x(), 
+			face_normal.y(), 
+			face_normal.z()};
 	}
 	*pNumVertices = numVertices;
 	*pNumFaces = numFaces;
@@ -289,11 +301,12 @@ int main(int argc, char * argv[]) {
 	cl_int   * cpuVertexData = new cl_int[numElements];
 	cl_float3* cpuVertices;
 	cl_int3  * cpuFaces;
+	cl_float3 * cpuFaceNormals;
 	unsigned int numVertices;
 	unsigned int numFaces;
 	Camera cpuCamera = loadCameraFromFile(camera_filename);
 
-	loadMesh( model_filename, &cpuVertices, &cpuFaces, &numVertices, &numFaces);
+	loadMesh( model_filename, &cpuVertices, &cpuFaces, &cpuFaceNormals, &numVertices, &numFaces);
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
@@ -301,10 +314,13 @@ int main(int argc, char * argv[]) {
 	Buffer gpuVertexBuffer{context, CL_MEM_WRITE_ONLY, numElements * sizeof(cl_int)};
 	Buffer gpuVertices{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numVertices * sizeof(cl_float3), cpuVertices};
 	Buffer gpuFaces{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numFaces * sizeof(cl_int3), cpuFaces};
+	Buffer gpuFaceNormals{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numFaces * sizeof(cl_float3), cpuFaceNormals};
 	Buffer gpuCamera{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cpuCamera), (void *)&cpuCamera};
 
 	delete[] cpuVertices;
 	delete[] cpuFaces;
+	delete[] cpuFaceNormals;
+
 
 	// Specify the arguments for the OpenCL kernel
 	//
@@ -312,11 +328,12 @@ int main(int argc, char * argv[]) {
 	kernel.setArg(1, gpuVertices);			// Vertices of mesh
 	kernel.setArg(2, numFaces);
 	kernel.setArg(3, gpuFaces);				// Faces of mesh as 3 vertex indices CCW
-	kernel.setArg(4, gpuCamera);			// Camera
-	kernel.setArg(5, gpuDepthBuffer);		// Depth image rendered to here
-	kernel.setArg(6, gpuVertexBuffer);		// Vertex image rendered to here
-	kernel.setArg(7, width);				// Width of output images
-	kernel.setArg(8, height);  				// Height of output images
+	kernel.setArg(4, gpuFaceNormals);		// Faces of mesh as 3 vertex indices CCW
+	kernel.setArg(5, gpuCamera);			// Camera
+	kernel.setArg(6, gpuDepthBuffer);		// Depth image rendered to here
+	kernel.setArg(7, gpuVertexBuffer);		// Vertex image rendered to here
+	kernel.setArg(8, width);				// Width of output images
+	kernel.setArg(9, height);  				// Height of output images
 
 	// Create a command queue for the OpenCL device
 	// the command queue allows kernel execution commands to be sent to the device

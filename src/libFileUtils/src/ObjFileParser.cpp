@@ -311,3 +311,47 @@ ObjFileParser::parse_file_raw( const std::string& file_name ) {
   }
   return make_pair( given_vertices, face_points );
 }
+
+std::pair<
+  std::vector<Eigen::Vector3f>, 
+  std::vector<
+    std::pair<
+      std::vector<std::size_t>, 
+      Eigen::Vector3f>
+  >
+>
+ObjFileParser::parse_file_raw_with_normals( const std::string& file_name ) {
+  using namespace std;
+  using namespace Eigen;
+
+  vector<Vector3f>    given_vertices;
+  vector<Vector3f>    given_normals;
+  vector<size_t>      face_vertex_indices;
+  vector<size_t>      face_normal_indices;
+  vector<vector<pair<size_t,size_t>>> faces;
+  read_data( file_name, given_vertices, given_normals, face_vertex_indices, face_normal_indices, faces );
+
+
+  vector<pair<vector<size_t>, Vector3f>> output_face_data;
+
+  // Each entry in faces is a vector of vertex index an vertex normal index
+  for( auto face_vertices : faces ) {
+
+    // OUtput storage for this face
+    vector<size_t> face_vertex_data;
+    Vector3f face_normal = Vector3f::Zero();
+
+    for( auto face_vertex : face_vertices ) {
+      // Store the vertex
+      face_vertex_data.push_back( face_vertex.first);
+      // Sum normals
+      face_normal = face_normal + given_normals[face_vertex.second];
+    }
+    face_normal /= face_vertices.size();
+
+    output_face_data.push_back( make_pair(face_vertex_data, face_normal) );
+  }
+  return make_pair( given_vertices, output_face_data );
+  
+}
+

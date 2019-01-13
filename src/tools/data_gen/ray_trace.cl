@@ -31,6 +31,8 @@ bool intersectRayWithMesh( const Ray ray,
                            __global float3 * faceNormals,
                            float * distance,
                            int3 * intersectedFace );
+int closestVertex(const int3 face, __global float3 * vertices, const float3 intersection );
+
 
 
 Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam) {
@@ -95,28 +97,28 @@ bool intersectRayWithFace(const Ray ray,
     float3 edge2 = v2 - v0;
 
     // Check if ray is parallel to the face
-    float3 h = cross(ray.direction,edge2);
-    float a = dot(edge1, h);
-    if (a > -EPSILON && a < EPSILON) {
+    float3 pvec = cross(ray.direction,edge2);
+    float det = dot(edge1, pvec);
+    if (det > -EPSILON && det < EPSILON) {
         return false;
     }
 
-    float f = 1.0/a;
-    float3 s = ray.origin - v0;
-    float u = f * (dot(s, h));
+    float inv_det = 1.0/det;
+    float3 tvec = ray.origin - v0;
+    float u = inv_det * (dot(tvec, pvec));
     if (u < 0.0 || u > 1.0) {
         return false;
     }
 
-    float3 q = cross(s,edge1);
-    float v = f * dot(ray.direction, q);
+    float3 qvec = cross(tvec,edge1);
+    float v = inv_det * dot(ray.direction, qvec);
     if (v < 0.0 || u + v > 1.0) {
         return false;
     }
 
     // Here we know there's an intersection
     // At this stage we can compute t to find out where the intersection point is on the line.
-    float t = f * dot(edge2,q);
+    float t = inv_det * dot(edge2, qvec);
     if (t > EPSILON) {
     	*p_distance = t;
         return true;
@@ -177,6 +179,20 @@ bool intersectRayWithMesh( const Ray ray,
 	return did_intersect;
 }
 
+int closestVertex(const int3 face, __global float3 * vertices, const float3 intersection ) {
+		float3 v0 = vertices[face.s0];
+		float3 v1 = vertices[face.s1];
+		float3 v2 = vertices[face.s2];
+		float d0 = distance(intersection, v0);
+		float d1 = distance(intersection, v1);
+		float d2 = distance(intersection, v2);
+		int idx = (( d0 < d1 ) && (d0 < d2)) 
+			? face.s0 + 1
+			: (( d1 < d0 ) && (d1 < d2)) 
+				? face.s1 + 1
+				: face.s2 + 1;
+		return idx;
+}
 /**
  * Perform raytracing
  */
@@ -205,26 +221,7 @@ __kernel void ray_trace(
 
 		// Compute _nearest_ vertex index
 		float3 intersection = ray.origin + (range * ray.direction);
-		float3 v0 = vertices[intersectedFace.s0];
-		float3 v1 = vertices[intersectedFace.s1];
-		float3 v2 = vertices[intersectedFace.s2];
-		float d0 = distance(intersection, v0);
-		float d1 = distance(intersection, v1);
-		float d2 = distance(intersection, v2);
-		int idx;
-		if( d0 < d1 ) {
-			if( d0 < d2) {
-				idx = intersectedFace.s0 + 1;
-			} else {
-				idx = intersectedFace.s2 + 1;
-			}
-		} else {
-			if( d1 < d2 ) {
-				idx = intersectedFace.s1 + 1;
-			} else {
-				idx = intersectedFace.s2 + 1;
-			}
-		}
+		int idx = closestVertex(intersectedFace, vertices, intersection);
 		vertex[work_item_id] = idx;
 	} else {
 		// Ray mised mesh

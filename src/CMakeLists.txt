@@ -27,6 +27,7 @@ add_subdirectory( libGraph )
 add_subdirectory( libField )
 add_subdirectory( libArgs )
 add_subdirectory( libFileUtils )
+add_subdirectory( mesher )
 add_subdirectory( tools )
 
 

@@ -28,6 +28,7 @@ std::vector<std::vector<PixelLocation>> compute_correspondences(const std::vecto
 				int vertex = frame.data[idx];
 				PixelLocation pl{ current_frame_index, Vector2i{x, y}};
 				vertex_to_pixels.insert( make_pair( vertex, pl));
+				++idx;
 			}
 		}
 		current_frame_index++;
@@ -48,5 +49,6 @@ std::vector<std::vector<PixelLocation>> compute_correspondences(const std::vecto
 		correspondences.push_back(correspondence);
 		correspondence.clear();
 	}
+
 	return correspondences;
 }

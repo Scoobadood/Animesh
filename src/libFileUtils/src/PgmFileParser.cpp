@@ -7,6 +7,11 @@
 #include <string>
 #include <FileUtils/PgmFileParser.h>
 
+#undef DEBUG
+#ifdef DEBUG 
+#include <iostream>
+#endif
+
 std::vector<std::string> tokenise(const std::string& line){
 	using namespace std;
 
@@ -72,6 +77,10 @@ Frame load_frame_from_file( const std::string& file_name ) {
 					break;
 	    		case EXPECTING_DATA:
 	    			pixel_data = stoi( token );
+#ifdef DEBUG 
+	    			if( pixel_data != 0 ) 
+	    				std::cout << pixel_data << std::endl;
+#endif
 	    			data.push_back(pixel_data);
 	    			expected_data--;
 	    			if( expected_data == 0 ) {

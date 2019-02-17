@@ -53,11 +53,14 @@ int main( int argc, char *argv[] ) {
 
   if( argc < 2 ) {
   	cerr << "Must specify source directory" << endl;
+    exit(-1);
   }
 
   string dir = argv[1];
   vector<string> files = get_vertex_files_in_directory(dir);
   vector<vector<PixelLocation>> correspondences = compute_correspondences(files);
+
+    cout << "Found : " << correspondences.size() << " distinct points." << endl;
 
   return 0;
 }

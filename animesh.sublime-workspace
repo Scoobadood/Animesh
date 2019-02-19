@@ -4,6 +4,98 @@
 		"selected_items":
 		[
 			[
+				"intersct",
+				"intersection"
+			],
+			[
+				"in",
+				"intersectedFace"
+			],
+			[
+				"inter",
+				"intersect"
+			],
+			[
+				"CL_MEM_COPY",
+				"CL_MEM_COPY_HOST_PTR"
+			],
+			[
+				"int",
+				"intersection"
+			],
+			[
+				"viewT",
+				"viewportTransform\tQt Functions"
+			],
+			[
+				"world",
+				"worldTransform\tQt Functions"
+			],
+			[
+				"ray",
+				"rayDirection"
+			],
+			[
+				"scenet",
+				"sceneTextureSize"
+			],
+			[
+				"ident",
+				"identity\tQt Functions"
+			],
+			[
+				"gl",
+				"gl_FragCoord"
+			],
+			[
+				"model",
+				"modelCoordinate"
+			],
+			[
+				"mode",
+				"modelCoordinate"
+			],
+			[
+				"ge",
+				"geometry\tQt Functions"
+			],
+			[
+				"view",
+				"viewCoordV"
+			],
+			[
+				"wo",
+				"worldCoordV"
+			],
+			[
+				"iden",
+				"identity\tQt Functions"
+			],
+			[
+				"orangeFragmen",
+				"orangeFragmentShaderSrc"
+			],
+			[
+				"frag",
+				"fragmentShader\tQt Functions"
+			],
+			[
+				"createShader",
+				"glCreateShaderProgramv\tQt Functions"
+			],
+			[
+				"vert",
+				"vertexShader\tQt Functions"
+			],
+			[
+				"set",
+				"set_target_properties"
+			],
+			[
+				"include",
+				"include_directories"
+			],
+			[
 				"m_grap",
 				"m_graphnode_for_field_element"
 			],
@@ -122,10 +214,6 @@
 			[
 				"file",
 				"fileName"
-			],
-			[
-				"in",
-				"invalid_argument"
 			],
 			[
 				"m_field",
@@ -268,10 +356,6 @@
 				"vector"
 			],
 			[
-				"vert",
-				"vertex2"
-			],
-			[
 				"EXP",
 				"EXPECT_FLOAT_EQ"
 			],
@@ -334,10 +418,6 @@
 			[
 				"m_smoothing_",
 				"m_smoothing_iterations_this_tier"
-			],
-			[
-				"view",
-				"view_changed"
 			],
 			[
 				"update",
@@ -434,118 +514,33 @@
 			[
 				"merg",
 				"m_node_merge_function"
-			],
-			[
-				"node_",
-				"node_iter"
-			],
-			[
-				"create",
-				"create_parent_node"
-			],
-			[
-				"Node",
-				"NodeData"
-			],
-			[
-				"pu",
-				"push_back"
-			],
-			[
-				"cre",
-				"create_parent_node"
-			],
-			[
-				"edg",
-				"edge_has_no_parent"
-			],
-			[
-				"m_ed",
-				"m_edges"
-			],
-			[
-				"m_e",
-				"m_edges"
-			],
-			[
-				"size",
-				"size_t"
-			],
-			[
-				"null",
-				"nullptr"
-			],
-			[
-				"simpl",
-				"simplified_graph"
-			],
-			[
-				"to",
-				"to_node"
-			],
-			[
-				"set",
-				"set_tangents"
-			],
-			[
-				"m_data",
-				"m_data_to_node_map"
-			],
-			[
-				"dim",
-				"dim1"
-			],
-			[
-				"theta",
-				"theta_steps"
-			],
-			[
-				"phi",
-				"phi_steps"
-			],
-			[
-				"strin",
-				"strings"
-			],
-			[
-				"thi",
-				"this_point"
-			],
-			[
-				"negh",
-				"neighbour_point"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"contents": "",
+			"file": "build/README.md",
 			"settings":
 			{
-				"buffer_size": 0,
-				"line_ending": "Unix",
-				"name": "𝌆 Outline",
-				"scratch": true
-			}
-		},
-		{
-			"file": "doc/multi-frame",
-			"settings":
-			{
-				"buffer_size": 515,
-				"encoding": "UTF-8",
+				"buffer_size": 3917,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "test_data/folded_plane.obj",
+			"file": "src/tools/data_gen/dat_gen.cpp",
 			"settings":
 			{
-				"buffer_size": 5169,
-				"encoding": "UTF-8",
-				"line_ending": "Unix",
-				"name": "# Folded plane:"
+				"buffer_size": 12115,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/tools/data_gen/ray_trace.cl",
+			"settings":
+			{
+				"buffer_size": 7716,
+				"line_ending": "Unix"
 			}
 		}
 	],
@@ -577,16 +572,20 @@
 		"selected_items":
 		[
 			[
+				"inst",
+				"Package Control: Install Package"
+			],
+			[
+				"pa",
+				"Package Control: Install Package"
+			],
+			[
 				"pack",
 				"Package Control: Install Package"
 			],
 			[
 				"br",
 				"Browse Mode: Outline (Right)"
-			],
-			[
-				"pa",
-				"Package Control: Install Package"
 			],
 			[
 				"CMakeBuilder:",
@@ -622,25 +621,121 @@
 	"expanded_folders":
 	[
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/bin",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/libArgs",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cloth Plane",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube1x1",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube5x5",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/.idea",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain"
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/include",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/include/Args",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/src",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/include",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/include/FileUtils",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/src",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/tests",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools"
 	],
 	"file_history":
 	[
+		"/Users/dave/Projects/Canva/alextreppass-edit-apps-playground/.git/COMMIT_EDITMSG",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.git/COMMIT_EDITMSG",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube/cube.obj",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/data_gen/camera.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/vv",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/include/FileUtils/ObjFileParser.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/src/ObjFileParser.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/Cube1x1/cube.obj",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/tests/TestObjFileParser.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/camera.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/data_gen/ray_trace.cl",
+		"/Library/WebServer/Documents/edit_apps/.git/COMMIT_EDITMSG",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/run.sh",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/data_gen/dat_gen.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/data_gen/Camera.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/data_gen/CMakeLists.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/CMakeLists.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/data_gen/Camera.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/ray_trace.cl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/dat_gen.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldOptimiser.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/FieldOptimiser.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/AnimeshMainWindow.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestGraphCycles.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/tests/TestObjFileParser.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/AnimeshMainWindow.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/mini-horse/horse-08.obj",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/include/Geom/geom.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/src/geom.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/CMakeLists.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/src/Checks.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/camera.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/CMakeLists.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/PointNormal.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/OBJ_Loader.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/ObjFileParser.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestGraphCycles.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/perfTool.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestObjFileParser.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/CMakeLists.txt",
+		"/Users/dave/Desktop/vertex.pgm",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/mesh_cl.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/mesh_cl.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/model.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/model_cl.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/model_cl.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/mesh.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/model.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/mesh.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shader.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/red_green.cl",
+		"/System/Library/Frameworks/OpenCL.framework/Versions/A/lib/clang/3.2/include/cl_kernel.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/cl.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/glutils.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/glutils.hpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/dmr.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/rt_fragment_shader.glsl",
+		"/Library/WebServer/Documents/edit_apps/.gitignore",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/fbo.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/rt_vertex_shader.glsl",
+		"/Library/WebServer/Documents/edit_apps/dataurl.b64",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/stb_image_write.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/stb_image.h",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/vertex_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/depth_frag_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/geom_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/shaders/vertex_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/new_shader.hpp.cpp",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/u_col_frag_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/geom_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/v_col_frag_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/u_col_frag_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/vertex_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/v_col_frag_shader.glsl",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/build_out.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/README.md",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/tools/dmr_old.txt",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/doc/multi-frame",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.gitignore",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/.gitignore",
+		"/Users/dave/js_things/toji-gl-matrix-8eb6288/utils/update-license-version.js",
+		"/etc/hosts",
+		"/Users/dave/Canva/infrastructure/.git/COMMIT_EDITMSG",
+		"/Users/dave/Canva/infrastructure/app/content-search/content-search.tf",
+		"/Users/dave/js_things/toji-gl-matrix-8eb6288/src/build.js",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/test_data/folded_plane.obj",
 		"/Users/dave/Downloads/horse-poses/horse-08.obj",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/Field.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/Field.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/AnimeshMainWindow.ui",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/AnimeshMainWindow.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/main.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/AnimeshMainWindow.cpp",
 		"/Users/dave/Canva/canva/.git/COMMIT_EDITMSG",
 		"/Users/dave/Canva/canva/.git/MERGE_MSG",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.gitignore",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.gitgnore",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestGraph.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestGraph.cpp",
@@ -649,23 +744,18 @@
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestGraphSimplifier.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestGraphSimplifier.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/docs/Thinkpad",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/include/Geom/geom.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldOptimiser.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libRoSy/src/RoSy.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libRoSy/tests/TestRoSy.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestField.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/tests/TestGeom.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/FieldOptimiser.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libRoSy/tests/TestRoSy.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/tests/TestGeom.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libRoSy/include/RoSy/RoSy.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/src/geom.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/docs/Design.md",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldEdgeData.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestField.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/FieldDebugging.cpp",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestFieldElement.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/CMakeLists.txt",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestFieldElement.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/Testing/Temporary/CTestCostData.txt",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldElement.h",
@@ -680,88 +770,11 @@
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/FieldSmoother.cpp",
 		"/Users/dave/.bash_profile",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldSmoother.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/docs/design.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestHierarchicalGraph.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/tests/TestHierarchicalGraph.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/QtMain/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/main/CMakeLists.txt",
-		"/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices.tbd",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/QtMain/CMakeFiles/QtAnimesh.dir/link.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/QtMain/Makefile",
-		"/Users/dave/.lldbinit",
-		"/Users/dave/Qt/5.11.1/clang_64/lib/QtCore.framework.dSYM/Contents/Resources/Python/QtCore.py",
-		"/Users/dave/.lldb/qstring.py",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/tests/main.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libRoSy/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestMatlabFieldExporter.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/GraphBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/xGridGraphBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/xGraphBuilder.h",
-		"/Users/dave/solr-7.4.0/solr/example/cloud/node1/solr/solr.xml",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/main/visualisation.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/make_poly/main.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/main/load_and_save.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/HierarchicalGraph.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/main/visualisation.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/src/Args.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/Makefile",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/include/Args/Args.h",
-		"/Users/dave/solr-7.4.0/README.md",
-		"/Users/dave/VTK/build/GUISupport/Qt/cmake_install.cmake",
-		"/Users/dave/VTK/build/GUISupport/Qt/PluginInstall.cmake",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/out",
-		"/Users/dave/Downloads/FYNDUTDG1M2GZ2I.tmp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.git/MERGE_MSG",
-		"/Users/dave/Documents/System History/2018-06-28",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/ExplicitGraphBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/NearestNeighbourGraphBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/GridGraphBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libElement/include/Element/Element.h",
-		"/Users/dave/.ssh/config",
-		"/Users/dave/.gitconfig",
-		"/Users/dave/.gitconfigt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/doc/Hierarchical graph",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/FieldModifiedRandom.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/doc/p-code",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/include/tclap/ValueArg.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libArgs/include/tclap/Constraint.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/log",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/instant-meshes/src/field.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/make_poly/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/data/sphere.obj",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/src/GridGraphBuilder.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/src/ExplicitGraphBuilder.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/src/NearestNeighbourGraphBuilder.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/src/Graph.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/src/FieldBuilder.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/pcl_graph/main.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/src/PCLGraphBuilder.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/include/Graph/OBJGraphBuilder.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libPointCloud/src/PointCloud.cpp",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libPointCloud/include/PointCloud/PointCloud.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/pcl_graph/CMakeLists.txt",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/main/main.cpp",
-		"/usr/local/bin/infra",
-		"/usr/local/Cellar/infra-tools/3.7.9/libexec/infra.sh",
-		"/usr/local/Cellar/infra-tools/3.7.9/libexec/ssh2canva.sh",
-		"/Users/dave/_infra_functions.sh",
-		"/usr/local/Cellar/infra-tools/3.7.9/libexec/_infra_functions.sh",
-		"/Users/dave/.aws/credentials",
-		"/Users/dave/.aws/config",
-		"/Users/dave/.aws/config_dave",
-		"/Users/dave/.ssh/config_x",
-		"/Users/dave/Canva/matting/PJ-SoftScissors/src/index.html",
-		"/Users/dave/Canva/matting/PJ-SoftScissors/src/WEB-INF/web.xml",
-		"/usr/local/Cellar/pcl/1.8.1_2/include/pcl-1.8/pcl/PCLPointCloud2.h",
-		"/usr/local/include/pcl-1.8/pcl/point_cloud.h"
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGraph/CMakeLists.txt"
 	],
 	"find":
 	{
-		"height": 39.0
+		"height": 44.0
 	},
 	"find_in_files":
 	{
@@ -799,6 +812,52 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"loadMesh",
+			"loadMes",
+			"intersectRayWithMesh",
+			"ObjFileParser",
+			"parse_file_raw",
+			"Field/ObjFileParser",
+			"ObjFileParser",
+			"load_from_file",
+			"load_from",
+			"split",
+			"algorithm",
+			"load",
+			"struct",
+			"face",
+			"template",
+			"class Kernel",
+			"getInfo",
+			"cl_float3",
+			"cl_program_build_info",
+			"Program",
+			"review",
+			"outTexture",
+			"tex",
+			"TGA",
+			"fac_get",
+			" ds",
+			"back_col",
+			"_zero",
+			"fac_num",
+			"fac_siz",
+			"st",
+			"fac_get",
+			"ray[i0]",
+			"_lvls",
+			"fac_txr",
+			"ray_dir",
+			"ray_pos",
+			".dir",
+			".pos",
+			"pos",
+			"_ray",
+			"const int",
+			"Shader",
+			"yellowFragmentShaderSrc",
+			"orangeFragmentShaderSrc",
+			"dmr",
 			"sbGr",
 			"sbFrame",
 			"frame",
@@ -880,53 +939,7 @@
 			"m_smoothing",
 			"m_last_error",
 			"m_new_tier",
-			"m_current_tier",
-			"m_tier_index",
-			"m_smoothing",
-			"Searching",
-			" m_smoothing",
-			"m_smoothing",
-			"form",
-			"QSplitter",
-			" Ignoring me as my own neighbour",
-			"Notepad",
-			"simplify",
-			"merge",
-			"neighbours",
-			"simplify",
-			"set_tangents",
-			"OBJ",
-			"Field::elements",
-			"elements(",
-			"sort",
-			"std::sort",
-			"Element",
-			"Graph(",
-			"TODO",
-			"std::find(",
-			"std::find",
-			" };",
-			"using",
-			"Element",
-			"xor",
-			"m_grid",
-			"throw",
-			"num_iterations",
-			"m_num_smoothing_iterations",
-			"throw",
-			"exception",
-			"raise",
-			"throw",
-			"57203",
-			"XYZ",
-			"find_package(PCL 1.3 REQUIRED)",
-			"PCL_COMMON_LIBRARIES",
-			"order",
-			"tuple(",
-			"tuple",
-			"m_data",
-			"EdgeData",
-			" with the following fields: "
+			"m_current_tier"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -934,6 +947,23 @@
 		"regex": false,
 		"replace_history":
 		[
+			"FileUtils/ObjFileParser",
+			"getNextSceneFloat",
+			"BG_COLOUR",
+			"ZERO",
+			"numFloats",
+			"sceneTextureSize",
+			"textureCoord",
+			"theRay",
+			"sceneTexture",
+			"rayDirection",
+			"rayStart",
+			".direction",
+			".start",
+			"start",
+			"tRay",
+			"uniformFragmentShaderSrc",
+			"redFragmentShaderSrc",
 			"",
 			"FieldFactory::",
 			"optimising",
@@ -965,32 +995,86 @@
 			[
 				{
 					"buffer": 0,
+					"file": "build/README.md",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 0,
+						"buffer_size": 3917,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								0,
-								0
+								598,
+								598
 							]
 						],
 						"settings":
 						{
-							"current_file": "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/test_data/folded_plane.obj",
-							"git_gutter_is_enabled": false,
-							"outline_rename_mode": false,
-							"symkeys":
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/Markdown/Markdown.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 786.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/tools/data_gen/dat_gen.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12115,
+						"regions":
+						{
+						},
+						"selection":
+						[
 							[
-							],
-							"symlist":
+								6648,
+								6648
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/C++11/C++11.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 4992.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/tools/data_gen/ray_trace.cl",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7716,
+						"regions":
+						{
+						},
+						"selection":
+						[
 							[
-							],
-							"syntax": "Packages/Outline/outline.hidden-tmLanguage"
+								1149,
+								1149
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/OpenCL/OpenCL.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -1000,505 +1084,35 @@
 					"type": "text"
 				}
 			]
-		},
-		{
-			"selected": 1,
-			"sheets":
-			[
-				{
-					"buffer": 1,
-					"file": "doc/multi-frame",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 515,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								327,
-								327
-							]
-						],
-						"settings":
-						{
-							"git_gutter_is_enabled": true,
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "test_data/folded_plane.obj",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 5169,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								103,
-								103
-							],
-							[
-								141,
-								141
-							],
-							[
-								179,
-								179
-							],
-							[
-								217,
-								217
-							],
-							[
-								255,
-								255
-							],
-							[
-								293,
-								293
-							],
-							[
-								331,
-								331
-							],
-							[
-								369,
-								369
-							],
-							[
-								407,
-								407
-							],
-							[
-								445,
-								445
-							],
-							[
-								483,
-								483
-							],
-							[
-								521,
-								521
-							],
-							[
-								559,
-								559
-							],
-							[
-								597,
-								597
-							],
-							[
-								635,
-								635
-							],
-							[
-								673,
-								673
-							],
-							[
-								711,
-								711
-							],
-							[
-								749,
-								749
-							],
-							[
-								787,
-								787
-							],
-							[
-								825,
-								825
-							],
-							[
-								863,
-								863
-							],
-							[
-								901,
-								901
-							],
-							[
-								939,
-								939
-							],
-							[
-								977,
-								977
-							],
-							[
-								1015,
-								1015
-							],
-							[
-								1053,
-								1053
-							],
-							[
-								1091,
-								1091
-							],
-							[
-								1129,
-								1129
-							],
-							[
-								1167,
-								1167
-							],
-							[
-								1205,
-								1205
-							],
-							[
-								1243,
-								1243
-							],
-							[
-								1281,
-								1281
-							],
-							[
-								1319,
-								1319
-							],
-							[
-								1357,
-								1357
-							],
-							[
-								1395,
-								1395
-							],
-							[
-								1433,
-								1433
-							],
-							[
-								1471,
-								1471
-							],
-							[
-								1509,
-								1509
-							],
-							[
-								1547,
-								1547
-							],
-							[
-								1585,
-								1585
-							],
-							[
-								1623,
-								1623
-							],
-							[
-								1661,
-								1661
-							],
-							[
-								1699,
-								1699
-							],
-							[
-								1737,
-								1737
-							],
-							[
-								1775,
-								1775
-							],
-							[
-								1813,
-								1813
-							],
-							[
-								1851,
-								1851
-							],
-							[
-								1889,
-								1889
-							],
-							[
-								1927,
-								1927
-							],
-							[
-								1965,
-								1965
-							],
-							[
-								2003,
-								2003
-							],
-							[
-								2041,
-								2041
-							],
-							[
-								2079,
-								2079
-							],
-							[
-								2117,
-								2117
-							],
-							[
-								2155,
-								2155
-							],
-							[
-								2193,
-								2193
-							],
-							[
-								2231,
-								2231
-							],
-							[
-								2269,
-								2269
-							],
-							[
-								2307,
-								2307
-							],
-							[
-								2345,
-								2345
-							],
-							[
-								2383,
-								2383
-							],
-							[
-								2421,
-								2421
-							],
-							[
-								2459,
-								2459
-							],
-							[
-								2497,
-								2497
-							],
-							[
-								2535,
-								2535
-							],
-							[
-								2573,
-								2573
-							],
-							[
-								2611,
-								2611
-							],
-							[
-								2649,
-								2649
-							],
-							[
-								2687,
-								2687
-							],
-							[
-								2725,
-								2725
-							],
-							[
-								2763,
-								2763
-							],
-							[
-								2801,
-								2801
-							],
-							[
-								2839,
-								2839
-							],
-							[
-								2877,
-								2877
-							],
-							[
-								2915,
-								2915
-							],
-							[
-								2953,
-								2953
-							],
-							[
-								2991,
-								2991
-							],
-							[
-								3029,
-								3029
-							],
-							[
-								3067,
-								3067
-							],
-							[
-								3105,
-								3105
-							],
-							[
-								3143,
-								3143
-							],
-							[
-								3181,
-								3181
-							],
-							[
-								3219,
-								3219
-							],
-							[
-								3257,
-								3257
-							],
-							[
-								3295,
-								3295
-							],
-							[
-								3333,
-								3333
-							],
-							[
-								3371,
-								3371
-							],
-							[
-								3409,
-								3409
-							],
-							[
-								3447,
-								3447
-							],
-							[
-								3485,
-								3485
-							],
-							[
-								3523,
-								3523
-							],
-							[
-								3561,
-								3561
-							],
-							[
-								3599,
-								3599
-							],
-							[
-								3637,
-								3637
-							],
-							[
-								3675,
-								3675
-							],
-							[
-								3713,
-								3713
-							],
-							[
-								3751,
-								3751
-							],
-							[
-								3789,
-								3789
-							],
-							[
-								3827,
-								3827
-							],
-							[
-								3865,
-								3865
-							]
-						],
-						"settings":
-						{
-							"auto_name": "# Folded plane:",
-							"git_gutter_is_enabled": true,
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 1433.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"type": "text"
-				}
-			]
 		}
 	],
 	"incremental_find":
 	{
-		"height": 27.0
+		"height": 32.0
 	},
 	"input":
 	{
-		"height": 44.0
+		"height": 49.0
 	},
 	"layout":
 	{
 		"cells":
 		[
 			[
-				2,
-				0,
-				3,
-				2
-			],
-			[
 				0,
 				0,
-				2,
-				2
+				1,
+				1
 			]
 		],
 		"cols":
 		[
 			0.0,
-			0.2,
-			0.8,
 			1.0
 		],
 		"rows":
 		[
 			0.0,
-			0.5,
 			1.0
 		]
 	},
@@ -1519,11 +1133,15 @@
 	{
 		"height": 0.0
 	},
+	"output.nodejs":
+	{
+		"height": 649.0
+	},
 	"pinned_build_system": "Packages/Makefile/Make.sublime-build",
 	"project": "animesh.sublime-project",
 	"replace":
 	{
-		"height": 70.0
+		"height": 80.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -1553,7 +1171,7 @@
 		],
 		"width": 1130.0
 	},
-	"selected_group": 1,
+	"selected_group": 0,
 	"settings":
 	{
 	},

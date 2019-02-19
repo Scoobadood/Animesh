@@ -9,6 +9,16 @@
 #include <FileUtils/PgmFileParser.h>
 #include "pixel_correspondence.hpp"
 
+
+Frame load_frame_from_file( const std::string& file_name ) {
+	using namespace std;
+
+	PgmData pgm = read_pgm(file_name);
+
+	return Frame{ pgm.width, pgm.height, pgm.data};
+}
+
+
 /**
  * @return a vector of vectors of pixel locations. Each entry in the vector corresponds to a distinct 'surfel'
  * each vector lists the fram/pixel coordinates of points correspondning to this surfel.

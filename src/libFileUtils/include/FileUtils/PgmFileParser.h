@@ -6,16 +6,14 @@
 #include <string>
 #include <FileUtils/FileUtils.h>
 
-struct Frame {
+struct PgmData {
 	std::size_t 		width;
 	std::size_t 		height;
 	std::vector<int>	data;
-
-	bool isValidAt( std::size_t x, std::size_t y ) {
-		if( x > width || y > height ) return false;
-		if( data[y * width + height] == 0 ) return false;
-		return true;
-	}
 };
 
-Frame load_frame_from_file( const std::string& file_name );
+/**
+ * Read the provided file and return a PgmData object.
+ * File should be a type P2 at this point.
+ */
+PgmData read_pgm( const std::string& file_name );

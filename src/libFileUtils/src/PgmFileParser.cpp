@@ -7,11 +7,6 @@
 #include <string>
 #include <FileUtils/PgmFileParser.h>
 
-#undef DEBUG
-#ifdef DEBUG 
-#include <iostream>
-#endif
-
 std::vector<std::string> tokenise(const std::string& line){
 	using namespace std;
 
@@ -30,7 +25,11 @@ std::vector<std::string> tokenise(const std::string& line){
 }
 
 
-Frame load_frame_from_file( const std::string& file_name ) {
+/**
+ * Read the provided file and return a PgmData object.
+ * File should be a type P2 at this point.
+ */
+PgmData read_pgm( const std::string& file_name ) {
 	using namespace std;
 
 	// File format is 
@@ -60,7 +59,11 @@ Frame load_frame_from_file( const std::string& file_name ) {
 		for( auto token : tokens ) {
     		switch( state ) {
 				case EXPECTING_VERSION:
-					state = EXPECTING_WIDTH;
+					if( token == "P2" ) {
+						state = EXPECTING_WIDTH;
+					} else {
+						throw std::runtime_error("read_pgm cannot handle files of type other than P2");
+					}
 	    			break;
 	    		case EXPECTING_WIDTH:
 	    			width = stoi( token );
@@ -77,10 +80,6 @@ Frame load_frame_from_file( const std::string& file_name ) {
 					break;
 	    		case EXPECTING_DATA:
 	    			pixel_data = stoi( token );
-#ifdef DEBUG 
-	    			if( pixel_data != 0 ) 
-	    				std::cout << pixel_data << std::endl;
-#endif
 	    			data.push_back(pixel_data);
 	    			expected_data--;
 	    			if( expected_data == 0 ) {
@@ -93,5 +92,5 @@ Frame load_frame_from_file( const std::string& file_name ) {
 		}
 	});
 
-	return Frame{ (size_t)width, (size_t)height, data};
+	return PgmData{ (size_t)width, (size_t)height, data};
 }

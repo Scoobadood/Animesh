@@ -1,7 +1,7 @@
 #include <iostream>
-#include "surfel.hpp"
 #include <regex>
 #include <FileUtils/FileUtils.h>
+#include "surfel.hpp"
 #include "pixel_correspondence.hpp"
 
 std::vector<std::string> get_vertex_files_in_directory( std::string directory_name ) {
@@ -60,7 +60,7 @@ int main( int argc, char *argv[] ) {
   vector<string> files = get_vertex_files_in_directory(dir);
   vector<vector<PixelLocation>> correspondences = compute_correspondences(files);
 
-    cout << "Found : " << correspondences.size() << " distinct points." << endl;
+  build_surfel_table(correspondences, files);
 
   return 0;
 }

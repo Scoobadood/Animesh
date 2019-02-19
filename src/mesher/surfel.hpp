@@ -2,15 +2,19 @@
 
 #include <vector>
 #include <Eigen/Core>
+#include "pixel_correspondence.hpp"
 
 struct FrameData {
-	unsigned int 	frame_no;
-	Eigen::Vector2f pixel_coord;
+	PixelLocation	pixel_location;
 	Eigen::Matrix3f	transform;
 };
 
 struct Surfel {
-	std::vector<FrameData>		frame_data;
-	std::vector<unsigned int>	neighbouring_surfels;
-	Eigen::Vector3f 			tangent;
+	std::size_t 			id;
+	std::vector<FrameData>	frame_data;
+	std::vector<size_t>		neighbouring_surfels;
+	Eigen::Vector3f 		tangent;
 };
+
+void
+build_surfel_table(const std::vector<std::vector<PixelLocation>>& correspondences, const std::vector<std::string>& files );

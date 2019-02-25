@@ -7,8 +7,8 @@ project( Animesh
          LANGUAGES CXX )
 
 
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
+# Tell cmake where to find modules
+set(CMAKE_MODULE_PATH "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/animesh/src/cmake_modules")
 
 # Write targets to bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)

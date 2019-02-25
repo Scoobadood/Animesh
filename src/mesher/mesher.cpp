@@ -3,6 +3,7 @@
 #include <FileUtils/FileUtils.h>
 #include "surfel.hpp"
 #include "pixel_correspondence.hpp"
+#include "depth_image_loader.h"
 
 std::vector<std::string> get_vertex_files_in_directory( std::string directory_name ) {
     using namespace std;
@@ -59,6 +60,9 @@ int main( int argc, char *argv[] ) {
   string dir = argv[1];
   vector<string> files = get_vertex_files_in_directory(dir);
   vector<vector<PixelLocation>> correspondences = compute_correspondences(files);
+
+  files = get_depth_files_in_directory(dir);
+  load_depth_image(files[0]);
 
   build_surfel_table(correspondences, files);
 

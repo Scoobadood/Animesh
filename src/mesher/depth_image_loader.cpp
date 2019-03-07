@@ -20,10 +20,7 @@ Eigen::Vector3f backproject(int pixel_x, int pixel_y, float depth,
 	// We assume that camera is this matrix
 
 	// Make back proj matrix
-	Matrix3f kinv;
-	kinv << 1.0f / K(0,0), 0.0f,          -K(0,2) / K(0,0),
-	        0.0f,          1.0f / K(1,1), -K(1,2) / K(1,1), 
-	        0.0f,          0.0f,          1.0f;
+	Matrix3f kinv = K.inverse();
 
 	Vector3f point{ pixel_x, pixel_y, 1.0f };
 	Vector3f ray_direction = kinv * point;
@@ -45,31 +42,22 @@ Eigen::Vector3f backproject(int pixel_x, int pixel_y, float depth,
 }
 
 /*
- * Load depth images from disk and convert to point couds.
+ * Get the camera matrix
  */
+Eigen::Matrix3f camera_intrinsics( ) {
+	Eigen::Matrix3f K;
+	K << 2029.0f, 0.0f,    320.0f,
+	     0.0f,    1522.0f, 240.0f,
+	     0.0f,    0.0f,    1.0f;
+	return K;
+}
+
+
 std::vector<PointWithNormal>
-load_depth_image(const std::string& file_name) {
+compute_surface_normals(std::vector<vcg::Point3f> all_points) {
 	using namespace std;
 	using namespace Eigen;
 	using namespace vcg;
-
-	PgmData pgm = read_pgm(file_name);
-	Matrix3f K = Matrix3f::Identity(3,3);
-	Matrix3f R = Matrix3f::Identity(3,3);
-	Vector3f t = Vector3f::Zero();
-	vector<Point3f> all_points;
-	size_t idx = 0;
-	for( int y=0; y<pgm.height; ++y) {
-		for( int x = 0; x < pgm.width; ++x ) {
-			float depth = pgm.data[idx];
-
-			Vector3f xyz = backproject(x, y, depth, K, R, t);
-			Point3f pt{xyz[0], xyz[1], xyz[2]};
-			all_points.push_back(pt);
-
-			++idx;
-		}
-	}	
 
 	// Construct KdTree to interrogate nearest neighbours
 	ConstDataWrapper<Point3f> wrapped_points{all_points.data(), static_cast<int>(all_points.size()), sizeof( Point3f)};
@@ -83,7 +71,7 @@ load_depth_image(const std::string& file_name) {
 	for( auto point : all_points ) {
 		vector<unsigned int> point_indices;
 		vector<float> distances;
-		float dist = 0.01f;
+		float dist = 5.0f;
 		tree.doQueryDist(point, dist, point_indices, distances);
 		vector<Point3f> neighbours;
 		for( auto idx : point_indices) {
@@ -100,3 +88,49 @@ load_depth_image(const std::string& file_name) {
 	}
 	return pointsWithNormals;
 }
+
+/*
+ * Load one depth imagespoint cloud.
+ */
+std::vector<PointWithNormal>
+load_depth_image(const std::string& file_name) {
+	using namespace std;
+	using namespace Eigen;
+	using namespace vcg;
+
+	PgmData pgm = read_pgm(file_name);
+	Matrix3f K = camera_intrinsics();
+	Matrix3f R = Matrix3f::Identity(3,3);
+	Vector3f t;
+	t << 2.0f, 0.5f, 0.0f;
+
+	// For all pixels wth a valid depth, generate a 3 point and store
+	// to all_points
+	vector<Point3f> all_points;
+	size_t idx = 0;
+	for( int y=0; y<pgm.height; ++y) {
+		for( int x = 0; x < pgm.width; ++x ) {
+			float depth = pgm.data[idx];
+			if( depth != 0 ) {
+				Vector3f xyz = backproject(x, y, depth, K, R, t);
+				Point3f pt{xyz[0], xyz[1], xyz[2]};
+				all_points.push_back(pt);
+			}
+			++idx;
+		}
+	}	
+	return compute_surface_normals(all_points);
+}
+
+/*
+ * Load depth images from disk and convert to point couds.
+ */
+std::vector<std::vector<PointWithNormal>>
+load_depth_images(const std::vector<std::string>& file_names) {
+	std::vector<std::vector<PointWithNormal>> point_clouds;
+	for( auto file_name : file_names ) {
+		point_clouds.push_back( load_depth_image(file_name));
+	}
+	return point_clouds;
+}
+

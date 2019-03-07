@@ -62,7 +62,7 @@ int main( int argc, char *argv[] ) {
   vector<vector<PixelLocation>> correspondences = compute_correspondences(files);
 
   files = get_depth_files_in_directory(dir);
-  load_depth_image(files[0]);
+  vector<vector<PointWithNormal>> point_clouds = load_depth_images(files);
 
   build_surfel_table(correspondences, files);
 

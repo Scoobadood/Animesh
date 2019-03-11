@@ -13,5 +13,7 @@ struct PointWithNormal {
 /*
  * Load depth images from disk and convert to point couds.
  */
-std::vector<std::vector<PointWithNormal>>
-load_depth_images(const std::vector<std::string>& file_names);
+void
+load_depth_images(	const std::vector<std::string>& 						file_names,
+					std::vector<std::vector<PointWithNormal>>& 				point_clouds,
+					std::vector<std::vector<std::vector<unsigned int>>>&	neighbours);

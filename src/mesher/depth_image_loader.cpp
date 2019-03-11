@@ -53,8 +53,17 @@ Eigen::Matrix3f camera_intrinsics( ) {
 }
 
 
-std::vector<PointWithNormal>
-compute_surface_normals(std::vector<vcg::Point3f> all_points) {
+/**
+ * Compute the normals for each point in the given point cloud.
+ * @param all_points The point cloud.
+ * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
+ * @param points_with_normal Populated by this method.
+ */
+void
+compute_surface_normals(const std::vector<vcg::Point3f>& 		all_points,
+						std::vector<PointWithNormal>&    		points_with_normals,
+						std::vector<std::vector<unsigned int>>& neighbour_indices)
+{
 	using namespace std;
 	using namespace Eigen;
 	using namespace vcg;
@@ -63,37 +72,46 @@ compute_surface_normals(std::vector<vcg::Point3f> all_points) {
 	ConstDataWrapper<Point3f> wrapped_points{all_points.data(), static_cast<int>(all_points.size()), sizeof( Point3f)};
 	KdTree<float> tree(wrapped_points);
 
-	vector<PointWithNormal> pointsWithNormals;
-
-	// Given back projected points, fit plane to each point and extract normal
-	Plane3f plane;
-	vector<Point3f> neighbours;
+	// Extract neighbour indices of points for all points.
 	for( auto point : all_points ) {
-		vector<unsigned int> point_indices;
+		vector<unsigned int> this_point_neighbours;
 		vector<float> distances;
 		float dist = 5.0f;
-		tree.doQueryDist(point, dist, point_indices, distances);
-		vector<Point3f> neighbours;
-		for( auto idx : point_indices) {
-			neighbours.push_back(all_points[idx]);
+		tree.doQueryDist(point, dist, this_point_neighbours, distances);
+		neighbour_indices.push_back(this_point_neighbours);
+	}
+
+	// Now compute normals for each point
+	auto point_iter = all_points.begin();
+	for( auto point_neighbours : neighbour_indices ) {
+		vector<Point3f> neighbour_points;
+		for( auto idx : point_neighbours) {
+			neighbour_points.push_back(all_points[idx]);
 		}
-		FitPlaneToPointSet(neighbours, plane);
+
+		Plane3f plane;
+		FitPlaneToPointSet(neighbour_points, plane);
 
 		Point3f dir = plane.Direction();
-		pointsWithNormals.push_back(PointWithNormal{
+		Point3f point = *point_iter++;
+		points_with_normals.push_back(PointWithNormal{
 			Vector3f{point[0], point[1], point[2]},
 			Vector3f{dir[0], dir[1], dir[2]}
 		});
-		// Take xyz and plane normal and push combined thing into Frame data.
 	}
-	return pointsWithNormals;
 }
 
-/*
- * Load one depth imagespoint cloud.
+/**
+ * Load one depth image point cloud.
+ * @param file_name The file from which to load.
+ * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
+ * @param points_with_normal Populated by this method.
  */
-std::vector<PointWithNormal>
-load_depth_image(const std::string& file_name) {
+void
+load_depth_image(const std::string& 						file_name,
+				 std::vector<PointWithNormal>&    			points_with_normals,
+				 std::vector<std::vector<unsigned int>>& 	neighbour_indices)
+{
 	using namespace std;
 	using namespace Eigen;
 	using namespace vcg;
@@ -119,18 +137,24 @@ load_depth_image(const std::string& file_name) {
 			++idx;
 		}
 	}	
-	return compute_surface_normals(all_points);
+	compute_surface_normals(all_points, points_with_normals, neighbour_indices);
 }
 
 /*
  * Load depth images from disk and convert to point couds.
  */
-std::vector<std::vector<PointWithNormal>>
-load_depth_images(const std::vector<std::string>& file_names) {
-	std::vector<std::vector<PointWithNormal>> point_clouds;
+void
+load_depth_images(	const std::vector<std::string>& 						file_names,
+					std::vector<std::vector<PointWithNormal>>& 				point_clouds,
+					std::vector<std::vector<std::vector<unsigned int>>>&	neighbours)
+{
 	for( auto file_name : file_names ) {
-		point_clouds.push_back( load_depth_image(file_name));
+
+		std::vector<PointWithNormal> points_with_normals;
+		std::vector<std::vector<unsigned int>> neighbour_indices;
+		load_depth_image(file_name, points_with_normals, neighbour_indices);
+		point_clouds.push_back( points_with_normals );
+		neighbours.push_back(neighbour_indices);
 	}
-	return point_clouds;
 }
 

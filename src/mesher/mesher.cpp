@@ -59,12 +59,14 @@ int main( int argc, char *argv[] ) {
 
   string dir = argv[1];
   vector<string> files = get_vertex_files_in_directory(dir);
-  vector<vector<PixelLocation>> correspondences = compute_correspondences(files);
+  vector<vector<pair<unsigned int, unsigned int>>> correspondences = compute_correspondences(files);
 
   files = get_depth_files_in_directory(dir);
-  vector<vector<PointWithNormal>> point_clouds = load_depth_images(files);
+  vector<vector<vector<unsigned int>>> neighbours;
+  vector<vector<PointWithNormal>> point_clouds;
+  load_depth_images(files, point_clouds, neighbours);
 
-  build_surfel_table(correspondences, files);
+  std::vector<Surfel> surfels = build_surfel_table(point_clouds, neighbours, correspondences);
 
   return 0;
 }

@@ -39,3 +39,12 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 void 
 save_to_file( const std::vector<Surfel>& surfels, 
 			  const std::string& file_name );
+
+/**
+ * Load surfel data from binary file
+ */
+void 
+load_from_file( std::vector<Surfel>& surfels, 
+			    const std::string& file_name );
+
+

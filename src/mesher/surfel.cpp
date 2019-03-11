@@ -80,3 +80,128 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 
 	return surfels;
 }
+
+/**
+ * Write an unisgned int
+ */
+void 
+write_unsigned_int( std::ofstream& file, unsigned int value ) {
+    file.write( (const char *)&value, sizeof( unsigned int ) );
+}
+/**
+ * Write a float
+ */
+void 
+write_float( std::ofstream& file, float value ) {
+    file.write( (const char *)&value, sizeof( float ) );
+}
+/**
+ * Write an unisgned int
+ */
+void 
+write_size_t( std::ofstream& file, std::size_t value ) {
+    file.write( (const char *)&value, sizeof( std::size_t ) );
+}
+
+/**
+ * Save surfel data as binary file to disk
+ */
+void 
+save_to_file( const std::vector<Surfel>& surfels, 
+			  const std::string& file_name ) {
+	using namespace std;
+
+    ofstream file{file_name, ios::out | ios::binary};
+    write_unsigned_int( file, surfels.size());
+    for( Surfel surfel : surfels) {
+	    write_size_t( file, surfel.id);
+    	write_unsigned_int( file, surfel.frame_data.size());
+	    for( FrameData fd : surfel.frame_data) {
+		    write_size_t( file, fd.frame_idx);
+		    write_size_t( file, fd.point_idx);
+		    write_float( file, fd.transform(0,0) );
+		    write_float( file, fd.transform(0,1) );
+		    write_float( file, fd.transform(0,2) );
+		    write_float( file, fd.transform(1,0) );
+		    write_float( file, fd.transform(1,1) );
+		    write_float( file, fd.transform(1,2) );
+		    write_float( file, fd.transform(2,0) );
+		    write_float( file, fd.transform(2,1) );
+		    write_float( file, fd.transform(2,2) );
+	    }
+    	write_unsigned_int( file, surfel.neighbouring_surfels.size());
+	    for( auto idx : surfel.neighbouring_surfels) {
+		    write_size_t( file, idx);
+	    }
+	    write_float( file, surfel.tangent.x() );
+	    write_float( file, surfel.tangent.y() );
+	    write_float( file, surfel.tangent.z() );
+    }
+    file.close();
+}
+
+unsigned int 
+read_unsigned_int( std::ifstream& file ) {
+	unsigned int i;
+	file.read( (char *)&i, sizeof(i) );
+	return i;
+}
+
+std::size_t
+read_size_t( std::ifstream& file ) {
+	size_t i;
+	file.read( (char *)&i, sizeof(i) );
+	return i;
+}
+
+float
+read_float( std::ifstream& file ) {
+	float i;
+	file.read( (char *)&i, sizeof(i) );
+	return i;
+}
+
+/**
+ * Load surfel data from binary file
+ */
+void 
+load_from_file( std::vector<Surfel>& surfels, 
+			    const std::string& file_name ) {
+	using namespace std;
+
+	ifstream file{ file_name, ios::in | ios::binary};
+	surfels.clear();
+
+	unsigned int num_surfels = read_unsigned_int( file );
+	for( int sIdx=0; sIdx < num_surfels; ++sIdx ) {
+		Surfel s;
+		s.id = read_size_t(file);
+
+		unsigned int num_frames = read_unsigned_int( file );
+		for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
+			FrameData fd;
+			fd.frame_idx = read_size_t(file);
+			fd.point_idx = read_size_t(file);
+			float m[9];
+			for( int mIdx=0; mIdx<9; mIdx++ ) {
+				m[mIdx] = read_float(file);
+			}
+			fd.transform << m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8];
+			s.frame_data.push_back( fd );
+		}
+
+		unsigned int num_neighbours = read_unsigned_int( file );
+		for( int nIdx=0; nIdx<num_neighbours; ++nIdx) {
+			s.neighbouring_surfels.push_back( read_size_t( file ) );
+		}
+
+		float v[3];
+		for( int vIdx=0; vIdx < 9; ++vIdx ) {
+			v[vIdx] = read_float(file);
+		}
+		s.tangent << v[0], v[1], v[2];
+
+		surfels.push_back(s);
+	}
+	file.close();
+}

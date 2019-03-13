@@ -15,14 +15,14 @@ populate_neighbours(std::vector<Surfel>& surfels,
 	using namespace std;
 
 	for( int i=0; i<surfels.size(); ++i ) {
-		for( auto fd : surfels[i].frame_data ) {
+		for( auto fd : surfels.at(i).frame_data ) {
 			unsigned int frame_idx = fd.frame_idx;
 			unsigned int point_idx = fd.point_idx;
 
-			vector<unsigned int> f_p_neighbours = neighbours[frame_idx][point_idx];
+			vector<unsigned int> f_p_neighbours = neighbours.at(frame_idx).at(point_idx);
 			for( auto n : f_p_neighbours) {
 				size_t idx = frame_point_to_surfel.at(make_pair<>( frame_idx, n ) );
-				surfels[i].neighbouring_surfels.push_back( idx );
+				surfels.at(i).neighbouring_surfels.push_back( idx );
 			}
 		}
 	}
@@ -41,7 +41,8 @@ populate_frame_data( const std::vector<std::vector<PointWithNormal>>& point_norm
 		fd.frame_idx = frame_idx;
 		fd.point_idx = point_idx;
 		Vector3f y{ 0.0, 1.0, 0.0};
-		fd.transform = vector_to_vector_rotation( y, point_normals[frame_idx][point_idx].normal );
+		PointWithNormal pwn = point_normals.at(frame_idx).at(point_idx);
+		fd.transform = vector_to_vector_rotation( y, pwn.normal );
 		frame_data.push_back( fd );
 	}
 }

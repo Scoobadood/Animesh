@@ -102,8 +102,22 @@ compute_surface_normals(const std::vector<vcg::Point3f>& 		all_points,
 }
 
 /**
+ * Read the camera data for a given file/frame.
+ */
+void
+read_camera_data(const std::string& file_name,
+				 Eigen::Matrix3f& K,
+				 Eigen::Matrix3f& R,
+				 Eigen::Vector3f& t) {
+	// TODO: Replace this with data read from a file.
+	K = camera_intrinsics();
+	R = Matrix3f::Identity(3,3);
+	t << 2.0f, 0.5f, 0.0f;
+}
+
+/**
  * Load one depth image point cloud.
- * @param file_name The file from which to load.
+ * @param file_name The file from which to load - expected to be a PGM file.
  * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
  * @param points_with_normal Populated by this method.
  */
@@ -142,16 +156,23 @@ load_depth_image(const std::string& 						file_name,
 
 /*
  * Load depth images from disk and convert to point couds.
+ * @param file_names The input file names of depth images, assumed to be PGM files.
+ * @param point_clouds A vector which is populated by this method. For each frame, for each point, a PointWithNormal.
+ * @param neighbours Populated by this method. For each frame, for each point, the neighbouring point indices used to compute the normal.
  */
 void
 load_depth_images(	const std::vector<std::string>& 						file_names,
 					std::vector<std::vector<PointWithNormal>>& 				point_clouds,
 					std::vector<std::vector<std::vector<unsigned int>>>&	neighbours)
 {
+	using namespace std;
+	point_clouds.clear();
+	neighbours.clear();
+
 	for( auto file_name : file_names ) {
 
-		std::vector<PointWithNormal> points_with_normals;
-		std::vector<std::vector<unsigned int>> neighbour_indices;
+		vector<PointWithNormal> points_with_normals;
+		vector<vector<unsigned int>> neighbour_indices;
 		load_depth_image(file_name, points_with_normals, neighbour_indices);
 		point_clouds.push_back( points_with_normals );
 		neighbours.push_back(neighbour_indices);

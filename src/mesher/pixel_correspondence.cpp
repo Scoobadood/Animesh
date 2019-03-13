@@ -10,30 +10,6 @@
 #include "pixel_correspondence.hpp"
 
 
-struct PixelLocation {
-	std::size_t 	frame_no;
-	Eigen::Vector2i pixel_coord;
-	bool operator<(const PixelLocation& other) const {
-		if(frame_no < other.frame_no) {
-			return true;
-		}
-		if(frame_no != other.frame_no) {
-			return false;
-		}
-		if( pixel_coord[0] < other.pixel_coord[0])  {
-			return true;
-		}
-		if( pixel_coord[0] != other.pixel_coord[0])  {
-			return false;
-		}
-		if( pixel_coord[1] != other.pixel_coord[1])  {
-			return true;
-		}
-		return false;
-	}
-};
-
-
 /**
  * Given a vector of vertex files, extract the correspondences between points in each file.
  * in this case using vertex correspondences identified in the files.

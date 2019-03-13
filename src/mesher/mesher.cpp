@@ -57,24 +57,24 @@ int main( int argc, char *argv[] ) {
     exit(-1);
   }
 
-  cout << "Computing correspondences...";
+  cout << "Computing correspondences..." << flush;
   string dir = argv[1];
   vector<string> files = get_vertex_files_in_directory(dir);
   vector<vector<pair<unsigned int, unsigned int>>> correspondences = compute_correspondences(files);
   cout << " done." << endl;
 
-  cout << "Loading deth images...";
+  cout << "Loading depth images..." << flush;
   files = get_depth_files_in_directory(dir);
   vector<vector<vector<unsigned int>>> neighbours;
   vector<vector<PointWithNormal>> point_clouds;
   load_depth_images(files, point_clouds, neighbours);
   cout << " done." << endl;
 
-  cout << "Building surfel table...";
+  cout << "Building surfel table..." << flush;
   std::vector<Surfel> surfels = build_surfel_table(point_clouds, neighbours, correspondences);
   cout << " done." << endl;
 
-  cout << "Saving...";
+  cout << "Saving..." << flush;
   save_to_file( surfels, "surfel_table.bin" );
   cout << " done." << endl;
 

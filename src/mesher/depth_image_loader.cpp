@@ -130,11 +130,12 @@ load_depth_image(const std::string& 						file_name,
 	using namespace Eigen;
 	using namespace vcg;
 
+	points_with_normls.clear();
+	neighbour_indices.clear();
+
 	PgmData pgm = read_pgm(file_name);
-	Matrix3f K = camera_intrinsics();
-	Matrix3f R = Matrix3f::Identity(3,3);
-	Vector3f t;
-	t << 2.0f, 0.5f, 0.0f;
+
+	read_camera_data(file_name, K, R, t);
 
 	// For all pixels wth a valid depth, generate a 3 point and store
 	// to all_points

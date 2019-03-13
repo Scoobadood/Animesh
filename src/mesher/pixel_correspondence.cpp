@@ -14,25 +14,28 @@
  * Given a vector of vertex files, extract the correspondences between points in each file.
  * in this case using vertex correspondences identified in the files.
  * @param file_names The vertex files.
- * @return For each frame, for each point, a list of pairs of frame and point index for corresponding points
- * 		   in other frames.
+ * @param correspondences Vector populated by this method with a list of pairs of frame and point index for corresponding points
  */
-std::vector<std::vector<std::pair<unsigned int, unsigned int>>> 
-compute_correspondences(const std::vector<std::string>& file_names)
+void
+compute_correspondences(const std::vector<std::string>& file_names, 
+						std::vector<std::vector<std::pair<unsigned int, unsigned int>>>& correspondences )
 {
 	using namespace std;
 	using namespace Eigen;
 
+	// For each frame, load each pixel and for each pixel assigned to a non-zero vertex
+	// store the vertex to frame/pixel mapping.
 	multimap<unsigned int, pair<unsigned int, unsigned int>> vertex_to_frame_pixel;
-
 	size_t current_frame_index = 0;
 	for(auto file_name : file_names) {
 		PgmData pgm = read_pgm(file_name);
+
 		size_t source_pixel_idx = 0;
 		size_t current_pixel_idx = 0;
 		for( std::size_t y = 0; y<pgm.height; ++y ) {
 			for( std::size_t x = 0; x < pgm.width; ++x ) {
-				int vertex = pgm.data[source_pixel_idx];
+				int vertex = pgm.data.at(source_pixel_idx);
+				// Ignore background
 				if( vertex != 0 ) {
 					vertex_to_frame_pixel.insert( make_pair( vertex, make_pair(current_frame_index, current_pixel_idx)));
 					current_pixel_idx++;
@@ -44,11 +47,10 @@ compute_correspondences(const std::vector<std::string>& file_names)
 	}
 
 	// We now have a map from vertices to all corresponding frame/pixel pairs
-	// We can transform this into a vector of vectors which can be used to 
-	// derive surfel data.
-	vector<vector<pair<unsigned int, unsigned int>>> correspondences;
-	vector<pair<unsigned int, unsigned int>> correspondence;
+	// A correspondence is a vector of all frame/pixel pairs that have the same vertex
+	correspondences.clear();
 	for (auto it = vertex_to_frame_pixel.begin(); it != vertex_to_frame_pixel.end(); ) {
+		vector<pair<unsigned int, unsigned int>> correspondence;
 		unsigned int vertex_id = it->first;
 		do {
 			unsigned int frame_idx = it->second.first;
@@ -57,8 +59,5 @@ compute_correspondences(const std::vector<std::string>& file_names)
 			++it;
 		} while( (it != vertex_to_frame_pixel.end()) && (vertex_id == it->first));
 		correspondences.push_back(correspondence);
-		correspondence.clear();
 	}
-
-	return correspondences;
 }

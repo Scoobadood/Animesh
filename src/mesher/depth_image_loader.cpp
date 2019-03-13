@@ -134,7 +134,8 @@ load_depth_image(const std::string& 						file_name,
 	neighbour_indices.clear();
 
 	PgmData pgm = read_pgm(file_name);
-
+	Matrix3f K, R;
+	Vector3f t;
 	read_camera_data(file_name, K, R, t);
 
 	// For all pixels wth a valid depth, generate a 3 point and store

@@ -60,7 +60,8 @@ int main( int argc, char *argv[] ) {
   cout << "Computing correspondences..." << flush;
   string dir = argv[1];
   vector<string> files = get_vertex_files_in_directory(dir);
-  vector<vector<pair<unsigned int, unsigned int>>> correspondences = compute_correspondences(files);
+  vector<vector<pair<unsigned int, unsigned int>>> correspondences;
+  compute_correspondences(files, correspondences);
   cout << " done." << endl;
 
   cout << "Loading depth images..." << flush;

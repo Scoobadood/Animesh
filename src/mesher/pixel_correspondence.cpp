@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <map>
+#include <iostream>
 #include <Eigen/Core>
 #include <FileUtils/PgmFileParser.h>
 #include "pixel_correspondence.hpp"
@@ -26,7 +27,7 @@ compute_correspondences(const std::vector<std::string>& file_names,
 	// For each frame, load each pixel and for each pixel assigned to a non-zero vertex
 	// store the vertex to frame/pixel mapping.
 	multimap<unsigned int, pair<unsigned int, unsigned int>> vertex_to_frame_pixel;
-	size_t current_frame_index = 0;
+	size_t current_frame_idx = 0;
 	for(auto file_name : file_names) {
 		PgmData pgm = read_pgm(file_name);
 
@@ -37,13 +38,14 @@ compute_correspondences(const std::vector<std::string>& file_names,
 				int vertex = pgm.data.at(source_pixel_idx);
 				// Ignore background
 				if( vertex != 0 ) {
-					vertex_to_frame_pixel.insert( make_pair( vertex, make_pair(current_frame_index, current_pixel_idx)));
+					vertex_to_frame_pixel.insert( make_pair( vertex, make_pair(current_frame_idx, current_pixel_idx)));
 					current_pixel_idx++;
 				}
 				++source_pixel_idx;
 			}
 		}
-		current_frame_index++;
+		cout << "corr: frame " << current_frame_idx << " has " << current_pixel_idx << " pixels" << endl;
+		current_frame_idx++;
 	}
 
 	// We now have a map from vertices to all corresponding frame/pixel pairs

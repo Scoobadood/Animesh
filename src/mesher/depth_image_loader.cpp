@@ -111,7 +111,7 @@ read_camera_data(const std::string& file_name,
 				 Eigen::Vector3f& t) {
 	// TODO: Replace this with data read from a file.
 	K = camera_intrinsics();
-	R = Matrix3f::Identity(3,3);
+	R = Eigen::Matrix3f::Identity(3,3);
 	t << 2.0f, 0.5f, 0.0f;
 }
 
@@ -130,12 +130,19 @@ load_depth_image(const std::string& 						file_name,
 	using namespace Eigen;
 	using namespace vcg;
 
-	points_with_normls.clear();
+	points_with_normals.clear();
 	neighbour_indices.clear();
+
+	// Record start time
+	auto start = std::chrono::high_resolution_clock::now();
 
 	PgmData pgm = read_pgm(file_name);
 	Matrix3f K, R;
 	Vector3f t;
+
+	// Record end time
+	auto finish_read = std::chrono::high_resolution_clock::now();
+
 	read_camera_data(file_name, K, R, t);
 
 	// For all pixels wth a valid depth, generate a 3 point and store
@@ -153,7 +160,15 @@ load_depth_image(const std::string& 						file_name,
 			++idx;
 		}
 	}	
+	// Record end time
+	auto finish_back_project = std::chrono::high_resolution_clock::now();
 	compute_surface_normals(all_points, points_with_normals, neighbour_indices);
+	// Record end time
+	auto finish_normals = std::chrono::high_resolution_clock::now();
+	cout << "load_depth_image" << endl
+	     << "       file read : " << (finish_read - start).count() << endl
+	     << "    back project : " << (finish_back_project - finish_read).count() << endl
+	     << " compute normals : " << ( finish_normals - finish_back_project).count() << endl;
 }
 
 /*
@@ -171,11 +186,15 @@ load_depth_images(	const std::vector<std::string>& 						file_names,
 	point_clouds.clear();
 	neighbours.clear();
 
+	int current_frame_index = 0;
 	for( auto file_name : file_names ) {
 
 		vector<PointWithNormal> points_with_normals;
 		vector<vector<unsigned int>> neighbour_indices;
 		load_depth_image(file_name, points_with_normals, neighbour_indices);
+		cout << "dept: frame " << current_frame_index << " has " << points_with_normals.size() << " pixels" << endl;
+		++current_frame_index;
+
 		point_clouds.push_back( points_with_normals );
 		neighbours.push_back(neighbour_indices);
 	}

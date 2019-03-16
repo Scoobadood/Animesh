@@ -24,6 +24,7 @@ std::vector<std::string> get_vertex_files_in_directory( std::string directory_na
         string path_name = directory_name + "/" + file_name;
         full_path_names.push_back( path_name );
     }
+    std::sort(full_path_names.begin(), full_path_names.end() );
     return full_path_names;
 }
 
@@ -46,19 +47,17 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
         string path_name = directory_name + "/" + file_name;
         full_path_names.push_back( path_name );
     }
+    std::sort(full_path_names.begin(), full_path_names.end() );
     return full_path_names;
 }
 
-int main( int argc, char *argv[] ) {
+
+
+std::vector<Surfel>
+load_from_directory( const std::string& dir ) {
   using namespace std;
 
-  if( argc < 2 ) {
-  	cerr << "Must specify source directory" << endl;
-    exit(-1);
-  }
-
   cout << "Computing correspondences..." << flush;
-  string dir = argv[1];
   vector<string> files = get_vertex_files_in_directory(dir);
   vector<vector<pair<unsigned int, unsigned int>>> correspondences;
   compute_correspondences(files, correspondences);
@@ -75,9 +74,57 @@ int main( int argc, char *argv[] ) {
   std::vector<Surfel> surfels = build_surfel_table(point_clouds, neighbours, correspondences);
   cout << " done." << endl;
 
-  cout << "Saving..." << flush;
-  save_to_file( surfels, "surfel_table.bin" );
+  // cout << "Saving..." << flush;
+  // save_to_file( surfels, "surfel_table.bin" );
+  // cout << " done." << endl;
+
+  return surfels;
+}
+
+std::vector<Surfel>
+load_from_surfel_file( const std::string& file_name) {
+  using namespace std;
+
+  cout << "Loading..." << flush;
+  std::vector<Surfel> surfels;
+  load_from_file(surfels, file_name);
   cout << " done." << endl;
+  return surfels;
+}
+
+
+
+void 
+usage( const char *name ) {
+    std::cout << "Usage : " << name << " [-s surfel_file | -d source_directory]" << std::endl;
+    exit(-1);
+}
+
+//
+// Launch with -s surfel_file or 
+//             -d source_files_directory
+//
+int main( int argc, char *argv[] ) {
+  using namespace std;
+
+  vector<Surfel> surfels;
+  bool args_ok = false;
+  if( argc == 3 ) {
+    if( argv[1][0] == '-') {
+      if( argv[1][1] == 's' || argv[1][1] == 'S' ) {
+        load_from_surfel_file(argv[2]);
+        args_ok = true;
+      } else if( argv[1][1] == 'd' || argv[1][1] == 'D' ) {
+        load_from_directory(argv[2]);
+        args_ok = true;
+      }
+    }
+  }
+
+  if( !args_ok )
+    usage(argv[0]);
+  
+
 
   return 0;
 }

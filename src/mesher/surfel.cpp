@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+#include <iostream>
 #include "surfel.hpp"
 #include <FileUtils/PgmFileParser.h>
 #include <Geom/geom.h>
@@ -174,12 +175,18 @@ load_from_file( std::vector<Surfel>& surfels,
 	surfels.clear();
 
 	unsigned int num_surfels = read_unsigned_int( file );
+	cout << "  loading " << num_surfels << " surfels" << endl;
+	int pct5 = num_surfels / 20;
 	for( int sIdx=0; sIdx < num_surfels; ++sIdx ) {
+		if( sIdx % pct5 == 0 ) {
+			cout << "." << flush;
+		}
 		Surfel s;
 		s.id = read_size_t(file);
 
 		unsigned int num_frames = read_unsigned_int( file );
 		for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
+			// cout << "      " << fdIdx << endl;
 			FrameData fd;
 			fd.frame_idx = read_size_t(file);
 			fd.point_idx = read_size_t(file);
@@ -197,7 +204,7 @@ load_from_file( std::vector<Surfel>& surfels,
 		}
 
 		float v[3];
-		for( int vIdx=0; vIdx < 9; ++vIdx ) {
+		for( int vIdx=0; vIdx < 3; ++vIdx ) {
 			v[vIdx] = read_float(file);
 		}
 		s.tangent << v[0], v[1], v[2];
@@ -205,4 +212,5 @@ load_from_file( std::vector<Surfel>& surfels,
 		surfels.push_back(s);
 	}
 	file.close();
+	cout << endl;
 }

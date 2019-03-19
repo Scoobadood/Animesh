@@ -22,6 +22,7 @@ add_executable(mesher
 
 target_link_libraries(mesher
 	FileUtils
+	Graph
 	${PCL_LIBRARIES})
 
 target_compile_features(mesher

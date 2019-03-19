@@ -124,7 +124,5 @@ int main( int argc, char *argv[] ) {
   if( !args_ok )
     usage(argv[0]);
   
-
-
   return 0;
 }

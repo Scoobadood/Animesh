@@ -4,6 +4,7 @@
 #include "surfel.hpp"
 #include "pixel_correspondence.hpp"
 #include "depth_image_loader.h"
+#include "smooth.h"
 
 std::vector<std::string> get_vertex_files_in_directory( std::string directory_name ) {
     using namespace std;
@@ -123,6 +124,8 @@ int main( int argc, char *argv[] ) {
 
   if( !args_ok )
     usage(argv[0]);
+
+  SurfelGraphPtr graph = make_surfel_graph(surfels);
   
   return 0;
 }

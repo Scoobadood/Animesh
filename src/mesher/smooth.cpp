@@ -101,59 +101,76 @@ check_convergence(float error) {
 	return true;
 }
 
-
 bool compareFrameDataByFrame(const FrameData &fd1, const FrameData &fd2) {
     return fd1.frame_idx < fd2.frame_idx;
 }
 
 
 /**
+ * On entry surfel and neighbour frames are sorted in ascending order on frame_id
+ * common_frames is allocated. The algorithm will clear and resize it.
+ * on exit, common_frames contains pairs of <surfel,neghbour> frames with mathcing IDs
+ */
+void 
+find_common_frames(	const std::vector<FrameData>& surfel_frames, 
+					const std::vector<FrameData>& neighbour_frames, 
+					std::vector<std::pair<FrameData, FrameData>>& common_frames)
+{
+	using namespace std;
+
+	unsigned long max_common_values = min(surfel_frames.size(), neighbour_frames.size());
+	common_frames.clear();
+	common_frames.resize(max_common_values);
+
+	// Find the intersection of these sets
+	auto surfel_frame_iter = surfel_frames.begin();
+	auto neighbour_frame_iter = neighbour_frames.begin();
+
+	auto common_iter = common_frames.begin();
+
+	while (surfel_frame_iter != surfel_frames.end() && neighbour_frame_iter != neighbour_frames.end()) {
+		if (surfel_frame_iter->frame_idx < neighbour_frame_iter->frame_idx) {
+			++surfel_frame_iter;
+		} else if (neighbour_frame_iter->frame_idx < surfel_frame_iter->frame_idx) {
+			++neighbour_frame_iter;
+		} else {
+  			*common_iter = make_pair(*surfel_frame_iter, *neighbour_frame_iter);
+  			++common_iter; 
+  			++surfel_frame_iter; 
+  			++neighbour_frame_iter;
+		}
+	}
+  	common_frames.resize(common_iter - common_frames.begin());
+}
+
+/**
  * Populate tangents and normals with all eligible tans norms from surfles neighbours
- * tan/norm is eligible iff the nieghbour and surfel share a common frame
+ * tan/norm is eligible iff the neighbour and surfel share a common frame
  * tan/norm are converted to the orignating surfel's frame of reference.
  */
 void
 get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels, 
 									std::size_t surfel_idx, 
-									std::vector<Eigen::Vector3f>& normals,
-									std::vector<Eigen::Vector3f>& tangents) {
+									std::vector<Eigen::Vector3f>& eligible_normals,
+									std::vector<Eigen::Vector3f>& eligible_tangents) {
 	using namespace std;
 
-	// Create sorted vectors of frame data for each
+	// Create sorted vectors of frame data for surfel
 	vector<FrameData> surfel_frames = surfels.at(surfel_idx).frame_data;
 	sort(surfel_frames.begin(), surfel_frames.end(), compareFrameDataByFrame);
 
+	// For each neighbour
 	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
-		unsigned long  max_intersectional_values = min(surfel_frames.size(), surfels.at(surfel_idx).neighbouring_surfels.size());
-
+		// Sort frames
 		vector<FrameData> neighbour_frames = surfels.at(neighbour_idx).frame_data;
 		sort(neighbour_frames.begin(), neighbour_frames.end(), compareFrameDataByFrame);
 
-		// Find the intersection of these sets
-		auto surfel_frame_iter = surfel_frames.begin();
-		auto neighbour_frame_iter = neighbour_frames.begin();
+		// Find frames in common with surfels
+		vector<pair<FrameData, FrameData>> common_frames;
+		find_common_frames(surfel_frames, neighbour_frames, common_frames);
 
-		vector<FrameData> eligible_surfel_frames{max_intersectional_values};
-		vector<FrameData> eligible_neighbour_frames{max_intersectional_values};
-		auto surfel_result_iter = eligible_surfel_frames.begin();
-		auto neighbour_result_iter = eligible_neighbour_frames.begin();
+		// Get the normal and tangent int this frame
 
-		while (surfel_frame_iter != surfel_frames.end() && neighbour_frame_iter != neighbour_frames.end()) {
-    		if (surfel_frame_iter->frame_idx < neighbour_frame_iter->frame_idx) {
-    			++surfel_frame_iter;
-    		} else if (neighbour_frame_iter->frame_idx < surfel_frame_iter->frame_idx) {
-    			++neighbour_frame_iter;
-    		} else {
-      			*surfel_result_iter = *surfel_frame_iter;
-      			*neighbour_result_iter = *neighbour_frame_iter;
-      			++surfel_result_iter; 
-      			++neighbour_result_iter; 
-      			++surfel_frame_iter; 
-      			++neighbour_frame_iter;
-    		}
-  		}
-  		eligible_surfel_frames.resize(surfel_result_iter - eligible_surfel_frames.begin());
-  		eligible_neighbour_frames.resize(neighbour_result_iter - eligible_neighbour_frames.begin());
 	}
 }
 

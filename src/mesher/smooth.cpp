@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include <random>
 #include <math.h>
+#include <RoSy/RoSy.h>
 
 static bool g_is_optimising = false;
 static float g_optimisation_error;
@@ -37,6 +38,13 @@ make_surfel_graph(const std::vector<Surfel>& surfels) {
 	return graph;
 }
 
+/*
+   ********************************************************************************
+   **                                                                            **
+   **             Utilities                                                      **
+   **                                                                            **
+   ********************************************************************************
+*/
 
 float 
 random_zero_to_one( ) {
@@ -51,6 +59,14 @@ random_index( unsigned int max_index ) {
     static std::uniform_real_distribution<> dis(0, max_index);
     return std::floor(dis(e));
 }
+
+/*
+   ********************************************************************************
+   **                                                                            **
+   **             Optimisation                                                   **
+   **                                                                            **
+   ********************************************************************************
+*/
 
 void 
 randomize_tangents(std::vector<Surfel>& surfels) {
@@ -84,6 +100,102 @@ check_convergence(float error) {
 	std::cout << "check_convergence() not yet implemented" << std::endl;
 	return true;
 }
+
+
+bool compareFrameDataByFrame(const FrameData &fd1, const FrameData &fd2) {
+    return fd1.frame_idx < fd2.frame_idx;
+}
+
+
+/**
+ * Populate tangents and normals with all eligible tans norms from surfles neighbours
+ * tan/norm is eligible iff the nieghbour and surfel share a common frame
+ * tan/norm are converted to the orignating surfel's frame of reference.
+ */
+void
+get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels, 
+									std::size_t surfel_idx, 
+									std::vector<Eigen::Vector3f>& normals,
+									std::vector<Eigen::Vector3f>& tangents) {
+	using namespace std;
+
+	// Create sorted vectors of frame data for each
+	vector<FrameData> surfel_frames = surfels.at(surfel_idx).frame_data;
+	sort(surfel_frames.begin(), surfel_frames.end(), compareFrameDataByFrame);
+
+	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
+		unsigned long  max_intersectional_values = min(surfel_frames.size(), surfels.at(surfel_idx).neighbouring_surfels.size());
+
+		vector<FrameData> neighbour_frames = surfels.at(neighbour_idx).frame_data;
+		sort(neighbour_frames.begin(), neighbour_frames.end(), compareFrameDataByFrame);
+
+		// Find the intersection of these sets
+		auto surfel_frame_iter = surfel_frames.begin();
+		auto neighbour_frame_iter = neighbour_frames.begin();
+
+		vector<FrameData> eligible_surfel_frames{max_intersectional_values};
+		vector<FrameData> eligible_neighbour_frames{max_intersectional_values};
+		auto surfel_result_iter = eligible_surfel_frames.begin();
+		auto neighbour_result_iter = eligible_neighbour_frames.begin();
+
+		while (surfel_frame_iter != surfel_frames.end() && neighbour_frame_iter != neighbour_frames.end()) {
+    		if (surfel_frame_iter->frame_idx < neighbour_frame_iter->frame_idx) {
+    			++surfel_frame_iter;
+    		} else if (neighbour_frame_iter->frame_idx < surfel_frame_iter->frame_idx) {
+    			++neighbour_frame_iter;
+    		} else {
+      			*surfel_result_iter = *surfel_frame_iter;
+      			*neighbour_result_iter = *neighbour_frame_iter;
+      			++surfel_result_iter; 
+      			++neighbour_result_iter; 
+      			++surfel_frame_iter; 
+      			++neighbour_frame_iter;
+    		}
+  		}
+  		eligible_surfel_frames.resize(surfel_result_iter - eligible_surfel_frames.begin());
+  		eligible_neighbour_frames.resize(neighbour_result_iter - eligible_neighbour_frames.begin());
+	}
+}
+
+/**
+ * Compute a new tangent for the given surfel S
+ * 
+ * for each neighbouring surfel N of S
+ *   find any frame f in which both N and S are visible
+ *   obtain MfS the transformation matrix from frame f for S
+ *   obtain dirNS from MfS * dirN
+ *   perform 4RoSy smoothing operation on dirS and dirNS 
+ * end
+ */
+Eigen::Vector3f
+compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
+    							size_t surfel_idx)
+{
+    using namespace Eigen;
+    using namespace std;
+
+    // Get vector of eligible normal/tangent pairs
+    vector<Vector3f> normals;
+    vector<Vector3f> tangents;
+    get_eligible_normals_and_tangents(surfels, surfel_idx, normals, tangents);
+
+    // Merge all neighbours; implicitly using optiminsing tier tangents
+    Vector3f new_tangent = surfels.at(surfel_idx).tangent;
+
+    float weight = 0;
+    for( size_t idx = 0; idx < normals.size(); ++idx) {
+        float edge_weight = 1.0f;
+        new_tangent = average_rosy_vectors(new_tangent, Vector3f{0.0f, 1.0, 0.0f}, weight,
+                                           tangents.at(idx), normals.at(idx),edge_weight);
+        weight += edge_weight;
+    }
+    return new_tangent;
+}
+
+
+
+
+
 /**
  * Perform a single step of optimisation.
  */
@@ -97,9 +209,11 @@ optimise_do_one_step(std::vector<Surfel>& surfels) {
         optimise_begin(surfels); //setup_optimisation();
     }
 
-    // Do the optimisation
     // Select random surfel 
-    // Smooth 
+    size_t surfel_idx = random_index(surfels.size());
+
+    // Update this one
+    compute_new_tangent_for_surfel(surfels, surfel_idx);
 
     // Check for done-ness
 	float new_error = total_error();
@@ -116,7 +230,7 @@ optimise_do_one_step(std::vector<Surfel>& surfels) {
  * Continuously step until done.
  */
 void
-optimise(std::vector<Surfel>& surfels) {
+optimise(SurfelGraphPtr graph, std::vector<Surfel>& surfels) {
 	bool done = false;
 	while( !done ) {
         done = optimise_do_one_step(surfels);

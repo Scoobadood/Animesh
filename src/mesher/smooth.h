@@ -16,8 +16,10 @@ using SurfelGraphMapping = SurfelGraphSimplifier::GraphMapping;
 SurfelGraphPtr
 make_surfel_graph(const std::vector<Surfel>& surfels);
 
-void 
-randomize_tangents(std::vector<Surfel>& surfels);
+/**
+ * Perform orientation field optimisation.
+ * Continuously step until done.
+ */
+void
+optimise(SurfelGraphPtr graph, std::vector<Surfel>& surfels);
 
-void 
-smooth(std::vector<Surfel>& surfels);

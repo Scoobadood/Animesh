@@ -52,8 +52,6 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
     return full_path_names;
 }
 
-
-
 std::vector<Surfel>
 load_from_directory( const std::string& dir ) {
   using namespace std;
@@ -75,9 +73,9 @@ load_from_directory( const std::string& dir ) {
   std::vector<Surfel> surfels = build_surfel_table(point_clouds, neighbours, correspondences);
   cout << " done." << endl;
 
-  // cout << "Saving..." << flush;
-  // save_to_file( surfels, "surfel_table.bin" );
-  // cout << " done." << endl;
+  cout << "Saving..." << flush;
+  save_to_file( surfels, point_clouds, "surfel_table.bin" );
+  cout << " done." << endl;
 
   return surfels;
 }
@@ -87,13 +85,12 @@ load_from_surfel_file( const std::string& file_name) {
   using namespace std;
 
   cout << "Loading..." << flush;
-  std::vector<Surfel> surfels;
-  load_from_file(surfels, file_name);
+  vector<Surfel> surfels;
+  vector<vector<PointWithNormal>> point_normals;
+  load_from_file(surfels, point_normals, file_name);
   cout << " done." << endl;
   return surfels;
 }
-
-
 
 void 
 usage( const char *name ) {
@@ -125,7 +122,5 @@ int main( int argc, char *argv[] ) {
   if( !args_ok )
     usage(argv[0]);
 
-  SurfelGraphPtr graph = make_surfel_graph(surfels);
-  
   return 0;
 }

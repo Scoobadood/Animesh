@@ -38,6 +38,7 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
  */
 void 
 save_to_file( const std::vector<Surfel>& surfels, 
+			  const std::vector<std::vector<PointWithNormal>>& point_normals,
 			  const std::string& file_name );
 
 /**
@@ -45,6 +46,7 @@ save_to_file( const std::vector<Surfel>& surfels,
  */
 void 
 load_from_file( std::vector<Surfel>& surfels, 
+				std::vector<std::vector<PointWithNormal>>& point_normals,
 			    const std::string& file_name );
 
 

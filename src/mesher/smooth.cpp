@@ -63,6 +63,28 @@ random_index( unsigned int max_index ) {
 /*
    ********************************************************************************
    **                                                                            **
+   **             Utilities                                                      **
+   **                                                                            **
+   ********************************************************************************
+*/
+bool compareFrameDataByFrame(const FrameData &fd1, const FrameData &fd2) {
+    return fd1.frame_idx < fd2.frame_idx;
+}
+
+/**
+ * Sort all framedata for each surfel in ascending order of frame id.
+ * We do this once to facilitate finding common frames.
+ */
+void 
+sort_frame_data(std::vector<Surfel>& surfels) {
+	for( auto surfel : surfels ) {
+		sort(surfel.frame_data.begin(), surfel.frame_data.end(), compareFrameDataByFrame);
+	}
+}
+
+/*
+   ********************************************************************************
+   **                                                                            **
    **             Optimisation                                                   **
    **                                                                            **
    ********************************************************************************
@@ -80,6 +102,7 @@ randomize_tangents(std::vector<Surfel>& surfels) {
 
 void 
 optimise_begin(std::vector<Surfel>& surfels) {
+	sort_frame_data(surfels);
 	randomize_tangents( surfels );
 	g_is_optimising = true;
 }
@@ -101,15 +124,10 @@ check_convergence(float error) {
 	return true;
 }
 
-bool compareFrameDataByFrame(const FrameData &fd1, const FrameData &fd2) {
-    return fd1.frame_idx < fd2.frame_idx;
-}
-
-
 /**
- * On entry surfel and neighbour frames are sorted in ascending order on frame_id
+ * On entry surfel and neighbour frames are sorted in ascending order of frame_id
  * common_frames is allocated. The algorithm will clear and resize it.
- * on exit, common_frames contains pairs of <surfel,neghbour> frames with mathcing IDs
+ * on exit, common_frames contains pairs of <surfel,neghbour> frames with matching IDs
  */
 void 
 find_common_frames(	const std::vector<FrameData>& surfel_frames, 
@@ -125,7 +143,6 @@ find_common_frames(	const std::vector<FrameData>& surfel_frames,
 	// Find the intersection of these sets
 	auto surfel_frame_iter = surfel_frames.begin();
 	auto neighbour_frame_iter = neighbour_frames.begin();
-
 	auto common_iter = common_frames.begin();
 
 	while (surfel_frame_iter != surfel_frames.end() && neighbour_frame_iter != neighbour_frames.end()) {
@@ -156,16 +173,11 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 	using namespace std;
 
 	// Create sorted vectors of frame data for surfel
-	vector<FrameData> surfel_frames = surfels.at(surfel_idx).frame_data;
-	sort(surfel_frames.begin(), surfel_frames.end(), compareFrameDataByFrame);
+	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
 
 	// For each neighbour
 	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
-		// Sort frames
-		vector<FrameData> neighbour_frames = surfels.at(neighbour_idx).frame_data;
-		sort(neighbour_frames.begin(), neighbour_frames.end(), compareFrameDataByFrame);
-
-		// Find frames in common with surfels
+		const vector<FrameData>& neighbour_frames = surfels.at(neighbour_idx).frame_data;
 		vector<pair<FrameData, FrameData>> common_frames;
 		find_common_frames(surfel_frames, neighbour_frames, common_frames);
 

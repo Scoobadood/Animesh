@@ -161,18 +161,19 @@ find_common_frames(	const std::vector<FrameData>& surfel_frames,
 }
 
 /**
- * Populate tangents and normals with all eligible tans norms from surfles neighbours
+ * Populate tangents and normals with all eligible tangents, normals from surfel's neighbours
  * tan/norm is eligible iff the neighbour and surfel share a common frame
  * tan/norm are converted to the orignating surfel's frame of reference.
  */
 void
 get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels, 
 									std::size_t surfel_idx, 
+									const std::vector<std::vector<PointWithNormal>>& point_normals,
 									std::vector<Eigen::Vector3f>& eligible_normals,
 									std::vector<Eigen::Vector3f>& eligible_tangents) {
 	using namespace std;
+	using namespace Eigen;
 
-	// Create sorted vectors of frame data for surfel
 	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
 
 	// For each neighbour
@@ -181,8 +182,24 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 		vector<pair<FrameData, FrameData>> common_frames;
 		find_common_frames(surfel_frames, neighbour_frames, common_frames);
 
-		// Get the normal and tangent int this frame
+		// For each common frame, get normal and tangent in surfel space
+		for( auto frame_pair : common_frames) {
+			const Matrix3f surfel_to_frame = frame_pair.first.transform;
+			const Matrix3f frame_to_surfel = surfel_to_frame.transpose();
+			const Matrix3f neighbour_to_frame = frame_pair.second.transform;
+			Vector3f neighbour_normal_in_frame = point_normals.at(frame_pair.second.frame_idx).at(frame_pair.second.point_idx).normal;
 
+			// Push the neighbour normal and tangent into the right frame
+			// Transform the frame tangent back to the surfel space using inv. surfel matrix
+			// So we need:
+			//    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
+			//	  transform from frame space to free space using surfel data. (inv of stored)
+			const Matrix3f neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
+			Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * surfels.at(neighbour_idx).tangent;
+			Vector3f neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
+			eligible_normals.push_back(neighbour_norm_in_surfel_space);
+			eligible_tangents.push_back(neighbour_tan_in_surfel_space);
+		}
 	}
 }
 
@@ -198,7 +215,8 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
  */
 Eigen::Vector3f
 compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
-    							size_t surfel_idx)
+    							size_t surfel_idx,
+    							const std::vector<std::vector<PointWithNormal>>& point_normals)
 {
     using namespace Eigen;
     using namespace std;
@@ -206,7 +224,7 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
     // Get vector of eligible normal/tangent pairs
     vector<Vector3f> normals;
     vector<Vector3f> tangents;
-    get_eligible_normals_and_tangents(surfels, surfel_idx, normals, tangents);
+    get_eligible_normals_and_tangents(surfels, surfel_idx, point_normals, normals, tangents);
 
     // Merge all neighbours; implicitly using optiminsing tier tangents
     Vector3f new_tangent = surfels.at(surfel_idx).tangent;
@@ -229,7 +247,9 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
  * Perform a single step of optimisation.
  */
 bool
-optimise_do_one_step(std::vector<Surfel>& surfels) {
+optimise_do_one_step(std::vector<Surfel>& surfels,
+					 const std::vector<std::vector<PointWithNormal>>& point_normals) 
+{
     using namespace std;
     using namespace Eigen;
 
@@ -242,7 +262,7 @@ optimise_do_one_step(std::vector<Surfel>& surfels) {
     size_t surfel_idx = random_index(surfels.size());
 
     // Update this one
-    compute_new_tangent_for_surfel(surfels, surfel_idx);
+    compute_new_tangent_for_surfel(surfels, surfel_idx, point_normals);
 
     // Check for done-ness
 	float new_error = total_error();
@@ -259,9 +279,11 @@ optimise_do_one_step(std::vector<Surfel>& surfels) {
  * Continuously step until done.
  */
 void
-optimise(SurfelGraphPtr graph, std::vector<Surfel>& surfels) {
+optimise(std::vector<Surfel>& surfels,
+		 const std::vector<std::vector<PointWithNormal>>& point_normals)
+{
 	bool done = false;
 	while( !done ) {
-        done = optimise_do_one_step(surfels);
+        done = optimise_do_one_step(surfels, point_normals);
     }
 }

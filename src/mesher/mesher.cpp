@@ -122,5 +122,9 @@ int main( int argc, char *argv[] ) {
   if( !args_ok )
     usage(argv[0]);
 
+  // Now start smoothing
+  optimise(surfels, point_normals);
+
+
   return 0;
 }

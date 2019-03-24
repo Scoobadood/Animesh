@@ -52,10 +52,14 @@ write_vector_3f( std::ofstream& file, Eigen::Vector3f vector ) {
 /**
  * Save surfel data as binary file to disk
  */
+/**
+ * Save surfel data as binary file to disk
+ */
 void 
-save_to_file( const std::vector<Surfel>& surfels, 
-			  const std::vector<std::vector<PointWithNormal>>& point_normals,
-			  const std::string& file_name ) {
+save_to_file( const std::string& file_name,
+			  const std::vector<Surfel>& surfels, 
+			  const std::vector<std::vector<PointWithNormal>>& point_normals)
+{
 	using namespace std;
 
     ofstream file{file_name, ios::out | ios::binary};
@@ -132,10 +136,15 @@ read_vector_3f( std::ifstream& file ) {
 /**
  * Load surfel data from binary file
  */
+
+/**
+ * Load surfel data from binary file
+ */
 void 
-load_from_file( std::vector<Surfel>& surfels, 
-				std::vector<std::vector<PointWithNormal>>& point_normals,
-			    const std::string& file_name ) {
+load_from_file( const std::string& file_name,
+				std::vector<Surfel>& surfels, 
+				std::vector<std::vector<PointWithNormal>>& point_normals)
+{
 	using namespace std;
 
 	ifstream file{ file_name, ios::in | ios::binary};

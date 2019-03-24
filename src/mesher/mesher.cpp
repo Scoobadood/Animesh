@@ -52,8 +52,11 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
     return full_path_names;
 }
 
-std::vector<Surfel>
-load_from_directory( const std::string& dir ) {
+void
+load_from_directory(  const std::string& dir, 
+                      std::vector<Surfel>& surfels, 
+                      std::vector<std::vector<PointWithNormal>>& point_clouds ) 
+{
   using namespace std;
 
   cout << "Computing correspondences..." << flush;
@@ -65,31 +68,28 @@ load_from_directory( const std::string& dir ) {
   cout << "Loading depth images..." << flush;
   files = get_depth_files_in_directory(dir);
   vector<vector<vector<unsigned int>>> neighbours;
-  vector<vector<PointWithNormal>> point_clouds;
   load_depth_images(files, point_clouds, neighbours);
   cout << " done." << endl;
 
   cout << "Building surfel table..." << flush;
-  std::vector<Surfel> surfels = build_surfel_table(point_clouds, neighbours, correspondences);
+  surfels = build_surfel_table(point_clouds, neighbours, correspondences);
   cout << " done." << endl;
 
   cout << "Saving..." << flush;
-  save_to_file( surfels, point_clouds, "surfel_table.bin" );
+  save_to_file( "surfel_table.bin", surfels, point_clouds);
   cout << " done." << endl;
-
-  return surfels;
 }
 
-std::vector<Surfel>
-load_from_surfel_file( const std::string& file_name) {
+void
+load_from_surfel_file(  const std::string& file_name, 
+                        std::vector<Surfel>& surfels, 
+                        std::vector<std::vector<PointWithNormal>>& point_normals )
+{
   using namespace std;
 
   cout << "Loading..." << flush;
-  vector<Surfel> surfels;
-  vector<vector<PointWithNormal>> point_normals;
-  load_from_file(surfels, point_normals, file_name);
+  load_from_file(file_name, surfels, point_normals);
   cout << " done." << endl;
-  return surfels;
 }
 
 void 
@@ -106,14 +106,15 @@ int main( int argc, char *argv[] ) {
   using namespace std;
 
   vector<Surfel> surfels;
+  vector<vector<PointWithNormal>> point_normals;
   bool args_ok = false;
   if( argc == 3 ) {
     if( argv[1][0] == '-') {
       if( argv[1][1] == 's' || argv[1][1] == 'S' ) {
-        load_from_surfel_file(argv[2]);
+        load_from_surfel_file(argv[2], surfels, point_normals);
         args_ok = true;
       } else if( argv[1][1] == 'd' || argv[1][1] == 'D' ) {
-        load_from_directory(argv[2]);
+        load_from_directory(argv[2], surfels, point_normals);
         args_ok = true;
       }
     }

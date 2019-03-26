@@ -125,6 +125,7 @@ int main( int argc, char *argv[] ) {
   // Now start smoothing
   optimise(surfels, point_normals);
 
+  save_to_file( "surfel_table_converged.bin", surfels, point_normals);
 
   return 0;
 }

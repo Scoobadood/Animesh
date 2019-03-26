@@ -131,8 +131,11 @@ total_error() {
 
 bool 
 check_convergence(float error) {
-	std::cout << "check_convergence() not yet implemented" << std::endl;
-	return true;
+	static int iterations = 0;
+	if( iterations % 100 == 0 ) {
+		std::cout << "check_convergence() " << iterations <<" iterations" << std::endl;
+	}
+	return (++iterations == 5000);
 }
 
 /**
@@ -249,10 +252,6 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
     }
     return new_tangent;
 }
-
-
-
-
 
 /**
  * Perform a single step of optimisation.

@@ -166,9 +166,9 @@ load_depth_image(const std::string& 						file_name,
 	// Record end time
 	auto finish_normals = std::chrono::high_resolution_clock::now();
 	cout << "load_depth_image" << endl
-	     << "       file read : " << (finish_read - start).count() << endl
-	     << "    back project : " << (finish_back_project - finish_read).count() << endl
-	     << " compute normals : " << ( finish_normals - finish_back_project).count() << endl;
+	     << "       file read : " << (chrono::duration_cast<chrono::milliseconds>(finish_read - start)).count() << "ms" << endl
+	     << "    back project : " << (chrono::duration_cast<chrono::milliseconds>(finish_back_project - finish_read)).count() << "ms" << endl
+	     << " compute normals : " << (chrono::duration_cast<chrono::milliseconds>(finish_normals - finish_back_project)).count() << "ms" << endl;
 }
 
 /*

@@ -258,11 +258,17 @@ optimise_do_one_step(std::vector<Surfel>& surfels,
         optimise_begin(surfels); //setup_optimisation();
     }
 
+	auto start = chrono::high_resolution_clock::now();
+
     // Select random surfel 
     size_t surfel_idx = random_index(surfels.size());
 
     // Update this one
     compute_new_tangent_for_surfel(surfels, surfel_idx, point_normals);
+
+	auto end = chrono::high_resolution_clock::now();
+	chrono::milliseconds dtn = chrono::duration_cast<chrono::milliseconds> (end - start);
+	cout << "optimise_do_one_step ran in : " << dtn.count() << endl;
 
     // Check for done-ness
 	float new_error = total_error();

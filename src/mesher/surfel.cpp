@@ -226,10 +226,18 @@ populate_neighbours(std::vector<Surfel>& surfels,
 			unsigned int point_idx = fd.point_idx;
 
 			vector<unsigned int> f_p_neighbours = neighbours.at(frame_idx).at(point_idx);
+			set<unsigned int> set_of_neighbours;
+
 			for( auto n : f_p_neighbours) {
 				size_t idx = frame_point_to_surfel.at(make_pair<>( frame_idx, n ) );
-				surfels.at(i).neighbouring_surfels.push_back( idx );
+				if( idx != surfels.at(i).id) {
+					set_of_neighbours.insert(idx);
+				}
 			}
+			// copy set into neighbouring_surfels
+			copy(set_of_neighbours.begin(),
+				 set_of_neighbours.end(),
+				 back_inserter(surfels.at(i).neighbouring_surfels));
 		}
 	}
 }

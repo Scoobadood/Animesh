@@ -3,6 +3,7 @@
 #include <random>
 #include <math.h>
 #include <RoSy/RoSy.h>
+#include <sys/stat.h>
 
 static bool g_is_optimising = false;
 static float g_optimisation_error;
@@ -81,6 +82,16 @@ sort_frame_data(std::vector<Surfel>& surfels) {
 		sort(surfel.frame_data.begin(), surfel.frame_data.end(), compareFrameDataByFrame);
 	}
 }
+
+/**
+ * Check for presence of a file to see if we should stop
+ */
+bool 
+check_stop_flag() {
+  struct stat buffer;   
+  return (stat ("halt", &buffer) == 0); 
+}
+
 
 /*
    ********************************************************************************
@@ -291,5 +302,11 @@ optimise(std::vector<Surfel>& surfels,
 	bool done = false;
 	while( !done ) {
         done = optimise_do_one_step(surfels, point_normals);
+        if( !done) {
+        	done = check_stop_flag();
+        	if(done) {
+        		std::cout << "Halted" << std::endl;
+        	}
+        }
     }
 }

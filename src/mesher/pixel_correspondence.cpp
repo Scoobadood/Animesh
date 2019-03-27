@@ -48,6 +48,26 @@ compute_correspondences(const std::vector<std::string>& file_names,
 		current_frame_idx++;
 	}
 
+	// Report on vertex to frame pixel
+	int num_frames = file_names.size();
+	int frame_pixel_count[num_frames];
+	for( int i=; i<num_frames; ++i) frame_pixel_count[i] = 0;
+	auto it = vertex_to_frame_pixel.begin();
+	int vertex = it->first;
+	while( it != vertex_to_frame_pixel.end() ) {
+		if( it->first == vertex ) {
+			frame_pixel_count[it->second.first]++;
+			it++;
+
+		} else {
+
+		}
+	}
+
+
+
+
+
 	// We now have a map from vertices to all corresponding frame/pixel pairs
 	// A correspondence is a vector of all frame/pixel pairs that have the same vertex
 	correspondences.clear();

@@ -191,10 +191,13 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
 
 	// For each neighbour
+	cout << "considering " << surfels.at(surfel_idx).neighbouring_surfels.size() << " neighbours" << endl;
+	int total_common_frames = 0;
 	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
 		const vector<FrameData>& neighbour_frames = surfels.at(neighbour_idx).frame_data;
 		vector<pair<FrameData, FrameData>> common_frames;
 		find_common_frames(surfel_frames, neighbour_frames, common_frames);
+		total_common_frames += common_frames.size();
 
 		// For each common frame, get normal and tangent in surfel space
 		for( auto frame_pair : common_frames) {
@@ -215,6 +218,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 			eligible_tangents.push_back(neighbour_tan_in_surfel_space);
 		}
 	}
+	cout << "  total common frames " << total_common_frames << endl;
 }
 
 /**

@@ -6,6 +6,8 @@
 #include <FileUtils/PgmFileParser.h>
 #include "depth_image_loader.h"
 
+static int DEBUG_LEVEL = 1;
+
 /*
  * Compute the backprojection of a point from X,Y and depth plus camera
  */
@@ -53,6 +55,29 @@ Eigen::Matrix3f camera_intrinsics( ) {
 }
 
 
+struct sort_by_distance {
+    bool operator ()(std::pair<float, int> const& a, std::pair<float, int> const& b) {
+        return a.first < b.first;
+    }
+};
+
+void 
+sort_indices_by_distance( std::vector<unsigned int>& indices, const std::vector<float>& distances ) {
+	using namespace std;
+
+	vector<pair<float, int>> orderable;
+	for( int i=0; i<indices.size(); ++i ) {
+		orderable.push_back(make_pair(distances.at(i), indices.at(i)));
+	}
+	sort(orderable.begin(), orderable.end(), sort_by_distance());
+
+	// Replace values in indices.
+	indices.clear();
+	for( int i=0; i<orderable.size(); ++i ) {
+		indices.push_back(orderable.at(i).second);
+	}
+}
+
 /**
  * Compute the normals for each point in the given point cloud.
  * @param all_points The point cloud.
@@ -73,12 +98,36 @@ compute_surface_normals(const std::vector<vcg::Point3f>& 		all_points,
 	KdTree<float> tree(wrapped_points);
 
 	// Extract neighbour indices of points for all points.
+	int min_neighbours = all_points.size()+1;
+	int max_neighbours = -1;
+	long total_neighbours = 0;
+
 	for( auto point : all_points ) {
 		vector<unsigned int> this_point_neighbours;
 		vector<float> distances;
-		float dist = 5.0f;
+		float dist = 1.0f;
 		tree.doQueryDist(point, dist, this_point_neighbours, distances);
+
+		// Sort the neighbours vector based on distance in the distances vector
+		sort_indices_by_distance(this_point_neighbours, distances);
+
+		// Truncate to at most 10 neighbours
+		if( this_point_neighbours.size() > 10) {
+			this_point_neighbours.resize(10);
+		}
+
 		neighbour_indices.push_back(this_point_neighbours);
+		if( DEBUG_LEVEL >= 1 ) {
+			int num_neighbours = this_point_neighbours.size();
+			if( num_neighbours < min_neighbours) min_neighbours = num_neighbours;
+			if( num_neighbours > max_neighbours) max_neighbours = num_neighbours;
+			total_neighbours += this_point_neighbours.size();
+		}
+	}
+	if( DEBUG_LEVEL >= 1 ) {
+		cout << "Min neighbours per point " << min_neighbours << endl;
+		cout << "Max neighbours per point " << max_neighbours << endl;
+		cout << "Mean neighbours per point " << ((float)total_neighbours / all_points.size()) << endl;
 	}
 
 	// Now compute normals for each point
@@ -140,7 +189,6 @@ load_depth_image(const std::string& 						file_name,
 	Matrix3f K, R;
 	Vector3f t;
 
-	// Record end time
 	auto finish_read = std::chrono::high_resolution_clock::now();
 
 	read_camera_data(file_name, K, R, t);
@@ -160,9 +208,9 @@ load_depth_image(const std::string& 						file_name,
 			++idx;
 		}
 	}	
-	// Record end time
 	auto finish_back_project = std::chrono::high_resolution_clock::now();
 	compute_surface_normals(all_points, points_with_normals, neighbour_indices);
+
 	// Record end time
 	auto finish_normals = std::chrono::high_resolution_clock::now();
 	cout << "load_depth_image" << endl

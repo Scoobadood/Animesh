@@ -4,10 +4,13 @@
 
 #include <map>
 #include <set>
+#include <regex>
 #include <iostream>
 #include "surfel.hpp"
 #include <FileUtils/PgmFileParser.h>
 #include <Geom/geom.h>
+#include "pixel_correspondence.hpp"
+#include "depth_image_loader.h"
 
 /*
 	********************************************************************************
@@ -294,4 +297,80 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 	populate_neighbours(surfels, neighbours, frame_point_to_surfel);
 
 	return surfels;
+}
+
+std::vector<std::string> get_vertex_files_in_directory( std::string directory_name ) {
+    using namespace std;
+
+    vector<string> file_names;
+    files_in_directory( directory_name, file_names, []( string name ) {
+        using namespace std;
+
+        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+
+        const regex file_name_regex("\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm");
+        return regex_match(name, file_name_regex);
+    });
+    // Construct full path names
+    vector<string> full_path_names;
+    for( string file_name : file_names) {
+        // FIXME: Replace this evilness with something more robust and cross platform.
+        string path_name = directory_name + "/" + file_name;
+        full_path_names.push_back( path_name );
+    }
+    std::sort(full_path_names.begin(), full_path_names.end() );
+    return full_path_names;
+}
+
+std::vector<std::string> get_depth_files_in_directory( std::string directory_name ) {
+    using namespace std;
+
+    vector<string> file_names;
+    files_in_directory( directory_name, file_names, []( string name ) {
+        using namespace std;
+
+        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+
+        const regex file_name_regex("\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.pgm");
+        return regex_match(name, file_name_regex);
+    });
+    // Construct full path names
+    vector<string> full_path_names;
+    for( string file_name : file_names) {
+        // FIXME: Replace this evilness with something more robust and cross platform.
+        string path_name = directory_name + "/" + file_name;
+        full_path_names.push_back( path_name );
+    }
+    std::sort(full_path_names.begin(), full_path_names.end() );
+    return full_path_names;
+}
+
+
+
+void
+load_from_directory(  const std::string& dir, 
+                      std::vector<Surfel>& surfels, 
+                      std::vector<std::vector<PointWithNormal>>& point_clouds ) 
+{
+  using namespace std;
+
+  cout << "Computing correspondences..." << flush;
+  vector<string> files = get_vertex_files_in_directory(dir);
+  vector<vector<pair<unsigned int, unsigned int>>> correspondences;
+  compute_correspondences(files, correspondences);
+  cout << " done." << endl;
+
+  cout << "Loading depth images..." << flush;
+  files = get_depth_files_in_directory(dir);
+  vector<vector<vector<unsigned int>>> neighbours;
+  load_depth_images(files, point_clouds, neighbours);
+  cout << " done." << endl;
+
+  cout << "Building surfel table..." << flush;
+  surfels = build_surfel_table(point_clouds, neighbours, correspondences);
+  cout << " done." << endl;
+
+  cout << "Saving..." << flush;
+  save_to_file( "surfel_table.bin", surfels, point_clouds);
+  cout << " done." << endl;
 }

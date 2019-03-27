@@ -50,3 +50,7 @@ load_from_file( const std::string& file_name,
 				std::vector<std::vector<PointWithNormal>>& point_normals);
 
 
+void
+load_from_directory(  const std::string& dir, 
+                      std::vector<Surfel>& surfels, 
+                      std::vector<std::vector<PointWithNormal>>& point_clouds );

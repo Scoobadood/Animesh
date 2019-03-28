@@ -133,7 +133,9 @@ bool
 check_convergence(float error) {
 	static int iterations = 0;
 	if( iterations % 100 == 0 ) {
-		std::cout << "check_convergence() " << iterations <<" iterations" << std::endl;
+		std::cout << "****************************************" << std::endl 
+				  <<"check_convergence() " << iterations <<" iterations" << std::endl
+				  << "****************************************" << std::endl ;
 	}
 	return (++iterations == 5000);
 }
@@ -191,7 +193,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
 
 	// For each neighbour
-	cout << "considering " << surfels.at(surfel_idx).neighbouring_surfels.size() << " neighbours" << endl;
+	cout << "considering " << surfels.at(surfel_idx).neighbouring_surfels.size() << " neighbours for surfel " << surfel_idx << endl;
 	int total_common_frames = 0;
 	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
 		const vector<FrameData>& neighbour_frames = surfels.at(neighbour_idx).frame_data;

@@ -105,7 +105,7 @@ compute_surface_normals(const std::vector<vcg::Point3f>& 		all_points,
 	for( auto point : all_points ) {
 		vector<unsigned int> this_point_neighbours;
 		vector<float> distances;
-		float dist = 1.0f;
+		float dist = 3.0f;
 		tree.doQueryDist(point, dist, this_point_neighbours, distances);
 
 		// Sort the neighbours vector based on distance in the distances vector

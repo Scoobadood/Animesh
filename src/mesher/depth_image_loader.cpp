@@ -78,6 +78,35 @@ sort_indices_by_distance( std::vector<unsigned int>& indices, const std::vector<
 	}
 }
 
+void
+get_neighbours_for_point_distance( vcg::KdTree<float>& tree, float distance, const vcg::Point3f& point, std::vector<unsigned int>& neighbours) {
+	using namespace std;
+
+	vector<float> distances;
+	tree.doQueryDist(point, distance, neighbours, distances);
+
+	// Sort the neighbours vector based on distance in the distances vector
+	sort_indices_by_distance(neighbours, distances);
+
+	// Truncate to at most 10 neighbours
+	if( neighbours.size() > 10) {
+		neighbours.resize(10);
+	}
+}
+
+void
+get_neighbours_for_point_count( vcg::KdTree<float>& tree, unsigned int count, const vcg::Point3f& point, std::vector<unsigned int>& neighbours) {
+	using namespace std;
+
+	// Compute nearest N neighbours
+
+}
+
+void
+get_neighbours_for_point(vcg::KdTree<float>& tree, const vcg::Point3f& point, std::vector<unsigned int>& neighbours) {
+	get_neighbours_for_point_distance(tree, 5.0, point, neighbours);
+}
+
 /**
  * Compute the normals for each point in the given point cloud.
  * @param all_points The point cloud.
@@ -104,17 +133,7 @@ compute_surface_normals(const std::vector<vcg::Point3f>& 		all_points,
 
 	for( auto point : all_points ) {
 		vector<unsigned int> this_point_neighbours;
-		vector<float> distances;
-		float dist = 3.0f;
-		tree.doQueryDist(point, dist, this_point_neighbours, distances);
-
-		// Sort the neighbours vector based on distance in the distances vector
-		sort_indices_by_distance(this_point_neighbours, distances);
-
-		// Truncate to at most 10 neighbours
-		if( this_point_neighbours.size() > 10) {
-			this_point_neighbours.resize(10);
-		}
+		get_neighbours_for_point(tree, point, this_point_neighbours);
 
 		neighbour_indices.push_back(this_point_neighbours);
 		if( DEBUG_LEVEL >= 1 ) {

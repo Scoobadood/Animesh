@@ -1,10 +1,9 @@
-#include <vcg/space/point3.h>
-#include <vcg/space/plane3.h>
-#include <vcg/space/fitting3.h>
-#include <vcg/space/index/kdtree/kdtree.h>
 #include <Eigen/Core>
 #include <FileUtils/PgmFileParser.h>
 #include "depth_image_loader.h"
+
+#include <pcl/point_types.h>
+#include <pcl/features/normal_3d.h>
 
 static int DEBUG_LEVEL = 1;
 
@@ -79,32 +78,54 @@ sort_indices_by_distance( std::vector<unsigned int>& indices, const std::vector<
 }
 
 void
-get_neighbours_for_point_distance( vcg::KdTree<float>& tree, float distance, const vcg::Point3f& point, std::vector<unsigned int>& neighbours) {
+get_neighbours_for_point_distance(	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree, 
+									float distance, 
+									const pcl::PointXYZ& point, 
+									std::vector<unsigned int>& neighbours) {
 	using namespace std;
+	using namespace pcl;
 
-	vector<float> distances;
-	tree.doQueryDist(point, distance, neighbours, distances);
+	const size_t max_nn = 10;
 
-	// Sort the neighbours vector based on distance in the distances vector
-	sort_indices_by_distance(neighbours, distances);
+	vector<float> sq_distances;
+	vector<int> neighbour_int;
+	sq_distances.reserve(max_nn);
+	neighbour_int.reserve(max_nn);
 
-	// Truncate to at most 10 neighbours
-	if( neighbours.size() > 10) {
-		neighbours.resize(10);
+	tree->radiusSearch	(point, distance, neighbour_int, sq_distances, max_nn); // Max 10
+
+	neighbours.clear();
+	for( auto i : neighbour_int) {
+		neighbours.push_back(i);
 	}
 }
 
 void
-get_neighbours_for_point_count( vcg::KdTree<float>& tree, unsigned int count, const vcg::Point3f& point, std::vector<unsigned int>& neighbours) {
+get_neighbours_for_point_count(	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree, 
+								unsigned int k, 
+								const pcl::PointXYZ& point, 
+								std::vector<unsigned int>& neighbours) {
 	using namespace std;
+	using namespace pcl;
 
-	// Compute nearest N neighbours
+	vector<float> sq_distances;
+	vector<int> neighbour_int;
+	sq_distances.reserve(k);
+	neighbour_int.reserve(k);
 
+	tree->nearestKSearch(point, k, neighbour_int, sq_distances);
+
+	neighbours.clear();
+	for( auto i : neighbour_int) {
+		neighbours.push_back(i);
+	}
 }
 
 void
-get_neighbours_for_point(vcg::KdTree<float>& tree, const vcg::Point3f& point, std::vector<unsigned int>& neighbours) {
-	get_neighbours_for_point_distance(tree, 5.0, point, neighbours);
+get_neighbours_for_point(	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree, 
+							const pcl::PointXYZ& point, 
+							std::vector<unsigned int>& neighbours) {
+	get_neighbours_for_point_count(tree, 10, point, neighbours);
 }
 
 /**
@@ -114,58 +135,49 @@ get_neighbours_for_point(vcg::KdTree<float>& tree, const vcg::Point3f& point, st
  * @param points_with_normal Populated by this method.
  */
 void
-compute_surface_normals(const std::vector<vcg::Point3f>& 		all_points,
+compute_surface_normals(const pcl::PointCloud<pcl::PointXYZ>&	all_points,
 						std::vector<PointWithNormal>&    		points_with_normals,
 						std::vector<std::vector<unsigned int>>& neighbour_indices)
 {
 	using namespace std;
 	using namespace Eigen;
-	using namespace vcg;
+	using namespace pcl;
 
-	// Construct KdTree to interrogate nearest neighbours
-	ConstDataWrapper<Point3f> wrapped_points{all_points.data(), static_cast<int>(all_points.size()), sizeof( Point3f)};
-	KdTree<float> tree(wrapped_points);
+	// Create the normal estimation class, and pass the input dataset to it
+  	NormalEstimation<PointXYZ, Normal> ne;
+  	pcl::PointCloud<PointXYZ>::Ptr p = all_points.makeShared();
+  	ne.setInputCloud(p);
 
-	// Extract neighbour indices of points for all points.
-	int min_neighbours = all_points.size()+1;
-	int max_neighbours = -1;
-	long total_neighbours = 0;
+	// Create an empty kdtree representation, and pass it to the normal estimation object.
+	// Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+	search::KdTree<PointXYZ>::Ptr tree (new search::KdTree<PointXYZ> ());
+	ne.setSearchMethod (tree);
 
-	for( auto point : all_points ) {
-		vector<unsigned int> this_point_neighbours;
-		get_neighbours_for_point(tree, point, this_point_neighbours);
+	// Output datasets
+	PointCloud<Normal> cloud_normals;
 
-		neighbour_indices.push_back(this_point_neighbours);
-		if( DEBUG_LEVEL >= 1 ) {
-			int num_neighbours = this_point_neighbours.size();
-			if( num_neighbours < min_neighbours) min_neighbours = num_neighbours;
-			if( num_neighbours > max_neighbours) max_neighbours = num_neighbours;
-			total_neighbours += this_point_neighbours.size();
-		}
-	}
-	if( DEBUG_LEVEL >= 1 ) {
-		cout << "Min neighbours per point " << min_neighbours << endl;
-		cout << "Max neighbours per point " << max_neighbours << endl;
-		cout << "Mean neighbours per point " << ((float)total_neighbours / all_points.size()) << endl;
-	}
+	// Use all neighbors in a sphere of radius 3cm
+	ne.setRadiusSearch (0.03);
 
-	// Now compute normals for each point
+	// Compute the features
+	ne.compute (cloud_normals);
 	auto point_iter = all_points.begin();
-	for( auto point_neighbours : neighbour_indices ) {
-		vector<Point3f> neighbour_points;
-		for( auto idx : point_neighbours) {
-			neighbour_points.push_back(all_points[idx]);
-		}
+	for( auto normal : cloud_normals ) {
 
-		Plane3f plane;
-		FitPlaneToPointSet(neighbour_points, plane);
-
-		Point3f dir = plane.Direction();
-		Point3f point = *point_iter++;
+		PointXYZ point = *point_iter;
 		points_with_normals.push_back(PointWithNormal{
-			Vector3f{point[0], point[1], point[2]},
-			Vector3f{dir[0], dir[1], dir[2]}
+			Vector3f{point.x, point.y, point.z},
+			Vector3f{normal.normal_x, normal.normal_y, normal.normal_z}
 		});
+		point_iter++;
+	}
+
+	// Get the neighbours of this point too.
+	neighbour_indices.clear();
+	for( auto point : all_points ) {
+		vector<unsigned int> neighbours;
+		get_neighbours_for_point(tree, point, neighbours);
+		neighbour_indices.push_back(neighbours);
 	}
 }
 
@@ -196,7 +208,7 @@ load_depth_image(const std::string& 						file_name,
 {
 	using namespace std;
 	using namespace Eigen;
-	using namespace vcg;
+	using namespace pcl;
 
 	points_with_normals.clear();
 	neighbour_indices.clear();
@@ -214,14 +226,16 @@ load_depth_image(const std::string& 						file_name,
 
 	// For all pixels wth a valid depth, generate a 3 point and store
 	// to all_points
-	vector<Point3f> all_points;
+	pcl::PointCloud<pcl::PointXYZ> all_points;
+
 	size_t idx = 0;
 	for( int y=0; y<pgm.height; ++y) {
 		for( int x = 0; x < pgm.width; ++x ) {
 			float depth = pgm.data[idx];
 			if( depth != 0 ) {
 				Vector3f xyz = backproject(x, y, depth, K, R, t);
-				Point3f pt{xyz[0], xyz[1], xyz[2]};
+
+				PointXYZ pt{xyz[0], xyz[1], xyz[2]};
 				all_points.push_back(pt);
 			}
 			++idx;

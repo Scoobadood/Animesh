@@ -34,6 +34,12 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 
 
 /**
+ * Initialie all tangents to random values
+ */
+void 
+randomize_tangents(std::vector<Surfel>& surfels);
+
+/**
  * Save surfel data as binary file to disk
  */
 void 

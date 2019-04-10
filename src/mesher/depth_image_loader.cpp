@@ -25,7 +25,8 @@ Eigen::Vector3f backproject(int pixel_x, int pixel_y, float depth,
 
 	Vector3f point{ pixel_x, pixel_y, 1.0f };
 	Vector3f ray_direction = kinv * point;
-	Vector3f cc  = depth * ray_direction;
+	// TODO: Find a better way of handling this scale favtor which was injected by cheat data contruction.
+	Vector3f cc  = (depth * ray_direction) / 255.0f;
 	Vector4f camera_coord  = Vector4f{cc(0), cc(1), cc(2), 1.0f};
 
 	Matrix4f extrinsic;
@@ -46,6 +47,7 @@ Eigen::Vector3f backproject(int pixel_x, int pixel_y, float depth,
  * Get the camera matrix
  */
 Eigen::Matrix3f camera_intrinsics( ) {
+	// TODO: Load this from file using camera.cpp code.
 	Eigen::Matrix3f K;
 	K << 2029.0f, 0.0f,    320.0f,
 	     0.0f,    1522.0f, 240.0f,
@@ -156,20 +158,25 @@ compute_surface_normals(const pcl::PointCloud<pcl::PointXYZ>&	all_points,
 	// Output datasets
 	PointCloud<Normal> cloud_normals;
 
-	// Use all neighbors in a sphere of radius 3cm
-	ne.setRadiusSearch (0.03);
+	// // Use all neighbors in a sphere of radius 3cm
+	// ne.setRadiusSearch (5.0);
+	ne.setKSearch(25);
 
 	// Compute the features
 	ne.compute (cloud_normals);
 	auto point_iter = all_points.begin();
 	for( auto normal : cloud_normals ) {
-
 		PointXYZ point = *point_iter;
-		points_with_normals.push_back(PointWithNormal{
-			Vector3f{point.x, point.y, point.z},
-			Vector3f{normal.normal_x, normal.normal_y, normal.normal_z}
-		});
-		point_iter++;
+		if( !isnan(normal.normal_x) &&  !isnan(normal.normal_y) && !isnan(normal.normal_z) ) {
+			points_with_normals.push_back(PointWithNormal{
+				Vector3f{point.x, point.y, point.z},
+				Vector3f{normal.normal_x, normal.normal_y, normal.normal_z}
+			});
+			point_iter++;
+		} else {
+			cout << "Bad normal (" << normal.normal_x << ", " << normal.normal_y << ", " << normal.normal_z << 
+			") << for point at (" << point.x << "," << point.y << "," << point.z << ")" << endl;
+		}
 	}
 
 	// Get the neighbours of this point too.

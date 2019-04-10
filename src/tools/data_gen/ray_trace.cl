@@ -16,14 +16,14 @@ typedef struct Camera{
 	float focalDistance;
 } Camera;
 
-Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam);
-bool intersectRayWithFace(const Ray ray,
+Ray create_cam_ray(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam);
+bool intersect_ray_with_face(const Ray ray,
                           const float3 v0,
                           const float3 v1,
                           const float3 v2,
                           const float3 face_normal,
                           float * p_distance );
-bool intersectRayWithMesh( const Ray ray,					
+bool intersect_ray_with_mesh( const Ray ray,					
                            const int numVertices,
                            __global float3 * vertices,
                            const int numFaces,
@@ -31,37 +31,104 @@ bool intersectRayWithMesh( const Ray ray,
                            __global float3 * faceNormals,
                            float * distance,
                            int3 * intersectedFace );
-int closestVertex(const int3 face, __global float3 * vertices, const float3 intersection );
+int closest_vertex(const int3 face, __global float3 * vertices, const float3 intersection );
+void construct_camera_coordinate_system(__global Camera * cam, float3 * origin, float3 * n, float3 * u, float3 * v);
+void construct_image_plane_origin(const float2 fov, const float focal_length,
+								  const float3 camera_origin, 
+								  const float3 n, 
+								  const float3 u, 
+								  const float3 v, 
+								  float3 * image_plane_origin,
+								  float2 * image_plane_dimensions);
 
 
 
-Ray createCamRay(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam) {
+/**
+ * Construct an eye coordinate system
+ * Input: camera position, center of interest, view-up vector
+ * Returns: new origin and three basis vectors
+ *
+ *               /|
+ *              / |
+ *             /  |
+ *            /   |
+ *           / ^  |
+ *          / v|  |
+ *          |  |-----> n
+ *          | /  /
+ *          |Lu /
+ *          |  /
+ *          | /
+ *          |/
+ *
+ */
+void construct_camera_coordinate_system(__global Camera * cam, float3 * origin, float3 * n, float3 * u, float3 * v) {
+	// n is normal to image plane, points in opposite direction of view point
+	float3 N = cam->view - cam->position;
+	*n = normalize(N);
+
+	// u is a vector that is perpendicular to the plane spanned by
+	// N and view up vector (cam->up)
+	float3 U = cross(*n, cam->up);
+	*u = normalize(U);
+
+	// v is a vector perpendicular to N and U
+	*v = cross(*u, *n);
+
+	// origin is cam centre
+	*origin = cam->position;
+}
+
+void construct_image_plane_origin(const float2 fov, 
+								  const float  focal_length,
+								  const float3 camera_origin, 
+								  const float3 n, 
+								  const float3 u, 
+								  const float3 v, 
+								  float3 * image_plane_origin,
+								  float2 * image_plane_dimensions) {
+	float image_plane_height = tan(fov.y * 0.5f * (PI / 180)) * 2.0f * focal_length;
+	float image_plane_width  = tan(fov.x * 0.5f * (PI / 180)) * 2.0f * focal_length;
+
+	float3 image_plane_centre = camera_origin + ( n * focal_length );
+	*image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
+	image_plane_dimensions->x = image_plane_width;
+	image_plane_dimensions->y = image_plane_height;
+/*
+	printf( "         camera_origin : %f %f %f\n", camera_origin.x, camera_origin.y, camera_origin.z);
+	printf( "                normal : %f %f %f\n", n.x, n.y, n.z);
+	printf( "          focal_length : %f\n", focal_length);
+	printf( "    image_plane_origin : %f %f %f\n", image_plane_origin->x, image_plane_origin->y, image_plane_origin->z);
+	printf( "image_plane_dimensions : %f %f\n", image_plane_dimensions->x, image_plane_dimensions->y);
+ */
+}
+
+/**
+ * x_coord in image plane
+ * y_coord   --"--
+ * width, height (of image)
+ * 
+ */
+Ray create_cam_ray(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam) {
 	/* create a local coordinate frame for the camera */
-	float3 rendercamview = normalize(cam->view); 
-	float3 rendercamup = normalize(cam->up); 
-	float3 horizontalAxis = normalize(cross(rendercamview, rendercamup));
-	float3 verticalAxis = normalize(cross(horizontalAxis, rendercamview));
+	float3 origin;
+	float3 u;
+	float3 v;
+	float3 n;
+	construct_camera_coordinate_system(cam, &origin, &n, &u, &v);
 
-	float3 middle = cam->position + rendercamview;
-	float3 horizontal = horizontalAxis * tan(cam->fov.x * 0.5f * (PI / 180)); 
-	float3 vertical   =  verticalAxis * tan(cam->fov.y * -0.5f * (PI / 180)); 
+	float3 image_plane_origin;
+	float2 image_plane_dimensions;
+	construct_image_plane_origin(cam->fov, cam->focalDistance, origin, n, u, v, &image_plane_origin, &image_plane_dimensions);
 
-	int pixelx = x_coord; 
-	int pixely = height - y_coord - 1;
-
-	float sx = (float)pixelx / (width - 1.0f);
-	float sy = (float)pixely / (height - 1.0f);
-	
-	float3 pointOnPlaneOneUnitAwayFromEye = middle + (horizontal * ((2 * sx) - 1)) + (vertical * ((2 * sy) - 1));
-	float3 pointOnImagePlane = cam->position + ((pointOnPlaneOneUnitAwayFromEye - cam->position) * cam->focalDistance); /* cam->focalDistance */
-
-	float3 aperturePoint = cam->position;
-	float3 apertureToImagePlane = pointOnImagePlane - aperturePoint; apertureToImagePlane = normalize(apertureToImagePlane); 
+	float pixel_width  = image_plane_dimensions.x / width;
+	float pixel_height = image_plane_dimensions.y / height;
+	float3 pixelCamCoordinate = image_plane_origin + (x_coord * pixel_width * u) + (y_coord * pixel_height * v);
 
 	/* create camera ray*/
 	Ray ray;
-	ray.origin = aperturePoint;
-	ray.direction = apertureToImagePlane; 
+	ray.origin = origin;
+	ray.direction = normalize(pixelCamCoordinate - origin);
 
 	return ray;
 }
@@ -78,7 +145,7 @@ Ray createCamRay(const int x_coord, const int y_coord, const int width, const in
  * @param p_distance Pointer to the distance from ray origin of intersection.
  * @return true if the ray intersects the triangle. Otherwise false.
  */
-bool intersectRayWithFace(const Ray ray,
+bool intersect_ray_with_face(const Ray ray,
                           const float3 v0,
                           const float3 v1,
                           const float3 v2,
@@ -144,7 +211,7 @@ bool intersectRayWithFace(const Ray ray,
  * @param intersectedFace The face that was intersected if there was one.
  * @return true If there was an intersection else false.
  */
-bool intersectRayWithMesh( const Ray ray,					
+bool intersect_ray_with_mesh( const Ray ray,					
                            const int numVertices,
                            __global float3 * vertices,
                            const int numFaces,
@@ -165,7 +232,7 @@ bool intersectRayWithMesh( const Ray ray,
 		v0 = vertices[face.s0];
 		v1 = vertices[face.s1];
 		v2 = vertices[face.s2];
-		if ( intersectRayWithFace(ray, v0, v1, v2, face_normal, &distance)) {
+		if ( intersect_ray_with_face(ray, v0, v1, v2, face_normal, &distance)) {
 			if( distance < closest_intersection ) {
 				closest_intersection = distance;
 				intersected_face = face;
@@ -179,7 +246,7 @@ bool intersectRayWithMesh( const Ray ray,
 	return did_intersect;
 }
 
-int closestVertex(const int3 face, __global float3 * vertices, const float3 intersection ) {
+int closest_vertex(const int3 face, __global float3 * vertices, const float3 intersection ) {
 		float3 v0 = vertices[face.s0];
 		float3 v1 = vertices[face.s1];
 		float3 v2 = vertices[face.s2];
@@ -197,9 +264,9 @@ int closestVertex(const int3 face, __global float3 * vertices, const float3 inte
  * Perform raytracing
  */
 __kernel void ray_trace(
-    int numVertices,  __global float3 * vertices,	/* Vertex data for model */
-    int numFaces, __global int3 * faces,			/* Face data for model */
-    __global float3 * faceNormals,
+    int num_vertices,  __global float3 * vertices,	/* Vertex data for model */
+    int num_faces, __global int3 * faces,			/* Face data for model */
+    __global float3 * face_normals,
     __global Camera * camera,						/* Camera position and orientation */
     __global float* depth,							/* Output depth data */
     __global unsigned int* vertex,					/* Ouptut vertex data  */
@@ -210,18 +277,18 @@ __kernel void ray_trace(
 	const int y = work_item_id / width; /* y-coordinate of the pixel */
 
 	// Create the ray from cam to view
-	Ray ray = createCamRay(x, y, width, height, camera);
+	Ray ray = create_cam_ray(x, y, width, height, camera);
 
 	// Intersect the ray with the mesh
 	float range;
-	int3 intersectedFace;
-	if( intersectRayWithMesh(ray, numVertices, vertices, numFaces, faces, faceNormals, &range, &intersectedFace)) {
+	int3 intersected_face;
+	if( intersect_ray_with_mesh(ray, num_vertices, vertices, num_faces, faces, face_normals, &range, &intersected_face)) {
 		// Compute the depth at this point
 		depth[work_item_id] = range;
 
 		// Compute _nearest_ vertex index
 		float3 intersection = ray.origin + (range * ray.direction);
-		int idx = closestVertex(intersectedFace, vertices, intersection);
+		int idx = closest_vertex(intersected_face, vertices, intersection);
 		vertex[work_item_id] = idx;
 	} else {
 		// Ray mised mesh

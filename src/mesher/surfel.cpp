@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <regex>
+#include <random>
 #include <iostream>
 #include "surfel.hpp"
 #include <FileUtils/PgmFileParser.h>
@@ -99,10 +100,8 @@ save_to_file( const std::string& file_name,
 	    for( auto idx : surfel.neighbouring_surfels) {
 		    write_size_t( file, idx);
 	    }
-	    write_float( file, surfel.tangent.x() );
-	    write_float( file, surfel.tangent.y() );
-	    write_float( file, surfel.tangent.z() );
-    }
+	    write_vector_3f(file, surfel.tangent);
+	}
     file.close();
 }
 
@@ -122,9 +121,9 @@ read_size_t( std::ifstream& file ) {
 
 float
 read_float( std::ifstream& file ) {
-	float i;
-	file.read( (char *)&i, sizeof(i) );
-	return i;
+	float value;
+	file.read( (char *)&value, sizeof(float) );
+	return value;
 }
 
 Eigen::Vector3f
@@ -166,7 +165,6 @@ load_from_file( const std::string& file_name,
 	    point_normals.push_back(pwn);
     }
 
-
 	unsigned int num_surfels = read_unsigned_int( file );
 	cout << "  loading " << num_surfels << " surfels" << endl;
 	int pct5 = num_surfels / 20;
@@ -196,11 +194,8 @@ load_from_file( const std::string& file_name,
 			s.neighbouring_surfels.push_back( read_size_t( file ) );
 		}
 
-		float v[3];
-		for( int vIdx=0; vIdx < 3; ++vIdx ) {
-			v[vIdx] = read_float(file);
-		}
-		s.tangent << v[0], v[1], v[2];
+		s.tangent = read_vector_3f( file );
+		cout << "tan [" << sIdx << "]\t: " << s.tangent.x() << ", " << s.tangent.y() << ", " << s.tangent.z()   << endl;
 
 		surfels.push_back(s);
 	}
@@ -216,6 +211,23 @@ load_from_file( const std::string& file_name,
 	**																			  **
 	********************************************************************************
 */
+
+
+float 
+random_zero_to_one( ) {
+    static std::default_random_engine e;
+    static std::uniform_real_distribution<> dis(0, 1); // rage 0 - 1
+    return dis(e);
+}
+
+void 
+randomize_tangents(std::vector<Surfel>& surfels) {
+	for( auto iter = surfels.begin(); iter != surfels.end(); ++iter ) {
+		float xc = random_zero_to_one( );
+		float yc = sqrt(1.0f - (xc * xc));
+		iter->tangent = Eigen::Vector3f{xc, 0.0f, yc};
+	}
+}
 
 void 
 populate_neighbours(std::vector<Surfel>& surfels, 
@@ -295,7 +307,7 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 		}
 	}
 	populate_neighbours(surfels, neighbours, frame_point_to_surfel);
-
+	randomize_tangents( surfels );
 	return surfels;
 }
 
@@ -369,6 +381,7 @@ load_from_directory(  const std::string& dir,
   cout << "Building surfel table..." << flush;
   surfels = build_surfel_table(point_clouds, neighbours, correspondences);
   cout << " done." << endl;
+
 
   cout << "Saving..." << flush;
   save_to_file( "surfel_table.bin", surfels, point_clouds);

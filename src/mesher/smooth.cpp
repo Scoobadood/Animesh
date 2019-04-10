@@ -47,13 +47,6 @@ make_surfel_graph(const std::vector<Surfel>& surfels) {
    ********************************************************************************
 */
 
-float 
-random_zero_to_one( ) {
-    static std::default_random_engine e;
-    static std::uniform_real_distribution<> dis(0, 1); // rage 0 - 1
-    return dis(e);
-}
-
 std::size_t 
 random_index( unsigned int max_index ) {
     static std::default_random_engine e;
@@ -100,15 +93,6 @@ check_stop_flag() {
    **                                                                            **
    ********************************************************************************
 */
-
-void 
-randomize_tangents(std::vector<Surfel>& surfels) {
-	for (auto surfel : surfels){
-		float xc = random_zero_to_one( );
-		float yc = sqrt(1.0f - (xc * xc));
-		surfel.tangent = Eigen::Vector3f{xc, 0.0f, yc};
-	}
-}
 
 
 void 
@@ -304,7 +288,7 @@ void
 optimise(std::vector<Surfel>& surfels,
 		 const std::vector<std::vector<PointWithNormal>>& point_normals)
 {
-	bool done = false;
+	bool done  = check_stop_flag();
 	while( !done ) {
         done = optimise_do_one_step(surfels, point_normals);
         if( !done) {

@@ -3,7 +3,6 @@
 // Code based on http://simpleopencl.blogspot.com/2013/06/tutorial-simple-start-with-opencl-and-c.html
 
 #include "model_cl.hpp"
-#include "Camera.h"
 
 #include <iostream>
 #include <vector>
@@ -11,6 +10,7 @@
 #include <string>
 #include <sstream>
 #include <math.h>
+#include <Camera/Camera.h>
 
 #ifdef __APPLE__
 #include "cl.hpp"

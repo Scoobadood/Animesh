@@ -46,6 +46,7 @@ target_include_directories(
 
 
 target_link_libraries(dat_gen 
+  Camera
   FileUtils
   glm 
   OpenCL::OpenCL 

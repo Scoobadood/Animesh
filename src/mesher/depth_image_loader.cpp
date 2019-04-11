@@ -1,5 +1,6 @@
 #include <Eigen/Core>
 #include <FileUtils/PgmFileParser.h>
+#include <FileUtils/FileUtils.h>
 #include "depth_image_loader.h"
 
 #include <pcl/point_types.h>
@@ -202,6 +203,7 @@ read_camera_data(const std::string& file_name,
 	t << 2.0f, 0.5f, 0.0f;
 }
 
+
 /**
  * Load one depth image point cloud.
  * @param file_name The file from which to load - expected to be a PGM file.
@@ -223,10 +225,32 @@ load_depth_image(const std::string& 						file_name,
 	// Record start time
 	auto start = std::chrono::high_resolution_clock::now();
 
-	PgmData pgm = read_pgm(file_name);
+	// Each row is a space separated set of floats
+	std::vector<std::vector<float>> depth_data;
+	unsigned int width = 0;
+	process_file_by_lines( file_name, 
+		[&](const string& text_line){
+			using namespace std;
+			std::vector<float> depth_image_row;
+			vector<string> tokens = tokenise(text_line);
+			if( width == 0 ) {
+				width = tokens.size();
+			} else {
+				if( width != tokens.size() ) {
+					string message = "Lines of file must all be the same length";
+					throw std::domain_error( message );
+				}
+			}
+			for( auto token : tokens ) {
+				float f = stof(token);
+				depth_image_row.push_back(f);
+			}
+			depth_data.push_back(depth_image_row);
+	}); 
+	unsigned int height = depth_data.size();
+
 	Matrix3f K, R;
 	Vector3f t;
-
 	auto finish_read = std::chrono::high_resolution_clock::now();
 
 	read_camera_data(file_name, K, R, t);
@@ -235,17 +259,15 @@ load_depth_image(const std::string& 						file_name,
 	// to all_points
 	pcl::PointCloud<pcl::PointXYZ> all_points;
 
-	size_t idx = 0;
-	for( int y=0; y<pgm.height; ++y) {
-		for( int x = 0; x < pgm.width; ++x ) {
-			float depth = pgm.data[idx];
-			if( depth != 0 ) {
+	for( int y=0; y<height; ++y) {
+		for( int x = 0; x < width; ++x ) {
+			float depth = depth_data.at(y).at(x);
+			if( depth != 0.0f ) {
 				Vector3f xyz = backproject(x, y, depth, K, R, t);
 
 				PointXYZ pt{xyz[0], xyz[1], xyz[2]};
 				all_points.push_back(pt);
 			}
-			++idx;
 		}
 	}	
 	auto finish_back_project = std::chrono::high_resolution_clock::now();

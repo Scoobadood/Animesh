@@ -77,3 +77,5 @@ std::string get_cwd();
  * @return A null terminated string
  */
 const std::string path_to_file_on_desktop( const std::string& file_name );
+
+std::vector<std::string> tokenise(const std::string& line);

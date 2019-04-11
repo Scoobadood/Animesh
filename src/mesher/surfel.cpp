@@ -343,7 +343,7 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
 
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-        const regex file_name_regex("\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.pgm");
+        const regex file_name_regex("\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat");
         return regex_match(name, file_name_regex);
     });
     // Construct full path names

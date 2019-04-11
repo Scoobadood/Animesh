@@ -2,6 +2,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
+
 #include <algorithm>
 #include <sys/stat.h>
 #include <dirent.h>
@@ -18,6 +20,24 @@ const char PATH_SEPARATOR =
 #else
                             '/';
 #endif
+
+
+std::vector<std::string> tokenise(const std::string& line){
+    using namespace std;
+
+    // Vector of string to save tokens 
+    vector <string> tokens; 
+      
+    // stringstream class check1 
+    stringstream check1(line); 
+    string intermediate; 
+      
+    // Tokenizing w.r.t. space ' ' 
+    while(getline(check1, intermediate, ' ')) { 
+        tokens.push_back(intermediate); 
+    } 
+    return tokens;
+}
 
 /**
  * Return true if a string matches the given template

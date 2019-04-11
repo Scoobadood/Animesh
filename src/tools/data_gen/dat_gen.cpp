@@ -147,6 +147,24 @@ inline float clamp(float x) { return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
 // convert RGB float in range [0,1] to int in range [0, 255]
 inline int toInt(float x) { return int(clamp(x) * 255 + .5); }
 
+void saveDepthImage(const std::string& fileName, 
+					unsigned int width, 
+					unsigned int height,
+					cl_float * data) {
+	using namespace std;
+
+	std::ofstream saveFile{fileName, std::ios::out};
+	std::size_t idx = 0;
+	for( unsigned int row = 0; row < height; row++ ) {
+		for( unsigned int col = 0; col < width; col++ ) {
+			saveFile << data[idx] << " ";
+			idx++;
+		}
+		saveFile << endl;
+	}
+	saveFile.close();
+}
+
 
 template<typename Func>
 void saveImage(const std::string& fileName, unsigned int width, unsigned int height, Func dataFunction, int maxValue ) {
@@ -364,7 +382,11 @@ int main(int argc, char * argv[]) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
 
-	string depthFileName = "/Users/dave/Desktop/depth" + suffix + ".pgm";
+	// export as text format float file
+	string depthFileName = "/Users/dave/Desktop/depth" + suffix + ".mat";
+	saveDepthImage(depthFileName, width, height, cpuDepthData);
+
+	depthFileName = "/Users/dave/Desktop/depth" + suffix + ".pgm";
 	saveImage( depthFileName, width, height,
 	[cpuDepthData](int i) {
 		float depth = cpuDepthData[i];

@@ -25,6 +25,7 @@ target_link_libraries(mesher
 	FileUtils
 	Graph
 	RoSy
+	Camera
 	${PCL_LIBRARIES})
 
 target_compile_features(mesher

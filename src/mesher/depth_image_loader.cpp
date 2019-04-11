@@ -45,17 +45,16 @@ Eigen::Vector3f backproject(int pixel_x, int pixel_y, float depth,
 	return Vector3f{ world_coord[0], world_coord[1], world_coord[2]} * scale;
 }
 
-/*
- * Get the camera matrix
+/**
+ * Read the camera data for a given file/frame.
  */
-Eigen::Matrix3f camera_intrinsics( ) {
-	// TODO: Load this from file using camera.cpp code.
-	load_camera_from_file();
-	Eigen::Matrix3f K;
-	K << 2029.0f, 0.0f,    320.0f,
-	     0.0f,    1522.0f, 240.0f,
-	     0.0f,    0.0f,    1.0f;
-	return K;
+void
+read_camera_data(const std::string& file_name,
+				 Eigen::Matrix3f& K,
+				 Eigen::Matrix3f& R,
+				 Eigen::Vector3f& t) {
+	Camera camera = loadCameraFromFile(file_name);
+	decomposeCamera(camera, K, R, t);
 }
 
 
@@ -192,22 +191,6 @@ compute_surface_normals(const pcl::PointCloud<pcl::PointXYZ>&	all_points,
 }
 
 /**
- * Read the camera data for a given file/frame.
- */
-void
-read_camera_data(const std::string& file_name,
-				 Eigen::Matrix3f& K,
-				 Eigen::Matrix3f& R,
-				 Eigen::Vector3f& t) {
-	// TODO: Replace this with data read from a file.
-
-	K = camera_intrinsics();
-	R = Eigen::Matrix3f::Identity(3,3);
-	t << 2.0f, 0.5f, 0.0f;
-}
-
-
-/**
  * Load one depth image point cloud.
  * @param file_name The file from which to load - expected to be a PGM file.
  * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
@@ -256,7 +239,9 @@ load_depth_image(const std::string& 						file_name,
 	Vector3f t;
 	auto finish_read = std::chrono::high_resolution_clock::now();
 
-	read_camera_data(file_name, K, R, t);
+	// TODO : Derive this from file_name
+	string cam_file_name = "camera.txt";
+	read_camera_data(cam_file_name, K, R, t);
 
 	// For all pixels wth a valid depth, generate a 3 point and store
 	// to all_points

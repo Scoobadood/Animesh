@@ -1,4 +1,6 @@
 #include <string>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 typedef struct Camera {
 	float position[3];
@@ -10,3 +12,4 @@ typedef struct Camera {
 } Camera;
 
 Camera loadCameraFromFile( const std::string& filename);
+void decomposeCamera( const Camera& camera, Eigen::Matrix3f& K, Eigen::Matrix3f& R, Eigen::Vector3f& t );

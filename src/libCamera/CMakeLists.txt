@@ -3,8 +3,8 @@ file(GLOB SOURCES "src/*.cpp")
 add_library(Camera STATIC ${SOURCES})
 
 # Need Eigen3
-# find_package(Eigen3 REQUIRED)
-# include_directories(${EIGEN3_INCLUDE_DIR})
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 
 # Define headers for this library. PUBLIC headers are used for

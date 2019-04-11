@@ -31,16 +31,16 @@ n1 = surface(3:6:end,:);
 n2 = surface(6:6:end,:);
 
 % reconstruct as tans and norms
-block = [fromtan';totan';n1'];
-[r c] = size(block);
-block = reshape(block, [3, c*3]);
-plot3(block(1, :), block(2, :), block(3, :), '-b');    %no marker
+% block = [fromtan';totan';n1'];
+% [r c] = size(block);
+% block = reshape(block, [3, c*3]);
+% plot3(block(1, :), block(2, :), block(3, :), '-b');    %no marker
 
-% block2 = [fromnorm';tonorm';n2'];
-% [r c] = size(block2);
-% block2 = reshape(block2, [3, c*3]);
-% %hold
-% plot3(block2(1, :), block2(2, :), block2(3, :), '-r');    %no marker
+block2 = [fromnorm';tonorm';n2'];
+[r c] = size(block2);
+block2 = reshape(block2, [3, c*3]);
+%hold
+plot3(block2(1, :), block2(2, :), block2(3, :), '-r');    %no marker
 
 
 %%

@@ -98,3 +98,48 @@ Camera loadCameraFromFile( const std::string& filename) {
 
 	return camera;
 }
+
+/*
+ * Get the camera matrix
+ */
+void camera_intrinsics(const Camera& camera, Eigen::Matrix3f& K ) {
+
+	float cx = camera.resolution[0] / 2.0f;
+	float cy = camera.resolution[1] / 2.0f;
+	float fx = camera.resolution[0] / tan(camera.fov[0] / 2.0f);
+	float fy = camera.resolution[1] / tan(camera.fov[1] / 2.0f);
+	float skew = 0.0f;
+
+	K << fx,   skew, cx, 
+	     0.0f, fy,   cy,
+	     0.0f, 0.0f, 1.0f;
+}
+
+/**
+ * Based on https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
+ */
+void camera_extrinsics(const Camera& camera, Eigen::Matrix3f& R, Eigen::Vector3f& t ) {
+	using namespace Eigen;
+
+	Vector3f position{camera.position[0],camera.position[1],camera.position[2]};
+	Vector3f forward = Vector3f{camera.view[0], camera.view[1],camera.view[2]} - position;
+	forward.normalize();
+
+	Vector3f up{camera.up[0], camera.up[1], camera.up[2]};
+	up.normalize();
+
+	Vector3f s = forward.cross(up);
+	s.normalize();
+	Vector3f u = s.cross(forward);
+
+	R << s.x(), s.y(), s.z(), 
+	     u.x(), u.y(), u.z(),
+	     -forward.x(), -forward.y(), -forward.z();
+
+	t = -R * position;
+}
+
+void decomposeCamera( const Camera& camera, Eigen::Matrix3f& K, Eigen::Matrix3f& R, Eigen::Vector3f& t ) {
+	camera_intrinsics(camera, K );
+	camera_extrinsics(camera, R, t );
+}

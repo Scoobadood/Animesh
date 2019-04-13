@@ -42,19 +42,16 @@ target_link_libraries(testCamera
 	gmock)
 
 add_custom_command(
-	OUTPUT camera_test_data
-    COMMAND ${CMAKE_COMMAND} -E echo "Copying unit test data.."
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_HOME_DIRECTORY}/libCamera/tests/testdata ${CMAKE_BINARY_DIR}
+	TARGET testCamera 
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/data ${CMAKE_BINARY_DIR}/camera_test_data
+	COMMENT "Copying unit test data."
+	DEPENDS testCamera
+	)
+
+add_custom_target(copy-runtime-files ALL
+    COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/runtime-files-dir ${CMAKE_BINARY_DIR}/runtime-files-dir
     )
-
-# create a target that includes some_file, this gives us a name that we can use later
-add_custom_target(
-  camera_test_data_target
-  DEPENDS camera_test_data
-)
-
-# we can add the target as a dependency, and it will affect only this library
-add_dependencies(testCamera camera_test_data_target)
 
 
 add_test( NAME FileMissingFocalLengthShouldThrow COMMAND testCamera --gtest_filter=FileMissingFocalLengthShouldThrow)

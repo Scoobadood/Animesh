@@ -2,7 +2,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-
+#include <Eigen/Geometry>
 #include <Camera/Camera.h>
 
 void parseVec3(const std::string& str, float vec[3]) {
@@ -142,6 +142,45 @@ void camera_extrinsics(const Camera& camera, Eigen::Matrix3f& R, Eigen::Vector3f
 void decomposeCamera( const Camera& camera, Eigen::Matrix3f& K, Eigen::Matrix3f& R, Eigen::Vector3f& t ) {
 	camera_intrinsics(camera, K );
 	camera_extrinsics(camera, R, t );
+}
+
+
+/*
+ * Compute the backprojection of a point from X,Y and depth plus camera
+ */
+Eigen::Vector3f backproject(int pixel_x, int pixel_y, 
+						    float depth, 
+							const Eigen::Matrix3f& K,	// Camera intrinsics
+							const Eigen::Matrix3f& R,	// Rotation matrix (of cam wrt world)
+							const Eigen::Vector3f& t  // Location of cam(0,0) wrt world
+							) 
+{
+	using namespace Eigen;
+
+	// Image Coord = External Camera Matrix * Internal * Projection 
+	// We assume that camera is this matrix
+
+	// Make back proj matrix
+	Matrix3f kinv = K.inverse();
+
+	Vector3f point{ pixel_x, pixel_y, 1.0f };
+	Vector3f ray_direction = kinv * point;
+	// TODO: Find a better way of handling this scale favtor which was injected by cheat data contruction.
+	Vector3f cc  = (depth * ray_direction) / 255.0f;
+	Vector4f camera_coord  = Vector4f{cc(0), cc(1), cc(2), 1.0f};
+
+	Matrix4f extrinsic;
+	Matrix3f RcT = R.transpose();
+	Vector3f tc   = -R * t;
+
+	extrinsic << RcT(0,0), RcT(1,0), RcT(2,0), tc(0),
+				  RcT(0,1), RcT(1,1), RcT(2,1), tc(1),
+				  RcT(0,2), RcT(1,2), RcT(2,2), tc(2),
+				  0.0f, 0.0f, 0.0f, 1.0f;
+
+	Vector4f world_coord = extrinsic.inverse() * camera_coord;
+	float scale = 1.0f / world_coord[3];
+	return Vector3f{ world_coord[0], world_coord[1], world_coord[2]} * scale;
 }
 
 std::ostream& operator<<(std::ostream& os, const Camera& camera) {

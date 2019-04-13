@@ -22,3 +22,18 @@ TEST_F( TestCamera, FileMissingFocalLengthShouldThrow ) {
         FAIL( ) << "Expected std::invalid_argument";
     }
 }
+
+TEST_F( TestCamera, TriangleDepthReconstruction ) {
+    using namespace Eigen;
+
+    Camera camera = loadCameraFromFile("data/tri_camera.txt");
+
+    Matrix3f K;
+    Matrix3f R;
+    Vector3f t;
+    decomposeCamera( camera, K, R, t );
+    Vector3f v1 = backproject(275, 172, 11.06f, K, R, t );
+    Vector3f v2 = backproject(367, 172, 11.06f, K, R, t );
+    Vector3f v3 = backproject(321, 310, 11.05f, K, R, t );
+}
+

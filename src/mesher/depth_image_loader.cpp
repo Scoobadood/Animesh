@@ -10,19 +10,6 @@
 static int DEBUG_LEVEL = 1;
 
 
-/**
- * Read the camera data for a given file/frame.
- */
-void
-read_camera_data(const std::string& file_name,
-				 Eigen::Matrix3f& K,
-				 Eigen::Matrix3f& R,
-				 Eigen::Vector3f& t) {
-	Camera camera = loadCameraFromFile(file_name);
-	decomposeCamera(camera, K, R, t);
-}
-
-
 struct sort_by_distance {
     bool operator ()(std::pair<float, int> const& a, std::pair<float, int> const& b) {
         return a.first < b.first;
@@ -206,7 +193,7 @@ load_depth_image(const std::string& 						file_name,
 
 	// TODO : Derive this from file_name
 	string cam_file_name = "camera.txt";
-	read_camera_data(cam_file_name, K, R, t);
+	Camera camera = loadCameraFromFile(cam_file_name);
 
 	// For all pixels wth a valid depth, generate a 3 point and store
 	// to all_points
@@ -216,7 +203,7 @@ load_depth_image(const std::string& 						file_name,
 		for( int x = 0; x < width; ++x ) {
 			float depth = depth_data.at(y).at(x);
 			if( depth != 0.0f ) {
-				Vector3f xyz = backproject(x, y, depth, K, R, t);
+				Vector3f xyz = backproject(camera, x, y, depth);
 
 				PointXYZ pt{xyz[0], xyz[1], xyz[2]};
 				all_points.push_back(pt);

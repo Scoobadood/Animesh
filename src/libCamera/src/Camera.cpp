@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <math.h>
 #include <Eigen/Geometry>
 #include <Camera/Camera.h>
 
@@ -134,9 +135,9 @@ void camera_extrinsics(const Camera& camera, Eigen::Matrix3f& R, Eigen::Vector3f
 	s.normalize();
 	Vector3f u = s.cross(forward);
 
-	R << s.x(), s.y(), s.z(), 
-	     u.x(), u.y(), u.z(),
-	     -forward.x(), -forward.y(), -forward.z();
+	R << s.x(), u.x(), -forward.x(),
+		 s.y(), u.y(), -forward.y(),
+		 s.z(), u.z(), -forward.z();
 
 	t = -R * position;
 }
@@ -144,45 +145,105 @@ void camera_extrinsics(const Camera& camera, Eigen::Matrix3f& R, Eigen::Vector3f
 void decomposeCamera( const Camera& camera, Eigen::Matrix3f& K, Eigen::Matrix3f& R, Eigen::Vector3f& t ) {
 	camera_intrinsics(camera, K );
 	camera_extrinsics(camera, R, t );
+	std::cout << "Cam R " << R << std::endl;
+	std::cout << "Cam t " << t << std::endl;
 }
 
+
+
+/**
+ * Construct an eye coordinate system
+ * Input: camera position, center of interest, view-up vector
+ * Returns: new origin and three basis vectors
+ *
+ *               /|
+ *              / |
+ *             /  |
+ *            /   |
+ *           / ^  |
+ *          / v|  |
+ *          |  |-----> n
+ *          | /  /
+ *          |Lu /
+ *          |  /
+ *          | /
+ *          |/
+ *
+ */
+void construct_camera_coordinate_system(const Camera& camera, 
+										Eigen::Vector3f&  cam_origin, 
+										Eigen::Vector3f& n, 
+										Eigen::Vector3f& u,
+										Eigen::Vector3f& v)
+{
+	using namespace Eigen;
+
+	// n is normal to image plane, points in opposite direction of view point
+	Vector3f N{ camera.position[0] - camera.view[0], 
+				camera.position[1] - camera.view[1],
+				camera.position[2] - camera.view[2]};
+	n = N.normalized();
+
+	// u is a vector that is perpendicular to the plane spanned by
+	// N and view up vector (cam->up)
+	Vector3f U = Vector3f{camera.up[0], camera.up[1], camera.up[2]}.cross(n);
+	u = U.normalized();
+
+	// v is a vector perpendicular to N and U
+	v = n.cross(u);
+
+	// origin is cam centre
+	cam_origin = Vector3f{camera.position[0], camera.position[1], camera.position[2]};
+}
+
+
+void construct_image_plane_origin(const Eigen::Vector2f& fov, 
+								  const float focal_length,
+								  const Eigen::Vector3f&  camera_origin, 
+								  const Eigen::Vector3f& n, 
+								  const Eigen::Vector3f& u, 
+								  const Eigen::Vector3f& v, 
+								  Eigen::Vector3f& image_plane_origin,
+								  Eigen::Vector2f& image_plane_dimensions)
+{
+	using namespace Eigen;
+
+	float image_plane_height = tan(fov.y() * 0.5f * (M_PI / 180)) * 2.0f * focal_length;
+	float image_plane_width  = tan(fov.x() * 0.5f * (M_PI / 180)) * 2.0f * focal_length;
+
+	Vector3f image_plane_centre = camera_origin - ( n * focal_length );
+	image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
+	image_plane_dimensions.x() = image_plane_width;
+	image_plane_dimensions.y() = image_plane_height;
+}
 
 /*
  * Compute the backprojection of a point from X,Y and depth plus camera
  */
-Eigen::Vector3f backproject(int pixel_x, int pixel_y, 
-						    float depth, 
-							const Eigen::Matrix3f& K,	// Camera intrinsics
-							const Eigen::Matrix3f& R,	// Rotation matrix (of cam wrt world)
-							const Eigen::Vector3f& t  // Location of cam(0,0) wrt world
-							) 
+Eigen::Vector3f backproject(const Camera& camera,
+							int pixel_x, 
+							int pixel_y, 
+						    float depth) 
 {
 	using namespace Eigen;
 
-	// Image Coord = External Camera Matrix * Internal * Projection 
-	// We assume that camera is this matrix
+	Vector3f cam_origin;
+	Vector3f n, u, v;
+	construct_camera_coordinate_system(camera, cam_origin, n, u, v);
 
-	// Make back proj matrix
-	Matrix3f kinv = K.inverse();
+	Vector3f image_plane_origin;
+	Vector2f image_plane_dimensions;
+	construct_image_plane_origin(Vector2f{camera.fov[0], camera.fov[1]}, camera.focalDistance, cam_origin, n, u, v, image_plane_origin, image_plane_dimensions);
 
-	Vector3f point{ pixel_x, pixel_y, 1.0f };
-	Vector3f ray_direction = kinv * point;
-	// TODO: Find a better way of handling this scale favtor which was injected by cheat data contruction.
-	Vector3f cc  = (depth * ray_direction) / 255.0f;
-	Vector4f camera_coord  = Vector4f{cc(0), cc(1), cc(2), 1.0f};
+	// Compute pixel coordinate in world space
+	float pixel_width  = image_plane_dimensions.x() / camera.resolution[0];
+	float pixel_height = image_plane_dimensions.y() / camera.resolution[1];
+	Vector3f pixelCoordinate = image_plane_origin 
+								+ ((pixel_x + 0.5f) * pixel_width * u) 
+								+ ((pixel_y + 0.5f) * pixel_height * v);
 
-	Matrix4f extrinsic;
-	Matrix3f RcT = R.transpose();
-	Vector3f tc   = -R * t;
-
-	extrinsic << RcT(0,0), RcT(1,0), RcT(2,0), tc(0),
-				  RcT(0,1), RcT(1,1), RcT(2,1), tc(1),
-				  RcT(0,2), RcT(1,2), RcT(2,2), tc(2),
-				  0.0f, 0.0f, 0.0f, 1.0f;
-
-	Vector4f world_coord = extrinsic.inverse() * camera_coord;
-	float scale = 1.0f / world_coord[3];
-	return Vector3f{ world_coord[0], world_coord[1], world_coord[2]} * scale;
+	Vector3f rayDirection = (pixelCoordinate - cam_origin).normalized();;
+	return cam_origin + (rayDirection * depth);
 }
 
 std::ostream& operator<<(std::ostream& os, const Camera& camera) {

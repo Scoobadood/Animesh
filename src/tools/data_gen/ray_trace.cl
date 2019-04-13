@@ -101,7 +101,6 @@ void construct_image_plane_origin(const float2 fov,
  * x_coord in image plane
  * y_coord   --"--
  * width, height (of image)
- * 
  */
 Ray create_cam_ray(const int x_coord, const int y_coord, const int width, const int height, __global Camera * cam) {
 	/* create a local coordinate frame for the camera */
@@ -117,7 +116,9 @@ Ray create_cam_ray(const int x_coord, const int y_coord, const int width, const 
 
 	float pixel_width  = image_plane_dimensions.x / width;
 	float pixel_height = image_plane_dimensions.y / height;
-	float3 pixelCamCoordinate = image_plane_origin + (x_coord * pixel_width * u) + (y_coord * pixel_height * v);
+	float3 pixelCamCoordinate = image_plane_origin 
+			+ ((x_coord + 0.5f) * pixel_width * u) 
+			+ ((y_coord + 0.5f) * pixel_height * v);
 
 	/* create camera ray*/
 	Ray ray;

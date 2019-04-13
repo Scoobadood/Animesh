@@ -27,16 +27,9 @@ TEST_F( TestCamera, TriangleDepthReconstruction ) {
     using namespace Eigen;
 
     Camera camera = loadCameraFromFile("camera_test_data/tri_camera.txt");
-
-    Matrix3f K;
-    Matrix3f R;
-    Vector3f t;
-    decomposeCamera( camera, K, R, t );
-    Vector3f v1 = backproject(275, 172, 11.06f, K, R, t );
-    Vector3f v2 = backproject(367, 172, 11.06f, K, R, t );
-    Vector3f v3 = backproject(321, 310, 11.05f, K, R, t );
-
-    std::cout << "t " << t << std::endl;
+    Vector3f v1 = backproject(camera, 275, 172, 11.06f);
+    Vector3f v2 = backproject(camera, 321, 310, 11.05f);
+    Vector3f v3 = backproject(camera, 367, 172, 11.06f);
 
     // v   -0.5            -1.0          -1.0
     // v    0.0             1.0          -1.0

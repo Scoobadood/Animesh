@@ -33,7 +33,8 @@ bool intersect_ray_with_mesh( const Ray ray,
                            int3 * intersectedFace );
 int closest_vertex(const int3 face, __global float3 * vertices, const float3 intersection );
 void construct_camera_coordinate_system(__global Camera * cam, float3 * origin, float3 * n, float3 * u, float3 * v);
-void construct_image_plane_origin(const float2 fov, const float focal_length,
+void construct_image_plane_origin(const float2 fov, 
+								  const float focal_length,
 								  const float3 camera_origin, 
 								  const float3 n, 
 								  const float3 u, 
@@ -64,16 +65,16 @@ void construct_image_plane_origin(const float2 fov, const float focal_length,
  */
 void construct_camera_coordinate_system(__global Camera * cam, float3 * origin, float3 * n, float3 * u, float3 * v) {
 	// n is normal to image plane, points in opposite direction of view point
-	float3 N = cam->view - cam->position;
+	float3 N = cam->position - cam->view;
 	*n = normalize(N);
 
 	// u is a vector that is perpendicular to the plane spanned by
 	// N and view up vector (cam->up)
-	float3 U = cross(*n, cam->up);
+	float3 U = cross(cam->up, *n);
 	*u = normalize(U);
 
 	// v is a vector perpendicular to N and U
-	*v = cross(*u, *n);
+	*v = cross(*n, *u);
 
 	// origin is cam centre
 	*origin = cam->position;
@@ -90,17 +91,10 @@ void construct_image_plane_origin(const float2 fov,
 	float image_plane_height = tan(fov.y * 0.5f * (PI / 180)) * 2.0f * focal_length;
 	float image_plane_width  = tan(fov.x * 0.5f * (PI / 180)) * 2.0f * focal_length;
 
-	float3 image_plane_centre = camera_origin + ( n * focal_length );
+	float3 image_plane_centre = camera_origin - ( n * focal_length );
 	*image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
 	image_plane_dimensions->x = image_plane_width;
 	image_plane_dimensions->y = image_plane_height;
-/*
-	printf( "         camera_origin : %f %f %f\n", camera_origin.x, camera_origin.y, camera_origin.z);
-	printf( "                normal : %f %f %f\n", n.x, n.y, n.z);
-	printf( "          focal_length : %f\n", focal_length);
-	printf( "    image_plane_origin : %f %f %f\n", image_plane_origin->x, image_plane_origin->y, image_plane_origin->z);
-	printf( "image_plane_dimensions : %f %f\n", image_plane_dimensions->x, image_plane_dimensions->y);
- */
 }
 
 /**

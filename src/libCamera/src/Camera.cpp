@@ -143,3 +143,16 @@ void decomposeCamera( const Camera& camera, Eigen::Matrix3f& K, Eigen::Matrix3f&
 	camera_intrinsics(camera, K );
 	camera_extrinsics(camera, R, t );
 }
+
+std::ostream& operator<<(std::ostream& os, const Camera& camera) {
+	using namespace std;
+	os << "pos : " << camera.position[0] << ", " << camera.position[1] << ", " << camera.position[2] << endl;
+	os << "vew : " << camera.view[0] << ", " << camera.view[1] << ", " << camera.view[2] << endl;
+	os << " up : " << camera.up[0] << ", " << camera.up[1] << ", " << camera.up[2] << endl;
+	os << "res : " << camera.resolution[0] << ", " << camera.resolution[1] << endl;
+	os << "fov : " << camera.fov[0] << ", " << camera.fov[1] << endl;
+	os << "foc : " << camera.focalDistance << endl;
+	return os;
+}
+
+

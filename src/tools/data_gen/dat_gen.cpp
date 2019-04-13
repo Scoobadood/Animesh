@@ -333,7 +333,24 @@ int main(int argc, char * argv[]) {
 	Buffer gpuVertices{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numVertices * sizeof(cl_float3), cpuVertices};
 	Buffer gpuFaces{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numFaces * sizeof(cl_int3), cpuFaces};
 	Buffer gpuFaceNormals{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numFaces * sizeof(cl_float3), cpuFaceNormals};
-	Buffer gpuCamera{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cpuCamera), (void *)&cpuCamera};
+
+	// Copy the CPU camera into GPU data structures - adding padding as needed to handle the fact that 
+	// cl_float3 are 16 bytes long
+	struct {
+		cl_float3 position;
+		cl_float3 view;
+		cl_float3 up;
+		cl_float2 resolution;
+		cl_float2 fov;
+		cl_float focalDistance;
+	} gpu_cam;
+	memcpy((void *)&(gpu_cam.position), cpuCamera.position, sizeof(cpuCamera.position));
+	memcpy((void *)&(gpu_cam.view), cpuCamera.view, sizeof(cpuCamera.view));
+	memcpy((void *)&(gpu_cam.up), cpuCamera.up, sizeof(cpuCamera.up));
+	memcpy((void *)&(gpu_cam.resolution), cpuCamera.resolution, sizeof(cpuCamera.resolution));
+	memcpy((void *)&(gpu_cam.fov), cpuCamera.fov, sizeof(cpuCamera.fov));
+	gpu_cam.focalDistance = cpuCamera.focalDistance;
+	Buffer gpuCamera{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(gpu_cam), (void *)&gpu_cam};
 
 	delete[] cpuVertices;
 	delete[] cpuFaces;

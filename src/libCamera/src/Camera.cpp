@@ -85,6 +85,7 @@ Camera loadCameraFromFile( const std::string& filename) {
 					camera.focalDistance = stof(value);
 					fl_f = true;
 				} else {
+					throw std::domain_error("CAMFILE::UNKNOWN_KEY");
 					cerr << "ERROR::CAMFILE::UNKNOWN_KEY " << key << endl;
 				}
 			}
@@ -93,6 +94,7 @@ Camera loadCameraFromFile( const std::string& filename) {
 
 
 	if ( !( fl_position && fl_view && fl_up && fl_resolution && fl_fov && fl_f ) ) {
+		throw std::domain_error("CAMFILE::MISSING_KEY");
 		cerr << "ERROR::CAMFILE::MISSING_KEY" << endl;
 	}
 

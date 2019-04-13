@@ -44,7 +44,7 @@ target_link_libraries(testCamera
 add_custom_command(
 	TARGET testCamera 
 	POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/data ${CMAKE_BINARY_DIR}/camera_test_data
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/camera_test_data ${CMAKE_BINARY_DIR}/camera_test_data
 	COMMENT "Copying unit test data."
 	DEPENDS testCamera
 	)

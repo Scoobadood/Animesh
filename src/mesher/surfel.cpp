@@ -13,8 +13,8 @@
 #include "pixel_correspondence.hpp"
 #include "depth_image_loader.h"
 
-static const std::string DEPTH_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat";
-static const std::string VERTEX_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm";
+static const char * DEPTH_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat";
+static const char * VERTEX_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm";
 
 /*
 	********************************************************************************
@@ -236,7 +236,7 @@ populate_neighbours(std::vector<Surfel>& surfels,
 						 const std::map<std::pair<std::size_t, std::size_t>, std::size_t>&  frame_point_to_surfel) {
 	using namespace std;
 
-	for( auto const & surfel : surfels ) {
+	for( auto & surfel : surfels ) {
 		for( auto const & fd : surfel.frame_data ) {
 			unsigned int frame_idx = fd.frame_idx;
 			unsigned int point_idx = fd.point_idx;

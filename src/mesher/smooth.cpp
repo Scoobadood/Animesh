@@ -7,37 +7,8 @@
 
 static bool g_is_optimising = false;
 static float g_optimisation_error;
-
-/*
-   ********************************************************************************
-   **                                                                            **
-   **             Graph Related                                                  **
-   **                                                                            **
-   ********************************************************************************
-*/
-
-SurfelGraphPtr
-make_surfel_graph(const std::vector<Surfel>& surfels) {
-	using namespace std;
-
-    SurfelGraphPtr graph = make_shared<SurfelGraph>();
-	
-	for( size_t idx = 0; idx < surfels.size(); ++idx ) {
-		graph->add_node(idx);
-	}
-
-	// Connect with edges
-    vector<SurfelGraphNode *> nodes = graph->nodes( );
-	size_t idx = 0;
-	for( auto surfel : surfels ) {
-		// Lookup my neighbour indices
-		for( auto neighbour_idx : surfel.neighbouring_surfels ) {
-			graph->add_edge(nodes.at(idx), nodes.at(neighbour_idx), 1.0f, nullptr);
-		}
-		idx++;
-	}
-	return graph;
-}
+static const int MAX_ITERATIONS = 10;
+static const long RANDOM_SEED = 474264642;
 
 /*
    ********************************************************************************
@@ -49,7 +20,7 @@ make_surfel_graph(const std::vector<Surfel>& surfels) {
 
 std::size_t 
 random_index( unsigned int max_index ) {
-    static std::default_random_engine e;
+    static std::default_random_engine e{RANDOM_SEED};
     static std::uniform_real_distribution<> dis(0, max_index);
     return std::floor(dis(e));
 }
@@ -109,7 +80,7 @@ optimise_end() {
 
 float 
 total_error() {
-	std::cout << "total_error() not yet implemented" << std::endl;
+	// std::cout << "total_error() not yet implemented" << std::endl;
 	return 0.0f;
 }
 
@@ -121,7 +92,7 @@ check_convergence(float error) {
 				  <<"check_convergence() " << iterations <<" iterations" << std::endl
 				  << "****************************************" << std::endl ;
 	}
-	return (++iterations == 5000);
+	return (++iterations == MAX_ITERATIONS);
 }
 
 /**
@@ -177,7 +148,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
 
 	// For each neighbour
-	cout << "considering " << surfels.at(surfel_idx).neighbouring_surfels.size() << " neighbours for surfel " << surfel_idx << endl;
+//	cout << "considering " << surfels.at(surfel_idx).neighbouring_surfels.size() << " neighbours for surfel " << surfel_idx << endl;
 	int total_common_frames = 0;
 	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
 		const vector<FrameData>& neighbour_frames = surfels.at(neighbour_idx).frame_data;
@@ -186,7 +157,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 		total_common_frames += common_frames.size();
 
 		// For each common frame, get normal and tangent in surfel space
-		for( auto frame_pair : common_frames) {
+		for( auto const & frame_pair : common_frames) {
 			const Matrix3f surfel_to_frame = frame_pair.first.transform;
 			const Matrix3f frame_to_surfel = surfel_to_frame.transpose();
 			const Matrix3f neighbour_to_frame = frame_pair.second.transform;
@@ -204,7 +175,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 			eligible_tangents.push_back(neighbour_tan_in_surfel_space);
 		}
 	}
-	cout << "  total common frames " << total_common_frames << endl;
+	// cout << "  total common frames " << total_common_frames << endl;
 }
 
 /**
@@ -258,17 +229,20 @@ optimise_do_one_step(std::vector<Surfel>& surfels,
         optimise_begin(surfels); //setup_optimisation();
     }
 
-	auto start = chrono::high_resolution_clock::now();
+    // auto start = chrono::high_resolution_clock::now();
 
     // Select random surfel 
     size_t surfel_idx = random_index(surfels.size());
 
     // Update this one
-    compute_new_tangent_for_surfel(surfels, surfel_idx, point_normals);
+    cout << "old tangent " << surfels.at(surfel_idx).tangent << endl;
+    Vector3f new_tangent = compute_new_tangent_for_surfel(surfels, surfel_idx, point_normals);
+    cout << "new tangent " << new_tangent << endl;
+    surfels.at(surfel_idx).tangent = new_tangent;
 
-	auto end = chrono::high_resolution_clock::now();
-	chrono::milliseconds dtn = chrono::duration_cast<chrono::milliseconds> (end - start);
-	cout << "optimise_do_one_step ran in : " << dtn.count() << endl;
+    //	auto end = chrono::high_resolution_clock::now();
+    //	chrono::milliseconds dtn = chrono::duration_cast<chrono::milliseconds> (end - start);
+	// cout << "optimise_do_one_step ran in : " << dtn.count() << endl;
 
     // Check for done-ness
 	float new_error = total_error();

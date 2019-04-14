@@ -13,6 +13,9 @@
 #include "pixel_correspondence.hpp"
 #include "depth_image_loader.h"
 
+static const std::string DEPTH_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat";
+static const std::string VERTEX_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm";
+
 /*
 	********************************************************************************
 	**																			  **
@@ -80,10 +83,10 @@ save_to_file( const std::string& file_name,
     }
 
     write_unsigned_int( file, surfels.size());
-    for( Surfel surfel : surfels) {
+    for( auto const & surfel : surfels) {
 	    write_size_t( file, surfel.id);
     	write_unsigned_int( file, surfel.frame_data.size());
-	    for( FrameData fd : surfel.frame_data) {
+	    for( auto const &  fd : surfel.frame_data) {
 		    write_size_t( file, fd.frame_idx);
 		    write_size_t( file, fd.point_idx);
 		    write_float( file, fd.transform(0,0) );
@@ -175,14 +178,14 @@ load_from_file( const std::string& file_name,
 		Surfel s;
 		s.id = read_size_t(file);
 
-		unsigned int num_frames = read_unsigned_int( file );
+		num_frames = read_unsigned_int( file );
 		for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
 			// cout << "      " << fdIdx << endl;
 			FrameData fd;
 			fd.frame_idx = read_size_t(file);
 			fd.point_idx = read_size_t(file);
 			float m[9];
-			for( int mIdx=0; mIdx<9; mIdx++ ) {
+			for( int mIdx = 0; mIdx<9; mIdx++ ) {
 				m[mIdx] = read_float(file);
 			}
 			fd.transform << m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8];
@@ -195,8 +198,6 @@ load_from_file( const std::string& file_name,
 		}
 
 		s.tangent = read_vector_3f( file );
-		cout << "tan [" << sIdx << "]\t: " << s.tangent.x() << ", " << s.tangent.y() << ", " << s.tangent.z()   << endl;
-
 		surfels.push_back(s);
 	}
 	file.close();
@@ -222,10 +223,10 @@ random_zero_to_one( ) {
 
 void 
 randomize_tangents(std::vector<Surfel>& surfels) {
-	for( auto iter = surfels.begin(); iter != surfels.end(); ++iter ) {
+	for( auto & surfel : surfels) {
 		float xc = random_zero_to_one( );
 		float yc = sqrt(1.0f - (xc * xc));
-		iter->tangent = Eigen::Vector3f{xc, 0.0f, yc};
+        surfel.tangent = Eigen::Vector3f{xc, 0.0f, yc};
 	}
 }
 
@@ -235,8 +236,8 @@ populate_neighbours(std::vector<Surfel>& surfels,
 						 const std::map<std::pair<std::size_t, std::size_t>, std::size_t>&  frame_point_to_surfel) {
 	using namespace std;
 
-	for( int i=0; i<surfels.size(); ++i ) {
-		for( auto fd : surfels.at(i).frame_data ) {
+	for( auto const & surfel : surfels ) {
+		for( auto const & fd : surfel.frame_data ) {
 			unsigned int frame_idx = fd.frame_idx;
 			unsigned int point_idx = fd.point_idx;
 
@@ -245,14 +246,14 @@ populate_neighbours(std::vector<Surfel>& surfels,
 
 			for( auto n : f_p_neighbours) {
 				size_t idx = frame_point_to_surfel.at(make_pair<>( frame_idx, n ) );
-				if( idx != surfels.at(i).id) {
+				if( idx != surfel.id) {
 					set_of_neighbours.insert(idx);
 				}
 			}
 			// copy set into neighbouring_surfels
 			copy(set_of_neighbours.begin(),
 				 set_of_neighbours.end(),
-				 back_inserter(surfels.at(i).neighbouring_surfels));
+				 back_inserter(surfel.neighbouring_surfels));
 		}
 	}
 }
@@ -296,7 +297,7 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 	vector<Surfel> surfels;
 	map<pair<size_t, size_t>, size_t> frame_point_to_surfel;
 
-	for( auto correspondence : correspondences ) {
+	for( auto const & correspondence : correspondences ) {
 		Surfel surfel;
 
 		surfel.id = surfels.size();
@@ -311,7 +312,7 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 	return surfels;
 }
 
-std::vector<std::string> get_vertex_files_in_directory( std::string directory_name ) {
+std::vector<std::string> get_vertex_files_in_directory( const std::string& directory_name ) {
     using namespace std;
 
     vector<string> file_names;
@@ -320,14 +321,15 @@ std::vector<std::string> get_vertex_files_in_directory( std::string directory_na
 
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-        const regex file_name_regex("\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm");
+        const regex file_name_regex(VERTEX_FILE_NAME_REGEX);
         return regex_match(name, file_name_regex);
     });
     // Construct full path names
     vector<string> full_path_names;
-    for( string file_name : file_names) {
+    for( auto const & file_name : file_names) {
         // FIXME: Replace this evilness with something more robust and cross platform.
-        string path_name = directory_name + "/" + file_name;
+        string path_name = directory_name;
+        path_name .append("/").append(file_name);
         full_path_names.push_back( path_name );
     }
     std::sort(full_path_names.begin(), full_path_names.end() );
@@ -343,14 +345,14 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
 
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-        const regex file_name_regex("\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat");
+        const regex file_name_regex(DEPTH_FILE_NAME_REGEX);
         return regex_match(name, file_name_regex);
     });
     // Construct full path names
     vector<string> full_path_names;
-    for( string file_name : file_names) {
+    for( auto const & file_name : file_names) {
         // FIXME: Replace this evilness with something more robust and cross platform.
-        string path_name = directory_name + "/" + file_name;
+        string path_name = directory_name.append("/").append(file_name);
         full_path_names.push_back( path_name );
     }
     std::sort(full_path_names.begin(), full_path_names.end() );

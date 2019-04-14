@@ -14,7 +14,7 @@ usage( const char *name ) {
 
 void
 mat_dumper(const std::string& outfile, 
-            int frame,
+            unsigned long frame,
             const std::vector<Surfel>& surfels, 
             const std::vector<std::vector<PointWithNormal>>& point_normals ) {
   using namespace std;
@@ -25,8 +25,8 @@ mat_dumper(const std::string& outfile,
 
   ofstream fout( outfile );
   int surfel_idx = 0;
-  for ( auto surfel : surfels ) {
-    for( auto fd : surfel.frame_data) {
+  for ( auto const & surfel : surfels ) {
+    for( auto const & fd : surfel.frame_data) {
       if( fd.frame_idx == frame ) {
         Vector3f point1 = point_normals.at(frame).at(fd.point_idx).point;
         Vector3f n = point_normals.at(frame).at(fd.point_idx).normal;

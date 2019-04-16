@@ -3,15 +3,15 @@
 clc;
 clear;
 surface = load('/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/mat.txt', 'surface');
-normscale = .01;
-tanscale = .01;
+normscale = .0;
+tanscale = .015;
 
 % Start and end of normal
 fromnorm=surface(4:6:end,:);
 tonorm=surface(5:6:end,:);
 delta = tonorm - fromnorm;
-delta = delta * normscale;
-tonorm = fromnorm + delta;
+deltascaled = delta * normscale;
+tonorm = fromnorm + deltascaled;
 
 nn = repmat(sqrt(sum(delta .* delta,2)),1,3);
 normnorm = delta ./ nn;
@@ -55,7 +55,7 @@ block3 = reshape(block3, [3, c*3]);
 
 plot3(block(1, :), block(2, :), block(3, :), '-b');    %no marker
 hold
-plot3(block2(1, :), block2(2, :), block2(3, :), '-r');    %no marker
+% plot3(block2(1, :), block2(2, :), block2(3, :), '-r');    %no marker
 plot3(block3(1, :), block3(2, :), block3(3, :), '-b');    %no marker
 
 axis equal

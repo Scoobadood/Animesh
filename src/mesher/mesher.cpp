@@ -61,7 +61,8 @@ handle_args(int argc, char *argv[],
             std::string& file_or_directory, 
             bool& load_from_file, 
             bool& load_from_directory,
-            bool& dump
+            bool& dump,
+            int& frame
             ) {
   bool args_ok = false;
   if( argc >= 3 ) {
@@ -85,6 +86,16 @@ handle_args(int argc, char *argv[],
       dump = true;
     }
   }
+  if( argc > 4 ) {
+    args_ok = false;
+    if(( argv[4][0] == '-') && (argv[4][1] == 'f' || argv[4][1] == 'F')) {
+      if( argc == 6 ) {
+        frame = std::atoi(argv[5]);
+        args_ok = true;
+        dump = true;
+      }
+    }
+  }
   if( !args_ok )
     usage(argv[0]);
   return args_ok;
@@ -103,7 +114,8 @@ int main( int argc, char *argv[] ) {
   bool use_file = false;
   bool use_directory = false;
   bool dump = false;
-  bool args_ok = handle_args( argc, argv, file_or_directory, use_file, use_directory, dump);
+  int frame = 0;
+  bool args_ok = handle_args( argc, argv, file_or_directory, use_file, use_directory, dump, frame);
 
   if( !args_ok ) exit(-1);
 
@@ -117,7 +129,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( dump ) {
-    mat_dumper("mat.txt", 2, surfels, point_normals);  
+    mat_dumper("mat.txt", frame, surfels, point_normals);  
   } else {
 
     // Now start smoothing

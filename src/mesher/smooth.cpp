@@ -7,8 +7,8 @@
 
 static bool g_is_optimising = false;
 static float g_optimisation_error;
-static const int MAX_ITERATIONS = 10;
-static const long RANDOM_SEED = 474264642;
+static const int MAX_ITERATIONS = 50000;
+static const long RANDOM_SEED = 919765;
 
 /*
    ********************************************************************************
@@ -69,7 +69,6 @@ check_stop_flag() {
 void 
 optimise_begin(std::vector<Surfel>& surfels) {
 	sort_frame_data(surfels);
-	randomize_tangents( surfels );
 	g_is_optimising = true;
 }
 
@@ -235,9 +234,7 @@ optimise_do_one_step(std::vector<Surfel>& surfels,
     size_t surfel_idx = random_index(surfels.size());
 
     // Update this one
-    cout << "old tangent " << surfels.at(surfel_idx).tangent << endl;
     Vector3f new_tangent = compute_new_tangent_for_surfel(surfels, surfel_idx, point_normals);
-    cout << "new tangent " << new_tangent << endl;
     surfels.at(surfel_idx).tangent = new_tangent;
 
     //	auto end = chrono::high_resolution_clock::now();

@@ -339,7 +339,7 @@ std::vector<std::string> get_vertex_files_in_directory( const std::string& direc
     return full_path_names;
 }
 
-std::vector<std::string> get_depth_files_in_directory( std::string directory_name ) {
+std::vector<std::string> get_depth_files_in_directory( const std::string& directory_name ) {
     using namespace std;
 
     vector<string> file_names;
@@ -355,7 +355,8 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
     vector<string> full_path_names;
     for( auto const & file_name : file_names) {
         // FIXME: Replace this evilness with something more robust and cross platform.
-        string path_name = directory_name.append("/").append(file_name);
+        string path_name = directory_name;
+        path_name.append("/").append(file_name);
         full_path_names.push_back( path_name );
     }
     std::sort(full_path_names.begin(), full_path_names.end() );

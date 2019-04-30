@@ -2,8 +2,8 @@
 % Load the data
 clc;
 clear;
-surface = load('/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/mat.txt', 'surface');
-normscale = .0;
+surface = load('/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/reports/test_results/5A_001/st_250K_mat.txt', 'surface');
+normscale = .01;
 tanscale = .015;
 
 % Start and end of normal
@@ -55,7 +55,7 @@ block3 = reshape(block3, [3, c*3]);
 
 plot3(block(1, :), block(2, :), block(3, :), '-b');    %no marker
 hold
-% plot3(block2(1, :), block2(2, :), block2(3, :), '-r');    %no marker
+plot3(block2(1, :), block2(2, :), block2(3, :), '-r');    %no marker
 plot3(block3(1, :), block3(2, :), block3(3, :), '-b');    %no marker
 
 axis equal

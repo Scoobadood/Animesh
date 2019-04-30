@@ -6,17 +6,17 @@
 // TODO: Remove me once we finish with matlab
 #include "depth_image_loader.h"
 
-void 
+void
 usage( const char *name ) {
-    std::cout << "Usage : " << name << " [-s surfel_file | -d source_directory] [-m]" << std::endl;
-    exit(-1);
+  std::cout << "Usage : " << name << " [-s surfel_file | -d source_directory] [-m]" << std::endl;
+  exit(-1);
 }
 
 void
-mat_dumper(const std::string& outfile, 
-            unsigned long frame,
-            const std::vector<Surfel>& surfels, 
-            const std::vector<std::vector<PointWithNormal>>& point_normals ) {
+mat_dumper(const std::string& outfile,
+           unsigned long frame,
+           const std::vector<Surfel>& surfels,
+           const std::vector<std::vector<PointWithNormal>>& point_normals ) {
   using namespace std;
   using namespace Eigen;
 
@@ -26,13 +26,13 @@ mat_dumper(const std::string& outfile,
   ofstream fout( outfile );
   int surfel_idx = 0;
   for ( auto const & surfel : surfels ) {
-    for( auto const & fd : surfel.frame_data) {
-      if( fd.frame_idx == frame ) {
+    for ( auto const & fd : surfel.frame_data) {
+      if ( fd.frame_idx == frame ) {
         Vector3f point1 = point_normals.at(frame).at(fd.point_idx).point;
         Vector3f n = point_normals.at(frame).at(fd.point_idx).normal;
         n.normalize();
         Vector3f t = surfel.tangent;
-        if( abs(t.norm() - 1.0f) > 0.01f ) {
+        if ( abs(t.norm() - 1.0f) > 0.01f ) {
           cout << "Surfel " << surfel_idx << ", frame " << fd.frame_idx << " has non-unit tangent (" << t.x() << ", " << t.y() << ", " << t.z() << ")" << endl;
         }
 
@@ -56,53 +56,53 @@ mat_dumper(const std::string& outfile,
   cout << " done." << endl;
 }
 
-bool 
-handle_args(int argc, char *argv[], 
-            std::string& file_or_directory, 
-            bool& load_from_file, 
+bool
+handle_args(int argc, char *argv[],
+            std::string& file_or_directory,
+            bool& load_from_file,
             bool& load_from_directory,
             bool& dump,
             int& frame
-            ) {
+           ) {
   bool args_ok = false;
-  if( argc >= 3 ) {
+  if ( argc >= 3 ) {
     file_or_directory = argv[2];
-    if( argv[1][0] == '-') {
-      if( argv[1][1] == 's' || argv[1][1] == 'S' ) {
-          args_ok = true;
-          load_from_file = true;
-          load_from_directory = false;
-      } else if( argv[1][1] == 'd' || argv[1][1] == 'D' ) {
-          args_ok = true;
-          load_from_file = false;
-          load_from_directory = true;
+    if ( argv[1][0] == '-') {
+      if ( argv[1][1] == 's' || argv[1][1] == 'S' ) {
+        args_ok = true;
+        load_from_file = true;
+        load_from_directory = false;
+      } else if ( argv[1][1] == 'd' || argv[1][1] == 'D' ) {
+        args_ok = true;
+        load_from_file = false;
+        load_from_directory = true;
       }
     }
   }
-  if( argc > 3 ) {
+  if ( argc > 3 ) {
     args_ok = false;
-    if(( argv[3][0] == '-') && (argv[3][1] == 'm' || argv[3][1] == 'M')) {
+    if (( argv[3][0] == '-') && (argv[3][1] == 'm' || argv[3][1] == 'M')) {
       args_ok = true;
       dump = true;
     }
   }
-  if( argc > 4 ) {
+  if ( argc > 4 ) {
     args_ok = false;
-    if(( argv[4][0] == '-') && (argv[4][1] == 'f' || argv[4][1] == 'F')) {
-      if( argc == 6 ) {
+    if (( argv[4][0] == '-') && (argv[4][1] == 'f' || argv[4][1] == 'F')) {
+      if ( argc == 6 ) {
         frame = std::atoi(argv[5]);
         args_ok = true;
         dump = true;
       }
     }
   }
-  if( !args_ok )
+  if ( !args_ok )
     usage(argv[0]);
   return args_ok;
 }
 
 //
-// Launch with -s surfel_file or 
+// Launch with -s surfel_file or
 //             -d source_files_directory
 //
 int main( int argc, char *argv[] ) {
@@ -117,9 +117,11 @@ int main( int argc, char *argv[] ) {
   int frame = 0;
   bool args_ok = handle_args( argc, argv, file_or_directory, use_file, use_directory, dump, frame);
 
-  if( !args_ok ) exit(-1);
+  if ( !args_ok ) {
+    exit(-1);
+  }
 
-  if( use_file) {
+  if ( use_file) {
     cout << "Loading from file " << file_or_directory << "..." << flush;
     load_from_file(file_or_directory, surfels, point_normals);
     cout << " done." << endl;
@@ -128,10 +130,9 @@ int main( int argc, char *argv[] ) {
     load_from_directory(file_or_directory, surfels, point_normals);
   }
 
-  if( dump ) {
-    mat_dumper("mat.txt", frame, surfels, point_normals);  
+  if ( dump ) {
+    mat_dumper("mat.txt", frame, surfels, point_normals);
   } else {
-
     // Now start smoothing
     optimise(surfels, point_normals);
 

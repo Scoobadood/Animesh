@@ -123,7 +123,7 @@ compute_surface_normals(const pcl::PointCloud<pcl::PointXYZ>&	all_points,
 	ne.setKSearch(NUM_NEIGHBOURS);
 
 	// Set the viewpoint. This will ensure normals are all aligned towards cam.
-	ne.setViewPoint(camera.view[0], camera.view[1], camera.view[2]);
+	ne.setViewPoint(std::numeric_limits<float>::max (), std::numeric_limits<float>::max (), std::numeric_limits<float>::max ());
 
 	// Compute the features
 	ne.compute (cloud_normals);

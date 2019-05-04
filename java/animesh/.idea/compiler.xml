@@ -6,8 +6,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="animesh" />
+        <module name="animeshviewer" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel target="1.8">
+      <module name="animesh" target="1.8" />
+      <module name="animeshviewer" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
 </project>

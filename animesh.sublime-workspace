@@ -519,6 +519,42 @@
 	},
 	"buffers":
 	[
+		{
+			"file": "src/mesher/mesher.cpp",
+			"settings":
+			{
+				"buffer_size": 4087,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/mesher/surfel.cpp",
+			"settings":
+			{
+				"buffer_size": 12114,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/mesher/depth_image_loader.cpp",
+			"settings":
+			{
+				"buffer_size": 8700,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "build/run_test.sh",
+			"settings":
+			{
+				"buffer_size": 1266,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
 	],
 	"build_system": "Packages/Makefile/Make.sublime-build",
 	"build_system_choices":
@@ -597,10 +633,13 @@
 	"expanded_folders":
 	[
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src"
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/mesher"
 	],
 	"file_history":
 	[
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.git/COMMIT_EDITMSG",
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/src/FileUtils.cpp",
 		"/Users/dave/Rachel/hello.c",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/README.md",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/mesher/surfel.hpp",
@@ -614,7 +653,6 @@
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/mesher/CMakeLists.txt",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/CMakeLists.txt",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/build/out",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/.git/COMMIT_EDITMSG",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libFileUtils/src/PgmFileParser.cpp",
 		"/Users/dave/Projects/Canva/alextreppass-edit-apps-playground/.git/COMMIT_EDITMSG",
 		"/Users/dave/Projects/Canva/alextreppass-edit-apps-playground/.git/MERGE_MSG",
@@ -727,18 +765,18 @@
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libGeom/tests/TestGeom.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libRoSy/include/RoSy/RoSy.h",
 		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/docs/Design.md",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldEdgeData.h",
-		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/tests/TestField.h"
+		"/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/src/libField/include/Field/FieldEdgeData.h"
 	],
 	"find":
 	{
-		"height": 48.0
+		"height": 42.0
 	},
 	"find_in_files":
 	{
 		"height": 119.0,
 		"where_history":
 		[
+			"",
 			"*.cpp",
 			"",
 			"*.cpp",
@@ -770,6 +808,9 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"get_neighbours_for_point",
+			"DEPTH_FILE_NAME_REGEX",
+			"error while opening file",
 			"CMAKE_MODULE_PATH",
 			"CMAKE_MODULE",
 			"build_surfel_table",
@@ -894,10 +935,7 @@
 			"field_element_from",
 			"FieldElement",
 			"btn",
-			"elements(",
-			"generate_hier",
-			"generate_",
-			"generate_hierarchy"
+			"elements("
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -948,8 +986,132 @@
 	"groups":
 	[
 		{
+			"selected": 2,
 			"sheets":
 			[
+				{
+					"buffer": 0,
+					"file": "src/mesher/mesher.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4087,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3784,
+								3784
+							],
+							[
+								3864,
+								3874
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/C++11/C++11.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "src/mesher/surfel.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12114,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								10961,
+								10961
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/C++11/C++11.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/mesher/depth_image_loader.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8700,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								281,
+								281
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/C++11/C++11.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "build/run_test.sh",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1266,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								192,
+								192
+							]
+						],
+						"settings":
+						{
+							"git_gutter_is_enabled": true,
+							"syntax": "Packages/ShellScript/Bash.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				}
 			]
 		}
 	],

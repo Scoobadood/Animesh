@@ -8,7 +8,7 @@
 #include <pcl/features/normal_3d.h>
 
 static int DEBUG_LEVEL = 1;
-static const int NUM_NEIGHBOURS = 25;
+static const int NUM_NEIGHBOURS = 15;
 
 struct sort_by_distance
 {

@@ -2,9 +2,9 @@
 % Load the data
 clc;
 clear;
-surface = load('/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/reports/test_results/5A_001/st_250K_mat.txt', 'surface');
+surface = load('/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/reports/test_results/5A_003/st_250K_mat.txt', 'surface');
 normscale = .01;
-tanscale = .015;
+tanscale = .005;
 
 % Start and end of normal
 fromnorm=surface(4:6:end,:);

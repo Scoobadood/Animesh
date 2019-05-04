@@ -202,9 +202,6 @@ load_from_file( const std::string& file_name,
 	}
 	file.close();
 	cout << endl;
-    std::cout << "in load from file [66]: " << surfels.at(66).tangent.x() << ", " << surfels.at(66).tangent.y() << ", " <<  surfels.at(66).tangent.z() << std::endl;
-
-
 }
 
 

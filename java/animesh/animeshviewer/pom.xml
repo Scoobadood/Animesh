@@ -10,6 +10,17 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>animeshviewer</artifactId>
 
+    <build>
+        <resources>
+            <resource>
+                <directory>/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/Animesh/java/animesh/animeshviewer/src/main/resources</directory>
+                <includes>
+                    <include>triangle.*</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
     <dependencies>
         <!-- https://mvnrepository.com/artifact/org.jogamp.jogl/jogl-all-main -->
         <dependency>

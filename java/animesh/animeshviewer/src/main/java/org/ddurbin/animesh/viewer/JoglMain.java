@@ -1,35 +1,11 @@
-/**
- * Copyright 2012-2013 JogAmp Community. All rights reserved.
- * <p>
- * Redistribution and use in source and binary forms, with or without modification, are
- * permitted provided that the following conditions are met:
- * <p>
- * 1. Redistributions of source code must retain the above copyright notice, this list of
- * conditions and the following disclaimer.
- * <p>
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list
- * of conditions and the following disclaimer in the documentation and/or other materials
- * provided with the distribution.
- * <p>
- * THIS SOFTWARE IS PROVIDED BY JogAmp Community ``AS IS'' AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
- * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL JogAmp Community OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * <p>
- * The views and conclusions contained in the software and documentation are those of the
- * authors and should not be interpreted as representing official policies, either expressed
- * or implied, of JogAmp Community.
- */
-
 package org.ddurbin.animesh.viewer;
 
+import static java.lang.System.in;
+
+
+import com.google.common.io.Files;
 import com.jogamp.opengl.GL;
-import com.jogamp.opengl.GL2ES2;
+import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
@@ -39,149 +15,55 @@ import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.util.*;
 import com.jogamp.common.nio.Buffers;
 
+import com.jogamp.opengl.util.glsl.ShaderCode;
+import com.jogamp.opengl.util.glsl.ShaderProgram;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.nio.FloatBuffer;
+import java.nio.charset.Charset;
+import java.util.List;
+import java.util.ResourceBundle;
 
 /**
- * <pre>
- *   __ __|_  ___________________________________________________________________________  ___|__ __
- *  //    /\                                           _                                  /\    \\
- * //____/  \__     __ _____ _____ _____ _____ _____  | |     __ _____ _____ __        __/  \____\\
- *  \    \  / /  __|  |     |   __|  _  |     |  _  | | |  __|  |     |   __|  |      /\ \  /    /
- *   \____\/_/  |  |  |  |  |  |  |     | | | |   __| | | |  |  |  |  |  |  |  |__   "  \_\/____/
- *  /\    \     |_____|_____|_____|__|__|_|_|_|__|    | | |_____|_____|_____|_____|  _  /    /\
- * /  \____\                       http://jogamp.org  |_|                              /____/  \
- * \  /   "' _________________________________________________________________________ `"   \  /
- *  \/____.                                                                             .____\/
- * </pre>
- *
- * <p>
- * JOGL2 OpenGL ES 2 demo to expose and learn what the RAW OpenGL ES 2 API looks like.
- *
  * Compile, run and enjoy:
- wget http://jogamp.org/deployment/jogamp-current/archive/jogamp-all-platforms.7z
- 7z x jogamp-all-platforms.7z
- cd jogamp-all-platforms
- mkdir -p demos/es2
- cd demos/es2
- wget https://raw.github.com/xranby/jogl-demos/master/src/demos/es2/RawGL2ES2demo.java
- cd ../..
- javac -cp jar/jogl-all.jar:jar/gluegen-rt.jar demos/es2/RawGL2ES2demo.java
- java -cp jar/jogl-all.jar:jar/gluegen-rt.jar:. demos.es2.RawGL2ES2demo
- * </p>
- *
+ * dapted from example by
  *
  * @author Xerxes Rånby (xranby)
+ * wget http://jogamp.org/deployment/jogamp-current/archive/jogamp-all-platforms.7z
  */
 
 public class JoglMain implements GLEventListener {
 
-  /* Introducing the OpenGL ES 2 Vertex shader
-   *
-   * The main loop inside the vertex shader gets executed
-   * one time for each vertex.
-   *
-   *      vertex -> *       uniform data -> mat4 projection = ( 1, 0, 0, 0,
-   *      (0,1,0)  / \                                          0, 1, 0, 0,
-   *              / . \  <- origo (0,0,0)                       0, 0, 1, 0,
-   *             /     \                                        0, 0,-1, 1 );
-   *  vertex -> *-------* <- vertex
-   *  (-1,-1,0)             (1,-1,0) <- attribute data can be used
-   *                        (0, 0,1)    for color, position, normals etc.
-   *
-   * The vertex shader recive input data in form of
-   * "uniform" data that are common to all vertex
-   * and
-   * "attribute" data that are individual to each vertex.
-   * One vertex can have several "attribute" data sources enabled.
-   *
-   * The vertex shader produce output used by the fragment shader.
-   * gl_Position are expected to get set to the final vertex position.
-   * You can also send additional user defined
-   * "varying" data to the fragment shader.
-   *
-   * Model Translate, Scale and Rotate are done here by matrix-multiplying a
-   * projection matrix against each vertex position.
-   *
-   * The whole vertex shader program are a String containing GLSL ES language
-   * http://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf
-   * sent to the GPU driver for compilation.
-   */
-  private String vertexShaderString =
-// For GLSL 1 and 1.1 code i highly recomend to not include a
-// GLSL ES language #version line, GLSL ES section 3.4
-// Many GPU drivers refuse to compile the shader if #version is different from
-// the drivers internal GLSL version.
-//
-// This demo use GLSL version 1.1 (the implicit version)
+  static final String VERSION_STRING = "#version 330\n";
 
-      "#if __VERSION__ >= 130\n" + // GLSL 130+ uses in and out
-          "  #define attribute in\n" + // instead of attribute and varying
-          "  #define varying out\n" +  // used by OpenGL 3 core and later.
-          "#endif\n" +
+  /* Introducing the GL4 demo
+ *
+ * How to render a triangle using ~500 lines of code using the RAW
+ * OpenGL ES 2 API.
+ * The Programmable pipeline in OpenGL ES 2 are both fast and flexible
+ * yet it do take some extra lines of code to setup.
+ *
+ */
+  private double t0 = System.currentTimeMillis();
+  private double theta;
+  private double s;
 
-          "#ifdef GL_ES \n" +
-          "precision mediump float; \n" + // Precision Qualifiers
-          "precision mediump int; \n" +   // GLSL ES section 4.5.2
-          "#endif \n" +
+  private static int width = 1920;
+  private static int height = 1080;
 
-          "uniform mat4    uniform_Projection; \n" + // Incomming data used by
-          "attribute vec4  attribute_Position; \n" + // the vertex shader
-          "attribute vec4  attribute_Color; \n" +    // uniform and attributes
+  private int shaderProgram;
+  private int vertShader;
+  private int fragShader;
+  private int ModelViewProjectionMatrix_location;
 
-          "varying vec4    varying_Color; \n" + // Outgoing varying data
-          // sent to the fragment shader
-          "void main(void) \n" +
-          "{ \n" +
-          "  varying_Color = attribute_Color; \n" +
-          "  gl_Position = uniform_Projection * attribute_Position; \n" +
-          "} ";
-
-  /* Introducing the OpenGL ES 2 Fragment shader
-   *
-   * The main loop of the fragment shader gets executed for each visible
-   * pixel fragment on the render buffer.
-   *
-   *       vertex-> *
-   *      (0,1,-1) /f\
-   *              /ffF\ <- This fragment F gl_FragCoord get interpolated
-   *             /fffff\                   to (0.25,0.25,-1) based on the
-   *   vertex-> *fffffff* <-vertex         three vertex gl_Position.
-   *  (-1,-1,-1)           (1,-1,-1)
-   *
-   *
-   * All incomming "varying" and gl_FragCoord data to the fragment shader
-   * gets interpolated based on the vertex positions.
-   *
-   * The fragment shader produce and store the final color data output into
-   * gl_FragColor.
-   *
-   * Is up to you to set the final colors and calculate lightning here based on
-   * supplied position, color and normal data.
-   *
-   * The whole fragment shader program are a String containing GLSL ES language
-   * http://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf
-   * sent to the GPU driver for compilation.
-   */
-  private String fragmentShaderString =
-      "#if __VERSION__ >= 130\n" +
-          "  #define varying in\n" +
-          "  out vec4 mgl_FragColor;\n" +
-          "  #define texture2D texture\n" +
-          "  #define gl_FragColor mgl_FragColor\n" +
-          "#endif\n" +
-
-          "#ifdef GL_ES \n" +
-          "precision mediump float; \n" +
-          "precision mediump int; \n" +
-          "#endif \n" +
-
-          "varying   vec4    varying_Color; \n" + //incomming varying data to the
-          //frament shader
-          //sent from the vertex shader
-          "void main (void) \n" +
-          "{ \n" +
-          "  gl_FragColor = varying_Color; \n" +
-          "} ";
+  static final int COLOR_IDX = 0;
+  static final int VERTICES_IDX = 1;
+  int[] vboHandles;
 
   /* Introducing projection matrix helper functions
    *
@@ -234,33 +116,10 @@ public class JoglMain implements GLEventListener {
     return multiply(m, r);
   }
 
-  /* Introducing the GL2ES2 demo
-   *
-   * How to render a triangle using ~500 lines of code using the RAW
-   * OpenGL ES 2 API.
-   * The Programmable pipeline in OpenGL ES 2 are both fast and flexible
-   * yet it do take some extra lines of code to setup.
-   *
-   */
-  private double t0 = System.currentTimeMillis();
-  private double theta;
-  private double s;
-
-  private static int width = 1920;
-  private static int height = 1080;
-
-  private int shaderProgram;
-  private int vertShader;
-  private int fragShader;
-  private int ModelViewProjectionMatrix_location;
-
-  static final int COLOR_IDX = 0;
-  static final int VERTICES_IDX = 1;
-  int[] vboHandles;
 
   public static void main(String[] s) {
 
-        /* This demo are based on the GL2ES2 GLProfile that uses common hardware acceleration
+        /* This demo are based on the GL4 GLProfile that uses common hardware acceleration
          * functionality of desktop OpenGL 3, 2 and mobile OpenGL ES 2 devices.
          * JogAmp JOGL will probe all the installed libGL.so, libEGL.so and libGLESv2.so librarys on
          * the system to find which one provide hardware acceleration for your GPU device.
@@ -273,30 +132,15 @@ public class JoglMain implements GLEventListener {
          * the GLProfile you want to use.
          */
 
-    GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL2ES2));
+    GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL4ES3));
+
     // We may at this point tweak the caps and request a translucent drawable
     caps.setBackgroundOpaque(false);
     GLWindow glWindow = GLWindow.create(caps);
 
-        /* You may combine the NEWT GLWindow inside existing Swing and AWT
-         * applications by encapsulating the glWindow inside a
-         * com.jogamp.newt.awt.NewtCanvasAWT canvas.
-         *
-         *  NewtCanvasAWT newtCanvas = new NewtCanvasAWT(glWindow);
-         *  JFrame frame = new JFrame("RAW GL2ES2 Demo inside a JFrame!");
-         *  frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-         *  frame.setSize(width,height);
-         *  frame.add(newtCanvas);
-         *  // add some swing code if you like.
-         *  // javax.swing.JButton b = new javax.swing.JButton();
-         *  // b.setText("Hi");
-         *  // frame.add(b);
-         *  frame.setVisible(true);
-         */
-
     // In this demo we prefer to setup and view the GLWindow directly
     // this allows the demo to run on -Djava.awt.headless=true systems
-    glWindow.setTitle("Raw GL2ES2 Demo");
+    glWindow.setTitle("Raw GL4 Demo");
     glWindow.setSize(width, height);
     glWindow.setUndecorated(false);
     glWindow.setPointerVisible(true);
@@ -311,8 +155,23 @@ public class JoglMain implements GLEventListener {
     animator.start();
   }
 
+  String loadResource(String fileName) throws Exception {
+    URL u = this.getClass().getClassLoader().getResource(fileName);
+    InputStream str = u.openStream();
+    BufferedReader reader = new BufferedReader(new InputStreamReader(str));
+    StringBuilder sb = new StringBuilder();
+    String line;
+    while ((line = reader.readLine()) != null) {
+      sb.append(line);
+      sb.append("\n");
+    }
+    return sb.toString();
+  }
+
+  /* GLEvenetListener::init
+   */
   public void init(GLAutoDrawable drawable) {
-    GL2ES2 gl = drawable.getGL().getGL2ES2();
+    GL4 gl = drawable.getGL().getGL4();
 
     System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
     System.err.println("INIT GL IS: " + gl.getClass().getName());
@@ -336,21 +195,30 @@ public class JoglMain implements GLEventListener {
          */
 
     // Make the shader strings compatible with OpenGL 3 core if needed
-    // GL2ES2 also includes the intersection of GL3 core
+    // GL4 also includes the intersection of GL3 core
     // The default implicit GLSL version 1.1 is now depricated in GL3 core
     // GLSL 1.3 is the minimum version that now has to be explicitly set.
     // This allows the shaders to compile using the latest
     // desktop OpenGL 3 and 4 drivers.
-    if (gl.isGL3core()) {
-      System.out.println("GL3 core detected: explicit add #version 100 to shaders");
-      vertexShaderString = "#version 100\n" + vertexShaderString;
-      fragmentShaderString = "#version 100\n" + fragmentShaderString;
+    String vertexShaderString = "";
+    String fragmentShaderString = "";
+    try {
+      vertexShaderString = loadResource("triangle.vert");
+      fragmentShaderString = loadResource("triangle.frag");
+      if (gl.isGL3core()) {
+        System.out.println("GL3 core detected: explicit add #version to shaders");
+        vertexShaderString = VERSION_STRING  + vertexShaderString;
+        fragmentShaderString = VERSION_STRING + fragmentShaderString;
+      }
+    } catch (Exception e) {
+      System.out.println("EPIC FAIL!");
+      System.exit(1);
     }
 
     // Create GPU shader handles
     // OpenGL ES retuns a index id to be stored for future reference.
-    vertShader = gl.glCreateShader(GL2ES2.GL_VERTEX_SHADER);
-    fragShader = gl.glCreateShader(GL2ES2.GL_FRAGMENT_SHADER);
+    vertShader = gl.glCreateShader(GL4.GL_VERTEX_SHADER);
+    fragShader = gl.glCreateShader(GL4.GL_FRAGMENT_SHADER);
 
     //Compile the vertexShader String into a program.
     String[] vlines = new String[] {vertexShaderString};
@@ -360,12 +228,12 @@ public class JoglMain implements GLEventListener {
 
     //Check compile status.
     int[] compiled = new int[1];
-    gl.glGetShaderiv(vertShader, GL2ES2.GL_COMPILE_STATUS, compiled, 0);
+    gl.glGetShaderiv(vertShader, GL4.GL_COMPILE_STATUS, compiled, 0);
     if (compiled[0] != 0) {
       System.out.println("Horray! vertex shader compiled");
     } else {
       int[] logLength = new int[1];
-      gl.glGetShaderiv(vertShader, GL2ES2.GL_INFO_LOG_LENGTH, logLength, 0);
+      gl.glGetShaderiv(vertShader, GL4.GL_INFO_LOG_LENGTH, logLength, 0);
 
       byte[] log = new byte[logLength[0]];
       gl.glGetShaderInfoLog(vertShader, logLength[0], (int[]) null, 0, log, 0);
@@ -381,12 +249,12 @@ public class JoglMain implements GLEventListener {
     gl.glCompileShader(fragShader);
 
     //Check compile status.
-    gl.glGetShaderiv(fragShader, GL2ES2.GL_COMPILE_STATUS, compiled, 0);
+    gl.glGetShaderiv(fragShader, GL4.GL_COMPILE_STATUS, compiled, 0);
     if (compiled[0] != 0) {
       System.out.println("Horray! fragment shader compiled");
     } else {
       int[] logLength = new int[1];
-      gl.glGetShaderiv(fragShader, GL2ES2.GL_INFO_LOG_LENGTH, logLength, 0);
+      gl.glGetShaderiv(fragShader, GL4.GL_INFO_LOG_LENGTH, logLength, 0);
 
       byte[] log = new byte[logLength[0]];
       gl.glGetShaderInfoLog(fragShader, logLength[0], (int[]) null, 0, log, 0);
@@ -412,7 +280,7 @@ public class JoglMain implements GLEventListener {
     //so that we can update it.
     ModelViewProjectionMatrix_location = gl.glGetUniformLocation(shaderProgram, "uniform_Projection");
 
-        /* GL2ES2 also includes the intersection of GL3 core
+        /* GL4 also includes the intersection of GL3 core
          * GL3 core and later mandates that a "Vector Buffer Object" must
          * be created and bound before calls such as gl.glDrawArrays is used.
          * The VBO lines in this demo makes the code forward compatible with
@@ -432,7 +300,7 @@ public class JoglMain implements GLEventListener {
     height = h;
 
     // Get gl
-    GL2ES2 gl = drawable.getGL().getGL2ES2();
+    GL4 gl = drawable.getGL().getGL4();
 
     // Optional: Set viewport
     // Render to a square at the center of the window.
@@ -447,13 +315,13 @@ public class JoglMain implements GLEventListener {
     s = Math.sin(theta);
 
     // Get gl
-    GL2ES2 gl = drawable.getGL().getGL2ES2();
+    GL4 gl = drawable.getGL().getGL4();
 
     // Clear screen
     gl.glClearColor(1, 0, 1, 0.5f);  // Purple
-    gl.glClear(GL2ES2.GL_STENCIL_BUFFER_BIT |
-        GL2ES2.GL_COLOR_BUFFER_BIT |
-        GL2ES2.GL_DEPTH_BUFFER_BIT);
+    gl.glClear(GL4.GL_STENCIL_BUFFER_BIT |
+        GL4.GL_COLOR_BUFFER_BIT |
+        GL4.GL_DEPTH_BUFFER_BIT);
 
     // Use the shaderProgram that got linked during the init part.
     gl.glUseProgram(shaderProgram);
@@ -510,7 +378,7 @@ public class JoglMain implements GLEventListener {
     FloatBuffer fbVertices = Buffers.newDirectFloatBuffer(vertices);
 
     // Select the VBO, GPU memory data, to use for vertices
-    gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, vboHandles[VERTICES_IDX]);
+    gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, vboHandles[VERTICES_IDX]);
 
     // transfer data to VBO, this perform the copy of data from CPU -> GPU memory
     int numBytes = vertices.length * 4;
@@ -519,11 +387,11 @@ public class JoglMain implements GLEventListener {
 
     // Associate Vertex attribute 0 with the last bound VBO
     gl.glVertexAttribPointer(0 /* the vertex attribute */, 3,
-        GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
+        GL4.GL_FLOAT, false /* normalized? */, 0 /* stride */,
         0 /* The bound VBO data offset */);
 
     // VBO
-    // gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, 0); // You can unbind the VBO after it have been associated using glVertexAttribPointer
+    // gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, 0); // You can unbind the VBO after it have been associated using glVertexAttribPointer
 
     gl.glEnableVertexAttribArray(0);
 
@@ -536,7 +404,7 @@ public class JoglMain implements GLEventListener {
     FloatBuffer fbColors = Buffers.newDirectFloatBuffer(colors);
 
     // Select the VBO, GPU memory data, to use for colors
-    gl.glBindBuffer(GL2ES2.GL_ARRAY_BUFFER, vboHandles[COLOR_IDX]);
+    gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, vboHandles[COLOR_IDX]);
 
     numBytes = colors.length * 4;
     gl.glBufferData(GL.GL_ARRAY_BUFFER, numBytes, fbColors, GL.GL_STATIC_DRAW);
@@ -544,12 +412,12 @@ public class JoglMain implements GLEventListener {
 
     // Associate Vertex attribute 1 with the last bound VBO
     gl.glVertexAttribPointer(1 /* the vertex attribute */, 4 /* four possitions used for each vertex */,
-        GL2ES2.GL_FLOAT, false /* normalized? */, 0 /* stride */,
+        GL4.GL_FLOAT, false /* normalized? */, 0 /* stride */,
         0 /* The bound VBO data offset */);
 
     gl.glEnableVertexAttribArray(1);
 
-    gl.glDrawArrays(GL2ES2.GL_TRIANGLES, 0, 3); //Draw the vertices as triangle
+    gl.glDrawArrays(GL4.GL_TRIANGLES, 0, 3); //Draw the vertices as triangle
 
     gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
     gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
@@ -557,7 +425,7 @@ public class JoglMain implements GLEventListener {
 
   public void dispose(GLAutoDrawable drawable) {
     System.out.println("cleanup, remember to release shaders");
-    GL2ES2 gl = drawable.getGL().getGL2ES2();
+    GL4 gl = drawable.getGL().getGL4();
     gl.glUseProgram(0);
     gl.glDeleteBuffers(2, vboHandles, 0); // Release VBO, color and vertices, buffer GPU memory.
     vboHandles = null;

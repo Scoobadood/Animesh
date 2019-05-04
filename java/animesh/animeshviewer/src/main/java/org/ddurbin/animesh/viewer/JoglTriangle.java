@@ -2,14 +2,7 @@ package org.ddurbin.animesh.viewer;
 
 import static com.jogamp.opengl.GL.GL_COLOR_BUFFER_BIT;
 import static com.jogamp.opengl.GL.GL_DEPTH_BUFFER_BIT;
-import static com.jogamp.opengl.GL.GL_DEPTH_TEST;
-import static com.jogamp.opengl.GL.GL_LEQUAL;
-import static com.jogamp.opengl.GL.GL_NICEST;
 import static com.jogamp.opengl.GL.GL_TRIANGLES;
-import static com.jogamp.opengl.GL2ES1.GL_PERSPECTIVE_CORRECTION_HINT;
-import static com.jogamp.opengl.fixedfunc.GLLightingFunc.GL_SMOOTH;
-import static com.jogamp.opengl.fixedfunc.GLMatrixFunc.GL_MODELVIEW;
-import static com.jogamp.opengl.fixedfunc.GLMatrixFunc.GL_PROJECTION;
 
 
 import com.jogamp.opengl.GL2;
@@ -19,7 +12,9 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.glu.GLU;
 
 public class JoglTriangle extends GLCanvas implements GLEventListener {
-  private GLU glu;  // for the GL Utility
+  private GLU glu;
+
+  private float angle = 0.0f;
 
   public JoglTriangle() {
     this.addGLEventListener(this);
@@ -30,52 +25,30 @@ public class JoglTriangle extends GLCanvas implements GLEventListener {
    * to perform one-time initialization. Run only once.
    */
   @Override
-  public void init(GLAutoDrawable drawable) {
-    GL2 gl = drawable.getGL().getGL2();      // get the OpenGL graphics context
-    glu = new GLU();                         // get GL Utilities
-    gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f); // set background (clear) color
-    gl.glClearDepth(1.0f);      // set clear depth value to farthest
-    gl.glEnable(GL_DEPTH_TEST); // enables depth testing
-    gl.glDepthFunc(GL_LEQUAL);  // the type of depth test to do
-    gl.glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST); // best perspective correction
-    gl.glShadeModel(GL_SMOOTH); // blends colors nicely, and smoothes out lighting
-
-    // ----- Your OpenGL initialization code here -----
-  }
+  public void init(GLAutoDrawable drawable) {}
 
   /**
    * Call-back handler for window re-size event. Also called when the drawable is
    * first set to visible.
    */
   @Override
-  public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-    GL2 gl = drawable.getGL().getGL2();  // get the OpenGL 2 graphics context
-
-    if (height == 0) {
-      height = 1;   // prevent divide by zero
-    }
-
-    // Set the view port (display area) to cover the entire window
-    gl.glViewport(0, 0, width, height);
-
-    // Setup perspective projection, with aspect ratio matches viewport
-    // choose projection matrix
-    gl.glMatrixMode(GL_PROJECTION);
-    // reset projection matrix
-    gl.glLoadIdentity();
-    // fovy, aspect, zNear, zFar
-    float aspect = (float) width / height;
-    glu.gluPerspective(45.0, aspect, 0.1, 100.0);
-
-    // Enable the model-view transform
-    gl.glMatrixMode(GL_MODELVIEW);
-    gl.glLoadIdentity(); // reset
-  }
+  public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {}
 
   /**
    * Called back by the animator to perform rendering.
    */
   public void display(GLAutoDrawable drawable) {
+    render(drawable);
+    update();
+  }
+
+  /**
+   * Called back before the OpenGL context is destroyed. Release resource such as buffers.
+   */
+  public void dispose(GLAutoDrawable drawable) {
+  }
+
+  private void render(GLAutoDrawable drawable) {
     // get the OpenGL 2 graphics context
     GL2 gl = drawable.getGL().getGL2();
 
@@ -85,18 +58,21 @@ public class JoglTriangle extends GLCanvas implements GLEventListener {
     // reset the model-view matrix
     gl.glLoadIdentity();
 
-    // ----- Your OpenGL rendering code here (Render a white triangle for testing) -----
-    gl.glTranslatef(0.0f, 0.0f, -6.0f); // translate into the screen
-    gl.glBegin(GL_TRIANGLES); // draw using triangles
-    gl.glVertex3f(0.0f, 1.0f, 0.0f);
-    gl.glVertex3f(-1.0f, -1.0f, 0.0f);
-    gl.glVertex3f(1.0f, -1.0f, 0.0f);
+    // Draw the tringle
+    float sin = (float) Math.sin(angle);
+    float cos = (float) Math.cos(angle);
+    gl.glBegin(GL_TRIANGLES);
+    gl.glColor3f(1.0f, 0.0f, 0.0f);   // Red
+    gl.glVertex2d(-cos, -cos);
+    gl.glColor3f(0.0f, 1.0f, 0.0f);   // Green
+    gl.glVertex2d(0.0f, cos);
+    gl.glColor3f(0.0f, 0.0f, 1.0f);   // Blue
+    gl.glVertex2d(sin, -sin);
     gl.glEnd();
   }
 
-  /**
-   * Called back before the OpenGL context is destroyed. Release resource such as buffers.
-   */
-  public void dispose(GLAutoDrawable drawable) {
+  // Update the angle of the triangle after each frame
+  private void update() {
+    angle += 0.03f;
   }
 }

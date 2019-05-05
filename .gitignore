@@ -10,3 +10,5 @@ src/cmake-build-debug
 
 **/CMakeLists.txt.user
 build-QtMain-Desktop_Qt_5_12_0_clang_64bit-Default/
+
+java/**/target

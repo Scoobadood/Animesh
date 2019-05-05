@@ -34,7 +34,6 @@ public class JoglMain implements GLEventListener {
   private static final String VERSION_STRING = "#version 330\n";
   /*
    * Scene Data
-   *
    */
   private static final int COLOR_IDX = 0;
   private static final int VERTICES_IDX = 1;
@@ -43,15 +42,19 @@ public class JoglMain implements GLEventListener {
    */
   private static int width = 1920;
   private static int height = 1080;
+
   // World
   private static float[] colours;
   private static float[] vertices;
+
   /*
    *  Variables for managing the view
    */
-  private double t0 = System.currentTimeMillis();
-  private double theta;
-  private double sinTheta;
+  private double theta = 0.0; // Y axis rotation
+  private double phi   = 0.0; // X axis rotation
+  private double psi   = 0.0; // Z axis rotation
+  private static final double DELTA_ROT = Math.PI / 100.0;
+
   /*
    * Shader related variables/handles
    */
@@ -282,10 +285,6 @@ public class JoglMain implements GLEventListener {
   }
 
   private void updateAnimation() {
-    // Update variables used in animation
-    double t1 = System.currentTimeMillis();
-    theta += (t1 - t0) * 0.05f;
-    t0 = t1;
   }
 
   private void setTransform(GL4 gl) {
@@ -297,6 +296,8 @@ public class JoglMain implements GLEventListener {
     };
     float[] mvp = translate(identity, 0.0f, 0.0f, -0.8f);
     mvp = rotate(mvp, (float) theta, 0.0f, 1.0f, 0.0f);
+    mvp = rotate(mvp, (float) phi,   1.0f, 0.0f, 0.0f);
+    mvp = rotate(mvp, (float) psi, 0.0f, 0.0f, 1.0f);
 
     // Send the final projection matrix to the vertex shader by
     // using the uniform location id obtained during the init part.

@@ -3,6 +3,7 @@ package org.ddurbin.animesh.viewer;
 import static org.ddurbin.animesh.viewer.MatrixHelper.rotate;
 import static org.ddurbin.animesh.viewer.MatrixHelper.translate;
 
+
 import com.google.common.base.Strings;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.newt.opengl.GLWindow;
@@ -12,14 +13,14 @@ import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
-
 import com.jogamp.opengl.util.Animator;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.FloatBuffer;
+import org.ddurbin.animesh.bin.State;
+import org.ddurbin.animesh.bin.StateUtilities;
 
 
 /**
@@ -31,57 +32,91 @@ import java.nio.FloatBuffer;
 public class JoglMain implements GLEventListener {
 
   private static final String VERSION_STRING = "#version 330\n";
-
-  private static class MyShaderProgram {
-    final int shaderProgramId;
-    final int vertexShaderId;
-    final int fragmentShaderId;
-    final int uniformMvpMatrix;
-
-    MyShaderProgram(int shaderProgramId, //
-                    int vertexShaderId, //
-                    int fragmentShaderId, //
-                    int uniformMvpMatrix) {
-      this.shaderProgramId = shaderProgramId;
-      this.fragmentShaderId = fragmentShaderId;
-      this.vertexShaderId = vertexShaderId;
-      this.uniformMvpMatrix = uniformMvpMatrix;
-    }
-  }
-
-  /*
-   *  Variables for managing the view
-   */
-  private double t0 = System.currentTimeMillis();
-  private double theta;
-  private double sinTheta;
-
-  /*
-   * Shader related variables/handles
-   */
-  private MyShaderProgram shadProg;
-
-  /*
-   * Window related
-   */
-  private static int width = 1920;
-  private static int height = 1080;
-
   /*
    * Scene Data
    *
    */
   private static final int COLOR_IDX = 0;
   private static final int VERTICES_IDX = 1;
-
+  /*
+   * Window related
+   */
+  private static int width = 1920;
+  private static int height = 1080;
+  // World
+  private static float[] colours;
+  private static float[] vertices;
+  /*
+   *  Variables for managing the view
+   */
+  private double t0 = System.currentTimeMillis();
+  private double theta;
+  private double sinTheta;
+  /*
+   * Shader related variables/handles
+   */
+  private MyShaderProgram shadProg;
   // Where we put our handles for vertex buffers
   private int[] vboHandles;
 
 
+  private static void createWorld(State state) {
+    vertices = StateToGlData.convertStateToGlData(state, 3);
+    int numItems = (vertices.length / (4 * 3));
+    colours = new float[numItems * (4 * 4)];
+
+    // We have 8 points making 4 lines
+    for (int i = 0; i < (numItems); i++) {
+      // normal : Red
+      colours[i * 16 + 0] = 1.0f;
+      colours[i * 16 + 1] = 0.0f;
+      colours[i * 16 + 2] = 0.0f;
+      colours[i * 16 + 3] = 1.0f;
+      colours[i * 16 + 4] = 1.0f;
+      colours[i * 16 + 5] = 0.0f;
+      colours[i * 16 + 6] = 0.0f;
+      colours[i * 16 + 7] = 1.0f;
+
+      // Primary tangent - aqua
+      colours[i * 16 + 8] = 0.0f;
+      colours[i * 16 + 9] = 1.0f;
+      colours[i * 16 + 10] = 1.0f;
+      colours[i * 16 + 11] = 1.0f;
+      colours[i * 16 + 12] = 0.0f;
+      colours[i * 16 + 13] = 1.0f;
+      colours[i * 16 + 14] = 1.0f;
+      colours[i * 16 + 15] = 1.0f;
+
+      // Opposite to primary : blue
+      colours[i * 16 + 8] = 0.0f;
+      colours[i * 16 + 9] = 0.0f;
+      colours[i * 16 + 10] = 1.0f;
+      colours[i * 16 + 11] = 1.0f;
+      colours[i * 16 + 12] = 0.0f;
+      colours[i * 16 + 13] = 0.0f;
+      colours[i * 16 + 14] = 1.0f;
+      colours[i * 16 + 15] = 1.0f;
+      // 90 degrees : blue
+      colours[i * 16 + 8] = 0.0f;
+      colours[i * 16 + 9] = 0.0f;
+      colours[i * 16 + 10] = 1.0f;
+      colours[i * 16 + 11] = 1.0f;
+      colours[i * 16 + 12] = 0.0f;
+      colours[i * 16 + 13] = 0.0f;
+      colours[i * 16 + 14] = 1.0f;
+      colours[i * 16 + 15] = 1.0f;
+
+    }
+  }
+
   /**
    * Run it.
    */
-  public static void main(String[] s) {
+  public static void main(String[] args) throws Exception {
+    State state = StateUtilities.loadState(args[0], args[1]);
+    createWorld(state);
+
+
     GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL4ES3));
 
     // We may at this point tweak the caps and request a translucent drawable
@@ -126,7 +161,6 @@ public class JoglMain implements GLEventListener {
     }
     return sb.toString();
   }
-
 
   private void checkCompileSucceeded(GL4 gl, int shader, String shaderName) throws Exception {
     //Check compile status.
@@ -207,7 +241,6 @@ public class JoglMain implements GLEventListener {
     return new MyShaderProgram(shaderProgram, vertexShader, fragmentShader, uniProjection);
   }
 
-
   private void reportCapabilities(GLAutoDrawable drawable, GL gl) {
     System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
     System.err.println("INIT GL IS: " + gl.getClass().getName());
@@ -232,7 +265,6 @@ public class JoglMain implements GLEventListener {
     }
   }
 
-
   /**
    * GLEventListener::reshape.
    */
@@ -249,7 +281,6 @@ public class JoglMain implements GLEventListener {
     gl.glViewport((width - height) / 2, 0, height, height);
   }
 
-
   private void updateAnimation() {
     // Update variables used in animation
     double t1 = System.currentTimeMillis();
@@ -264,14 +295,13 @@ public class JoglMain implements GLEventListener {
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f,
     };
-    float[] mvp = translate(identity, 0.0f, 0.0f, -1.f);
-    mvp = rotate(mvp, (float)theta, 1.0f, 0.0f, 0.0f);
+    float[] mvp = translate(identity, 0.0f, 0.0f, -0.8f);
+    mvp = rotate(mvp, (float) theta, 0.0f, 1.0f, 0.0f);
 
     // Send the final projection matrix to the vertex shader by
     // using the uniform location id obtained during the init part.
     gl.glUniformMatrix4fv(shadProg.uniformMvpMatrix, 1, false, mvp, 0);
   }
-
 
   private void setVbo(GL4 gl, float[] data, int dataSize, int vboIndex, int vaaIndex) {
     FloatBuffer fbData = Buffers.newDirectFloatBuffer(data);
@@ -309,41 +339,13 @@ public class JoglMain implements GLEventListener {
     // Set the MVP matrix
     setTransform(gl);
 
-    // Cube normals
-    float[] vertices = {
-         0.0f, 1.0f, 0.0f,    // Top
-         0.0f, 2.0f, 0.0f,
-         0.0f, -1.0f, 0.0f,   // Bottom
-         0.0f, -2.0f, 0.0f,
-        -1.0f, 0.0f, 0.0f,    // Left
-        -2.0f, 0.0f, 0.0f,
-         1.0f, 0.0f, 0.0f,    // Right
-         2.0f, 0.0f, 0.0f,
-         0.0f, 0.0f, -1.0f,   // Front
-         0.0f, 0.0f, -2.0f,
-         0.0f, 0.0f,  1.0f,   // Back
-         0.0f, 0.0f,  2.0f
-    };
-    for( int i=0; i<vertices.length; i++ ) {vertices[i] = vertices[i] / 10.f;}
+    for (int i = 0; i < vertices.length; i++) {
+      vertices[i] = vertices[i];
+    }
     setVbo(gl, vertices, 3, VERTICES_IDX, 0);
+    setVbo(gl, colours, 4, COLOR_IDX, 1);
 
-    float[] colors = {
-        1.0f, 0.0f, 0.0f, 1.0f, //  Top color (red)
-        1.0f, 0.0f, 0.0f, 1.0f, //  Top color (red)
-        0.75f, 0.0f, 0.0f, 1.0f, //  Bot color (dark red)
-        0.75f, 0.0f, 0.0f, 1.0f, //  Bot color (dark red)
-        0.0f, 1.0f, 0.0f, 1.0f, //  Left color (green)
-        0.0f, 1.0f, 0.0f, 1.0f, //  Left color (green)
-        0.0f, 0.75f, 0.0f, 1.0f, //  Right color (dk green)
-        0.0f, 0.75f, 0.0f, 1.0f, //  Right color (dk green)
-        0.0f, 0.0f, 1.0f, 1.0f, //  Front color (blue)
-        0.0f, 0.0f, 1.0f, 1.0f, //  Front color (blue)
-        0.0f, 0.0f, 0.75f, 1.0f, //  Back color (dk blue);
-        0.0f, 0.0f, 0.75f, 1.0f, //  Back color (dk blue);
-    };
-    setVbo(gl, colors, 4, COLOR_IDX, 1);
-
-    gl.glDrawArrays(GL4.GL_LINES, 0, 12); //Draw the vertices as triangle
+    gl.glDrawArrays(GL4.GL_LINES, 0, vertices.length); //Draw the vertices as triangle
     gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
     gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
   }
@@ -363,5 +365,22 @@ public class JoglMain implements GLEventListener {
     gl.glDeleteShader(shadProg.fragmentShaderId);
     gl.glDeleteProgram(shadProg.shaderProgramId);
     System.exit(0);
+  }
+
+  private static class MyShaderProgram {
+    final int shaderProgramId;
+    final int vertexShaderId;
+    final int fragmentShaderId;
+    final int uniformMvpMatrix;
+
+    MyShaderProgram(int shaderProgramId, //
+                    int vertexShaderId, //
+                    int fragmentShaderId, //
+                    int uniformMvpMatrix) {
+      this.shaderProgramId = shaderProgramId;
+      this.fragmentShaderId = fragmentShaderId;
+      this.vertexShaderId = vertexShaderId;
+      this.uniformMvpMatrix = uniformMvpMatrix;
+    }
   }
 }

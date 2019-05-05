@@ -48,6 +48,17 @@ public class Vector3f {
     }
 
     /*
+     * Add another vec 3
+     */
+    public Vector3f plus(Vector3f other) {
+        return new Vector3f(
+            this.x + other.x,
+            this.y + other.y,
+            this.z + other.z
+            );
+    }
+
+    /*
      * Return a normalized version of this vector
      */
     public Vector3f normalized() {

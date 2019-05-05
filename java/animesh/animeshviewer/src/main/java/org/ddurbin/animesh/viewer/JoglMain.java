@@ -253,9 +253,8 @@ public class JoglMain implements GLEventListener {
   private void updateAnimation() {
     // Update variables used in animation
     double t1 = System.currentTimeMillis();
-    theta += (t1 - t0) * 0.005f;
+    theta += (t1 - t0) * 0.05f;
     t0 = t1;
-    sinTheta = Math.sin(theta);
   }
 
   private void setTransform(GL4 gl) {
@@ -265,8 +264,8 @@ public class JoglMain implements GLEventListener {
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f,
     };
-    float[] mvp = translate(identity, 0.0f, 0.0f, -0.1f);
-    mvp = rotate(mvp, 30f * (float) sinTheta, 1.0f, 0.0f, 1.0f);
+    float[] mvp = translate(identity, 0.0f, 0.0f, -1.f);
+    mvp = rotate(mvp, (float)theta, 1.0f, 0.0f, 0.0f);
 
     // Send the final projection matrix to the vertex shader by
     // using the uniform location id obtained during the init part.
@@ -301,7 +300,7 @@ public class JoglMain implements GLEventListener {
     GL4 gl = drawable.getGL().getGL4();
 
     // Clear screen
-    gl.glClearColor(1, 0, 1, 0.5f);  // Purple
+    gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     gl.glClear(GL4.GL_STENCIL_BUFFER_BIT | GL4.GL_COLOR_BUFFER_BIT | GL4.GL_DEPTH_BUFFER_BIT);
 
     // Use the shaderProgram that got linked during the init part.
@@ -310,19 +309,41 @@ public class JoglMain implements GLEventListener {
     // Set the MVP matrix
     setTransform(gl);
 
-    float[] vertices = {0.0f, 1.0f, 0.0f, //Top
-        -1.0f, -1.0f, 0.0f, //Bottom Left
-        1.0f, -1.0f, 0.0f  //Bottom Right
+    // Cube normals
+    float[] vertices = {
+         0.0f, 1.0f, 0.0f,    // Top
+         0.0f, 2.0f, 0.0f,
+         0.0f, -1.0f, 0.0f,   // Bottom
+         0.0f, -2.0f, 0.0f,
+        -1.0f, 0.0f, 0.0f,    // Left
+        -2.0f, 0.0f, 0.0f,
+         1.0f, 0.0f, 0.0f,    // Right
+         2.0f, 0.0f, 0.0f,
+         0.0f, 0.0f, -1.0f,   // Front
+         0.0f, 0.0f, -2.0f,
+         0.0f, 0.0f,  1.0f,   // Back
+         0.0f, 0.0f,  2.0f
     };
+    for( int i=0; i<vertices.length; i++ ) {vertices[i] = vertices[i] / 10.f;}
     setVbo(gl, vertices, 3, VERTICES_IDX, 0);
 
-    float[] colors = {1.0f, 0.0f, 0.0f, 1.0f, //Top color (red)
-        0.0f, 0.0f, 0.0f, 1.0f, //Bottom Left color (black)
-        1.0f, 1.0f, 0.0f, 0.9f  //Bottom Right color (yellow) with 10% transparence
+    float[] colors = {
+        1.0f, 0.0f, 0.0f, 1.0f, //  Top color (red)
+        1.0f, 0.0f, 0.0f, 1.0f, //  Top color (red)
+        0.75f, 0.0f, 0.0f, 1.0f, //  Bot color (dark red)
+        0.75f, 0.0f, 0.0f, 1.0f, //  Bot color (dark red)
+        0.0f, 1.0f, 0.0f, 1.0f, //  Left color (green)
+        0.0f, 1.0f, 0.0f, 1.0f, //  Left color (green)
+        0.0f, 0.75f, 0.0f, 1.0f, //  Right color (dk green)
+        0.0f, 0.75f, 0.0f, 1.0f, //  Right color (dk green)
+        0.0f, 0.0f, 1.0f, 1.0f, //  Front color (blue)
+        0.0f, 0.0f, 1.0f, 1.0f, //  Front color (blue)
+        0.0f, 0.0f, 0.75f, 1.0f, //  Back color (dk blue);
+        0.0f, 0.0f, 0.75f, 1.0f, //  Back color (dk blue);
     };
     setVbo(gl, colors, 4, COLOR_IDX, 1);
 
-    gl.glDrawArrays(GL4.GL_TRIANGLES, 0, 3); //Draw the vertices as triangle
+    gl.glDrawArrays(GL4.GL_LINES, 0, 12); //Draw the vertices as triangle
     gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
     gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
   }

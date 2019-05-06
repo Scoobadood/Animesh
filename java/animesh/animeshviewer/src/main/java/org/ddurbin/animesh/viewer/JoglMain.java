@@ -6,6 +6,8 @@ import static org.ddurbin.animesh.viewer.MatrixHelper.translate;
 
 import com.google.common.base.Strings;
 import com.jogamp.common.nio.Buffers;
+import com.jogamp.newt.event.MouseEvent;
+import com.jogamp.newt.event.MouseListener;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL4;
@@ -29,7 +31,7 @@ import org.ddurbin.animesh.bin.StateUtilities;
  * @author Xerxes Rånby (xranby)
  * {@see http://jogamp.org/deployment/jogamp-current/archive/jogamp-all-platforms.7z}
  */
-public class JoglMain implements GLEventListener {
+public class JoglMain implements GLEventListener, MouseListener {
 
   private static final String VERSION_STRING = "#version 330\n";
   /*
@@ -37,23 +39,25 @@ public class JoglMain implements GLEventListener {
    */
   private static final int COLOR_IDX = 0;
   private static final int VERTICES_IDX = 1;
+  private static final double DELTA_ROT = Math.PI / 100.0;
   /*
    * Window related
    */
   private static int width = 1920;
   private static int height = 1080;
-
   // World
   private static float[] colours;
   private static float[] vertices;
 
   /*
-   *  Variables for managing the view
+   * Rotation matrix
    */
-  private double theta = 0.0; // Y axis rotation
-  private double phi   = 0.0; // X axis rotation
-  private double psi   = 0.0; // Z axis rotation
-  private static final double DELTA_ROT = Math.PI / 100.0;
+  private float[] rotationMatrix = new float[] {
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f
+  };
 
   /*
    * Shader related variables/handles
@@ -61,7 +65,12 @@ public class JoglMain implements GLEventListener {
   private MyShaderProgram shadProg;
   // Where we put our handles for vertex buffers
   private int[] vboHandles;
-
+  //
+  // Mouse Management
+  //
+  private int mouseDownX;
+  private int mouseDownY;
+  private float[] backAxes = new float[16];
 
   private static void createWorld(State state) {
     vertices = StateToGlData.convertStateToGlData(state, 3);
@@ -137,7 +146,11 @@ public class JoglMain implements GLEventListener {
     // Finally we connect the GLEventListener application code to the NEWT GLWindow.
     // GLWindow will call the GLEventListener init, reshape, display and dispose
     // functions when needed.
-    glWindow.addGLEventListener(new JoglMain() /* GLEventListener */);
+    JoglMain jm = new JoglMain();
+
+    glWindow.addGLEventListener(jm);
+    glWindow.addMouseListener(jm);
+
     Animator animator = new Animator();
     animator.add(glWindow);
     animator.start();
@@ -294,10 +307,8 @@ public class JoglMain implements GLEventListener {
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f,
     };
-    float[] mvp = translate(identity, 0.0f, 0.0f, -0.8f);
-    mvp = rotate(mvp, (float) theta, 0.0f, 1.0f, 0.0f);
-    mvp = rotate(mvp, (float) phi,   1.0f, 0.0f, 0.0f);
-    mvp = rotate(mvp, (float) psi, 0.0f, 0.0f, 1.0f);
+    float[] mvp = translate(identity, 0.0f, 0.0f, camZ);
+    mvp = MatrixHelper.multiply(mvp, rotationMatrix);
 
     // Send the final projection matrix to the vertex shader by
     // using the uniform location id obtained during the init part.
@@ -368,6 +379,92 @@ public class JoglMain implements GLEventListener {
     System.exit(0);
   }
 
+  @Override
+  public void mouseClicked(MouseEvent e) {
+  }
+
+  @Override
+  public void mouseEntered(MouseEvent e) {
+  }
+
+  @Override
+  public void mouseExited(MouseEvent e) {
+  }
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+    mouseDownX = e.getX();
+    mouseDownY = e.getY();
+  }
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+  }
+
+  @Override
+  public void mouseMoved(MouseEvent e) {
+  }
+
+  private boolean isShiftModifier(int mod) {
+    return ((mod & MouseEvent.SHIFT_MASK) != 0)
+        && ((mod & MouseEvent.ALT_MASK) == 0)
+        && ((mod & MouseEvent.META_MASK) == 0)
+        && ((mod & MouseEvent.CTRL_MASK) == 0);
+  }
+
+  private boolean isNoModifier(int mod) {
+    return ((mod & MouseEvent.SHIFT_MASK) == 0)
+        && ((mod & MouseEvent.ALT_MASK) == 0)
+        && ((mod & MouseEvent.META_MASK) == 0)
+        && ((mod & MouseEvent.CTRL_MASK) == 0);
+  }
+
+  private boolean isCmdModifier(int mod) {
+    return ((mod & MouseEvent.SHIFT_MASK) == 0)
+        && ((mod & MouseEvent.ALT_MASK) == 0)
+        && ((mod & MouseEvent.META_MASK) != 0)
+        && ((mod & MouseEvent.CTRL_MASK) == 0);
+  }
+
+  float camZ = -0.8f;
+
+  @Override
+  public void mouseDragged(MouseEvent e) {
+    MatrixHelper.identity(backAxes);
+    float[] rotationInverse = MatrixHelper.invert(rotationMatrix);
+    backAxes = MatrixHelper.multiply(rotationInverse, backAxes);
+
+    int deltaX = e.getX() - mouseDownX;
+    int deltaY = e.getY() - mouseDownY;
+
+    float theta = 0.0f, phi = 0.0f, psi = 0.0f;
+    int mod = e.getModifiers();
+    if (isNoModifier(mod)) {
+      theta = (float) (deltaX * Math.PI * 2) / width;
+      phi = (float) (deltaY * Math.PI * 2) / height;
+    } else if (isShiftModifier(mod)) {
+      float d = (float)deltaY  / height;
+
+      camZ  = - Math.max( 0.0005f, Math.min( 1.f, camZ + d));
+
+    } else if (isCmdModifier(mod)) {
+      psi = (float) (deltaX * Math.PI * 2) / width;
+    }
+
+    rotationMatrix = rotate(rotationMatrix, theta, backAxes[4], backAxes[5], backAxes[6]);
+    rotationMatrix = rotate(rotationMatrix, phi, backAxes[0], backAxes[1], backAxes[2]);
+    rotationMatrix = rotate(rotationMatrix, psi, backAxes[8], backAxes[9], backAxes[10]);
+    mouseDownX = e.getX();
+    mouseDownY = e.getY();
+  }
+
+  @Override
+  public void mouseWheelMoved(MouseEvent e) {
+  }
+
+  //
+  // Shader support
+  //
   private static class MyShaderProgram {
     final int shaderProgramId;
     final int vertexShaderId;

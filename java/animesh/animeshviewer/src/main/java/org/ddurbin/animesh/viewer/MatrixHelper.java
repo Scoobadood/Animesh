@@ -3,7 +3,6 @@ package org.ddurbin.animesh.viewer;
 import java.nio.FloatBuffer;
 
 public class MatrixHelper {
-
   /*
   *
   * OpenGL ES 2 vertex projection transformations gets applied inside the
@@ -31,8 +30,6 @@ public class MatrixHelper {
           ai3 = a.get(aP + i + 3 * 4);
 
 
-
-
       d.put(dP + i + 0 * 4, ai0 * b.get(bP + 0 + 0 * 4) + ai1 * b.get(bP + 1 + 0 * 4) + ai2 * b.get(bP + 2 + 0 * 4) + ai3 * b.get(bP + 3 + 0 * 4));
       d.put(dP + i + 1 * 4, ai0 * b.get(bP + 0 + 1 * 4) + ai1 * b.get(bP + 1 + 1 * 4) + ai2 * b.get(bP + 2 + 1 * 4) + ai3 * b.get(bP + 3 + 1 * 4));
       d.put(dP + i + 2 * 4, ai0 * b.get(bP + 0 + 2 * 4) + ai1 * b.get(bP + 1 + 2 * 4) + ai2 * b.get(bP + 2 + 2 * 4) + ai3 * b.get(bP + 3 + 2 * 4));
@@ -40,16 +37,14 @@ public class MatrixHelper {
     }
   }
 
-  /** Helper to multiply matrix from floats array */
+  /**
+   * Helper to multiply matrix from floats array
+   */
   public static float[] multiply(float[] a, float[] b) {
     float[] tmp = new float[16];
     glMultMatrixf(FloatBuffer.wrap(a), FloatBuffer.wrap(b), FloatBuffer.wrap(tmp));
     return tmp;
   }
-
-
-
-
 
   public static float[] translate(float[] m, float x, float y, float z) {
     float[] t = {1.0f, 0.0f, 0.0f, 0.0f,
@@ -59,16 +54,41 @@ public class MatrixHelper {
     return multiply(m, t);
   }
 
+  /**
+   * Construct a rotation matrix for a rotation about an axis given in XYZ through a radians
+   */
   public static float[] rotate(float[] m, float a, float x, float y, float z) {
     float s, c;
-    s = (float) Math.sin(Math.toRadians(a));
-    c = (float) Math.cos(Math.toRadians(a));
+    s = (float) Math.sin(a);
+    c = (float) Math.cos(a);
     float[] r = {
         x * x * (1.0f - c) + c, y * x * (1.0f - c) + z * s, x * z * (1.0f - c) - y * s, 0.0f,
         x * y * (1.0f - c) - z * s, y * y * (1.0f - c) + c, y * z * (1.0f - c) + x * s, 0.0f,
         x * z * (1.0f - c) + y * s, y * z * (1.0f - c) - x * s, z * z * (1.0f - c) + c, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f};
     return multiply(m, r);
+  }
+
+  public static void identity(float[] m) {
+    assert (m != null);
+    assert (m.length == 16);
+    for (int i = 0; i < 16; i++) {
+      m[i] = 0.0f;
+    }
+    m[0] = m[5] = m[10] = m[15] = 1.0f;
+  }
+
+  public static float[] invert(float[] m) {
+    assert (m != null);
+    assert (m.length == 16);
+    float[] tmp = new float[16];
+    for (int i = 0; i < 4; i++) {
+      tmp[0 + i] = m[i * 4 + 0];
+      tmp[4 + i] = m[i * 4 + 1];
+      tmp[8 + i] = m[i * 4 + 2];
+      tmp[12 + i] = m[i * 4 + 3];
+    }
+    return tmp;
   }
 
 }

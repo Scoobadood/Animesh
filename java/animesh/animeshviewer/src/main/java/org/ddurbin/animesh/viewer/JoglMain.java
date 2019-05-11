@@ -188,7 +188,7 @@ public class JoglMain implements GLEventListener, MouseListener {
     NewtCanvasAWT canvas = new NewtCanvasAWT(glWindow);
     canvas.setBackground(Color.red);
     panel.add(canvas, BorderLayout.CENTER);
-    JPanel controls = new JPanel();
+    JPanel controls = new ControlPanel();
     controls.setBackground(Color.ORANGE);
     controls.setSize(100,100);
     panel.add(controls, BorderLayout.WEST);

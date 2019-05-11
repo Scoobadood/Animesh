@@ -67,9 +67,41 @@ public class StateToGlData {
     }
     List<Float> lf = listBuilder.build();
     float[] f = new float[lf.size()];
+    float minX = Float.MAX_VALUE;
+    float minY = Float.MAX_VALUE;
+    float minZ = Float.MAX_VALUE;
+    float maxX = -Float.MAX_VALUE;
+    float maxY = -Float.MAX_VALUE;
+    float maxZ = -Float.MAX_VALUE;
     for (int i = 0; i < lf.size(); i++) {
       f[i] = lf.get(i);
+      if (i % 3 == 0) {
+        if (f[i] < minX) {
+          minX = f[i];
+        }
+        if (f[i] > maxX) {
+          maxX = f[i];
+        }
+      } else if (i % 3 == 1) {
+        if (f[i] < minY) {
+          minY = f[i];
+        }
+        if (f[i] > maxY) {
+          maxY = f[i];
+        }
+
+      } else if (i % 3 == 2) {
+        if (f[i] < minZ) {
+          minZ = f[i];
+        }
+        if (f[i] > maxZ) {
+          maxZ = f[i];
+        }
+      }
     }
+    System.out.println( String.format("X [%.3f -> %.3f]", minX, maxX));
+    System.out.println( String.format("Y [%.3f -> %.3f]", minY, maxY));
+    System.out.println( String.format("Z [%.3f -> %.3f]", minZ, maxZ));
     return f;
   }
 }

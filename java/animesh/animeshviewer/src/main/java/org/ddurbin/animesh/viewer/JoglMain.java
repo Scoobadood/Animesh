@@ -1,11 +1,15 @@
 package org.ddurbin.animesh.viewer;
 
+import static org.ddurbin.animesh.viewer.MatrixHelper.identity;
+import static org.ddurbin.animesh.viewer.MatrixHelper.invert;
+import static org.ddurbin.animesh.viewer.MatrixHelper.multiply;
 import static org.ddurbin.animesh.viewer.MatrixHelper.rotate;
 import static org.ddurbin.animesh.viewer.MatrixHelper.translate;
 
 
 import com.google.common.base.Strings;
 import com.jogamp.common.nio.Buffers;
+import com.jogamp.newt.awt.NewtCanvasAWT;
 import com.jogamp.newt.event.MouseEvent;
 import com.jogamp.newt.event.MouseListener;
 import com.jogamp.newt.opengl.GLWindow;
@@ -16,13 +20,23 @@ import com.jogamp.opengl.GLCapabilities;
 import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.util.Animator;
+
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import javax.swing.*;
+
+import com.jogamp.opengl.util.FPSAnimator;
 import org.ddurbin.animesh.bin.State;
 import org.ddurbin.animesh.bin.StateUtilities;
+import org.ddurbin.common.Vector3f;
+import org.junit.Assert;
 
 
 /**
@@ -48,16 +62,25 @@ public class JoglMain implements GLEventListener, MouseListener {
   // World
   private static float[] colours;
   private static float[] vertices;
-
+  float camZ = 0.0f;
   /*
    * Rotation matrix
    */
-  private float[] rotationMatrix = new float[] {
+  private float[] rotationMatrix = {
       1.0f, 0.0f, 0.0f, 0.0f,
       0.0f, 1.0f, 0.0f, 0.0f,
       0.0f, 0.0f, 1.0f, 0.0f,
       0.0f, 0.0f, 0.0f, 1.0f
   };
+
+  /**
+   * Projection Matrix
+   */
+  private float[] projectionMatrix = new float[16];
+
+  private float model_tx = 0.0f;
+  private float model_ty = 0.0f;
+  private float model_tz = 2.0f;
 
   /*
    * Shader related variables/handles
@@ -70,54 +93,54 @@ public class JoglMain implements GLEventListener, MouseListener {
   //
   private int mouseDownX;
   private int mouseDownY;
-  private float[] backAxes = new float[16];
 
+  private JoglMain(float[] projectionMatrix) {
+    this.projectionMatrix = projectionMatrix;
+  }
+
+
+  /**
+   * Store the given RGB colour at the location in the array provided. Alphas is assumed to be 1.0;
+   */
+  private static void setColourAtPosition( float[] arr, int position, float r, float g, float b ) {
+    arr[position] = r;
+    arr[position + 1] = g;
+    arr[position + 2] = b;
+    arr[position + 3] = 1.0f;
+  }
+
+  /**
+   * Store the given RGB colour twice, once for each end of a line
+   */
+  private static void setLineColourAtPosition( float[] arr, int position, float r, float g, float b ) {
+    setColourAtPosition(arr, position, r, g, b);
+    setColourAtPosition(arr, position+4, r, g, b);
+  }
+  /**
+   * Colour the normal and tangents at the give position in the array.
+   */
+  private static void setColoursForObjectAtPosition( float[] arr, int position) {
+    // Normal is red
+    setLineColourAtPosition(arr, position, 1.0f, 0.0f, 0.0f);
+    // Principal tangent is green
+    setLineColourAtPosition(arr, position + 8, 0.0f, 1.0f, 0.0f);
+    // Other tangents are blue
+    setLineColourAtPosition(arr, position + 16, 0.0f, 0.0f, 1.0f);
+    setLineColourAtPosition(arr, position + 24, 0.0f, 0.0f, 1.0f);
+  }
+
+
+  /**
+   * Load normals and tangets from state file and colour them appropriately.
+   */
   private static void createWorld(State state) {
     vertices = StateToGlData.convertStateToGlData(state, 3);
-    int numItems = (vertices.length / (4 * 3));
-    colours = new float[numItems * (4 * 4)];
+    int numItems = (vertices.length / 24);
+    colours = new float[numItems * 32];
 
     // We have 8 points making 4 lines
     for (int i = 0; i < (numItems); i++) {
-      // normal : Red
-      colours[i * 16 + 0] = 1.0f;
-      colours[i * 16 + 1] = 0.0f;
-      colours[i * 16 + 2] = 0.0f;
-      colours[i * 16 + 3] = 1.0f;
-      colours[i * 16 + 4] = 1.0f;
-      colours[i * 16 + 5] = 0.0f;
-      colours[i * 16 + 6] = 0.0f;
-      colours[i * 16 + 7] = 1.0f;
-
-      // Primary tangent - aqua
-      colours[i * 16 + 8] = 0.0f;
-      colours[i * 16 + 9] = 1.0f;
-      colours[i * 16 + 10] = 1.0f;
-      colours[i * 16 + 11] = 1.0f;
-      colours[i * 16 + 12] = 0.0f;
-      colours[i * 16 + 13] = 1.0f;
-      colours[i * 16 + 14] = 1.0f;
-      colours[i * 16 + 15] = 1.0f;
-
-      // Opposite to primary : blue
-      colours[i * 16 + 8] = 0.0f;
-      colours[i * 16 + 9] = 0.0f;
-      colours[i * 16 + 10] = 1.0f;
-      colours[i * 16 + 11] = 1.0f;
-      colours[i * 16 + 12] = 0.0f;
-      colours[i * 16 + 13] = 0.0f;
-      colours[i * 16 + 14] = 1.0f;
-      colours[i * 16 + 15] = 1.0f;
-      // 90 degrees : blue
-      colours[i * 16 + 8] = 0.0f;
-      colours[i * 16 + 9] = 0.0f;
-      colours[i * 16 + 10] = 1.0f;
-      colours[i * 16 + 11] = 1.0f;
-      colours[i * 16 + 12] = 0.0f;
-      colours[i * 16 + 13] = 0.0f;
-      colours[i * 16 + 14] = 1.0f;
-      colours[i * 16 + 15] = 1.0f;
-
+      setColoursForObjectAtPosition(colours, i * 32);
     }
   }
 
@@ -146,14 +169,110 @@ public class JoglMain implements GLEventListener, MouseListener {
     // Finally we connect the GLEventListener application code to the NEWT GLWindow.
     // GLWindow will call the GLEventListener init, reshape, display and dispose
     // functions when needed.
-    JoglMain jm = new JoglMain();
+    float[] projectionMatrix = new float[16];
+    createProjectionMatrix((float) Math.toRadians(30), 0.005f, 3.0f, (width / height), projectionMatrix);
+
+    JoglMain jm = new JoglMain(projectionMatrix);
 
     glWindow.addGLEventListener(jm);
     glWindow.addMouseListener(jm);
 
+    JFrame frame = new JFrame();
+    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    frame.setTitle("Daves Frame");
+    frame.setBounds(10, 10, 1000, 800);
+
+    JPanel panel = new JPanel();
+    panel.setBackground(Color.blue);
+    panel.setLayout(new BorderLayout());
+    NewtCanvasAWT canvas = new NewtCanvasAWT(glWindow);
+    canvas.setBackground(Color.red);
+    panel.add(canvas, BorderLayout.CENTER);
+    JPanel controls = new JPanel();
+    controls.setBackground(Color.ORANGE);
+    controls.setSize(100,100);
+    panel.add(controls, BorderLayout.WEST);
+
+    frame.getContentPane().add(panel);
     Animator animator = new Animator();
     animator.add(glWindow);
+
+    // make the window visible using the EDT
+    final Semaphore windowOpenSemaphore = new Semaphore(0);
+    SwingUtilities.invokeLater(()->{
+        frame.pack();
+        frame.setVisible(true);
+        windowOpenSemaphore.release();
+    });
+
+    // wait for the window to be visible and start the animation
+    try {
+      final boolean windowOpened = windowOpenSemaphore.tryAcquire(5000, TimeUnit.MILLISECONDS);
+      Assert.assertEquals(true, windowOpened);
+    } catch (final InterruptedException e) {
+      System.err.println("Closing wait interrupted: " + e.getMessage());
+    }
     animator.start();
+  }
+
+  /**
+   * Remove normals and related tangents where the normal is facing away from the camera
+   * (after rotation and translation)
+   */
+  private int cullWorld(float[] renderVertices, float[] renderColours) {
+
+    // Construct VM matrix
+    float[] vm = new float[16];
+    identity(vm);
+    vm = translate(vm, -model_tx, -model_ty, -model_tz);
+    vm = multiply(invert(rotationMatrix), vm);
+
+    Vector3f camOrigin = new Vector3f(
+        vm[12],
+        vm[13],
+        vm[14]
+    );
+
+    // Each 'object' occupies 2 verts for normal + 6 verts for tangents
+    // each vert occupies 3 floats.
+    int numItems = (vertices.length / 24);
+    int vertexDestIndex = 0;
+    int colourDestIndex = 0;
+    for (int i = 0; i < numItems; i++) {
+
+      int vertexSourceIndex = i * 24;
+      int colourSourceIndex = i * 32;
+
+      // we only write items to output that have normals visible to camera
+      Vector3f normStart = new Vector3f(vertices[vertexSourceIndex], vertices[vertexSourceIndex + 1], vertices[vertexSourceIndex + 2]);
+      Vector3f normEnd = new Vector3f(vertices[vertexSourceIndex + 3], vertices[vertexSourceIndex + 4], vertices[vertexSourceIndex + 5]);
+      Vector3f norm = normEnd.minus(normStart);
+      Vector3f camVec = normStart.minus(camOrigin);
+
+      if (norm.dot(camOrigin) > 0 ) {
+        // We can see it
+        System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 24);
+        System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 32);
+        vertexDestIndex += 24;
+        colourDestIndex += 32;
+      }
+    }
+    // Number of items
+    return vertexDestIndex;
+  }
+
+  private static void createProjectionMatrix(float fovy, float near, float far, float aspect,
+                                      float[] pm) {
+    double d = 1.0f / Math.tan(fovy / 2.0);
+    for (int i = 0; i < 16; i++) {
+      pm[i] = 0;
+    }
+    pm[0] = (float) (d / aspect);
+    pm[5] = (float) d;
+    float diffZ = near - far;
+    pm[10] = -(near + far) / diffZ;
+    pm[11] = 1.0f;
+    pm[14] = (2 * far * near) / diffZ;
   }
 
   private String loadResource(String fileName, GL gl) throws Exception {
@@ -297,22 +416,16 @@ public class JoglMain implements GLEventListener, MouseListener {
     gl.glViewport((width - height) / 2, 0, height, height);
   }
 
-  private void updateAnimation() {
-  }
-
   private void setTransform(GL4 gl) {
-    float[] identity = {
-        1.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f,
-    };
-    float[] mvp = translate(identity, 0.0f, 0.0f, camZ);
-    mvp = MatrixHelper.multiply(mvp, rotationMatrix);
+    float[] pvm = new float[16];
+    identity(pvm);
+    pvm = multiply(rotationMatrix, pvm);
+    pvm = translate(pvm, model_tx, model_ty, model_tz);
+    pvm = multiply(projectionMatrix, pvm);
 
     // Send the final projection matrix to the vertex shader by
     // using the uniform location id obtained during the init part.
-    gl.glUniformMatrix4fv(shadProg.uniformMvpMatrix, 1, false, mvp, 0);
+    gl.glUniformMatrix4fv(shadProg.uniformMvpMatrix, 1, false, pvm, 0);
   }
 
   private void setVbo(GL4 gl, float[] data, int dataSize, int vboIndex, int vaaIndex) {
@@ -336,8 +449,6 @@ public class JoglMain implements GLEventListener, MouseListener {
    * GLEventListener::display.
    */
   public void display(GLAutoDrawable drawable) {
-    updateAnimation();
-
     // Get gl
     GL4 gl = drawable.getGL().getGL4();
 
@@ -350,14 +461,16 @@ public class JoglMain implements GLEventListener, MouseListener {
 
     // Set the MVP matrix
     setTransform(gl);
+    float[] renderVertices = new float[vertices.length];
+    float[] renderColour = new float[colours.length];
+    int newSize = cullWorld(renderVertices, renderColour);
+    renderVertices = Arrays.copyOf(renderVertices, newSize);
+    renderColour = Arrays.copyOf(renderColour, (newSize / 24) * 32);
 
-    for (int i = 0; i < vertices.length; i++) {
-      vertices[i] = vertices[i];
-    }
-    setVbo(gl, vertices, 3, VERTICES_IDX, 0);
-    setVbo(gl, colours, 4, COLOR_IDX, 1);
+    setVbo(gl, renderVertices, 3, VERTICES_IDX, 0);
+    setVbo(gl, renderColour, 4, COLOR_IDX, 1);
 
-    gl.glDrawArrays(GL4.GL_LINES, 0, vertices.length); //Draw the vertices as triangle
+    gl.glDrawArrays(GL4.GL_LINES, 0, newSize); //Draw the vertices as lines
     gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
     gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
   }
@@ -426,36 +539,68 @@ public class JoglMain implements GLEventListener, MouseListener {
         && ((mod & MouseEvent.CTRL_MASK) == 0);
   }
 
-  float camZ = -0.8f;
+  private boolean isCtrlModifier(int mod) {
+    return ((mod & MouseEvent.SHIFT_MASK) == 0)
+        && ((mod & MouseEvent.ALT_MASK) == 0)
+        && ((mod & MouseEvent.META_MASK) == 0)
+        && ((mod & MouseEvent.CTRL_MASK) != 0);
+  }
+
+  /*
+   * Rotate around X and Y axes
+   */
+  private void rotateXY(float deltaX, float deltaY) {
+    float[] m = new float[16];
+    identity(m);
+    m = rotate(m, (float) (-deltaY * Math.PI * 2), 1.0f, 0.0f, 0.0f);
+    m = rotate(m, (float) (deltaX * Math.PI * 2), 0.0f, 1.0f, 0.0f);
+    rotationMatrix = multiply(m, rotationMatrix);
+  }
+
+  /*
+   * Rotate around Z axis
+   */
+  private void rotateZ(float deltaZ) {
+    float[] m = new float[16];
+    identity(m);
+    m = rotate(m, (float) (deltaZ * Math.PI * 2), 0.0f, 0.0f, -1.0f);
+    rotationMatrix = multiply(m, rotationMatrix);
+  }
+
+  /*
+   * Rotate around Z axis.
+   */
+  private void pan(float deltaX, float deltaY) {
+    model_tx += 2 * deltaX;
+    model_ty -= 2 * deltaY;
+  }
+
+  /*
+   * Zoom in and out
+   */
+  private void zoom(float deltaZ) {
+    model_tz -= 2 * deltaZ;
+  }
 
   @Override
   public void mouseDragged(MouseEvent e) {
-    MatrixHelper.identity(backAxes);
-    float[] rotationInverse = MatrixHelper.invert(rotationMatrix);
-    backAxes = MatrixHelper.multiply(rotationInverse, backAxes);
-
-    int deltaX = e.getX() - mouseDownX;
-    int deltaY = e.getY() - mouseDownY;
-
-    float theta = 0.0f, phi = 0.0f, psi = 0.0f;
-    int mod = e.getModifiers();
-    if (isNoModifier(mod)) {
-      theta = (float) (deltaX * Math.PI * 2) / width;
-      phi = (float) (deltaY * Math.PI * 2) / height;
-    } else if (isShiftModifier(mod)) {
-      float d = (float)deltaY  / height;
-
-      camZ  = - Math.max( 0.0005f, Math.min( 1.f, camZ + d));
-
-    } else if (isCmdModifier(mod)) {
-      psi = (float) (deltaX * Math.PI * 2) / width;
-    }
-
-    rotationMatrix = rotate(rotationMatrix, theta, backAxes[4], backAxes[5], backAxes[6]);
-    rotationMatrix = rotate(rotationMatrix, phi, backAxes[0], backAxes[1], backAxes[2]);
-    rotationMatrix = rotate(rotationMatrix, psi, backAxes[8], backAxes[9], backAxes[10]);
+    float deltaX = (e.getX() - mouseDownX) / (float) width;
+    float deltaY = (e.getY() - mouseDownY) / (float) height;
+    float deltaZ = deltaY;
     mouseDownX = e.getX();
     mouseDownY = e.getY();
+
+    int mod = e.getModifiers();
+
+    if (isNoModifier(mod)) {
+      rotateXY(deltaX, deltaY);
+    } else if (isCmdModifier(mod)) {
+      rotateZ(deltaZ);
+    } else if (isCtrlModifier(mod)) {
+      zoom(deltaZ);
+    } else if (isShiftModifier(mod)) {
+      pan(deltaX, deltaY);
+    }
   }
 
   @Override

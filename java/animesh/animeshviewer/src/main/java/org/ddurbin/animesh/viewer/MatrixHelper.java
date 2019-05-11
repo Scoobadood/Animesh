@@ -4,37 +4,96 @@ import java.nio.FloatBuffer;
 
 public class MatrixHelper {
   /*
-  *
-  * OpenGL ES 2 vertex projection transformations gets applied inside the
-  * vertex shader, all you have to do are to calculate and supply a projection matrix.
-  *
-  * Its recomended to use the com/jogamp/opengl/util/PMVMatrix.java
-  * import com.jogamp.opengl.util.PMVMatrix;
-  * To simplify all your projection model view matrix creation needs.
-  *
-  * These helpers here are based on PMVMatrix code and common linear
-  * algebra for matrix multiplication, translate and rotations.
-  * This does nothing but multiply a*b matrix wise to give d
-  */
-  public static void glMultMatrixf(FloatBuffer a, FloatBuffer b, FloatBuffer d) {
-    final int aP = a.position();
-    final int bP = b.position();
-    final int dP = d.position();
-    for (int i = 0; i < 4; i++) {
-      // Assuming a is a 4x4 matrix, in column major order
-      // extract the ith row
-      final float
-          ai0 = a.get(aP + i + 0 * 4),
-          ai1 = a.get(aP + i + 1 * 4),
-          ai2 = a.get(aP + i + 2 * 4),
-          ai3 = a.get(aP + i + 3 * 4);
+   * Multiply Left by Right giving Result.
+   * Matrices are assumed to be column major
+   */
+  public static void glMultMatrixf(FloatBuffer left, FloatBuffer right, FloatBuffer result) {
+    final int leftPosition = left.position();
+    final int rightPosition = right.position();
+    final int resultPosition = result.position();
+    result.put(resultPosition + 0,
+        (left.get(leftPosition + 0) * right.get(rightPosition + 0))
+            + (left.get(leftPosition + 4) * right.get(rightPosition + 1))
+            + (left.get(leftPosition + 8) * right.get(rightPosition + 2))
+            + (left.get(leftPosition + 12) * right.get(rightPosition + 3)));
+    result.put(resultPosition + 4,
+        (left.get(leftPosition + 0) * right.get(rightPosition + 4))
+            + (left.get(leftPosition + 4) * right.get(rightPosition + 5))
+            + (left.get(leftPosition + 8) * right.get(rightPosition + 6))
+            + (left.get(leftPosition + 12) * right.get(rightPosition + 7)));
+    result.put(resultPosition + 8,
+        (left.get(leftPosition + 0) * right.get(rightPosition + 8))
+            + (left.get(leftPosition + 4) * right.get(rightPosition + 9))
+            + (left.get(leftPosition + 8) * right.get(rightPosition + 10))
+            + (left.get(leftPosition + 12) * right.get(rightPosition + 11)));
+    result.put(resultPosition + 12,
+        (left.get(leftPosition + 0) * right.get(rightPosition + 12))
+            + (left.get(leftPosition + 4) * right.get(rightPosition + 13))
+            + (left.get(leftPosition + 8) * right.get(rightPosition + 14))
+            + (left.get(leftPosition + 12) * right.get(rightPosition + 15)));
 
+    result.put(resultPosition + 1,
+        (left.get(leftPosition + 1) * right.get(rightPosition + 0))
+            + (left.get(leftPosition + 5) * right.get(rightPosition + 1))
+            + (left.get(leftPosition + 9) * right.get(rightPosition + 2))
+            + (left.get(leftPosition + 13) * right.get(rightPosition + 3)));
+    result.put(resultPosition + 5,
+        (left.get(leftPosition + 1) * right.get(rightPosition + 4))
+            + (left.get(leftPosition + 5) * right.get(rightPosition + 5))
+            + (left.get(leftPosition + 9) * right.get(rightPosition + 6))
+            + (left.get(leftPosition + 13) * right.get(rightPosition + 7)));
+    result.put(resultPosition + 9,
+        (left.get(leftPosition + 1) * right.get(rightPosition + 8))
+            + (left.get(leftPosition + 5) * right.get(rightPosition + 9))
+            + (left.get(leftPosition + 9) * right.get(rightPosition + 10))
+            + (left.get(leftPosition + 13) * right.get(rightPosition + 11)));
+    result.put(resultPosition + 13,
+        (left.get(leftPosition + 1) * right.get(rightPosition + 12))
+            + (left.get(leftPosition + 5) * right.get(rightPosition + 13))
+            + (left.get(leftPosition + 9) * right.get(rightPosition + 14))
+            + (left.get(leftPosition + 13) * right.get(rightPosition + 15)));
 
-      d.put(dP + i + 0 * 4, ai0 * b.get(bP + 0 + 0 * 4) + ai1 * b.get(bP + 1 + 0 * 4) + ai2 * b.get(bP + 2 + 0 * 4) + ai3 * b.get(bP + 3 + 0 * 4));
-      d.put(dP + i + 1 * 4, ai0 * b.get(bP + 0 + 1 * 4) + ai1 * b.get(bP + 1 + 1 * 4) + ai2 * b.get(bP + 2 + 1 * 4) + ai3 * b.get(bP + 3 + 1 * 4));
-      d.put(dP + i + 2 * 4, ai0 * b.get(bP + 0 + 2 * 4) + ai1 * b.get(bP + 1 + 2 * 4) + ai2 * b.get(bP + 2 + 2 * 4) + ai3 * b.get(bP + 3 + 2 * 4));
-      d.put(dP + i + 3 * 4, ai0 * b.get(bP + 0 + 3 * 4) + ai1 * b.get(bP + 1 + 3 * 4) + ai2 * b.get(bP + 2 + 3 * 4) + ai3 * b.get(bP + 3 + 3 * 4));
-    }
+    result.put(resultPosition + 2,
+        (left.get(leftPosition + 2) * right.get(rightPosition + 0))
+            + (left.get(leftPosition + 6) * right.get(rightPosition + 1))
+            + (left.get(leftPosition + 10) * right.get(rightPosition + 2))
+            + (left.get(leftPosition + 14) * right.get(rightPosition + 3)));
+    result.put(resultPosition + 6,
+        (left.get(leftPosition + 2) * right.get(rightPosition + 4))
+            + (left.get(leftPosition + 6) * right.get(rightPosition + 5))
+            + (left.get(leftPosition + 10) * right.get(rightPosition + 6))
+            + (left.get(leftPosition + 14) * right.get(rightPosition + 7)));
+    result.put(resultPosition + 10,
+        (left.get(leftPosition + 2) * right.get(rightPosition + 8))
+            + (left.get(leftPosition + 6) * right.get(rightPosition + 9))
+            + (left.get(leftPosition + 10) * right.get(rightPosition + 10))
+            + (left.get(leftPosition + 14) * right.get(rightPosition + 11)));
+    result.put(resultPosition + 14,
+        (left.get(leftPosition + 2) * right.get(rightPosition + 12))
+            + (left.get(leftPosition + 6) * right.get(rightPosition + 13))
+            + (left.get(leftPosition + 10) * right.get(rightPosition + 14))
+            + (left.get(leftPosition + 14) * right.get(rightPosition + 15)));
+
+    result.put(resultPosition + 3,
+        (left.get(leftPosition + 3) * right.get(rightPosition + 0))
+            + (left.get(leftPosition + 7) * right.get(rightPosition + 1))
+            + (left.get(leftPosition + 11) * right.get(rightPosition + 2))
+            + (left.get(leftPosition + 15) * right.get(rightPosition + 3)));
+    result.put(resultPosition + 7,
+        (left.get(leftPosition + 3) * right.get(rightPosition + 4))
+            + (left.get(leftPosition + 7) * right.get(rightPosition + 5))
+            + (left.get(leftPosition + 11) * right.get(rightPosition + 6))
+            + (left.get(leftPosition + 15) * right.get(rightPosition + 7)));
+    result.put(resultPosition + 11,
+        (left.get(leftPosition + 3) * right.get(rightPosition + 8))
+            + (left.get(leftPosition + 7) * right.get(rightPosition + 9))
+            + (left.get(leftPosition + 11) * right.get(rightPosition + 10))
+            + (left.get(leftPosition + 15) * right.get(rightPosition + 11)));
+    result.put(resultPosition + 15,
+        (left.get(leftPosition + 3) * right.get(rightPosition + 12))
+            + (left.get(leftPosition + 7) * right.get(rightPosition + 13))
+            + (left.get(leftPosition + 11) * right.get(rightPosition + 14))
+            + (left.get(leftPosition + 15) * right.get(rightPosition + 15)));
   }
 
   /**
@@ -51,7 +110,7 @@ public class MatrixHelper {
         0.0f, 1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         x, y, z, 1.0f};
-    return multiply(m, t);
+    return multiply(t, m);
   }
 
   /**
@@ -66,7 +125,7 @@ public class MatrixHelper {
         x * y * (1.0f - c) - z * s, y * y * (1.0f - c) + c, y * z * (1.0f - c) + x * s, 0.0f,
         x * z * (1.0f - c) + y * s, y * z * (1.0f - c) - x * s, z * z * (1.0f - c) + c, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f};
-    return multiply(m, r);
+    return multiply(r, m);
   }
 
   public static void identity(float[] m) {

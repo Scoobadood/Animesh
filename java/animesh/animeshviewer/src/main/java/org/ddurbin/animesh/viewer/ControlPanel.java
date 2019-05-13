@@ -1,44 +1,57 @@
 package org.ddurbin.animesh.viewer;
 
-import org.ddurbin.common.Check;
+import javax.swing.JCheckBox;
+import javax.swing.JPanel;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 
 public class ControlPanel extends JPanel {
-    public ControlPanel() {
-        super();
-        setLayout(new GridLayout(3,2));
-        add( new Label("Normals"));
-        JCheckBox cb1 = new JCheckBox();
-        cb1.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println( e );
-            }
-        });
-        add(cb1);
-        add( new Label("Primary Tangent"));
-        JCheckBox cb2 = new JCheckBox();
-        cb2.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println( e );
-            }
-        });
-        add(cb2);
+    private JoglMain jm;
+    private JCheckBox cbEnableNormals;
+    private JCheckBox cbEnablePrincipalTangent;
+    private JCheckBox cbEnableAllTangents;
 
-        add( new Label("Other Tangents"));
-        JCheckBox cb3 = new JCheckBox();
-        cb3.addActionListener(new ActionListener() {
+    public ControlPanel(JoglMain jm) {
+        super();
+        this.jm = jm;
+        cbEnableNormals = new JCheckBox("Enable normals", jm.isNormalsEnabled());
+        cbEnableNormals.addItemListener(new ItemListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                System.out.println( e );
+            public void itemStateChanged(ItemEvent e) {
+                if( e.getStateChange() == ItemEvent.SELECTED ) {
+                    jm.enableNormals(true);
+                } else {
+                    jm.enableNormals(false);
+                }
             }
         });
-        add(cb3);
+        add(cbEnableNormals);
+        cbEnablePrincipalTangent = new JCheckBox("Enable principal tangent", jm.isPrincipalTangentEnabled());
+        cbEnablePrincipalTangent.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if( e.getStateChange() == ItemEvent.SELECTED ) {
+                    jm.enablePrincipalTangent(true);
+                } else {
+                    jm.enablePrincipalTangent(false);
+                }
+            }
+        });
+        add(cbEnablePrincipalTangent);
+        cbEnableAllTangents = new JCheckBox("Enable all tangents", jm.isTangentsEnabled());
+        cbEnableAllTangents.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if( e.getStateChange() == ItemEvent.SELECTED ) {
+                    jm.enableTangents(true);
+                } else {
+                    jm.enableTangents(false);
+                }
+            }
+        });
+
+        add(cbEnableAllTangents);
     }
 
 }

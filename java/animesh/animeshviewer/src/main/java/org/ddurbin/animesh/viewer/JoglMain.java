@@ -32,7 +32,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 
-import com.jogamp.opengl.util.FPSAnimator;
 import org.ddurbin.animesh.bin.State;
 import org.ddurbin.animesh.bin.StateUtilities;
 import org.ddurbin.common.Pair;
@@ -132,10 +131,10 @@ public class JoglMain implements GLEventListener, MouseListener {
         // Normal is red
         setLineColourAtPosition(arr, position, 1.0f, 0.0f, 0.0f);
         // Principal tangent is green
-        setLineColourAtPosition(arr, position + 8, 0.0f, 1.0f, 0.0f);
+        setLineColourAtPosition(arr, position + 8, 1.0f, 1.0f, 1.0f);
         // Other tangents are blue
-        setLineColourAtPosition(arr, position + 16, 0.0f, 0.0f, 1.0f);
-        setLineColourAtPosition(arr, position + 24, 0.0f, 0.0f, 1.0f);
+        setLineColourAtPosition(arr, position + 16, 0.6f, 0.6f, 0.6f);
+        setLineColourAtPosition(arr, position + 24, 0.6f, 0.6f, 0.6f);
     }
 
 
@@ -198,8 +197,7 @@ public class JoglMain implements GLEventListener, MouseListener {
         canvas.setBackground(Color.red);
         panel.add(canvas, BorderLayout.CENTER);
         JPanel controls = new ControlPanel(jm);
-        controls.setBackground(Color.ORANGE);
-        controls.setSize(100, 100);
+        controls.setSize(width/4, height);
         panel.add(controls, BorderLayout.WEST);
 
         frame.getContentPane().add(panel);
@@ -248,7 +246,6 @@ public class JoglMain implements GLEventListener, MouseListener {
         int numItems = (vertices.length / 24);
         int vertexDestIndex = 0;
         int colourDestIndex = 0;
-        int numItemsOut = 0;
         for (int i = 0; i < numItems; i++) {
 
             int vertexSourceIndex = i * 24;
@@ -260,7 +257,6 @@ public class JoglMain implements GLEventListener, MouseListener {
             Vector3f norm = normEnd.minus(normStart);
 
             if (norm.dot(camOrigin) > 0) {
-                numItemsOut++;
                 if (normalsEnabled) {
                     System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 6);
                     System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 8);
@@ -269,18 +265,25 @@ public class JoglMain implements GLEventListener, MouseListener {
                 }
                 vertexSourceIndex += 6;
                 colourSourceIndex += 8;
-                if (principalTangentEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 6);
-                    System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 8);
-                    vertexDestIndex += 6;
-                    colourDestIndex += 8;
-                }
-                vertexSourceIndex += 6;
-                colourSourceIndex += 8;
+
                 if (tangentsEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 12);
+                    // Copy 6 vertices worth of coordinates
+                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 18);
+                    vertexDestIndex += 18;
+
+                    if (principalTangentEnabled) {
+                        // Copy 8 floats worth of colours from here and shift indices
+                        System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 8);
+                        colourDestIndex += 8;
+                        colourSourceIndex += 8;
+                    } else {
+                        // Copy 8 floats worth of colours from 8 floats on, skip the intervening floats
+                        System.arraycopy(colours, colourSourceIndex+8, renderColours, colourDestIndex, 8);
+                        colourDestIndex += 8;
+                        colourSourceIndex += 8;
+                    }
+                    // Copy 16 floats of colour
                     System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 16);
-                    vertexDestIndex += 12;
                     colourDestIndex += 16;
                 }
             }
@@ -495,7 +498,7 @@ public class JoglMain implements GLEventListener, MouseListener {
         Pair<Integer, Integer> renderObjects = removeHidden(renderVertices, renderColour);
         int itemSize = renderObjects.first;
         int dataSize = renderObjects.second;
-        int numItems = dataSize / itemSize;
+        int numItems = (itemSize == 0) ? 0 : (dataSize / itemSize);
         renderVertices = Arrays.copyOf(renderVertices, dataSize);
         renderColour = Arrays.copyOf(renderColour, numItems * (itemSize * 4 / 3));
 

@@ -2,7 +2,9 @@ package org.ddurbin.animesh.viewer;
 
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 
+import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
@@ -13,7 +15,7 @@ public class ControlPanel extends JPanel {
     private JCheckBox cbEnableAllTangents;
 
     public ControlPanel(JoglMain jm) {
-        super();
+        super(new GridLayout(4,1));
         this.jm = jm;
         cbEnableNormals = new JCheckBox("Enable normals", jm.isNormalsEnabled());
         cbEnableNormals.addItemListener(new ItemListener() {

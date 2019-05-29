@@ -2,10 +2,12 @@ cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+
 project( Animesh
          VERSION 0.1 
          LANGUAGES CXX )
 
+set(PROJECT_VERSION 0.1)
 
 # Tell cmake where to find modules
 set(CMAKE_MODULE_PATH "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/animesh/src/cmake_modules")
@@ -24,6 +26,7 @@ add_subdirectory( QtMain )
 add_subdirectory( libCamera )
 add_subdirectory( libGeom )
 add_subdirectory( libRoSy )
+add_subdirectory( libDepthMap )
 add_subdirectory( libGraph )
 add_subdirectory( libField )
 add_subdirectory( libArgs )

@@ -2,6 +2,7 @@
 #include <FileUtils/PgmFileParser.h>
 #include <FileUtils/FileUtils.h>
 #include <Camera/Camera.h>
+#include <DepthMap/DepthMap.h>
 #include "depth_image_loader.h"
 
 #include <pcl/point_types.h>
@@ -143,6 +144,40 @@ compute_surface_normals(const pcl::PointCloud<pcl::PointXYZ>&	all_points,
 }
 
 /**
+ * Read a depth image.
+ */
+void
+read_depth_file(const std::string& 					file_name,
+				unsigned int& 						width, 
+				unsigned int& 						height,
+				std::vector<std::vector<float>>&	depth_data) {
+	using namespace std;
+
+	width = 0;
+	process_file_by_lines( file_name, 
+		[&](const string& text_line){
+			using namespace std;
+			vector<float> depth_image_row;
+			vector<string> tokens = tokenise(text_line);
+			if( width == 0 ) {
+				width = tokens.size();
+			} else {
+				if( width != tokens.size() ) {
+					string message = "Lines of file must all be the same length";
+					throw std::domain_error( message );
+				}
+			}
+			for( auto token : tokens ) {
+				float f = stof(token);
+				depth_image_row.push_back(f);
+			}
+			depth_data.push_back(depth_image_row);
+	}); 
+	height = depth_data.size();
+}
+
+
+/**
  * Load one depth image point cloud.
  * @param file_name The file from which to load - expected to be a PGM file.
  * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
@@ -160,36 +195,15 @@ load_depth_image(const std::string& 						file_name,
 	points_with_normals.clear();
 	neighbour_indices.clear();
 
-	// Record start time
-	auto start = std::chrono::high_resolution_clock::now();
-
+	PointCloud<PointXYZ>	all_points;
 	// Each row is a space separated set of floats
 	std::vector<std::vector<float>> depth_data;
-	unsigned int width = 0;
-	process_file_by_lines( file_name, 
-		[&](const string& text_line){
-			using namespace std;
-			std::vector<float> depth_image_row;
-			vector<string> tokens = tokenise(text_line);
-			if( width == 0 ) {
-				width = tokens.size();
-			} else {
-				if( width != tokens.size() ) {
-					string message = "Lines of file must all be the same length";
-					throw std::domain_error( message );
-				}
-			}
-			for( auto token : tokens ) {
-				float f = stof(token);
-				depth_image_row.push_back(f);
-			}
-			depth_data.push_back(depth_image_row);
-	}); 
-	unsigned int height = depth_data.size();
+	unsigned int width;
+	unsigned int height;
+	read_depth_file(file_name, width, height, depth_data);
 
 	Matrix3f K, R;
 	Vector3f t;
-	auto finish_read = std::chrono::high_resolution_clock::now();
 
 	// TODO : Derive this from file_name
 	string cam_file_name = "camera.txt";
@@ -197,8 +211,6 @@ load_depth_image(const std::string& 						file_name,
 
 	// For all pixels wth a valid depth, generate a 3 point and store
 	// to all_points
-	pcl::PointCloud<pcl::PointXYZ> all_points;
-
 	for( int y=0; y<height; ++y) {
 		for( int x = 0; x < width; ++x ) {
 			float depth = depth_data.at(y).at(x);
@@ -210,17 +222,8 @@ load_depth_image(const std::string& 						file_name,
 			}
 		}
 	}	
-	auto finish_back_project = std::chrono::high_resolution_clock::now();
 	compute_surface_normals(all_points, points_with_normals, neighbour_indices);
-
-	// Record end time
-	auto finish_normals = std::chrono::high_resolution_clock::now();
-	cout << "load_depth_image" << endl
-	     << "       file read : " << (chrono::duration_cast<chrono::milliseconds>(finish_read - start)).count() << "ms" << endl
-	     << "    back project : " << (chrono::duration_cast<chrono::milliseconds>(finish_back_project - finish_read)).count() << "ms" << endl
-	     << " compute normals : " << (chrono::duration_cast<chrono::milliseconds>(finish_normals - finish_back_project)).count() << "ms" << endl;
 }
-
 /*
  * Load depth images from disk and convert to point couds.
  * @param file_names The input file names of depth images, assumed to be PGM files.
@@ -250,3 +253,65 @@ load_depth_images(	const std::vector<std::string>& 						file_names,
 	}
 }
 
+
+
+//
+//
+// 2.5D Handling
+//
+//
+
+/**
+ * Load one depth image point cloud.
+ * @param file_name The file from which to load - expected to be a PGM file.
+ * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
+ * @param points_with_normal Populated by this method.
+ */
+void
+load_depth_image(const std::string& 						file_name,
+				 std::vector<PointWithNormal2_5D>&    		points_with_normals,
+				 std::vector<std::vector<unsigned int>>& 	neighbour_indices) {
+	using namespace std;
+	using namespace Eigen;
+	using namespace pcl;
+
+	points_with_normals.clear();
+	neighbour_indices.clear();
+
+	// Each row is a space separated set of floats
+	DepthMap dm{file_name};
+	dm.cull_unreliable_depths(8.0f,3.0f);
+
+//	compute_surface_normals(all_points, points_with_normals, neighbour_indices);
+}
+
+/**
+ * Read depth images and convert to 2.5D clouds
+ * @param file_names The input file names of depth images, assumed to be PGM files.
+ * @param point_clouds A vector which is populated by this method. For each frame, for each point, a PointWithNormal.
+ * @param neighbours Populated by this method. For each frame, for each point, the neighbouring point indices used to compute the normal.
+ */
+void 
+load_depth_images(const std::vector<std::string>& 						file_names,
+				  std::vector<std::vector<PointWithNormal2_5D>>& 		point_clouds,
+				  std::vector<std::vector<std::vector<unsigned int>>>&	neighbours) {
+	using namespace std;
+
+	// Clear out any residual data
+	point_clouds.clear();
+	neighbours.clear();
+
+	int current_frame_index = 0;
+	for( auto file_name : file_names ) {
+		vector<PointWithNormal2_5D> points_with_normals;
+		vector<vector<unsigned int>> neighbour_indices;
+
+		// Load a single file
+		load_depth_image(file_name, points_with_normals, neighbour_indices);
+
+		++current_frame_index;
+
+		point_clouds.push_back( points_with_normals );
+		neighbours.push_back(neighbour_indices);
+	}
+}

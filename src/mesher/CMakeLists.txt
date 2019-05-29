@@ -22,6 +22,7 @@ add_executable(mesher
    	${SOURCES})
 
 target_link_libraries(mesher
+	DepthMap
 	FileUtils
 	Graph
 	RoSy

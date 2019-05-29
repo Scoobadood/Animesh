@@ -9,11 +9,11 @@ public:
 	 */
 	DepthMap(const std::string& filename);
 
-	inline unsigned int rows() { return width;}
-	inline unsigned int cols() { return height;}
+	inline unsigned int rows() { return height;}
+	inline unsigned int cols() { return width;}
 	float depth_at(unsigned int row, unsigned int col) {
 		assert( row < height && row >= 0 );
-		assert( col < height && col >= 0 );
+		assert( col < width && col >= 0 );
 		return depth_data[index(row, col)];
 	}
 	void cull_unreliable_depths(float ts, float tl);

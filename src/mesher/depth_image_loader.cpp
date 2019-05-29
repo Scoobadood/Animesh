@@ -10,7 +10,6 @@
 
 static int DEBUG_LEVEL = 1;
 
-
 struct sort_by_distance {
     bool operator ()(std::pair<float, int> const& a, std::pair<float, int> const& b) {
         return a.first < b.first;

@@ -93,33 +93,33 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 			float hp = fabsf( dp[1] - dp[0]);
 			float vp = fabsf( dp[3] - dp[2]);
 
-			bool r = true;
+			bool rel = false;
 			if( hp > ts && vp > ts) {
 				// First case: hp > ts && vp > ts ==> p is near ts
-				// p is reliable if |Dpi - Dp| <= Tl for all i
+				// p is reliable if |Dpi - Dp| <= Tl for *any* i
 				for( int i=0; i<4; i++ ) {
-					if( fabsf(dp[i] - p) > tl) {
-						r = false;
+					if( fabsf(dp[i] - p) <= tl) {
+						rel = true;
 						break;
 					}
 				}
 			}
 
 			else if (vp > ts && hp <= tl) { 
-				// Second case: p near horizontal discontinutiy. Check vertical neighbours for reliability
-				for( int i=2; i<4; i++ ) {
-					if( fabsf(dp[i] - p) > tl) {
-						r = false;
+				// Second case: p near VERTICAL discontinutiy. Check HORIZONTAL neighbours for reliability
+				for( int i=0; i<2; i++ ) {
+					if( fabsf(dp[i] - p) <= tl) {
+						rel = true;
 						break;
 					}
 				}
 			}
 
 			else if ( hp > ts && vp <= tl) {
-				// Third case: p near vertical discontinutiy. Check horizontal neighbours for reliability
-				for( int i=0; i<2; i++ ) {
-					if( fabsf(dp[i] - p) > tl) {
-						r = false;
+				// Third case: p near HORIZONTAL discontinutiy. Check VERTICAL neighbours for reliability
+				for( int i=2; i<4; i++ ) {
+					if( fabsf(dp[i] - p) <= tl) {
+						rel = true;
 						break;
 					}
 				}
@@ -128,13 +128,13 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 			else {
 				// Fourth case: Generally allpoints in homogeneous region but p may be an outlier check for this.
 				for( int i=0; i<4; i++ ) {
-					if( fabsf(dp[i] - p) > tl) {
-						r = false;
+					if( fabsf(dp[i] - p) <= tl) {
+						rel = true;
 						break;
 					}
 				}
 			}
-			reliable[r][c] = r;
+			reliable[r][c] = rel;
 		}
 	}
 
@@ -146,5 +146,91 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 			}
 		}
 	}
-
 }
+
+/**
+ * Compute the surface normals for each point in the
+ * depth map.
+ */
+const std::vector<std::vector<std::vector<float>>>& 
+DepthMap::compute_normals() {
+	using namespace std;
+	if( normals.size() > 0 ) { 
+		return normals;
+	}
+
+	// First pass, compute normals where there's a depth and
+	// neighbours are good. Otherwise put (0,0,0)
+	for( int row = 0; row < rows(); ++row ) {
+		vector<vector<float>> normal_row;
+		vector<tNormal> normal_row_types;
+		for( int col = 0; col < cols(); ++col) {
+			float d = depth_at( row, col );
+			float neighbour_depths[4];
+			if( ( d == 0.0f) || get_neighbour_depths(row,col, neighbour_depths) != 15 ) {
+				normal_row.push_back(vector<float>{0,0,0});
+			    if( d == 0.0f ) {
+			    	normal_row_types.push_back(NONE);
+			    } else {
+			    	normal_row_types.push_back(DERIVED);
+			    }
+				continue;
+			}
+
+			float dzdx = neighbour_depths[3] - neighbour_depths[2];
+			float dzdy = neighbour_depths[1] - neighbour_depths[0];
+			float scale = sqrt(dzdx*dzdx + dzdy*dzdy + 1.0f);
+			dzdx /= scale;
+			dzdy /= scale;
+			vector<float> norm{-dzdx, -dzdy, 1.0f / scale};
+			normal_row.push_back(norm);
+	    	normal_row_types.push_back(NATURAL);
+		}
+		normals.push_back(normal_row);
+		normal_types.push_back(normal_row_types);
+	}
+	
+	// Second pass, for missing normals, infill with mean of neighbours
+	for( int row = 0; row < rows(); ++row ) {
+		vector<vector<float>> normal_row;
+		for( int col = 0; col < cols(); ++col) {
+			if(    normal_types[row][col] == NONE 
+				|| normal_types[row][col] == NATURAL ) {
+				continue;
+			}
+			// Derived normal
+			float neighbour_depths[4];
+			vector<float> sum{0.0f, 0.0f, 0.0f};
+			int count = 0;
+			int flags = get_neighbour_depths(row,col, neighbour_depths);
+			if( flags & UP ) {
+				sum[0] += normals[row-1][col][0];
+				sum[1] += normals[row-1][col][1];
+				sum[2] += normals[row-1][col][2];
+				count++;
+			}
+			if( flags & DOWN ) {
+				sum[0] += normals[row+1][col][0];
+				sum[1] += normals[row+1][col][1];
+				sum[2] += normals[row+1][col][2];
+				count++;
+			}
+			if( flags & LEFT ) {
+				sum[0] += normals[row][col-1][0];
+				sum[1] += normals[row][col-1][1];
+				sum[2] += normals[row][col-1][2];
+				count++;
+			}
+			if( flags & RIGHT ) {
+				sum[0] += normals[row][col+1][0];
+				sum[1] += normals[row][col+1][1];
+				sum[2] += normals[row][col+1][2];
+				count++;
+			}
+			normals[row][col][0] = sum[0] / count;
+			normals[row][col][1] = sum[1] / count;
+			normals[row][col][2] = sum[2] / count;
+		}
+	}
+}
+

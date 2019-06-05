@@ -1,6 +1,8 @@
 #include "TestDepthMap.h"
 
 #include <iostream>
+#include <cmath>
+const float INV_SQRT_2 = 1.0f / std::sqrt(2.0f);
 
 void TestDepthMap::SetUp( ) {}
 void TestDepthMap::TearDown() {}
@@ -126,5 +128,59 @@ TEST_F( TestDepthMap, DiagonalEdgeTest ) {
 	dump(d);
 
 	EXPECT_EQ( count, 25);
+}
+
+void dump_normals (const std::vector<std::vector<std::vector<float>>>& normals) {
+	for( int row = 0; row< normals.size(); row++ ) {
+		for( int col = 0; col < normals[row].size(); col++) {
+			std::cout << normals[row][col][0] << ", "
+					  << normals[row][col][1] << ", "
+					  << normals[row][col][2] << std::endl;
+		}
+	}
+}
+
+
+TEST_F( TestDepthMap, CentralNormalIsZ ) {
+	// 7x7 map with 5x5 set in centre.
+	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
+	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+
+	EXPECT_EQ( normals[3][3][0], 0.0f);
+	EXPECT_EQ( normals[3][3][1], 0.0f);
+	EXPECT_EQ( normals[3][3][2], 1.0f);
+}
+
+TEST_F( TestDepthMap, TopLeftNormalIsNotThere ) {
+	// 7x7 map with 5x5 set in centre.
+	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
+	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+
+	//-0, 0.948683, 0.316228
+	EXPECT_EQ( normals[0][0][0], 0.0f);
+	EXPECT_EQ( normals[0][0][1], 0.0f);
+	EXPECT_EQ( normals[0][0][2], 0.0f);
+}
+
+TEST_F( TestDepthMap, TopCentralNormalIsZ ) {
+	// 7x7 map with 5x5 set in centre.
+	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
+	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+
+
+	EXPECT_EQ( normals[1][3][0], 0.0f);
+	EXPECT_EQ( normals[1][3][1], 0.0f);
+	EXPECT_EQ( normals[1][3][2], 1.0f);
+}
+
+TEST_F( TestDepthMap, LeftCentralNormalIsZ ) {
+	// 7x7 map with 5x5 set in centre.
+	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
+	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+
+
+	EXPECT_EQ( normals[3][1][0], 0.0f);
+	EXPECT_EQ( normals[3][1][1], 0.0f);
+	EXPECT_EQ( normals[3][1][2], 1.0f);
 }
 

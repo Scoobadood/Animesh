@@ -6,6 +6,19 @@
 
 class DepthMap {
 public:
+	typedef enum{
+		UP_LEFT = 1,
+		UP = 2,
+		UP_RIGHT = 4,
+		RIGHT = 8,
+		DOWN_RIGHT = 16,
+		DOWN = 32,
+		DOWN_LEFT = 64,
+		LEFT = 128,
+		ALL = 255,
+		FOUR = UP | LEFT | RIGHT | DOWN
+	} tDirection;
+
 	/**
 	 * Load from file.
 	 */
@@ -19,7 +32,7 @@ public:
 		return depth_data[index(row, col)];
 	}
 	void cull_unreliable_depths(float ts, float tl);
-	const std::vector<std::vector<std::vector<float>>>& compute_normals();
+	const std::vector<std::vector<std::vector<float>>>& get_normals();
 
 private:
 	typedef enum{
@@ -27,43 +40,24 @@ private:
 		DERIVED,
 		NATURAL
 	} tNormal;
-	typedef enum{
-		UP = 1,
-		DOWN = 2,
-		LEFT = 4,
-		RIGHT = 8,
-		ALL = 15
-	} tDirection;
 
 	float *depth_data;
 	unsigned int width;
 	unsigned int height;
 	std::vector<std::vector<std::vector<float>>> normals;
 	std::vector<std::vector<tNormal>> normal_types;
+
+	void compute_normals();
+	void compute_natural_normals();
+	void compute_derived_normals();
+
 	inline unsigned int index(unsigned int row, unsigned int col) const {
 		return row * width + col;
 	}
 	inline bool is_edge(unsigned int row, unsigned int col) const {
 		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
 	}
-	inline int get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[]) const {
-		int flags = 0;
-		if( row != 0 ) {
-			neighbour_depths[0] = depth_at(row-1, col);
-			flags |= UP;
-		}
-		if( row != rows() - 1 ) {
-			neighbour_depths[1] = depth_at(row+1, col);
-			flags |= DOWN;
-		}
-		if( col != 0 ) {
-			neighbour_depths[2] = depth_at(row, col-1);
-			flags |= LEFT;
-		}
-		if( col != cols() - 1 ) {
-			neighbour_depths[3] = depth_at(row, col+1);
-			flags |= RIGHT;
-		}
-		return flags;
-	}
+	int get_valid_neighbours(unsigned int row, unsigned int col, bool eightConnected) const;
+	int get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected) const;
+
 };

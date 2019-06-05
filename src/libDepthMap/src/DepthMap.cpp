@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 DepthMap::DepthMap(const std::string& filename) {
 	using namespace std;
@@ -52,6 +53,90 @@ float median_value(const std::vector<float>& v) {
 		return (tmp[mid] + tmp[mid - 1]) / 2.0f;
 	}
 	return tmp[mid];
+}
+
+int 
+DepthMap::get_valid_neighbours(unsigned int row, unsigned int col, bool eightConnected) const {
+	int flags = 0;
+	if( row > 0 ) {
+		flags |= UP;
+		if( eightConnected ) {
+			if( col > 0 ) flags |= UP_LEFT;
+			if( col < cols() - 1) flags |= UP_RIGHT;
+		}
+	}
+	if( row < rows() - 1 ) {
+		flags |= DOWN;
+		if( eightConnected) {
+			if( col > 0 ) flags |= DOWN_LEFT;
+			if( col < cols() - 1) flags |= DOWN_RIGHT;
+		}
+	}
+	if( col > 0 ) {
+		flags |= LEFT;
+	}
+	if( col < cols() - 1 ) {
+		flags |= RIGHT;
+	}
+	return flags;
+}
+
+inline bool flag_is_set( int flags, DepthMap::tDirection flag ) {
+	return ((flags & flag) == flag);
+}
+
+inline int clear_flag_if_zero( float value, int flags, DepthMap::tDirection flag) {
+	if( value != 0.0f) return flags;
+	return flags & (!flag);
+}
+
+int 
+DepthMap::get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected) const {
+	int flags = get_valid_neighbours(row, col, eightConnected);
+	float d;
+	if( flag_is_set(flags, UP) ) {
+		d = depth_at(row-1, col);
+		flags = clear_flag_if_zero( d, flags, UP );
+		neighbour_depths[0] = d;
+	}
+	if( flag_is_set(flags, DOWN)) {
+		d = depth_at(row+1, col);
+		flags = clear_flag_if_zero( d, flags, DOWN );
+		neighbour_depths[1] = d;
+	}
+	if( flag_is_set(flags, LEFT)) {
+		d = depth_at(row, col-1);
+		flags = clear_flag_if_zero( d, flags, LEFT );
+		neighbour_depths[2] = d;
+	}
+	if( flag_is_set(flags, RIGHT)) {
+		d = depth_at(row, col+1);
+		flags = clear_flag_if_zero( d, flags, RIGHT );
+		neighbour_depths[3] = d;
+	}
+	if( eightConnected) {
+		if( flag_is_set(flags, UP_LEFT)) {
+			d = depth_at(row-1, col-1);
+			flags = clear_flag_if_zero( d, flags, UP_LEFT );
+			neighbour_depths[4] = d;
+		}
+		if( flag_is_set(flags, UP_RIGHT)) {
+			d = depth_at(row-1, col+1);
+			flags = clear_flag_if_zero( d, flags, UP_RIGHT );
+			neighbour_depths[5] = d;
+		}
+		if( flag_is_set(flags, DOWN_LEFT)) {
+			d = depth_at(row+1, col-1);
+			flags = clear_flag_if_zero( d, flags, DOWN_LEFT );
+			neighbour_depths[6] = d;
+		}
+		if( flag_is_set(flags, DOWN_RIGHT)) {
+			d = depth_at(row+1, col+1);
+			flags = clear_flag_if_zero( d, flags, DOWN_RIGHT );
+			neighbour_depths[7] = d;
+		}
+	}
+	return flags;
 }
 
 /*
@@ -148,26 +233,23 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 	}
 }
 
-/**
- * Compute the surface normals for each point in the
- * depth map.
- */
-const std::vector<std::vector<std::vector<float>>>& 
-DepthMap::compute_normals() {
-	using namespace std;
-	if( normals.size() > 0 ) { 
-		return normals;
-	}
 
-	// First pass, compute normals where there's a depth and
-	// neighbours are good. Otherwise put (0,0,0)
+/**
+ * Compute normals that have all adjacent data set in the depth map,
+ * that is, those normals which can be computed fully from depth data alone.
+ */
+void
+DepthMap::compute_natural_normals( ) {
+	using namespace std;
+
 	for( int row = 0; row < rows(); ++row ) {
 		vector<vector<float>> normal_row;
 		vector<tNormal> normal_row_types;
 		for( int col = 0; col < cols(); ++col) {
 			float d = depth_at( row, col );
 			float neighbour_depths[4];
-			if( ( d == 0.0f) || get_neighbour_depths(row,col, neighbour_depths) != 15 ) {
+			// If depth is invalid or we don;t have four neighbours, skip
+			if( ( d == 0.0f) || get_neighbour_depths(row,col, neighbour_depths, false) != FOUR ) {
 				normal_row.push_back(vector<float>{0,0,0});
 			    if( d == 0.0f ) {
 			    	normal_row_types.push_back(NONE);
@@ -189,48 +271,68 @@ DepthMap::compute_normals() {
 		normals.push_back(normal_row);
 		normal_types.push_back(normal_row_types);
 	}
-	
-	// Second pass, for missing normals, infill with mean of neighbours
+}
+
+void
+DepthMap::compute_derived_normals( ) {
+	using namespace std;
+
 	for( int row = 0; row < rows(); ++row ) {
 		vector<vector<float>> normal_row;
 		for( int col = 0; col < cols(); ++col) {
+			// Skip existing normals
 			if(    normal_types[row][col] == NONE 
 				|| normal_types[row][col] == NATURAL ) {
 				continue;
 			}
-			// Derived normal
-			float neighbour_depths[4];
+
 			vector<float> sum{0.0f, 0.0f, 0.0f};
 			int count = 0;
-			int flags = get_neighbour_depths(row,col, neighbour_depths);
-			if( flags & UP ) {
-				sum[0] += normals[row-1][col][0];
-				sum[1] += normals[row-1][col][1];
-				sum[2] += normals[row-1][col][2];
-				count++;
-			}
-			if( flags & DOWN ) {
-				sum[0] += normals[row+1][col][0];
-				sum[1] += normals[row+1][col][1];
-				sum[2] += normals[row+1][col][2];
-				count++;
-			}
-			if( flags & LEFT ) {
-				sum[0] += normals[row][col-1][0];
-				sum[1] += normals[row][col-1][1];
-				sum[2] += normals[row][col-1][2];
-				count++;
-			}
-			if( flags & RIGHT ) {
-				sum[0] += normals[row][col+1][0];
-				sum[1] += normals[row][col+1][1];
-				sum[2] += normals[row][col+1][2];
-				count++;
+			for( int ri = row - 1; ri <= row + 1; ri++ ) {
+				for( int ci=col - 1; ci <= col + 1; ci++ ) {
+					if( ri < 0 || ri >= cols() || ci < 0 || ci >= cols() ) {
+						continue;
+					}
+					if( normal_types[ri][ci] == NONE) {
+						continue;
+					}
+					if( normal_types[ri][ci] == NATURAL) {
+						float nx = normals[ri][ci][0];
+						float ny = normals[ri][ci][1];
+						float nz = normals[ri][ci][2];
+						sum[0] += nx;
+						sum[1] += ny;
+						sum[2] += nz;
+						count++;
+					}
+				}
 			}
 			normals[row][col][0] = sum[0] / count;
 			normals[row][col][1] = sum[1] / count;
 			normals[row][col][2] = sum[2] / count;
 		}
 	}
+}
+
+/**
+ * Compute the surface normals for each point in the
+ * depth map.
+ */
+void
+DepthMap::compute_normals() {
+	compute_natural_normals();
+	compute_derived_normals();
+}
+
+/**
+ * Return the normals. Compute them if needed.
+ */
+const std::vector<std::vector<std::vector<float>>>& 
+DepthMap::get_normals() {
+	using namespace std;
+	if( normals.size() == 0 ) { 
+		compute_normals();
+	}
+	return normals;
 }
 

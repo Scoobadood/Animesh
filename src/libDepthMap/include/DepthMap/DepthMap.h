@@ -6,7 +6,7 @@
 
 class DepthMap {
 public:
-	typedef enum{
+	typedef enum {
 		UP_LEFT = 1,
 		UP = 2,
 		UP_RIGHT = 4,
@@ -33,9 +33,11 @@ public:
 	}
 	void cull_unreliable_depths(float ts, float tl);
 	const std::vector<std::vector<std::vector<float>>>& get_normals();
+	int get_valid_neighbours(unsigned int row, unsigned int col, bool eightConnected) const;
+	static bool flag_is_set( int flags, DepthMap::tDirection flag );
 
 private:
-	typedef enum{
+	typedef enum {
 		NONE,
 		DERIVED,
 		NATURAL
@@ -57,7 +59,6 @@ private:
 	inline bool is_edge(unsigned int row, unsigned int col) const {
 		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
 	}
-	int get_valid_neighbours(unsigned int row, unsigned int col, bool eightConnected) const;
 	int get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected) const;
 
 };

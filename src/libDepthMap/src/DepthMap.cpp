@@ -81,7 +81,7 @@ DepthMap::get_valid_neighbours(unsigned int row, unsigned int col, bool eightCon
 	return flags;
 }
 
-inline bool flag_is_set( int flags, DepthMap::tDirection flag ) {
+inline bool DepthMap::flag_is_set( int flags, DepthMap::tDirection flag ) {
 	return ((flags & flag) == flag);
 }
 

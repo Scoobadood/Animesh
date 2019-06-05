@@ -140,7 +140,6 @@ void dump_normals (const std::vector<std::vector<std::vector<float>>>& normals) 
 	}
 }
 
-
 TEST_F( TestDepthMap, CentralNormalIsZ ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
@@ -167,7 +166,6 @@ TEST_F( TestDepthMap, TopCentralNormalIsZ ) {
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
 
-
 	EXPECT_EQ( normals[1][3][0], 0.0f);
 	EXPECT_EQ( normals[1][3][1], 0.0f);
 	EXPECT_EQ( normals[1][3][2], 1.0f);
@@ -177,7 +175,6 @@ TEST_F( TestDepthMap, LeftCentralNormalIsZ ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
-
 
 	EXPECT_EQ( normals[3][1][0], 0.0f);
 	EXPECT_EQ( normals[3][1][1], 0.0f);

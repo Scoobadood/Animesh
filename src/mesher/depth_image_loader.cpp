@@ -92,22 +92,62 @@ load_depth_image(const std::string& 						file_name,
 			}
 		}
 	}
-	for( int row = 0; row < dm.rows(); ++row ) {
-		for( int col = 0; col < dm.cols(); ++col ) {
-			// Neighbours
-			vector<unsigned int> these_neighbours;
-			for( int ri = row - 1; ri <= row + 1; ++ri ) {
-				for( int ci = col - 1; ci <= col + 1; ++ci ) {
-					if( ri < 0 || ri >= dm.rows() || ci < 0 || ci >= dm.cols() )
-						continue;
-					int pixel_index = pixel_indices[ri][ci];
-					if( pixel_index < 0 )
-						continue;
-					these_neighbours.push_back(pixel_index);
-				}
+	for( auto pn : points_with_normals) {
+		vector<unsigned int> these_neighbours;
+
+		int row = pn.point.y();
+		int col = pn.point.x();
+		int valid_neighbours =  dm.get_valid_neighbours(row, col, true);
+		int pixel_index;
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::UP_LEFT) ) {
+			pixel_index = pixel_indices[row-1][col-1];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
 			}
-			neighbour_indices.push_back(these_neighbours);
 		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::UP) ) {
+			pixel_index = pixel_indices[row-1][col];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::UP_RIGHT) ) {
+			pixel_index = pixel_indices[row-1][col+1];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::LEFT) ) {
+			pixel_index = pixel_indices[row][col-1];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::RIGHT) ) {
+			pixel_index = pixel_indices[row][col+1];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::DOWN_LEFT) ) {
+			pixel_index = pixel_indices[row+1][col-1];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::DOWN_RIGHT) ) {
+			pixel_index = pixel_indices[row+1][col+1];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		if( DepthMap::flag_is_set(valid_neighbours, DepthMap::DOWN) ) {
+			pixel_index = pixel_indices[row+1][col];
+			if( pixel_index >= 0 ) {
+				these_neighbours.push_back(pixel_index);
+			}
+		}
+		neighbour_indices.push_back(these_neighbours);
 	}
 }
 

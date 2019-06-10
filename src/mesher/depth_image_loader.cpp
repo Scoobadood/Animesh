@@ -40,12 +40,12 @@ read_depth_file(const std::string& 					file_name,
 	height = depth_data.size();
 }
 
-
 /**
  * Load one depth image point cloud.
- * @param file_name The file from which to load - expected to be a PGM file.
- * @param neighbour_indices The indices of neighbouring points as a vector for each point in the cloud.
- * @param points_with_normal Populated by this method.
+ * @param file_name The file from which to load - expected to be a MAT file (each row of pixels is a line of space separated floats)
+ * @param neighbour_indices The indices of neighbouring pixels as a vector for each valid pixel in the depth map.
+ * @param points_with_normal Populated by this method. A 2D coordinate, depth and normal for each valid pixel in the depth map.
+ * All indices are 0 based.
  */
 void
 load_depth_image(const std::string& 						file_name,
@@ -67,44 +67,43 @@ load_depth_image(const std::string& 						file_name,
 	vector<vector<vector<float>>> normals = dm.get_normals( );
 
 	// Compute index for each valid point
-	vector<vector<int>> point_indices;
-	point_indices.resize(dm.rows());
-	int count = 0;
-	for( int row = 0; row < dm.rows(); ++row ) {
-		point_indices[row].resize(dm.cols());
-		for( int col = 0; col < dm.cols(); ++col ) {
-			if(dm.depth_at(row,col) != 0.0f ) {
-				point_indices[row][col] = count++;
-			} else {
-				point_indices[row][col] = -1;
-			}
-		}
-	}
+	vector<vector<int>> pixel_indices;
+	pixel_indices.resize(dm.rows());
 
 	// Now build the data
 	for( int row = 0; row < dm.rows(); ++row ) {
+		pixel_indices[row].resize(dm.cols());
 		for( int col = 0; col < dm.cols(); ++col ) {
 			float nx = normals[row][col][0];
 			float ny = normals[row][col][1];
 			float nz = normals[row][col][2];
+
+
+			// If the point has a normal
 			if( nx+ny+nz > 0.0f ) {
 				points_with_normals.push_back(PointWithNormal2_5D{
 					Vector2f{col, row},
 					dm.depth_at(row, col),
 					Vector3f{nx, ny, nz}
 				});
+				pixel_indices[row][col] = points_with_normals.size() - 1;
+			} else {
+				pixel_indices[row][col] = -1;
 			}
-
+		}
+	}
+	for( int row = 0; row < dm.rows(); ++row ) {
+		for( int col = 0; col < dm.cols(); ++col ) {
 			// Neighbours
 			vector<unsigned int> these_neighbours;
 			for( int ri = row - 1; ri <= row + 1; ++ri ) {
 				for( int ci = col - 1; ci <= col + 1; ++ci ) {
 					if( ri < 0 || ri >= dm.rows() || ci < 0 || ci >= dm.cols() )
 						continue;
-					int point_index = point_indices[ri][ci];
-					if( point_index < 0 )
+					int pixel_index = pixel_indices[ri][ci];
+					if( pixel_index < 0 )
 						continue;
-					these_neighbours.push_back(point_index);
+					these_neighbours.push_back(pixel_index);
 				}
 			}
 			neighbour_indices.push_back(these_neighbours);
@@ -128,15 +127,12 @@ load_depth_images(const std::vector<std::string>& 						file_names,
 	point_clouds.clear();
 	neighbours.clear();
 
-	int current_frame_index = 0;
 	for( auto file_name : file_names ) {
 		vector<PointWithNormal2_5D> points_with_normals;
 		vector<vector<unsigned int>> neighbour_indices;
 
 		// Load a single file
 		load_depth_image(file_name, points_with_normals, neighbour_indices);
-
-		++current_frame_index;
 
 		point_clouds.push_back( points_with_normals );
 		neighbours.push_back(neighbour_indices);

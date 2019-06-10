@@ -64,7 +64,7 @@ int main( int argc, char *argv[] ) {
     load_from_file(file_or_directory, surfels, point_normals);
     cout << " done." << endl;
   } else { /* use_directory */
-    cout << "Loading from directory " << file_or_directory << "..." << flush;
+    cout << "Loading from directory " << file_or_directory << "..." << endl;
     load_from_directory(file_or_directory, surfels, point_normals);
     cout << "Saving..." << flush;
     save_to_file( "surfel_table.bin", surfels, point_normals);

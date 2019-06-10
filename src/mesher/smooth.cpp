@@ -137,7 +137,7 @@ find_common_frames(	const std::vector<FrameData>& surfel_frames,
 void
 get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels, 
 									std::size_t surfel_idx, 
-									const std::vector<std::vector<PointWithNormal>>& point_normals,
+									const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,
 									std::vector<Eigen::Vector3f>& eligible_normals,
 									std::vector<Eigen::Vector3f>& eligible_tangents) {
 	using namespace std;
@@ -189,7 +189,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 Eigen::Vector3f
 compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
     							size_t surfel_idx,
-    							const std::vector<std::vector<PointWithNormal>>& point_normals)
+    							const std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
 {
     using namespace Eigen;
     using namespace std;
@@ -217,7 +217,7 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
  */
 bool
 optimise_do_one_step(std::vector<Surfel>& surfels,
-					 const std::vector<std::vector<PointWithNormal>>& point_normals) 
+					 const std::vector<std::vector<PointWithNormal2_5D>>& point_normals) 
 {
     using namespace std;
     using namespace Eigen;
@@ -256,7 +256,7 @@ optimise_do_one_step(std::vector<Surfel>& surfels,
  */
 void
 optimise(std::vector<Surfel>& surfels,
-		 const std::vector<std::vector<PointWithNormal>>& point_normals)
+		 const std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
 {
 	bool done  = check_stop_flag();
 	while( !done ) {

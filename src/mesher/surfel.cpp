@@ -50,12 +50,20 @@ write_size_t( std::ofstream& file, std::size_t value ) {
  * Write a vector
  */
 void
+write_vector_2f( std::ofstream& file, Eigen::Vector2f vector ) {
+	write_float(file, vector.x());
+	write_float(file, vector.y());
+}
+
+/*
+ * Write a vector
+ */
+void
 write_vector_3f( std::ofstream& file, Eigen::Vector3f vector ) {
 	write_float(file, vector.x());
 	write_float(file, vector.y());
 	write_float(file, vector.z());
 }
-
 /**
  * Save surfel data as binary file to disk
  */
@@ -65,7 +73,7 @@ write_vector_3f( std::ofstream& file, Eigen::Vector3f vector ) {
 void 
 save_to_file( const std::string& file_name,
 			  const std::vector<Surfel>& surfels, 
-			  const std::vector<std::vector<PointWithNormal>>& point_normals)
+			  const std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
 {
 	using namespace std;
 
@@ -77,7 +85,8 @@ save_to_file( const std::string& file_name,
     	unsigned int num_points = point_normals.at(i).size();
 	    write_unsigned_int( file, num_points );
 	    for( unsigned int j = 0; j< num_points; ++j ) {
-	    	write_vector_3f(file, point_normals.at(i).at(j).point);
+	    	write_vector_2f(file, point_normals.at(i).at(j).point);
+	    	write_float(file, point_normals.at(i).at(j).depth);
 	    	write_vector_3f(file, point_normals.at(i).at(j).normal);
 	    }
     }
@@ -129,6 +138,14 @@ read_float( std::ifstream& file ) {
 	return value;
 }
 
+Eigen::Vector2f
+read_vector_2f( std::ifstream& file ) {
+	float x, y;
+	file.read( (char *)&x, sizeof(float) );
+	file.read( (char *)&y, sizeof(float) );
+	return Eigen::Vector2f{x, y};
+}
+
 Eigen::Vector3f
 read_vector_3f( std::ifstream& file ) {
 	float x, y, z;
@@ -141,14 +158,10 @@ read_vector_3f( std::ifstream& file ) {
 /**
  * Load surfel data from binary file
  */
-
-/**
- * Load surfel data from binary file
- */
 void 
 load_from_file( const std::string& file_name,
 				std::vector<Surfel>& surfels, 
-				std::vector<std::vector<PointWithNormal>>& point_normals)
+				std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
 {
 	using namespace std;
 
@@ -159,11 +172,12 @@ load_from_file( const std::string& file_name,
     unsigned int num_frames = read_unsigned_int(file);
     for( unsigned int i = 0; i<num_frames; ++i ) {
 	    unsigned int num_points = read_unsigned_int( file);
-	    vector<PointWithNormal> pwn;
+	    vector<PointWithNormal2_5D> pwn;
 	    for( unsigned int j = 0; j < num_points; ++j ) {
-	    	Eigen::Vector3f point = read_vector_3f(file);
+	    	Eigen::Vector2f point = read_vector_2f(file);
+	    	float depth = read_float(file);
 	    	Eigen::Vector3f normal = read_vector_3f(file);
-	    	pwn.push_back(PointWithNormal{point, normal});
+	    	pwn.push_back(PointWithNormal2_5D{point, depth, normal});
 	    }
 	    point_normals.push_back(pwn);
     }
@@ -203,8 +217,6 @@ load_from_file( const std::string& file_name,
 	file.close();
 	cout << endl;
     std::cout << "in load from file [66]: " << surfels.at(66).tangent.x() << ", " << surfels.at(66).tangent.y() << ", " <<  surfels.at(66).tangent.z() << std::endl;
-
-
 }
 
 
@@ -262,7 +274,7 @@ populate_neighbours(std::vector<Surfel>& surfels,
 }
 
 void
-populate_frame_data( const std::vector<std::vector<PointWithNormal>>& point_normals,	// per frame, all point_normals
+populate_frame_data( const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,	// per frame, all point_normals
 					 const std::vector<std::pair<unsigned int, unsigned int>>&  correspondence,
 					 std::vector<FrameData>& frame_data) {
 	using namespace Eigen;
@@ -274,7 +286,7 @@ populate_frame_data( const std::vector<std::vector<PointWithNormal>>& point_norm
 		fd.frame_idx = frame_idx;
 		fd.point_idx = point_idx;
 		Vector3f y{ 0.0, 1.0, 0.0};
-		PointWithNormal pwn = point_normals.at(frame_idx).at(point_idx);
+		PointWithNormal2_5D pwn = point_normals.at(frame_idx).at(point_idx);
 		fd.transform = vector_to_vector_rotation( y, pwn.normal );
 		frame_data.push_back( fd );
 	}
@@ -291,7 +303,7 @@ populate_frame_data( const std::vector<std::vector<PointWithNormal>>& point_norm
  * @return A vector of surfels.
  */
 std::vector<Surfel>
-build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normals,			// per frame, all point_normals
+build_surfel_table(const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,			// per frame, all point_normals
 				   const std::vector<std::vector<std::vector<unsigned int>>>& neighbours,	// per frame, list of all points neighbouring
 				   const std::vector<std::vector<std::pair<unsigned int, unsigned int>>>&  correspondences) 
 {
@@ -315,6 +327,13 @@ build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normal
 	return surfels;
 }
 
+inline std::string file_in_directory(const std::string& directory, const std::string& file ) {
+    // FIXME: Replace this evilness with something more robust and cross platform.
+    std::string full_path = directory;
+    full_path .append("/").append(file);
+    return full_path;
+}
+
 std::vector<std::string> get_vertex_files_in_directory( const std::string& directory_name ) {
     using namespace std;
 
@@ -330,16 +349,14 @@ std::vector<std::string> get_vertex_files_in_directory( const std::string& direc
     // Construct full path names
     vector<string> full_path_names;
     for( auto const & file_name : file_names) {
-        // FIXME: Replace this evilness with something more robust and cross platform.
-        string path_name = directory_name;
-        path_name .append("/").append(file_name);
+        string path_name = file_in_directory(directory_name, file_name);
         full_path_names.push_back( path_name );
     }
     std::sort(full_path_names.begin(), full_path_names.end() );
     return full_path_names;
 }
 
-std::vector<std::string> get_depth_files_in_directory( std::string directory_name ) {
+std::vector<std::string> get_depth_files_in_directory( const std::string& directory_name ) {
     using namespace std;
 
     vector<string> file_names;
@@ -354,20 +371,17 @@ std::vector<std::string> get_depth_files_in_directory( std::string directory_nam
     // Construct full path names
     vector<string> full_path_names;
     for( auto const & file_name : file_names) {
-        // FIXME: Replace this evilness with something more robust and cross platform.
-        string path_name = directory_name.append("/").append(file_name);
+        string path_name = file_in_directory(directory_name, file_name);
         full_path_names.push_back( path_name );
     }
     std::sort(full_path_names.begin(), full_path_names.end() );
     return full_path_names;
 }
 
-
-
 void
 load_from_directory(  const std::string& dir, 
                       std::vector<Surfel>& surfels, 
-                      std::vector<std::vector<PointWithNormal>>& point_clouds ) 
+                      std::vector<std::vector<PointWithNormal2_5D>> point_clouds ) 
 {
   using namespace std;
 
@@ -379,16 +393,14 @@ load_from_directory(  const std::string& dir,
 
   cout << "Loading depth images..." << flush;
   files = get_depth_files_in_directory(dir);
+  if( files.size() == 0 ) {
+  	throw std::runtime_error( "No depth images found in "+dir);
+  }
   vector<vector<vector<unsigned int>>> neighbours;
   load_depth_images(files, point_clouds, neighbours);
   cout << " done." << endl;
 
   cout << "Building surfel table..." << flush;
   surfels = build_surfel_table(point_clouds, neighbours, correspondences);
-  cout << " done." << endl;
-
-
-  cout << "Saving..." << flush;
-  save_to_file( "surfel_table.bin", surfels, point_clouds);
   cout << " done." << endl;
 }

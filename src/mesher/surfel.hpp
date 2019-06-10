@@ -28,7 +28,7 @@ struct Surfel {
  * @return A vector of surfels.
  */
 std::vector<Surfel>
-build_surfel_table(const std::vector<std::vector<PointWithNormal>>& point_normals,			// per frame, all point_normals
+build_surfel_table(const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,			// per frame, all point_normals
 				   const std::vector<std::vector<std::vector<unsigned int>>>& neighbours,	// per frame, list of all points neighbouring
 				   const std::vector<std::vector<std::pair<unsigned int, unsigned int>>>&  correspondences);
 
@@ -45,7 +45,7 @@ randomize_tangents(std::vector<Surfel>& surfels);
 void 
 save_to_file( const std::string& file_name,
 			  const std::vector<Surfel>& surfels, 
-			  const std::vector<std::vector<PointWithNormal>>& point_normals);
+			  const std::vector<std::vector<PointWithNormal2_5D>>& point_normals);
 
 /**
  * Load surfel data from binary file
@@ -53,10 +53,9 @@ save_to_file( const std::string& file_name,
 void 
 load_from_file( const std::string& file_name,
 				std::vector<Surfel>& surfels, 
-				std::vector<std::vector<PointWithNormal>>& point_normals);
-
+				std::vector<std::vector<PointWithNormal2_5D>>& point_normals);
 
 void
 load_from_directory(  const std::string& dir, 
                       std::vector<Surfel>& surfels, 
-                      std::vector<std::vector<PointWithNormal>>& point_clouds );
+                      std::vector<std::vector<PointWithNormal2_5D>> point_clouds );

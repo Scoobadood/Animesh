@@ -9,8 +9,8 @@
 #include <iostream>
 #include "surfel.hpp"
 #include <FileUtils/PgmFileParser.h>
+#include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
-#include "pixel_correspondence.hpp"
 #include "depth_image_loader.h"
 
 static const char * DEPTH_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat";
@@ -72,32 +72,25 @@ write_vector_3f( std::ofstream& file, Eigen::Vector3f vector ) {
  */
 void 
 save_to_file( const std::string& file_name,
-			  const std::vector<Surfel>& surfels, 
-			  const std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
+			  const std::vector<Surfel>& surfels)
 {
 	using namespace std;
 
     ofstream file{file_name, ios::out | ios::binary};
 
-    unsigned int num_frames = point_normals.size();
-    write_unsigned_int( file, num_frames);
-    for( unsigned int i = 0; i < num_frames; ++i ) {
-    	unsigned int num_points = point_normals.at(i).size();
-	    write_unsigned_int( file, num_points );
-	    for( unsigned int j = 0; j< num_points; ++j ) {
-	    	write_vector_2f(file, point_normals.at(i).at(j).point);
-	    	write_float(file, point_normals.at(i).at(j).depth);
-	    	write_vector_3f(file, point_normals.at(i).at(j).normal);
-	    }
-    }
-
+    // Count
     write_unsigned_int( file, surfels.size());
     for( auto const & surfel : surfels) {
+    	// ID
 	    write_size_t( file, surfel.id);
+	    // FrameData size
     	write_unsigned_int( file, surfel.frame_data.size());
 	    for( auto const &  fd : surfel.frame_data) {
-		    write_size_t( file, fd.frame_idx);
-		    write_size_t( file, fd.point_idx);
+	    	// PixelInFrame
+		    write_size_t( file, fd.x);
+		    write_size_t( file, fd.y);
+		    write_size_t( file, fd.frame);
+		    // Transform
 		    write_float( file, fd.transform(0,0) );
 		    write_float( file, fd.transform(0,1) );
 		    write_float( file, fd.transform(0,2) );
@@ -169,19 +162,6 @@ load_from_file( const std::string& file_name,
 	surfels.clear();
 	point_normals.clear();
 
-    unsigned int num_frames = read_unsigned_int(file);
-    for( unsigned int i = 0; i<num_frames; ++i ) {
-	    unsigned int num_points = read_unsigned_int( file);
-	    vector<PointWithNormal2_5D> pwn;
-	    for( unsigned int j = 0; j < num_points; ++j ) {
-	    	Eigen::Vector2f point = read_vector_2f(file);
-	    	float depth = read_float(file);
-	    	Eigen::Vector3f normal = read_vector_3f(file);
-	    	pwn.push_back(PointWithNormal2_5D{point, depth, normal});
-	    }
-	    point_normals.push_back(pwn);
-    }
-
 	unsigned int num_surfels = read_unsigned_int( file );
 	cout << "  loading " << num_surfels << " surfels" << endl;
 	int pct5 = num_surfels / 20;
@@ -194,10 +174,14 @@ load_from_file( const std::string& file_name,
 
 		num_frames = read_unsigned_int( file );
 		for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
-			// cout << "      " << fdIdx << endl;
 			FrameData fd;
-			fd.frame_idx = read_size_t(file);
-			fd.point_idx = read_size_t(file);
+
+	    	// PixelInFrame
+		    fd.x = read_size_t(file);
+		    fd.y = read_size_t(file);
+		    fd.frame = read_size_t(file);
+
+		    // Transform
 			float m[9];
 			for( int mIdx = 0; mIdx<9; mIdx++ ) {
 				m[mIdx] = read_float(file);
@@ -273,58 +257,26 @@ populate_neighbours(std::vector<Surfel>& surfels,
 	}
 }
 
+/**
+ * For each entry in the correspondence group, we need to construct a 
+ * FrameData object which tells us the frame and pixel affected as
+ * well as the required transform.
+ */
 void
-populate_frame_data( const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,	// per frame, all point_normals
-					 const std::vector<std::pair<unsigned int, unsigned int>>&  correspondence,
-					 std::vector<FrameData>& frame_data) {
+populate_frame_data( const std::vector<PixelInFrame>&	correspondence_group,
+					 std::vector<DepthMap>& 			depth_maps,
+					 std::vector<FrameData>& 			frame_data) {
+	using namespace std;
 	using namespace Eigen;
 
-	for( auto c : correspondence) {
+	for( auto c : correspondence_group) {
 		FrameData fd;
-		unsigned int frame_idx = c.first;
-		unsigned int point_idx = c.second;
-		fd.frame_idx = frame_idx;
-		fd.point_idx = point_idx;
+		fd.pixel_in_frame = c;
 		Vector3f y{ 0.0, 1.0, 0.0};
-		PointWithNormal2_5D pwn = point_normals.at(frame_idx).at(point_idx);
-		fd.transform = vector_to_vector_rotation( y, pwn.normal );
+		Vector3f target_normal = depth_maps.at(frame_idx).normal_at(c.y, c.x);
+		fd.transform = vector_to_vector_rotation( y, pwn.target_normal );
 		frame_data.push_back( fd );
 	}
-}
-
-
-
-/**
- * Make the surfel table given a vector of points (with normals) for each frame
- * along with correspondences between them.
- * @param point_normals outer vector is the frame, inner vectr is the point normal.
- * @param neighbours Per frame, a lit of indices of the neighbours of a point where the index in the list matches the index in the point_normals list.
- * @param correspondences A vector of all correspondences where each correspondence is a vector of <frame,point_normal index>
- * @return A vector of surfels.
- */
-std::vector<Surfel>
-build_surfel_table(const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,			// per frame, all point_normals
-				   const std::vector<std::vector<std::vector<unsigned int>>>& neighbours,	// per frame, list of all points neighbouring
-				   const std::vector<std::vector<std::pair<unsigned int, unsigned int>>>&  correspondences) 
-{
-	using namespace std;
-
-	vector<Surfel> surfels;
-	map<pair<size_t, size_t>, size_t> frame_point_to_surfel;
-
-	for( auto const & correspondence : correspondences ) {
-		Surfel surfel;
-
-		surfel.id = surfels.size();
-		populate_frame_data(point_normals, correspondence, surfel.frame_data);
-		surfels.push_back( surfel );
-		for( auto c : correspondence ) {
-			frame_point_to_surfel.insert( make_pair<>(make_pair<>( c.first, c.second), surfel.id ));
-		}
-	}
-	populate_neighbours(surfels, neighbours, frame_point_to_surfel);
-	randomize_tangents( surfels );
-	return surfels;
 }
 
 inline std::string file_in_directory(const std::string& directory, const std::string& file ) {
@@ -378,29 +330,201 @@ std::vector<std::string> get_depth_files_in_directory( const std::string& direct
     return full_path_names;
 }
 
+
+
+/*
+	********************************************************************************
+	**																			  **
+	**                                 Top Level Calls                            **
+	**																			  **
+    ********************************************************************************
+*/
+
+
+/**
+ * Load the depth maps from a list of files into memory
+ * as a vector.
+ */
+void
+load_depth_maps(const std::string& source_directory, std::vector<DepthMap> depth_maps) {
+	std::vector<std::string> files = get_depth_files_in_directory(source_directory);
+  	if( files.size() == 0 ) {
+  		throw std::runtime_error( "No depth images found in " + source_directory);
+  	}
+
+  	depth_maps.clear();
+  	for( auto file_name : files ) {
+  		DepthMap dm{file_name};
+  		depth_maps.push_back(dm);
+  	}
+}
+
+
+/**
+ * Preprocess depth maps to 
+ * - remove noise
+ * - remove dubious data (ie edge points)
+ */
+void 
+preprocess_depth_maps(std::vector<DepthMap>& depth_maps) {
+	const float TS = 8.0f;
+	const float TL = 3.0f;
+	for( auto dm : depth_maps ) {
+		dm.cull_unreliable_depths(TS, TL);
+		dm.get_normals();
+	}
+}
+
+/**
+ * Compute the correspondences between pixels in cleaned depth maps
+ * Returns a vector or correspondences where each correspondence 
+ * is a PixelInFrame
+ */
+void 
+compute_correspondences(const std::string& source_directory, 
+						const std::vector<DepthMap>& depth_maps, 
+						std::vector<std::vector<PixelInFrame>>& correspondences) {
+	using namespace std;
+	using namespace Eigen;
+
+	// TODO: Ultimately this will be handled more elegantly and less cheatily
+	vector<string> file_names = get_vertex_files_in_directory(source_directory);
+	assert(file_names.size() == depth_maps.size());
+
+	// For each frame, load each pixel and for each pixel assigned to a non-zero vertex
+	// WHERE the pixel has not been culled from a depth map, i.e. it has a legitimate normal
+	// NOTE This code depends critically on there being the same number of vertex files as depth files and
+	// that they are ordered in the same way, ie vertex file[0] corresponds to depth_map[0]
+
+	multimap<unsigned int, PixelInFrame> vertex_to_frame_pixel;
+	size_t current_frame_idx = 0;
+	for(auto file_name : file_names) {
+		PgmData pgm = read_pgm(file_name);
+
+		size_t source_pixel_idx = 0;
+		for( std::size_t row = 0; row < pgm.height; ++row ) {
+			for( std::size_t col = 0; col < pgm.width; ++col ) {
+				int vertex = pgm.data.at(source_pixel_idx);
+				// Ignore background nd undefined normals
+				if( vertex != 0 && depth_maps[current_frame_idx].is_normal_defined(row, col) ) {
+					vertex_to_frame_pixel.insert( make_pair( vertex, PixelInFrame(col, row, current_frame_idx)));
+				}
+				++source_pixel_idx;
+			}
+		}
+		current_frame_idx++;
+	}
+
+
+	// We now have a map from vertices to all corresponding frame/pixel pairs
+	// A correspondence is a vector of all frame/pixel pairs that have the same vertex
+	correspondences.clear();
+	vector<PixelInFrame> correspondence;
+	int corr = 0;
+	for (auto it = vertex_to_frame_pixel.begin(); it != vertex_to_frame_pixel.end(); ) {
+		correspondence.clear();
+		unsigned int vertex_id = it->first;
+		do {
+			correspondence.push_back(it->second);
+			++it;
+		} while( (it != vertex_to_frame_pixel.end()) && (vertex_id == it->first));
+		correspondences.push_back(correspondence);
+	}
+}
+
+
+/**
+ * Generate surfel and pointcloud data from depth images
+ * given correspondences.
+ */
+
+/*
+	For each correspondence
+		Make a surfel
+		-- For each Frame/Pixel mapping from that correspondence compute the one we will use
+		-- Compute the normal (or get it)
+		-- Cmpute the transformation matrix
+		-- Store the Frame Data
+		-- Init the random direction vector.
+ */
+void 
+generate_surfels(const std::vector<DepthMap>& 					depth_maps,
+				 const std::vector<std::vector<PixelInFrame>>&	correspondences,
+				 std::vector<Surfel>& 							surfels) 
+{
+	using namespace std;
+
+	surfels.clear();
+	point_clouds.clear();
+
+	// One per correpondence
+	// For each one, add point, depth, normal
+	map<PixelInFrame, size_t> pixel_in_frame_to_surfel;
+
+	for( auto const & correspondence_group : correspondences ) {
+		Surfel surfel;
+
+		surfel.id = surfels.size();
+		populate_frame_data(correspondence_group, depth_maps, surfel.frame_data);
+		surfels.push_back( surfel );
+		for( auto c : correspondence_group ) {
+			pixel_in_frame_to_surfel.insert( make_pair<>(c, surfel.id ));
+		}
+	}
+	populate_neighbours(surfels, neighbours, pixel_in_frame_to_surfel);
+	randomize_tangents( surfels );
+}
+
+/*
+	********************************************************************************
+	**																			  **
+	**                                 Entry Point                                **
+	**																			  **
+	********************************************************************************
+*/
+
+
+/*
+	Load and clean depth maps
+	--> Output DepthMap objects
+	--> Compute normals
+	--> Sets up is_normal_valid_at()
+
+	Load correspondences (from depth maps)
+	--> Load vectors,
+	--> Construct map from framepixel to vertex (If normal is valid)
+
+	Make correspondences from map
+
+	For each correspondence
+		Make a surfel
+		-- For each Frame/Pixel mapping from that correspondence compute the one we will use
+		-- Compute the normal (or get it)
+		-- Cmpute the transformation matrix
+		-- Store the Frame Data
+		-- Init the random direction vector.
+*/
 void
 load_from_directory(  const std::string& dir, 
-                      std::vector<Surfel>& surfels, 
-                      std::vector<std::vector<PointWithNormal2_5D>> point_clouds ) 
+                      std::vector<Surfel>& surfels ) 
 {
   using namespace std;
 
+  cout << "Reading depth maps ..." << flush;
+  vector<DepthMap> depth_maps;
+  load_depth_maps(dir, depth_maps);
+
+  cout << "Preprocessing depth maps ..." << flush;
+  preprocess_depth_maps(depth_maps);
+
   cout << "Computing correspondences..." << flush;
-  vector<string> files = get_vertex_files_in_directory(dir);
-  vector<vector<pair<unsigned int, unsigned int>>> correspondences;
-  compute_correspondences(files, correspondences);
-  cout << " done." << endl;
+  vector<vector<PixelInFrame>> correspondences;
+  compute_correspondences(dir, depth_maps, correspondences);
 
-  cout << "Loading depth images..." << flush;
-  files = get_depth_files_in_directory(dir);
-  if( files.size() == 0 ) {
-  	throw std::runtime_error( "No depth images found in "+dir);
-  }
-  vector<vector<vector<unsigned int>>> neighbours;
-  load_depth_images(files, point_clouds, neighbours);
-  cout << " done." << endl;
+  cout << "Generating surfels..." << flush;
+  generate_surfels(depth_maps, correspondences, surfels);
 
-  cout << "Building surfel table..." << flush;
-  surfels = build_surfel_table(point_clouds, neighbours, correspondences);
   cout << " done." << endl;
+  // cout << "Processing " << files.size() << " depth images..." << flush;
+  // process_depth_files(files, surfels, point_clouds)
 }

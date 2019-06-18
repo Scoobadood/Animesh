@@ -6,10 +6,27 @@
 #include "pixel_correspondence.hpp"
 #include "depth_image_loader.h"
 
+struct PixelInFrame {
+	unsigned int x;
+	unsigned int y;
+	unsigned int frame;
+
+	PixelInFrame(unsigned int x, unsigned int y, unsigned int frame) :x{x}, y{y}, frame{frame}{};
+
+	bool operator< (const PixelInFrame &other) {
+		if( frame != other.frame)
+			return frame < other.frame;
+
+		if( y != other.y)
+			return y < other.y;
+
+		return x < other.x;
+	}
+};
+
 struct FrameData {
-	size_t 			frame_idx;
-	size_t 			point_idx;
-	Eigen::Matrix3f	transform;
+	PixelInFrame	pixel_in_frame; // x, y, frame
+	Eigen::Matrix3f	transform;			// Computed
 };
 
 struct Surfel {
@@ -44,18 +61,15 @@ randomize_tangents(std::vector<Surfel>& surfels);
  */
 void 
 save_to_file( const std::string& file_name,
-			  const std::vector<Surfel>& surfels, 
-			  const std::vector<std::vector<PointWithNormal2_5D>>& point_normals);
+			  const std::vector<Surfel>& surfels);
 
 /**
  * Load surfel data from binary file
  */
 void 
 load_from_file( const std::string& file_name,
-				std::vector<Surfel>& surfels, 
-				std::vector<std::vector<PointWithNormal2_5D>>& point_normals);
+				std::vector<Surfel>& surfels);
 
 void
 load_from_directory(  const std::string& dir, 
-                      std::vector<Surfel>& surfels, 
-                      std::vector<std::vector<PointWithNormal2_5D>> point_clouds );
+                      std::vector<Surfel>& surfels);

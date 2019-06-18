@@ -49,7 +49,6 @@ int main( int argc, char *argv[] ) {
   using namespace std;
 
   vector<Surfel> surfels;
-  vector<vector<PointWithNormal2_5D>> point_normals;
   string file_or_directory;
   bool use_file = false;
   bool use_directory = false;
@@ -61,18 +60,18 @@ int main( int argc, char *argv[] ) {
 
   if( use_file) {
     cout << "Loading from file " << file_or_directory << "..." << flush;
-    load_from_file(file_or_directory, surfels, point_normals);
+    load_from_file(file_or_directory, surfels);
     cout << " done." << endl;
   } else { /* use_directory */
     cout << "Loading from directory " << file_or_directory << "..." << endl;
-    load_from_directory(file_or_directory, surfels, point_normals);
+    load_from_directory(file_or_directory, surfels);
     cout << "Saving..." << flush;
-    save_to_file( "surfel_table.bin", surfels, point_normals);
+    save_to_file( "surfel_table.bin", surfels);
     cout << " done." << endl;
   }
   // Now start smoothing
-  optimise(surfels, point_normals);
-  save_to_file( "surfel_table_converged.bin", surfels, point_normals);
+  optimise(surfels);
+  save_to_file( "surfel_table_converged.bin", surfels);
   
   return 0;
 }

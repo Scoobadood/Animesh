@@ -137,7 +137,6 @@ find_common_frames(	const std::vector<FrameData>& surfel_frames,
 void
 get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels, 
 									std::size_t surfel_idx, 
-									const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,
 									std::vector<Eigen::Vector3f>& eligible_normals,
 									std::vector<Eigen::Vector3f>& eligible_tangents) {
 	using namespace std;
@@ -187,9 +186,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
  * end
  */
 Eigen::Vector3f
-compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
-    							size_t surfel_idx,
-    							const std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
+compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels, size_t surfel_idx)
 {
     using namespace Eigen;
     using namespace std;
@@ -197,7 +194,7 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
     // Get vector of eligible normal/tangent pairs
     vector<Vector3f> normals;
     vector<Vector3f> tangents;
-    get_eligible_normals_and_tangents(surfels, surfel_idx, point_normals, normals, tangents);
+    get_eligible_normals_and_tangents(surfels, surfel_idx, normals, tangents);
 
     // Merge all neighbours; implicitly using optiminsing tier tangents
     Vector3f new_tangent = surfels.at(surfel_idx).tangent;
@@ -216,8 +213,7 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels,
  * Perform a single step of optimisation.
  */
 bool
-optimise_do_one_step(std::vector<Surfel>& surfels,
-					 const std::vector<std::vector<PointWithNormal2_5D>>& point_normals) 
+optimise_do_one_step(std::vector<Surfel>& surfels) 
 {
     using namespace std;
     using namespace Eigen;
@@ -233,7 +229,7 @@ optimise_do_one_step(std::vector<Surfel>& surfels,
     size_t surfel_idx = random_index(surfels.size());
 
     // Update this one
-    Vector3f new_tangent = compute_new_tangent_for_surfel(surfels, surfel_idx, point_normals);
+    Vector3f new_tangent = compute_new_tangent_for_surfel(surfels, surfel_idx);
     surfels.at(surfel_idx).tangent = new_tangent;
 
     //	auto end = chrono::high_resolution_clock::now();
@@ -255,12 +251,11 @@ optimise_do_one_step(std::vector<Surfel>& surfels,
  * Continuously step until done.
  */
 void
-optimise(std::vector<Surfel>& surfels,
-		 const std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
+optimise(std::vector<Surfel>& surfels)
 {
 	bool done  = check_stop_flag();
 	while( !done ) {
-        done = optimise_do_one_step(surfels, point_normals);
+        done = optimise_do_one_step(surfels);
         if( !done) {
         	done = check_stop_flag();
         	if(done) {

@@ -21,5 +21,4 @@ make_surfel_graph(const std::vector<Surfel>& surfels);
  * Continuously step until done.
  */
 void
-optimise(std::vector<Surfel>& surfels,
-		 const std::vector<std::vector<PointWithNormal2_5D>>& point_normals);
+optimise(std::vector<Surfel>& surfels);

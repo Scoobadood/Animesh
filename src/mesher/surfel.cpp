@@ -19,6 +19,29 @@ static const char * VERTEX_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9
 /*
 	********************************************************************************
 	**																			  **
+	**					Utilities        										  **
+	**																			  **
+	********************************************************************************
+*/
+bool compare_frame_data_by_frame(const FrameData& fd1, const FrameData& fd2) {
+    return fd1.pixel_in_frame.frame < fd2.pixel_in_frame.frame;
+}
+/**
+ * Sort all framedata for each surfel in ascending order of frame id.
+ * We do this once to facilitate finding common frames.
+ */
+void 
+sort_frame_data(std::vector<Surfel>& surfels) {
+	for( auto surfel : surfels ) {
+		sort(surfel.frame_data.begin(), surfel.frame_data.end(), compare_frame_data_by_frame);
+	}
+}
+
+
+
+/*
+	********************************************************************************
+	**																			  **
 	**					Load and Save    										  **
 	**																			  **
 	********************************************************************************
@@ -87,9 +110,9 @@ save_to_file( const std::string& file_name,
     	write_unsigned_int( file, surfel.frame_data.size());
 	    for( auto const &  fd : surfel.frame_data) {
 	    	// PixelInFrame
-		    write_size_t( file, fd.x);
-		    write_size_t( file, fd.y);
-		    write_size_t( file, fd.frame);
+		    write_size_t( file, fd.pixel_in_frame.x);
+		    write_size_t( file, fd.pixel_in_frame.y);
+		    write_size_t( file, fd.pixel_in_frame.frame);
 		    // Transform
 		    write_float( file, fd.transform(0,0) );
 		    write_float( file, fd.transform(0,1) );
@@ -100,6 +123,9 @@ save_to_file( const std::string& file_name,
 		    write_float( file, fd.transform(2,0) );
 		    write_float( file, fd.transform(2,1) );
 		    write_float( file, fd.transform(2,2) );
+
+			// Normal
+			write_vector_3f( file, fd.normal );
 	    }
     	write_unsigned_int( file, surfel.neighbouring_surfels.size());
 	    for( auto idx : surfel.neighbouring_surfels) {
@@ -152,15 +178,12 @@ read_vector_3f( std::ifstream& file ) {
  * Load surfel data from binary file
  */
 void 
-load_from_file( const std::string& file_name,
-				std::vector<Surfel>& surfels, 
-				std::vector<std::vector<PointWithNormal2_5D>>& point_normals)
+load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 {
 	using namespace std;
 
 	ifstream file{ file_name, ios::in | ios::binary};
 	surfels.clear();
-	point_normals.clear();
 
 	unsigned int num_surfels = read_unsigned_int( file );
 	cout << "  loading " << num_surfels << " surfels" << endl;
@@ -172,14 +195,14 @@ load_from_file( const std::string& file_name,
 		Surfel s;
 		s.id = read_size_t(file);
 
-		num_frames = read_unsigned_int( file );
+		unsigned int num_frames = read_unsigned_int( file );
 		for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
 			FrameData fd;
 
 	    	// PixelInFrame
-		    fd.x = read_size_t(file);
-		    fd.y = read_size_t(file);
-		    fd.frame = read_size_t(file);
+		    fd.pixel_in_frame.x = read_size_t(file);
+		    fd.pixel_in_frame.y = read_size_t(file);
+		    fd.pixel_in_frame.frame = read_size_t(file);
 
 		    // Transform
 			float m[9];
@@ -187,6 +210,9 @@ load_from_file( const std::string& file_name,
 				m[mIdx] = read_float(file);
 			}
 			fd.transform << m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8];
+
+			// Normal
+			fd.normal = read_vector_3f( file );
 			s.frame_data.push_back( fd );
 		}
 
@@ -229,30 +255,104 @@ randomize_tangents(std::vector<Surfel>& surfels) {
 	}
 }
 
-void 
-populate_neighbours(std::vector<Surfel>& surfels, 
-						 const std::vector<std::vector<std::vector<unsigned int>>>& 			neighbours,	
-						 const std::map<std::pair<std::size_t, std::size_t>, std::size_t>&  frame_point_to_surfel) {
+/**
+ * Return true if the two pixel in frames are neighbours.
+ * They are neighbours if they are in the same frame and adjacent in an 8-connected
+ * way. If they have the same coordinates in the frame they aree NOT neighbours.
+ * @param pif1 The first PixelinFrame.
+ * @param pif2 The second PixelinFrame.
+ */
+bool
+are_neighbours(const PixelInFrame& pif1, const PixelInFrame& pif2) {
+	if( pif1.frame != pif2.frame) {
+		return false;
+	}
+	int dx = pif1.x - pif2.x;
+	int dy = pif1.y - pif2.y;
+	if( dx == 0 && dy == 0 ) {
+		return false;
+	}
+	if( dx <= 1 && dy <=1 && dx ) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Return true if surfel1 and surfel2 are neighbours.
+ * S1 is a neighbour of S2 iff:
+ * S1 is represented in a frame F by point P1 AND
+ * S2 is represented in frame F by point P2 AND
+ * P1 and P2 are adjacent in an 8-connected way
+ * // TODO: Consider depth disarities. We may have eliminated this as a problem during depth map cleanup but perhaps not.
+ * @param surfel1 The first surfel to consider.
+ * @param surfel2 The second surfel to consider.
+ */
+bool 
+are_neighbours(const Surfel& surfel1, const Surfel& surfel2 ) {
 	using namespace std;
 
-	for( auto & surfel : surfels ) {
-		for( auto const & fd : surfel.frame_data ) {
-			unsigned int frame_idx = fd.frame_idx;
-			unsigned int point_idx = fd.point_idx;
+	// Sort framedata for each surfel by frame index
+	vector<FrameData> fd1 = surfel1.frame_data;
+	sort(fd1.begin(), fd1.end(), compare_frame_data_by_frame);
+	vector<FrameData> fd2 = surfel2.frame_data;
+	sort(fd2.begin(), fd2.end(), compare_frame_data_by_frame);
 
-			vector<unsigned int> f_p_neighbours = neighbours.at(frame_idx).at(point_idx);
-			set<unsigned int> set_of_neighbours;
-
-			for( auto n : f_p_neighbours) {
-				size_t idx = frame_point_to_surfel.at(make_pair<>( frame_idx, n ) );
-				if( idx != surfel.id) {
-					set_of_neighbours.insert(idx);
-				}
+	// While both lists have a frame left
+	//   if frame at front of both lists are same
+	//     if points in that frame are neighbours, 
+	//       return true
+	//     else
+	//       discard both frames
+	//   else
+	//     discard lower frame
+	//   endif
+	// endwhile
+	// return false
+	auto it1 = fd1.begin();
+	auto it2 = fd2.begin();
+	while( ( it1 != fd1.end() ) && ( it2 != fd2.end() ) ) {
+		PixelInFrame pif1 = it1->pixel_in_frame;
+		PixelInFrame pif2 = it2->pixel_in_frame;
+		if( pif1.frame == pif2.frame) {
+			if( are_neighbours(pif1, pif2)) {
+				return true;
+			} else {
+				++it1;
+				++it2;
 			}
-			// copy set into neighbouring_surfels
-			copy(set_of_neighbours.begin(),
-				 set_of_neighbours.end(),
-				 back_inserter(surfel.neighbouring_surfels));
+		} else if( pif1.frame < pif2.frame ) {
+			++it1;
+		} else {
+			++it2;
+		}
+	}
+	return false;
+}
+
+/**
+ * For a particular surfel, populate the list of neighbouring surfels.
+ * A surfel Sn is a neighbour of another surfel S iff:
+ * S is represented in a frame F by point P AND
+ * Sn is represented in frame F by point Pn AND
+ * P and Pn are neighbours.
+ * The list of neighbours for a surfel is unique, that is, no mater how many frames
+ * contain projections of S and Sn which are neighbours, Sn will occur only once in 
+ * the ilst of S's neighbours.
+ * @param surfels The list of all surfels.
+ * @param neighbours 
+ */
+void 
+populate_neighbours(std::vector<Surfel>& surfels) {
+	using namespace std;
+
+
+	for( int i=0; i<surfels.size()-1; ++i ) {
+		for( int j=i+1; j<surfels.size(); ++j) {
+			if( are_neighbours(surfels.at(i), surfels.at(j)) ) {
+				surfels.at(i).neighbouring_surfels.push_back(j);
+				surfels.at(j).neighbouring_surfels.push_back(i);
+			}
 		}
 	}
 }
@@ -264,7 +364,7 @@ populate_neighbours(std::vector<Surfel>& surfels,
  */
 void
 populate_frame_data( const std::vector<PixelInFrame>&	correspondence_group,
-					 std::vector<DepthMap>& 			depth_maps,
+					 const std::vector<DepthMap>& 		depth_maps,
 					 std::vector<FrameData>& 			frame_data) {
 	using namespace std;
 	using namespace Eigen;
@@ -273,16 +373,23 @@ populate_frame_data( const std::vector<PixelInFrame>&	correspondence_group,
 		FrameData fd;
 		fd.pixel_in_frame = c;
 		Vector3f y{ 0.0, 1.0, 0.0};
-		Vector3f target_normal = depth_maps.at(frame_idx).normal_at(c.y, c.x);
-		fd.transform = vector_to_vector_rotation( y, pwn.target_normal );
+		vector<float> n = depth_maps.at(c.frame).get_normals().at(c.y).at(c.x);
+		Vector3f target_normal{n.at(0), n.at(1), n.at(2)};
+		fd.normal = target_normal;
+		fd.transform = vector_to_vector_rotation( y, target_normal );
 		frame_data.push_back( fd );
 	}
 }
 
-inline std::string file_in_directory(const std::string& directory, const std::string& file ) {
+/**
+ * Produce a string representing the path to a file in a dirctory
+ * @param directory The path of the directory.
+ * @param filename The name of the file.
+ */
+inline std::string file_in_directory(const std::string& directory, const std::string& filename ) {
     // FIXME: Replace this evilness with something more robust and cross platform.
     std::string full_path = directory;
-    full_path .append("/").append(file);
+    full_path .append("/").append(filename);
     return full_path;
 }
 
@@ -420,7 +527,6 @@ compute_correspondences(const std::string& source_directory,
 	// A correspondence is a vector of all frame/pixel pairs that have the same vertex
 	correspondences.clear();
 	vector<PixelInFrame> correspondence;
-	int corr = 0;
 	for (auto it = vertex_to_frame_pixel.begin(); it != vertex_to_frame_pixel.end(); ) {
 		correspondence.clear();
 		unsigned int vertex_id = it->first;
@@ -455,7 +561,6 @@ generate_surfels(const std::vector<DepthMap>& 					depth_maps,
 	using namespace std;
 
 	surfels.clear();
-	point_clouds.clear();
 
 	// One per correpondence
 	// For each one, add point, depth, normal
@@ -471,7 +576,7 @@ generate_surfels(const std::vector<DepthMap>& 					depth_maps,
 			pixel_in_frame_to_surfel.insert( make_pair<>(c, surfel.id ));
 		}
 	}
-	populate_neighbours(surfels, neighbours, pixel_in_frame_to_surfel);
+	populate_neighbours(surfels);
 	randomize_tangents( surfels );
 }
 

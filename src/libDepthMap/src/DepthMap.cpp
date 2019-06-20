@@ -328,11 +328,26 @@ DepthMap::compute_normals() {
  * Return the normals. Compute them if needed.
  */
 const std::vector<std::vector<std::vector<float>>>& 
-DepthMap::get_normals() {
+DepthMap::get_normals() const {
 	using namespace std;
 	if( normals.size() == 0 ) { 
-		compute_normals();
+		(const_cast<DepthMap*>(this))->compute_normals();
 	}
 	return normals;
 }
 
+/**
+ * Return true if the normal at the given coordinates is defined, i.e.
+ * has a non-0 length.
+ * @param row The row in the depth map for the normal
+ * @param col The column in the depth map for the normal
+ */
+bool 
+DepthMap::is_normal_defined(unsigned int row, unsigned int col) const {
+	using namespace std;
+	if( normals.size() == 0 ) { 
+		(const_cast<DepthMap*>(this))->compute_normals();
+	}
+	vector<float> n = normals.at(row).at(col);
+	return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
+}

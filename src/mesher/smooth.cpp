@@ -25,28 +25,6 @@ random_index( unsigned int max_index ) {
     return std::floor(dis(e));
 }
 
-/*
-   ********************************************************************************
-   **                                                                            **
-   **             Utilities                                                      **
-   **                                                                            **
-   ********************************************************************************
-*/
-bool compareFrameDataByFrame(const FrameData &fd1, const FrameData &fd2) {
-    return fd1.pixel_in_frame.frame < fd2.pixel_in_frame.frame;
-}
-
-/**
- * Sort all framedata for each surfel in ascending order of frame id.
- * We do this once to facilitate finding common frames.
- */
-void 
-sort_frame_data(std::vector<Surfel>& surfels) {
-	for( auto surfel : surfels ) {
-		sort(surfel.frame_data.begin(), surfel.frame_data.end(), compareFrameDataByFrame);
-	}
-}
-
 /**
  * Check for presence of a file to see if we should stop
  */
@@ -145,9 +123,9 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
 
 	// For each neighbour
-//	cout << "considering " << surfels.at(surfel_idx).neighbouring_surfels.size() << " neighbours for surfel " << surfel_idx << endl;
 	int total_common_frames = 0;
 	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
+
 		const vector<FrameData>& neighbour_frames = surfels.at(neighbour_idx).frame_data;
 		vector<pair<FrameData, FrameData>> common_frames;
 		find_common_frames(surfel_frames, neighbour_frames, common_frames);
@@ -158,7 +136,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
 			const Matrix3f surfel_to_frame = frame_pair.first.transform;
 			const Matrix3f frame_to_surfel = surfel_to_frame.transpose();
 			const Matrix3f neighbour_to_frame = frame_pair.second.transform;
-			Vector3f neighbour_normal_in_frame = point_normals.at(frame_pair.second.pixel_in_frame.frame).at(frame_pair.second.point_idx).normal;
+      Vector3f neighbour_normal_in_frame = frame_pair.second.normal;
 
 			// Push the neighbour normal and tangent into the right frame
 			// Transform the frame tangent back to the surfel space using inv. surfel matrix

@@ -453,7 +453,7 @@ std::vector<std::string> get_depth_files_in_directory( const std::string& direct
  * as a vector.
  */
 void
-load_depth_maps(const std::string& source_directory, std::vector<DepthMap> depth_maps) {
+load_depth_maps(const std::string& source_directory, std::vector<DepthMap>& depth_maps) {
 	std::vector<std::string> files = get_depth_files_in_directory(source_directory);
   	if( files.size() == 0 ) {
   		throw std::runtime_error( "No depth images found in " + source_directory);

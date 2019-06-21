@@ -21,17 +21,6 @@ struct PixelInFrame {
 
 		return x < other.x;
 	}
-	// PixelInFrame(const PixelInFrame& other) {
-	// 	x = other.x;
-	// 	y = other.y;
-	// 	frame = other.frame;
-	// }
-	// PixelInFrame& operator=(const PixelInFrame&& other) {
-	// 	x = other.x;
-	// 	y = other.y;
-	// 	frame = other.frame;
-	//     return *this;	
- //     }
 };
 
 struct FrameData {
@@ -40,24 +29,9 @@ struct FrameData {
 	Eigen::Vector3f normal;				// Normal at pixel in frame
 	FrameData(const PixelInFrame& pif, const Eigen::Matrix3f& tran, const Eigen::Vector3f& norm) : pixel_in_frame{pif}, transform{tran}, normal{norm}
 	{}
+
 	FrameData() : pixel_in_frame{0, 0, 0}, transform{Eigen::Matrix3f::Identity()}, normal{Eigen::Vector3f::Zero()}
-	{
-		throw std::invalid_argument("");
-	}
-	// FrameData(const FrameData&& other) : pixel_in_frame{other.pixel_in_frame}, transform{other.transform}, normal{other.normal}
-	// {}
-	// FrameData& operator=(FrameData&& other) {
- // 		pixel_in_frame = std::move(other.pixel_in_frame);
- // 		transform = std::move(other.transform);
- // 		normal = std::move(other.normal);
- //        return *this;	
- //     }
-	// FrameData& operator=(const FrameData&& other) {
- // 		pixel_in_frame = std::move(other.pixel_in_frame);
- // 		transform = std::move(other.transform);
- // 		normal = std::move(other.normal);
- //        return *this;	
- //     }
+	{}
 };
 
 struct Surfel {

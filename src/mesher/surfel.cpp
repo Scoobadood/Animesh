@@ -369,14 +369,11 @@ populate_frame_data( const std::vector<PixelInFrame>&	correspondence_group,
 	using namespace std;
 	using namespace Eigen;
 
+	Vector3f y{ 0.0, 1.0, 0.0};
 	for( auto c : correspondence_group) {
-		FrameData fd;
-		fd.pixel_in_frame = c;
-		Vector3f y{ 0.0, 1.0, 0.0};
 		vector<float> n = depth_maps.at(c.frame).get_normals().at(c.y).at(c.x);
 		Vector3f target_normal{n.at(0), n.at(1), n.at(2)};
-		fd.normal = target_normal;
-		fd.transform = vector_to_vector_rotation( y, target_normal );
+		FrameData fd{c, vector_to_vector_rotation( y, target_normal ), target_normal};
 		frame_data.push_back( fd );
 	}
 }
@@ -566,8 +563,12 @@ generate_surfels(const std::vector<DepthMap>& 					depth_maps,
 	// For each one, add point, depth, normal
 	map<PixelInFrame, size_t> pixel_in_frame_to_surfel;
 
+	int i = 0;
 	for( auto const & correspondence_group : correspondences ) {
 		Surfel surfel;
+
+		cout << "\r" << i++ << " of " << correspondences.size() << "   " << flush;
+
 
 		surfel.id = surfels.size();
 		populate_frame_data(correspondence_group, depth_maps, surfel.frame_data);
@@ -618,16 +619,20 @@ load_from_directory(  const std::string& dir,
   cout << "Reading depth maps ..." << flush;
   vector<DepthMap> depth_maps;
   load_depth_maps(dir, depth_maps);
+  cout << endl;
 
   cout << "Preprocessing depth maps ..." << flush;
   preprocess_depth_maps(depth_maps);
+  cout << endl;
 
   cout << "Computing correspondences..." << flush;
   vector<vector<PixelInFrame>> correspondences;
   compute_correspondences(dir, depth_maps, correspondences);
+  cout << endl;
 
   cout << "Generating surfels..." << flush;
   generate_surfels(depth_maps, correspondences, surfels);
+  cout << endl;
 
   cout << " done." << endl;
   // cout << "Processing " << files.size() << " depth images..." << flush;

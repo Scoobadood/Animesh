@@ -248,10 +248,12 @@ DepthMap::compute_natural_normals( ) {
 		for( int col = 0; col < cols(); ++col) {
 			float d = depth_at( row, col );
 			float neighbour_depths[4];
-			// If depth is invalid or we don;t have four neighbours, skip
-			if( ( d == 0.0f) || get_neighbour_depths(row,col, neighbour_depths, false) != FOUR ) {
+			// If depth is invalid or we don't have four neighbours, skip
+			int neighbours_present = get_neighbour_depths(row,col, neighbour_depths, false);
+			if( ( d == 0.0f) || neighbours_present != FOUR ) {
+				// Stash a placeholder
 				normal_row.push_back(vector<float>{0,0,0});
-			    if( d == 0.0f ) {
+			    if( d == 0.0f || neighbours_present == 0) {
 			    	normal_row_types.push_back(NONE);
 			    } else {
 			    	normal_row_types.push_back(DERIVED);

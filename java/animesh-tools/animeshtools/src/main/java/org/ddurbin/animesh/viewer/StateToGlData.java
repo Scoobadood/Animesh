@@ -17,37 +17,38 @@ public class StateToGlData {
 
     for (State.Surfel s : state.surfels) {
       s.frameData.forEach((fd) -> {
-        if (fd.frameIdx == frame) {
+        if (fd.pixelInFrame.frameIndex == frame) {
           // Get tangent and normal
           Pair<Vector3f, Vector3f> p = StateUtilities.projectSurfelToFrame(s, fd);
+          Vector3f pointInSpace = StateUtilities.backprojectPoint2_5D(fd.pixelInFrame);
 
           // Get the point in 3-space
-          listBuilder.add(fd.point.point.x);
-          listBuilder.add(fd.point.point.y);
-          listBuilder.add(fd.point.point.z);
+          listBuilder.add(pointInSpace.x);
+          listBuilder.add(pointInSpace.y);
+          listBuilder.add(pointInSpace.z);
 
           // Push normal
-          listBuilder.add(fd.point.point.x + fd.point.normal.x * NORM_SCALE);
-          listBuilder.add(fd.point.point.y + fd.point.normal.y * NORM_SCALE);
-          listBuilder.add(fd.point.point.z + fd.point.normal.z * NORM_SCALE);
+          listBuilder.add(pointInSpace.x + pointInSpace.x * NORM_SCALE);
+          listBuilder.add(pointInSpace.y + pointInSpace.y * NORM_SCALE);
+          listBuilder.add(pointInSpace.z + pointInSpace.z * NORM_SCALE);
 
           // Get the point in 3-space
-          listBuilder.add(fd.point.point.x);
-          listBuilder.add(fd.point.point.y);
-          listBuilder.add(fd.point.point.z);
+          listBuilder.add(pointInSpace.x);
+          listBuilder.add(pointInSpace.y);
+          listBuilder.add(pointInSpace.z);
 
           // Primary tangent as given
-          listBuilder.add(fd.point.point.x + p.first.x * TAN_SCALE);
-          listBuilder.add(fd.point.point.y + p.first.y * TAN_SCALE);
-          listBuilder.add(fd.point.point.z + p.first.z * TAN_SCALE);
+          listBuilder.add(pointInSpace.x + p.first.x * TAN_SCALE);
+          listBuilder.add(pointInSpace.y + p.first.y * TAN_SCALE);
+          listBuilder.add(pointInSpace.z + p.first.z * TAN_SCALE);
 
           // Do opposite tangent
-          listBuilder.add(fd.point.point.x);
-          listBuilder.add(fd.point.point.y);
-          listBuilder.add(fd.point.point.z);
-          listBuilder.add(fd.point.point.x - p.first.x * TAN_SCALE);
-          listBuilder.add(fd.point.point.y - p.first.y * TAN_SCALE);
-          listBuilder.add(fd.point.point.z - p.first.z * TAN_SCALE);
+          listBuilder.add(pointInSpace.x);
+          listBuilder.add(pointInSpace.y);
+          listBuilder.add(pointInSpace.z);
+          listBuilder.add(pointInSpace.x - p.first.x * TAN_SCALE);
+          listBuilder.add(pointInSpace.y - p.first.y * TAN_SCALE);
+          listBuilder.add(pointInSpace.z - p.first.z * TAN_SCALE);
 
           // And now do perpendicular tangents
           // axis is k (normal), vector is v
@@ -57,12 +58,12 @@ public class StateToGlData {
           Vector3f kkv = p.second.times(kDotV);
           Vector3f tan90 = kCrossV.plus(kkv);
 
-          listBuilder.add(fd.point.point.x - tan90.x * TAN_SCALE);
-          listBuilder.add(fd.point.point.y - tan90.y * TAN_SCALE);
-          listBuilder.add(fd.point.point.z - tan90.z * TAN_SCALE);
-          listBuilder.add(fd.point.point.x + tan90.x * TAN_SCALE);
-          listBuilder.add(fd.point.point.y + tan90.y * TAN_SCALE);
-          listBuilder.add(fd.point.point.z + tan90.z * TAN_SCALE);
+          listBuilder.add(pointInSpace.x - tan90.x * TAN_SCALE);
+          listBuilder.add(pointInSpace.y - tan90.y * TAN_SCALE);
+          listBuilder.add(pointInSpace.z - tan90.z * TAN_SCALE);
+          listBuilder.add(pointInSpace.x + tan90.x * TAN_SCALE);
+          listBuilder.add(pointInSpace.y + tan90.y * TAN_SCALE);
+          listBuilder.add(pointInSpace.z + tan90.z * TAN_SCALE);
         }
       });
     }

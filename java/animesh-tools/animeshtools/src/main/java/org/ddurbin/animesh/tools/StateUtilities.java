@@ -21,6 +21,21 @@ public class StateUtilities {
     return new Pair<>(tangentInFrame, normalInFrame);
   }
 
+  public static Vector3f
+  backprojectPoint2_5D(State.PixelInFrame pif) {
+
+    // We need a camera loaded
+    // We need to work out the transformation matrix
+    // We need to invert this and multiply by pif.
+    //
+
+  }
+
+
+  /**
+   * Load State from a file.
+   */
+
   public static State
   loadState(String directory, String fileName) throws Exception {
     Path path = Paths.get(directory, fileName);

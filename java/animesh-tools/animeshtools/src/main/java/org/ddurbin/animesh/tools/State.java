@@ -13,6 +13,7 @@ import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Vector;
 
 import org.ddurbin.common.Check;
 import org.ddurbin.common.Matrix3f;
@@ -35,15 +36,49 @@ public class State {
         }
     }
 
-    public static class FrameData {
-        public final long frameIdx;
-        public final PointWithNormal point;
-        public final Matrix3f transform;
+    public static class PixelInFrame {
+        public final long x;
+        public final long y;
+        public final long frameIndex;
+        public PixelInFrame( long x, long y, long frameIndex ) {
+            this.x = x;
+            this.y = y;
+            this.frameIndex = frameIndex;
+        }
+        /**
+         * Return true if the have the same index.
+         */
+        public boolean equals(Object otherObject) {
+            if (otherObject == null) {
+                return false;
+            }
+            if (this == otherObject) {
+                return true;
+            }
+            if (!(otherObject instanceof PixelInFrame)) {
+                return false;
+            }
+            PixelInFrame otherPixelInFrame = (PixelInFrame) otherObject;
+            return ( (frameIndex == otherPixelInFrame.frameIndex)
+                    && (x == otherPixelInFrame.x)
+                    && (y == otherPixelInFrame.y));
+        }
 
-        FrameData(long frameIndex, PointWithNormal point, Matrix3f transform) {
-            this.frameIdx = frameIndex;
-            this.point = point;
+        public int hashCode() {
+            return Objects.hash(frameIndex, x, y);
+        }
+    }
+
+    public static class FrameData {
+        public final PixelInFrame	pixelInFrame; 	// x, y, frame
+        public final Matrix3f        transform;
+        public final Vector3f        normal;
+
+
+        FrameData(PixelInFrame pixelInFrame, Matrix3f transform, Vector3f normal) {
+            this.pixelInFrame = pixelInFrame;
             this.transform = transform;
+            this.normal = normal;
         }
 
         /**
@@ -60,11 +95,13 @@ public class State {
                 return false;
             }
             FrameData otherFrameData = (FrameData) otherObject;
-            return otherFrameData.frameIdx == this.frameIdx;
+            return (pixelInFrame.equals(otherFrameData.pixelInFrame)
+                    && (transform.equals(otherFrameData.transform))
+                    && (normal.equals(otherFrameData.normal)));
         }
 
         public int hashCode() {
-            return Objects.hashCode(frameIdx);
+            return Objects.hash(pixelInFrame, transform, normal);
         }
     }
 
@@ -180,25 +217,15 @@ public class State {
         );
     }
 
+
     /**
-     * Read a Map of frame->List{point/normals}.
-     * Note that we don't use a Multimap because we depend on the order of items in the List.
+     * Read a Pixel in frame object.
      */
-    private static Map<Long, List<PointWithNormal>> readPointsForFrames(InputStream in)
-            throws IOException {
-        ImmutableMap.Builder<Long, List<PointWithNormal>> pointsForFrames = ImmutableMap.builder();
-        int numFrames = readInt(in);
-        for (int i = 0; i < numFrames; i++) {
-            int numPoints = readInt(in);
-            ImmutableList.Builder<PointWithNormal> pointsForThisFrame = ImmutableList.builder();
-            for (int j = 0; j < numPoints; j++) {
-                Vector3f point = readVector3f(in);
-                Vector3f normal = readVector3f(in);
-                pointsForThisFrame.add(new PointWithNormal(point, normal));
-            }
-            pointsForFrames.put((long) i, pointsForThisFrame.build());
-        }
-        return pointsForFrames.build();
+    private static PixelInFrame readPixelInFrame(InputStream in) throws IOException {
+        long x = readLong(in);
+        long y= readLong(in);
+        long frameIdx = readLong(in);
+        return new PixelInFrame(x, y, frameIdx);
     }
 
     /**
@@ -207,24 +234,24 @@ public class State {
      * is an index into the list of all points in that frame. We read it and then lookup up the
      * correct actual PointWithNormal.
      */
-    private static FrameData readFrameData(InputStream in, //
-                                           Map<Long, List<PointWithNormal>> pointsForFrames)
+    private static FrameData readFrameData(InputStream in)
             throws IOException {
-        long frameIdx = readLong(in);
-        long pointIdx = readLong(in);
-        List<PointWithNormal> pointsForThisFrame = pointsForFrames.get(frameIdx);
-        PointWithNormal point = pointsForThisFrame.get((int) pointIdx);
+        PixelInFrame pif = readPixelInFrame(in);
         Matrix3f transform = readMatrix3f(in);
-        return new FrameData(frameIdx, point, transform);
+        Vector3f normal = readVector3f(in);
+        return new FrameData(pif, transform, normal);
     }
 
-    private static Surfel readSurfel(InputStream in, Map<Long, List<PointWithNormal>> pointsForFrames)
+    /**
+     * Read a Surfel from the InputStream and construct it.
+     */
+    private static Surfel readSurfel(InputStream in)
             throws IOException {
         long surfelId = readLong(in);
         int numFrames = readInt(in);
         List<FrameData> frameData = Lists.newArrayList();
         while (numFrames > 0) {
-            FrameData fd = readFrameData(in, pointsForFrames);
+            FrameData fd = readFrameData(in);
             frameData.add(fd);
             numFrames--;
         }
@@ -243,11 +270,10 @@ public class State {
 
     public static State read(InputStream in) throws CheckException, IOException {
         Check.notNull(in, "Input stream cannot be null");
-        Map<Long, List<PointWithNormal>> pointsForFrames = readPointsForFrames(in);
         List<Surfel> surfels = Lists.newArrayList();
         int numSurfels = readInt(in);
         while (numSurfels > 0) {
-            Surfel surfel = readSurfel(in, pointsForFrames);
+            Surfel surfel = readSurfel(in);
             surfels.add(surfel);
             numSurfels--;
         }

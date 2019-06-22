@@ -3,9 +3,11 @@ package org.ddurbin.animesh.viewer;
 import com.google.common.collect.ImmutableList;
 import org.ddurbin.animesh.tools.State;
 import org.ddurbin.animesh.tools.StateUtilities;
+import org.ddurbin.common.Camera;
 import org.ddurbin.common.Pair;
 import org.ddurbin.common.Vector3f;
 
+import java.io.IOException;
 import java.util.List;
 
 public class StateToGlData {
@@ -15,12 +17,19 @@ public class StateToGlData {
   public static float[] convertStateToGlData(State state, int frame) {
     ImmutableList.Builder<Float> listBuilder = ImmutableList.builder();
 
+    Camera camera;
+    try {
+      camera = Camera.loadFromFile("camera.txt");
+    } catch (IOException e) {
+      throw new RuntimeException("Couldn't load camera file");
+    }
+
     for (State.Surfel s : state.surfels) {
       s.frameData.forEach((fd) -> {
         if (fd.pixelInFrame.frameIndex == frame) {
           // Get tangent and normal
           Pair<Vector3f, Vector3f> p = StateUtilities.projectSurfelToFrame(s, fd);
-          Vector3f pointInSpace = StateUtilities.backprojectPoint2_5D(fd.pixelInFrame);
+          Vector3f pointInSpace = camera.backproject((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
 
           // Get the point in 3-space
           listBuilder.add(pointInSpace.x);
@@ -92,7 +101,7 @@ public class StateToGlData {
           maxY = f[i];
         }
 
-      } else if (i % 3 == 2) {
+      } else /* i % 3 == 2 */ {
         if (f[i] < minZ) {
           minZ = f[i];
         }

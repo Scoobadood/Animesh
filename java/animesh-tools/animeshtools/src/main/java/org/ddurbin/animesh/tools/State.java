@@ -71,14 +71,16 @@ public class State {
 
     public static class FrameData {
         public final PixelInFrame	pixelInFrame; 	// x, y, frame
-        public final Matrix3f        transform;
-        public final Vector3f        normal;
+        public final Matrix3f       transform;
+        public final Vector3f       normal;
+        public final float          depth;
 
 
-        FrameData(PixelInFrame pixelInFrame, Matrix3f transform, Vector3f normal) {
+        FrameData(PixelInFrame pixelInFrame, Matrix3f transform, Vector3f normal, float depth) {
             this.pixelInFrame = pixelInFrame;
             this.transform = transform;
             this.normal = normal;
+            this.depth = depth;
         }
 
         /**
@@ -237,9 +239,10 @@ public class State {
     private static FrameData readFrameData(InputStream in)
             throws IOException {
         PixelInFrame pif = readPixelInFrame(in);
+        float depth = readFloat(in);
         Matrix3f transform = readMatrix3f(in);
         Vector3f normal = readVector3f(in);
-        return new FrameData(pif, transform, normal);
+        return new FrameData(pif, transform, normal, depth);
     }
 
     /**

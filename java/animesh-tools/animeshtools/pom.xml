@@ -17,7 +17,25 @@
                 <directory>src/main/resources</directory>
             </resource>
         </resources>
+        <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>2.4</version>    <configuration>
+            <archive>
+                <manifest>
+                    <addClasspath>true</addClasspath>
+                    <mainClass>org.ddurbin.animesh.tools.MeasureError</mainClass>
+                    <classpathPrefix>/Users/dave/.m2/repository/</classpathPrefix>
+                    <classpathLayoutType>repository</classpathLayoutType>
+                </manifest>
+            </archive>
+        </configuration>
+        </plugin>
+        </plugins>
     </build>
+
+
 
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->

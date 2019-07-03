@@ -4,8 +4,6 @@ cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
-file(GLOB SOURCES "*.cpp")
-
 # Need PCL
 find_package(PCL 1.8 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
@@ -19,7 +17,10 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Building the executable
 add_executable(mesher
-   	${SOURCES})
+	mesher.cpp
+	smooth.cpp
+	surfel.cpp
+   	)
 
 target_link_libraries(mesher
 	DepthMap

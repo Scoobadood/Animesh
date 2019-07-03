@@ -1,11 +1,11 @@
-org/ddurbin/common/Check.class
-org/ddurbin/animesh/tools/MeasureError.class
-org/ddurbin/animesh/tools/State$FrameData.class
-org/ddurbin/animesh/tools/State.class
 org/ddurbin/animesh/tools/State$Surfel.class
 org/ddurbin/common/Pair.class
-org/ddurbin/common/Matrix3f.class
 org/ddurbin/common/Vector3f.class
 org/ddurbin/common/Check$CheckException.class
+org/ddurbin/animesh/tools/State$FrameData.class
+org/ddurbin/animesh/tools/MeasureError.class
+org/ddurbin/animesh/tools/State.class
 org/ddurbin/animesh/tools/StateUtilities.class
+org/ddurbin/common/Check.class
+org/ddurbin/common/Matrix3f.class
 org/ddurbin/animesh/tools/State$PointWithNormal.class

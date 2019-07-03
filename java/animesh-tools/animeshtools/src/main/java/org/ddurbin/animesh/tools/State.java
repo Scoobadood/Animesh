@@ -275,11 +275,16 @@ public class State {
         Check.notNull(in, "Input stream cannot be null");
         List<Surfel> surfels = Lists.newArrayList();
         int numSurfels = readInt(in);
+
+        int total = numSurfels;
+        int count = 0;
         while (numSurfels > 0) {
+            System.out.print( String.format("\rReading %d of %d    ", ++count, total));
             Surfel surfel = readSurfel(in);
             surfels.add(surfel);
             numSurfels--;
         }
+        System.out.println();
 
         return new State(surfels);
     }

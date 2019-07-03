@@ -1,5 +1,11 @@
 package org.ddurbin.animesh.tools;
 
+import static org.ddurbin.animesh.tools.State.FrameData;
+import static org.ddurbin.animesh.tools.State.Surfel;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
@@ -41,24 +47,18 @@ import static org.ddurbin.animesh.tools.StateUtilities.projectSurfelToFrame;
 public class MeasureError {
 
 
-    public static void main(String[] args) throws Exception {
-        MeasureError measure = new MeasureError();
-        String directory = args[0];
-        String fileName = args[1];
-        State state = StateUtilities.loadState(directory, fileName);
+    private static void mapErrorByFrameAndSurfel(Map<Surfel, Map<Long, Float>> error,
+                                                 Map<Long, Float> errorByFrame,
+                                                 Map<Surfel, Float> errorBySurfel) {
+        int total = error.entrySet().size();
+        int count = 0;
+        for (Map.Entry<Surfel, Map<Long, Float>> e : error.entrySet()) {
+            System.out.print( String.format("\rProcessing %d of %d    ", ++count, total));
 
-        Map<State.Surfel, Map<State.FrameData, Float>> error = measure.measure(state);
-
-        // Report by frame
-        Map<State.FrameData, Float> errorByFrame = new HashMap<>();
-        Map<State.Surfel, Float> errorBySurfel = new HashMap<>();
-
-        for (Map.Entry<State.Surfel, Map<State.FrameData, Float>> e : error.entrySet()) {
-            State.Surfel surfel = e.getKey();
+            Surfel surfel = e.getKey();
             float surfelError = 0.0f;
 
-
-            for (Map.Entry<State.FrameData, Float> f : e.getValue().entrySet()) {
+            for (Map.Entry<Long, Float> f : e.getValue().entrySet()) {
                 surfelError += f.getValue();
                 float frameError = errorByFrame.computeIfAbsent(f.getKey(), i -> 0.0f);
                 errorByFrame.put(f.getKey(), frameError + f.getValue());
@@ -66,82 +66,112 @@ public class MeasureError {
 
             errorBySurfel.put(surfel, surfelError);
         }
+    }
 
-        errorByFrame.keySet().stream().sorted(Comparator.comparingLong(fd -> fd.frameIdx)).forEach(fd -> {
-            System.out.println(String.format("Frame : %d      Error : %8.1f", fd.frameIdx, errorByFrame.get(fd)));
+    public static void main(String[] args) throws Exception {
+        MeasureError measure = new MeasureError();
+        String directory = args[0];
+        String fileName = args[1];
+        State state = StateUtilities.loadState(directory, fileName);
+        System.out.println( "State loaded");
+
+        // Compute the error for each surfel for each frame it appears in.
+        Map<Surfel, Map<Long, Float>> error = measure.measure(state);
+
+
+        Map<Long, Float> errorByFrame = new HashMap<>();
+        Map<Surfel, Float> errorBySurfel = new HashMap<>();
+        mapErrorByFrameAndSurfel(error, errorByFrame, errorBySurfel);
+
+        // output error by frame.
+        errorByFrame.keySet().stream().sorted(Comparator.comparingLong(k->k)).forEach(f -> {
+            System.out.println(String.format("Frame : %d      Error : %8.1f", f, errorByFrame.get(f)));
         });
 
+        // output error by surfel.
         errorBySurfel.keySet().stream().sorted(Comparator.comparingLong(s -> s.id)).forEach(s -> {
             System.out.println(String.format("Surfel : %05d      Error : %8.1f", s.id, errorBySurfel.get(s)));
         });
     }
 
     /**
-     * Map a Surfel into all frames in which it apears
+     * Given a surfel, produce a map from the frames in which it appears to its projected normal and tangent in those frames.
      */
-    Map<State.FrameData, Pair<Vector3f, Vector3f>>
-    projectSurfelToAllFrames(State.Surfel s) {
-        Map<State.FrameData, Pair<Vector3f, Vector3f>> projectedSurfelsByFrame = new HashMap<>();
+    Map<Long, Pair<Vector3f, Vector3f>>
+    computeTansAndNormsByFrame(Surfel s) {
+        Map<Long, Pair<Vector3f, Vector3f>> surfelTanAndNormByFrame = new HashMap<>();
 
-        for (State.FrameData fd : s.frameData) {
+        for (FrameData fd : s.frameData) {
             Pair<Vector3f, Vector3f> projectedTangentNormal = projectSurfelToFrame(s, fd);
-            projectedSurfelsByFrame.put(fd, projectedTangentNormal);
+            surfelTanAndNormByFrame.put(fd.pixelInFrame.frameIndex, projectedTangentNormal);
         }
 
-        return projectedSurfelsByFrame;
+        return surfelTanAndNormByFrame;
     }
 
     /**
-     * Map each surfel into it's correct position and orientation in each frame.
+     * Map each surfel into it's correct position and orientation in each frame in which it appears.
      */
-    Map<State.Surfel, Map<State.FrameData, Pair<Vector3f, Vector3f>>>
+    Map<Surfel, Map<Long, Pair<Vector3f, Vector3f>>>
     projectAllSurfelsToAllFrames(State state) {
-        Map<State.Surfel, Map<State.FrameData, Pair<Vector3f, Vector3f>>> allProjectionsbySurfel = new HashMap<>();
+        Map<Surfel, Map<Long, Pair<Vector3f, Vector3f>>> allProjectionsbySurfel = new HashMap<>();
 
-        for (State.Surfel s : state.surfels) {
-            Map<State.FrameData, Pair<Vector3f, Vector3f>> projectedSurfelsByFrame = projectSurfelToAllFrames(s);
-            allProjectionsbySurfel.put(s, projectedSurfelsByFrame);
+        int total = state.surfels.size();
+        int count = 0;
+        for (Surfel s : state.surfels) {
+            System.out.print( String.format("\rProjecting surfel %d of %d    ", ++count, total));
+            Map<Long, Pair<Vector3f, Vector3f>> tansAndNormsbyFrame = computeTansAndNormsByFrame(s);
+            allProjectionsbySurfel.put(s, tansAndNormsbyFrame);
         }
         return allProjectionsbySurfel;
     }
 
     /**
-     * Compute a mapping from frame to Surfel
+     * Construct a mapping from frame number to the surfels that occur in it.
      */
-    Map<State.FrameData, Set<State.Surfel>>
+    SetMultimap<Long, Surfel>
     mapSurfelsByFrame(State state) {
-        Map<State.FrameData, Set<State.Surfel>> surfelsByFrame = new HashMap<>();
-        for (State.Surfel s : state.surfels) {
-            for (State.FrameData fd : s.frameData) {
-                Set<State.Surfel> set = surfelsByFrame.computeIfAbsent(fd, l -> new HashSet<>());
-                set.add(s);
+
+        ImmutableSetMultimap.Builder<Long, Surfel> mapBuilder = ImmutableSetMultimap.builder();
+
+        for (Surfel s : state.surfels) {
+            for (FrameData fd : s.frameData) {
+                mapBuilder.put(fd.pixelInFrame.frameIndex, s);
             }
         }
-        return surfelsByFrame;
+        return mapBuilder.build();
     }
 
     /*
      * Compute the neighbours for each Surfel in each frame.
      */
-    Map<State.Surfel, Map<State.FrameData, Set<State.Surfel>>>
+    Map<Surfel, SetMultimap<Long, Surfel>>
     computeSurfelNeighboursInFrames(State state) {
-        Map<State.Surfel, Map<State.FrameData, Set<State.Surfel>>> neighboursInFramesBySurfel = new HashMap<>();
+        // We'll return this
+        ImmutableMap.Builder<Surfel, SetMultimap<Long, Surfel>> neighboursInFramesBySurfel = ImmutableMap.builder();
 
-        Map<State.FrameData, Set<State.Surfel>> allSurfelsByFrame = mapSurfelsByFrame(state);
+        // Get a mapping from frame to all the surfels in it.
+        SetMultimap<Long, Surfel> allSurfelsByFrame = mapSurfelsByFrame(state);
 
-        for (State.Surfel currentSurfel : state.surfels) {
-            Set<State.Surfel> currentSurfelNeighbours = currentSurfel.neighbours.stream().map(state.surfels::get).collect(Collectors.toSet());
-            Map<State.FrameData, Set<State.Surfel>> currentSurfelNeighboursByFrame = new HashMap<>();
 
-            for (State.FrameData fd : currentSurfel.frameData) {
-                // neighbours in this frame is the intersection of neighbours of this surfel and surfels in this frame
-                Set<State.Surfel> currentSurfelNeighboursInThisFrame = Sets.intersection(currentSurfelNeighbours, allSurfelsByFrame.get(fd));
-                currentSurfelNeighboursByFrame.put(fd, currentSurfelNeighboursInThisFrame);
+        for (Surfel currentSurfel : state.surfels) {
+            // Get the current surfel's neighbours into a Set
+            Set<Surfel> currentSurfelNeighbours = currentSurfel.neighbours.stream().map(state.surfels::get).collect(Collectors.toSet());
+
+            ImmutableSetMultimap.Builder<Long, Surfel> currentSurfelNeighboursInFrame = ImmutableSetMultimap.builder();
+            for (FrameData fd : currentSurfel.frameData) {
+                // Current surfels neighbours in this frame is the intersection of neighbours of this surfel and surfels in this frame
+                Set<Surfel> surfelsInThisFrame = allSurfelsByFrame.get(fd.pixelInFrame.frameIndex);
+                Set<Surfel> currentSurfelNeighboursInThisFrame = Sets.intersection(currentSurfelNeighbours, surfelsInThisFrame);
+
+                // Add into the by frame MultiMap.
+                currentSurfelNeighboursInFrame.putAll(fd.pixelInFrame.frameIndex, currentSurfelNeighboursInThisFrame);
             }
-            neighboursInFramesBySurfel.put(currentSurfel, currentSurfelNeighboursByFrame);
+            neighboursInFramesBySurfel.put(currentSurfel, currentSurfelNeighboursInFrame.build());
         }
-        return neighboursInFramesBySurfel;
+        return neighboursInFramesBySurfel.build();
     }
+
 
     Pair<Vector3f, Vector3f>
     bestRoSyVectorPair(Pair<Vector3f, Vector3f> source,
@@ -189,12 +219,12 @@ public class MeasureError {
      * Compute the error between two Surfels in a given frame
      */
     float
-    computeSurfelErrorsForFrame(State.Surfel s1,
-                                State.Surfel s2,
-                                State.FrameData fd,
-                                Map<State.Surfel, Map<State.FrameData, Pair<Vector3f, Vector3f>>> surfelsInFrames) {
-        Pair<Vector3f, Vector3f> first = surfelsInFrames.get(s1).get(fd);
-        Pair<Vector3f, Vector3f> second = surfelsInFrames.get(s2).get(fd);
+    computeSurfelErrorsForFrame(Surfel s1,
+                                Surfel s2,
+                                long frameIndex,
+                                Map<Surfel, Map<Long, Pair<Vector3f, Vector3f>>> surfelsInFrames) {
+        Pair<Vector3f, Vector3f> first = surfelsInFrames.get(s1).get(frameIndex);
+        Pair<Vector3f, Vector3f> second = surfelsInFrames.get(s2).get(frameIndex);
         return computeError(first, second);
     }
 
@@ -202,45 +232,73 @@ public class MeasureError {
      * Compute error between one surfel and a list of others where the error is the sum of diffs
      */
     float
-    computeSurfelErrorsForFrame(State.Surfel s1,
-                                Collection<State.Surfel> others,
-                                State.FrameData fd,
-                                Map<State.Surfel, Map<State.FrameData, Pair<Vector3f, Vector3f>>> surfelsInFrames) {
+    computeSurfelErrorsForFrame(Surfel s1,
+                                Set<Surfel> others,
+                                long frameIndex,
+                                Map<Surfel, Map<Long, Pair<Vector3f, Vector3f>>> surfelsInFrames) {
         float error = 0.0f;
-        for (State.Surfel s2 : others) {
-            error += computeSurfelErrorsForFrame(s1, s2, fd, surfelsInFrames);
+        for (Surfel s2 : others) {
+            error += computeSurfelErrorsForFrame(s1, s2, frameIndex, surfelsInFrames);
         }
         return error;
     }
 
     /*
      * For each surfel and frame, compute the sum of the deltas between it and its neighbours in the same frame
+     * @param state The total state.
+     * @param surfelsInFrames A map, for each surfel, providing a mapping from frame index to transformed tan and norm in that frame.
+     * @return A map from each surfel to the error in each frame.
      */
-    Map<State.Surfel, Map<State.FrameData, Float>>
-    computeSurfelsErrorsInFrames(State state, Map<State.Surfel, Map<State.FrameData, Pair<Vector3f, Vector3f>>> surfelsInFrames) {
+    Map<Surfel, Map<Long, Float>>
+    computeSurfelsErrorsInFrames(State state, Map<Surfel, Map<Long, Pair<Vector3f, Vector3f>>> surfelsInFrames) {
 
-        Map<State.Surfel, Map<State.FrameData, Float>> errorPerFrameBySurfel = new HashMap<>();
-        Map<State.Surfel, Map<State.FrameData, Set<State.Surfel>>> surfelsNeighboursInFrames = computeSurfelNeighboursInFrames(state);
 
-        for (Map.Entry<State.Surfel, Map<State.FrameData, Set<State.Surfel>>> neighboursInFramesBySurfel : surfelsNeighboursInFrames.entrySet()) {
-            State.Surfel currentSurfel = neighboursInFramesBySurfel.getKey();
+        // Obtain a map from a surfel to the neighbours of that surfel in each frame
+        Map<Surfel, SetMultimap<Long, Surfel>> surfelsNeighboursInFrames = computeSurfelNeighboursInFrames(state);
 
-            Map<State.FrameData, Float> currentSurfelErrorByFrame = new HashMap<>();
-            for (Map.Entry<State.FrameData, Set<State.Surfel>> neighboursByFrame : neighboursInFramesBySurfel.getValue().entrySet()) {
-                State.FrameData frame = neighboursByFrame.getKey();
-                float error = computeSurfelErrorsForFrame(currentSurfel, neighboursByFrame.getValue(), frame, surfelsInFrames);
+        ImmutableMap.Builder<Surfel, Map<Long, Float>> errorPerFrameBySurfel = ImmutableMap.builder();
+
+        int total = surfelsNeighboursInFrames.entrySet().size();
+        int count = 0;
+
+
+        // For each surfel...
+        for (Surfel currentSurfel : surfelsNeighboursInFrames.keySet()) {
+            System.out.print( String.format("\rcomputing error for %d of %d    ", ++count, total));
+
+            SetMultimap<Long, Surfel> neighboursByFrame = surfelsNeighboursInFrames.get(currentSurfel);
+
+            // Compute the error for this frme
+            Map<Long, Float> currentSurfelErrorByFrame = new HashMap<>();
+
+            // For each frame
+            for (Long frame : neighboursByFrame.keys()) {
+                Set neighboursInCurrentFrame = neighboursByFrame.get(frame);
+
+                // Compute the error for this frame.
+                float error = computeSurfelErrorsForFrame(currentSurfel, neighboursInCurrentFrame, frame, surfelsInFrames);
+
+                // Add this error to the frame.
                 currentSurfelErrorByFrame.put(frame, error);
             }
+            // Add the errors per frame data to this surfels mapping
             errorPerFrameBySurfel.put(currentSurfel, currentSurfelErrorByFrame);
         }
-        return errorPerFrameBySurfel;
+
+        return errorPerFrameBySurfel.build();
     }
 
-    Map<State.Surfel, Map<State.FrameData, Float>>
-    measure(State state) {
-        // Get surfel positions in frames
-        Map<State.Surfel, Map<State.FrameData, Pair<Vector3f, Vector3f>>> surfelsInFrames = projectAllSurfelsToAllFrames(state);
 
+    /**
+     * Compute the error for each surfel for each frame it appears in.
+     * Return a map from the surfel to the frame and error.
+     */
+    Map<Surfel, Map<Long, Float>>
+    measure(State state) {
+        // Work out which frames a surfel appears in and project its normal and tangent forward to that frame
+        Map<Surfel, Map<Long, Pair<Vector3f, Vector3f>>> surfelsInFrames = projectAllSurfelsToAllFrames(state);
+
+        // For each sufel and frame, compute the error.
         return computeSurfelsErrorsInFrames(state, surfelsInFrames);
     }
 }

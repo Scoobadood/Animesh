@@ -25,12 +25,13 @@ struct PixelInFrame {
 
 struct FrameData {
 	PixelInFrame	pixel_in_frame; 	// x, y, frame
+	float 			depth;				// Depth of range scan at this pixel.
 	Eigen::Matrix3f	transform;			// Computed
 	Eigen::Vector3f normal;				// Normal at pixel in frame
-	FrameData(const PixelInFrame& pif, const Eigen::Matrix3f& tran, const Eigen::Vector3f& norm) : pixel_in_frame{pif}, transform{tran}, normal{norm}
+	FrameData(const PixelInFrame& pif, float depth, const Eigen::Matrix3f& tran, const Eigen::Vector3f& norm) : pixel_in_frame{pif}, depth{depth}, transform{tran}, normal{norm}
 	{}
 
-	FrameData() : pixel_in_frame{0, 0, 0}, transform{Eigen::Matrix3f::Identity()}, normal{Eigen::Vector3f::Zero()}
+	FrameData() : pixel_in_frame{0, 0, 0}, depth{0}, transform{Eigen::Matrix3f::Identity()}, normal{Eigen::Vector3f::Zero()}
 	{}
 };
 

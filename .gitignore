@@ -12,3 +12,6 @@ src/cmake-build-debug
 build-QtMain-Desktop_Qt_5_12_0_clang_64bit-Default/
 
 **/*.class
+
+java/animesh-tools/animeshtools/target/
+java/All\ Src

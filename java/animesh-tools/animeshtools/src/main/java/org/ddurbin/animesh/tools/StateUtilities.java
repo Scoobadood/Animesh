@@ -1,5 +1,8 @@
 package org.ddurbin.animesh.tools;
 
+import static org.ddurbin.animesh.tools.State.FrameData;
+import static org.ddurbin.animesh.tools.State.Surfel;
+
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,28 +17,16 @@ public class StateUtilities {
    * into the Frame's frame of reference
    */
   public static Pair<Vector3f, Vector3f>
-  projectSurfelToFrame(State.Surfel s, State.FrameData fd) {
+  projectSurfelToFrame(Surfel s, FrameData fd) {
     // Transform the surfel tangent and normal into this frame space
     Vector3f tangentInFrame = fd.transform.times(s.tangent);
     Vector3f normalInFrame = fd.transform.times(Vector3f.Y_AXIS);
     return new Pair<>(tangentInFrame, normalInFrame);
   }
 
-  public static Vector3f
-  backprojectPoint2_5D(State.PixelInFrame pif) {
-
-    // We need a camera loaded
-    // We need to work out the transformation matrix
-    // We need to invert this and multiply by pif.
-    //
-
-  }
-
-
   /**
    * Load State from a file.
    */
-
   public static State
   loadState(String directory, String fileName) throws Exception {
     Path path = Paths.get(directory, fileName);

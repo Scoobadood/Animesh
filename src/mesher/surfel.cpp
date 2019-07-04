@@ -11,7 +11,6 @@
 #include <FileUtils/PgmFileParser.h>
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
-#include "depth_image_loader.h"
 
 static const char * DEPTH_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat";
 static const char * VERTEX_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm";

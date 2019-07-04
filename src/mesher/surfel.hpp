@@ -3,7 +3,6 @@
 #include <vector>
 #include <Eigen/Core>
 #include <fstream>
-#include "depth_image_loader.h"
 
 struct PixelInFrame {
 	unsigned int x;
@@ -48,20 +47,6 @@ struct Surfel {
  */
 void 
 sort_frame_data(std::vector<Surfel>& surfels);
-
-/**
- * Make the surfel table given a vector of points (with normals) for each frame
- * along with correspondences between them.
- * @param point_normals outer vector is the frame, inner vectr is the point normal.
- * @param neighbours Per frame, a lit of indices of the neighbours of a point where the index in the list matches the index in the point_normals list.
- * @param correspondences A vector of all correspondences where each correspondence is a vector of <frame,point_normal index>
- * @return A vector of surfels.
- */
-std::vector<Surfel>
-build_surfel_table(const std::vector<std::vector<PointWithNormal2_5D>>& point_normals,			// per frame, all point_normals
-				   const std::vector<std::vector<std::vector<unsigned int>>>& neighbours,	// per frame, list of all points neighbouring
-				   const std::vector<std::vector<std::pair<unsigned int, unsigned int>>>&  correspondences);
-
 
 /**
  * Initialie all tangents to random values

@@ -3,9 +3,6 @@
 #include "surfel.hpp"
 #include "smooth.h"
 
-// TODO: Remove me once we finish with matlab
-#include "depth_image_loader.h"
-
 void 
 usage( const char *name ) {
     std::cout << "Usage : " << name << " [-s surfel_file | -d source_directory] [-m]" << std::endl;

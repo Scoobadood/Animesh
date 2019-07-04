@@ -98,8 +98,9 @@ save_to_file( const std::string& file_name,
 {
 	using namespace std;
 
-    ofstream file{file_name, ios::out | ios::binary};
+    cout << "Saving..." << flush;
 
+    ofstream file{file_name, ios::out | ios::binary};
     // Count
     write_unsigned_int( file, surfels.size());
     for( auto const & surfel : surfels) {
@@ -135,6 +136,7 @@ save_to_file( const std::string& file_name,
 	    write_vector_3f(file, surfel.tangent);
 	}
     file.close();
+    cout << " done." << endl;
 }
 
 unsigned int 
@@ -183,6 +185,8 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 {
 	using namespace std;
 
+	cout << "Loading from file " << file_or_directory << "..." << flush;
+
 	ifstream file{ file_name, ios::in | ios::binary};
 	surfels.clear();
 
@@ -227,8 +231,7 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 		surfels.push_back(s);
 	}
 	file.close();
-	cout << endl;
-    std::cout << "in load from file [66]: " << surfels.at(66).tangent.x() << ", " << surfels.at(66).tangent.y() << ", " <<  surfels.at(66).tangent.z() << std::endl;
+	cout << endl << " done." << endl;
 }
 
 
@@ -647,6 +650,8 @@ load_from_directory(  const std::string& dir,
                       std::vector<Surfel>& surfels ) 
 {
   using namespace std;
+
+  cout << "Loading from directory " << file_or_directory << "..." << endl;
 
   vector<DepthMap> depth_maps;
   load_depth_maps(dir, depth_maps);

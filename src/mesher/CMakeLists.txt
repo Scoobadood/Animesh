@@ -20,6 +20,7 @@ add_executable(mesher
 	mesher.cpp
 	smooth.cpp
 	surfel.cpp
+	args.cpp
    	)
 
 target_link_libraries(mesher

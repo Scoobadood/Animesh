@@ -32,7 +32,7 @@ void main(void) {
     vec4 data =  nextVertex;
 
     int numTriangles = int(data.r);
-    const float ZERO = 1e-6;   // to avoid intrsection with start point of ray
+    const float ZERO = 1e-6;   // to avoid intersection with start point of ray
 
     // Default background
     index = (numTriangles * 3) + 1;
@@ -80,7 +80,7 @@ void main(void) {
         if ((v < 0.0) || (u + v > 1.0)) {
             continue;
         }
-        // Comput et to find intersection
+        // Compute to find intersection
         float t = f * dot(edge2, q);
         if ( t > ZERO) {
             vec3 intersection = rayStart + rayDirection * t;

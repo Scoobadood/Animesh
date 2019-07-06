@@ -47,7 +47,7 @@ std::string loadCode( const std::string& kernelPath ) {
 		file.close();
 		code   = stream.str();
 	}
-	catch (ifstream::failure e) {
+	catch (ifstream::failure& e) {
 		cout << "ERROR::FILE_NOT_SUCCESFULLY_READ" << endl;
 	}
 	return code;
@@ -61,7 +61,7 @@ Platform selectPlatform() {
 	vector<Platform> platforms;
 	Platform::get(&platforms);
 
-	if ( platforms.size() == 0 ) {
+	if ( platforms.empty() ) {
 		cerr << "No OpenCL platform available" << endl;
 		exit(-1);
 	}

@@ -2,6 +2,7 @@
 #include <Eigen/Core>
 #include <random>
 #include <math.h>
+#include <iostream>
 #include <RoSy/RoSy.h>
 #include <sys/stat.h>
 
@@ -18,8 +19,8 @@ static const long RANDOM_SEED = 919765;
    ********************************************************************************
 */
 
-std::size_t 
-random_index( unsigned int max_index ) {
+std::size_t
+random_index(unsigned int max_index) {
     static std::default_random_engine e{RANDOM_SEED};
     static std::uniform_real_distribution<> dis(0, max_index);
     return std::floor(dis(e));
@@ -28,10 +29,10 @@ random_index( unsigned int max_index ) {
 /**
  * Check for presence of a file to see if we should stop
  */
-bool 
+bool
 check_stop_flag() {
-  struct stat buffer;   
-  return (stat ("halt", &buffer) == 0); 
+    struct stat buffer;
+    return (stat("halt", &buffer) == 0);
 }
 
 /*
@@ -43,32 +44,38 @@ check_stop_flag() {
 */
 
 
-void 
-optimise_begin(std::vector<Surfel>& surfels) {
-	sort_frame_data(surfels);
-	g_is_optimising = true;
+void
+optimise_begin(std::vector<Surfel> &surfels) {
+    sort_frame_data(surfels);
+    g_is_optimising = true;
 }
 
-void 
+void
 optimise_end() {
-	g_is_optimising = false;
+    g_is_optimising = false;
 }
 
-float 
+float
 total_error() {
-	// std::cout << "total_error() not yet implemented" << std::endl;
-	return 0.0f;
+    // std::cout << "total_error() not yet implemented" << std::endl;
+    return 0.0f;
 }
 
-bool 
+/**
+ * @param error The currently computed error.
+ * @return True if this has converged, i.e. the difference in error over the last two iterations is less than some threshold.
+ */
+bool
 check_convergence(float error) {
-	static int iterations = 0;
-	if( iterations % 100 == 0 ) {
-		std::cout << "****************************************" << std::endl 
-				  <<"check_convergence() " << iterations <<" iterations" << std::endl
-				  << "****************************************" << std::endl ;
-	}
-	return (++iterations == MAX_ITERATIONS);
+    float delta_error = error - g_optimisation_error;
+    // TODO: Check if delta_error is below some threshold
+    static int iterations = 0;
+    if (iterations % 100 == 0) {
+        std::cout << "****************************************" << std::endl
+                  << "check_convergence() " << iterations << " iterations" << std::endl
+                  << "****************************************" << std::endl;
+    }
+    return (++iterations == MAX_ITERATIONS);
 }
 
 /**
@@ -76,35 +83,34 @@ check_convergence(float error) {
  * common_frames is allocated. The algorithm will clear and resize it.
  * on exit, common_frames contains pairs of <surfel,neghbour> frames with matching IDs
  */
-void 
-find_common_frames(	const std::vector<FrameData>& surfel_frames, 
-					const std::vector<FrameData>& neighbour_frames, 
-					std::vector<std::pair<FrameData, FrameData>>& common_frames)
-{
-	using namespace std;
+void
+find_common_frames(const std::vector<FrameData> &surfel_frames,
+                   const std::vector<FrameData> &neighbour_frames,
+                   std::vector<std::pair<FrameData, FrameData>> &common_frames) {
+    using namespace std;
 
-	unsigned long max_common_values = min(surfel_frames.size(), neighbour_frames.size());
-	common_frames.clear();
-	common_frames.resize(max_common_values);
+    unsigned long max_common_values = min(surfel_frames.size(), neighbour_frames.size());
+    common_frames.clear();
+    common_frames.resize(max_common_values);
 
-	// Find the intersection of these sets
-	auto surfel_frame_iter = surfel_frames.begin();
-	auto neighbour_frame_iter = neighbour_frames.begin();
-	auto common_iter = common_frames.begin();
+    // Find the intersection of these sets
+    auto surfel_frame_iter = surfel_frames.begin();
+    auto neighbour_frame_iter = neighbour_frames.begin();
+    auto common_iter = common_frames.begin();
 
-	while (surfel_frame_iter != surfel_frames.end() && neighbour_frame_iter != neighbour_frames.end()) {
-		if (surfel_frame_iter->pixel_in_frame.frame < neighbour_frame_iter->pixel_in_frame.frame) {
-			++surfel_frame_iter;
-		} else if (neighbour_frame_iter->pixel_in_frame.frame < surfel_frame_iter->pixel_in_frame.frame) {
-			++neighbour_frame_iter;
-		} else {
-  			*common_iter = make_pair(*surfel_frame_iter, *neighbour_frame_iter);
-  			++common_iter; 
-  			++surfel_frame_iter; 
-  			++neighbour_frame_iter;
-		}
-	}
-  	common_frames.resize(common_iter - common_frames.begin());
+    while (surfel_frame_iter != surfel_frames.end() && neighbour_frame_iter != neighbour_frames.end()) {
+        if (surfel_frame_iter->pixel_in_frame.frame < neighbour_frame_iter->pixel_in_frame.frame) {
+            ++surfel_frame_iter;
+        } else if (neighbour_frame_iter->pixel_in_frame.frame < surfel_frame_iter->pixel_in_frame.frame) {
+            ++neighbour_frame_iter;
+        } else {
+            *common_iter = make_pair(*surfel_frame_iter, *neighbour_frame_iter);
+            ++common_iter;
+            ++surfel_frame_iter;
+            ++neighbour_frame_iter;
+        }
+    }
+    common_frames.resize(common_iter - common_frames.begin());
 }
 
 /**
@@ -113,44 +119,44 @@ find_common_frames(	const std::vector<FrameData>& surfel_frames,
  * tan/norm are converted to the orignating surfel's frame of reference.
  */
 void
-get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels, 
-									std::size_t surfel_idx, 
-									std::vector<Eigen::Vector3f>& eligible_normals,
-									std::vector<Eigen::Vector3f>& eligible_tangents) {
-	using namespace std;
-	using namespace Eigen;
+get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
+                                  std::size_t surfel_idx,
+                                  std::vector<Eigen::Vector3f> &eligible_normals,
+                                  std::vector<Eigen::Vector3f> &eligible_tangents) {
+    using namespace std;
+    using namespace Eigen;
 
-	const vector<FrameData>& surfel_frames = surfels.at(surfel_idx).frame_data;
+    const vector<FrameData> &surfel_frames = surfels.at(surfel_idx).frame_data;
 
-	// For each neighbour
-	int total_common_frames = 0;
-	for ( size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
+    // For each neighbour
+    int total_common_frames = 0;
+    for (size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
 
-		const vector<FrameData>& neighbour_frames = surfels.at(neighbour_idx).frame_data;
-		vector<pair<FrameData, FrameData>> common_frames;
-		find_common_frames(surfel_frames, neighbour_frames, common_frames);
-		total_common_frames += common_frames.size();
+        const vector<FrameData> &neighbour_frames = surfels.at(neighbour_idx).frame_data;
+        vector<pair<FrameData, FrameData>> common_frames;
+        find_common_frames(surfel_frames, neighbour_frames, common_frames);
+        total_common_frames += common_frames.size();
 
-		// For each common frame, get normal and tangent in surfel space
-		for( auto const & frame_pair : common_frames) {
-			const Matrix3f surfel_to_frame = frame_pair.first.transform;
-			const Matrix3f frame_to_surfel = surfel_to_frame.transpose();
-			const Matrix3f neighbour_to_frame = frame_pair.second.transform;
-      Vector3f neighbour_normal_in_frame = frame_pair.second.normal;
+        // For each common frame, get normal and tangent in surfel space
+        for (auto const &frame_pair : common_frames) {
+            const Matrix3f surfel_to_frame = frame_pair.first.transform;
+            const Matrix3f frame_to_surfel = surfel_to_frame.transpose();
+            const Matrix3f neighbour_to_frame = frame_pair.second.transform;
+            Vector3f neighbour_normal_in_frame = frame_pair.second.normal;
 
-			// Push the neighbour normal and tangent into the right frame
-			// Transform the frame tangent back to the surfel space using inv. surfel matrix
-			// So we need:
-			//    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
-			//	  transform from frame space to free space using surfel data. (inv of stored)
-			const Matrix3f neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
-			Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * surfels.at(neighbour_idx).tangent;
-			Vector3f neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
-			eligible_normals.push_back(neighbour_norm_in_surfel_space);
-			eligible_tangents.push_back(neighbour_tan_in_surfel_space);
-		}
-	}
-	// cout << "  total common frames " << total_common_frames << endl;
+            // Push the neighbour normal and tangent into the right frame
+            // Transform the frame tangent back to the surfel space using inv. surfel matrix
+            // So we need:
+            //    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
+            //	  transform from frame space to free space using surfel data. (inv of stored)
+            const Matrix3f neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
+            Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * surfels.at(neighbour_idx).tangent;
+            Vector3f neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
+            eligible_normals.push_back(neighbour_norm_in_surfel_space);
+            eligible_tangents.push_back(neighbour_tan_in_surfel_space);
+        }
+    }
+    // cout << "  total common frames " << total_common_frames << endl;
 }
 
 /**
@@ -164,8 +170,7 @@ get_eligible_normals_and_tangents(	const std::vector<Surfel>& surfels,
  * end
  */
 Eigen::Vector3f
-compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels, size_t surfel_idx)
-{
+compute_new_tangent_for_surfel(const std::vector<Surfel> &surfels, size_t surfel_idx) {
     using namespace Eigen;
     using namespace std;
 
@@ -178,10 +183,10 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels, size_t surfe
     Vector3f new_tangent = surfels.at(surfel_idx).tangent;
 
     float weight = 0;
-    for( size_t idx = 0; idx < normals.size(); ++idx) {
+    for (size_t idx = 0; idx < normals.size(); ++idx) {
         float edge_weight = 1.0f;
         new_tangent = average_rosy_vectors(new_tangent, Vector3f{0.0f, 1.0, 0.0f}, weight,
-                                           tangents.at(idx), normals.at(idx),edge_weight);
+                                           tangents.at(idx), normals.at(idx), edge_weight);
         weight += edge_weight;
     }
     return new_tangent;
@@ -191,8 +196,7 @@ compute_new_tangent_for_surfel(	const std::vector<Surfel>& surfels, size_t surfe
  * Perform a single step of optimisation.
  */
 bool
-optimise_do_one_step(std::vector<Surfel>& surfels) 
-{
+optimise_do_one_step(std::vector<Surfel> &surfels) {
     using namespace std;
     using namespace Eigen;
 
@@ -212,13 +216,13 @@ optimise_do_one_step(std::vector<Surfel>& surfels)
 
     //	auto end = chrono::high_resolution_clock::now();
     //	chrono::milliseconds dtn = chrono::duration_cast<chrono::milliseconds> (end - start);
-	// cout << "optimise_do_one_step ran in : " << dtn.count() << endl;
+    // cout << "optimise_do_one_step ran in : " << dtn.count() << endl;
 
     // Check for done-ness
-	float new_error = total_error();
+    float new_error = total_error();
     bool is_converged = check_convergence(new_error);
     g_optimisation_error = new_error;
-    if( is_converged ) {
+    if (is_converged) {
         optimise_end(); // stop_optimising
     }
     return is_converged;
@@ -229,16 +233,15 @@ optimise_do_one_step(std::vector<Surfel>& surfels)
  * Continuously step until done.
  */
 void
-optimise(std::vector<Surfel>& surfels)
-{
-	bool done  = check_stop_flag();
-	while( !done ) {
+optimise(std::vector<Surfel> &surfels) {
+    bool done = check_stop_flag();
+    while (!done) {
         done = optimise_do_one_step(surfels);
-        if( !done) {
-        	done = check_stop_flag();
-        	if(done) {
-        		std::cout << "Halted" << std::endl;
-        	}
+        if (!done) {
+            done = check_stop_flag();
+            if (done) {
+                std::cout << "Halted" << std::endl;
+            }
         }
     }
 }

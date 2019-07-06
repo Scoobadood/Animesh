@@ -12,8 +12,8 @@
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
 
-static const char * DEPTH_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*depth_[0-9]+\\.mat";
-static const char * VERTEX_FILE_NAME_REGEX = "\\/{0,1}(?:[^\\/]*\\/)*vertex_[0-9]+\\.pgm";
+static const char * DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth_[0-9]+\.mat)";
+static const char * VERTEX_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*vertex_[0-9]+\.pgm)";
 
 /*
 	********************************************************************************
@@ -66,15 +66,6 @@ write_float( std::ofstream& file, float value ) {
 void 
 write_size_t( std::ofstream& file, std::size_t value ) {
     file.write( (const char *)&value, sizeof( std::size_t ) );
-}
-
-/*
- * Write a vector
- */
-void
-write_vector_2f( std::ofstream& file, Eigen::Vector2f vector ) {
-	write_float(file, vector.x());
-	write_float(file, vector.y());
 }
 
 /*
@@ -160,14 +151,6 @@ read_float( std::ifstream& file ) {
 	return value;
 }
 
-Eigen::Vector2f
-read_vector_2f( std::ifstream& file ) {
-	float x, y;
-	file.read( (char *)&x, sizeof(float) );
-	file.read( (char *)&y, sizeof(float) );
-	return Eigen::Vector2f{x, y};
-}
-
 Eigen::Vector3f
 read_vector_3f( std::ifstream& file ) {
 	float x, y, z;
@@ -212,8 +195,8 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 
 		    // Transform
 			float m[9];
-			for( int mIdx = 0; mIdx<9; mIdx++ ) {
-				m[mIdx] = read_float(file);
+			for(float & mIdx : m) {
+				mIdx = read_float(file);
 			}
 			fd.transform << m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8];
 
@@ -277,10 +260,10 @@ are_neighbours(const PixelInFrame& pif1, const PixelInFrame& pif2) {
 	if( dx == 0 && dy == 0 ) {
 		return false;
 	}
-	if( std::abs(dx) <= 1 && std::abs(dy) <=1 ) {
-		return true;
-	}
-	return false;
+    if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -354,10 +337,9 @@ populate_neighbours(std::vector<Surfel>& surfels) {
 
 	cout << "Populating neighbour : " << flush;
 
-	int count = 0;
 	int target = surfels.size();
 
-	for( int i=0; i<surfels.size()-1; ++i ) {
+	for( int i=0, count = 0; i<surfels.size()-1; ++i ) {
 		cout << "\rPopulating neighbour : " << ++count << " of " << target << flush;
 		for( int j=i+1; j<surfels.size(); ++j) {
 			if( are_neighbours(surfels.at(i), surfels.at(j)) ) {
@@ -469,14 +451,14 @@ load_depth_maps(const std::string& source_directory, std::vector<DepthMap>& dept
 
 
 	vector<string> files = get_depth_files_in_directory(source_directory);
-  	if( files.size() == 0 ) {
+  	if( files.empty() ) {
   		throw runtime_error( "No depth images found in " + source_directory);
   	}
 
   	depth_maps.clear();
   	int count = 0;
   	int target = files.size();
-  	for( auto file_name : files ) {
+  	for( const auto& file_name : files ) {
   		cout << " \r" << ++count << " of " << target << flush;
   		DepthMap dm{file_name};
   		depth_maps.push_back(dm);
@@ -534,7 +516,7 @@ compute_correspondences(const std::string& source_directory,
 
 	multimap<unsigned int, PixelInFrame> vertex_to_frame_pixel;
 	size_t current_frame_idx = 0;
-	for(auto file_name : file_names) {
+	for(const auto& file_name : file_names) {
 		PgmData pgm = read_pgm(file_name);
 
 		size_t source_pixel_idx = 0;

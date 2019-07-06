@@ -12,7 +12,8 @@ int main( int argc, char *argv[] ) {
   Arguments args;
   parse_args( argc, argv, args);
 
-  if( args.load_source == FILE) {
+  vector<Surfel> surfels;
+  if( args.load_source == Arguments::FILE) {
     load_from_file(args.file_or_directory, surfels);
   } else { /* use_directory */
     load_from_directory(args.file_or_directory, surfels);

@@ -185,7 +185,7 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 {
 	using namespace std;
 
-	cout << "Loading from file " << file_or_directory << "..." << flush;
+	cout << "Loading from file " << file_name << "..." << flush;
 
 	ifstream file{ file_name, ios::in | ios::binary};
 	surfels.clear();
@@ -651,7 +651,7 @@ load_from_directory(  const std::string& dir,
 {
   using namespace std;
 
-  cout << "Loading from directory " << file_or_directory << "..." << endl;
+  cout << "Loading from directory " << dir << "..." << endl;
 
   vector<DepthMap> depth_maps;
   load_depth_maps(dir, depth_maps);

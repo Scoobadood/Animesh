@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 typedef struct Arguments {
   enum LoadSource {
     FILE,

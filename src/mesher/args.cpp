@@ -8,7 +8,8 @@ usage( const char *name ) {
     exit(-1);
 }
 
-parse_args(int argc, char *argv[], Arguments& args);
+void
+parse_args(int argc, char *argv[], Arguments& args) {
   bool args_ok = false;
   if( argc == 3 ) {
     args.file_or_directory = argv[2];
@@ -16,10 +17,10 @@ parse_args(int argc, char *argv[], Arguments& args);
     if( argv[1][0] == '-') {
       if( argv[1][1] == 's' || argv[1][1] == 'S' ) {
           args_ok = true;
-          args.load_source = FILE;
+          args.load_source = Arguments::FILE;
       } else if( argv[1][1] == 'd' || argv[1][1] == 'D' ) {
           args_ok = true;
-          args.load_source = DIRECTORY;
+          args.load_source = Arguments::DIRECTORY;
       }
     }
   }

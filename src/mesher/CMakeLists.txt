@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 # Build type flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
@@ -17,20 +17,28 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Building the executable
 add_executable(mesher
-	mesher.cpp
-	smooth.cpp
-	surfel.cpp
-	args.cpp
-   	)
+        mesher.cpp
+        smooth.cpp
+        surfel.cpp
+        args.cpp
+        surfe_io.cpp)
+
+# Building the executable
+add_executable(compute_corr
+        compute_corr.cpp)
 
 target_link_libraries(mesher
-	DepthMap
-	FileUtils
-	Graph
-	RoSy
-	Camera
-	${PCL_LIBRARIES})
+        DepthMap
+        FileUtils
+        Graph
+        RoSy
+        Camera
+        ${PCL_LIBRARIES})
 
 target_compile_features(mesher
-	PUBLIC
-		cxx_std_11)
+        PUBLIC
+        cxx_std_11)
+
+target_compile_features(compute_corr
+        PUBLIC
+        cxx_std_11)

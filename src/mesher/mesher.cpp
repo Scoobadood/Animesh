@@ -1,4 +1,5 @@
 #include "surfel.hpp"
+#include "surfel_io.h"
 #include "smooth.h"
 #include "args.h"
 

@@ -18,14 +18,24 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # Building the executable
 add_executable(mesher
         mesher.cpp
-        smooth.cpp
-        surfel.cpp
-        args.cpp
-        surfe_io.cpp)
+        smooth.cpp smooth.h
+        surfel_compute.cpp  surfel_compute.hpp
+        mesher_args.cpp mesher_args.h
+        surfel_io.cpp surfel_io.h
+        correspondences_compute.cpp correspondences_compute.h
+        correspondences_args.cpp correspondences_args.h
+        correspondences_io.cpp correspondences_io.h
+        io_utils.cpp io_utils.h
+        types.h)
 
 # Building the executable
-add_executable(compute_corr
-        compute_corr.cpp)
+add_executable(correspondences
+        correspondences.cpp
+        correspondences_compute.cpp correspondences_compute.h
+        correspondences_args.cpp correspondences_args.h
+        correspondences_io.cpp  correspondences_io.h
+        types.h
+        io_utils.cpp io_utils.h)
 
 target_link_libraries(mesher
         DepthMap
@@ -35,10 +45,14 @@ target_link_libraries(mesher
         Camera
         ${PCL_LIBRARIES})
 
+target_link_libraries(correspondences
+        FileUtils
+        )
+
 target_compile_features(mesher
         PUBLIC
         cxx_std_11)
 
-target_compile_features(compute_corr
+target_compile_features(correspondences
         PUBLIC
         cxx_std_11)

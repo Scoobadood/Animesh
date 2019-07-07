@@ -1,11 +1,9 @@
+//
+// Created by Dave Durbin on 2019-07-06.
+//
 #include <string>
 #include <iostream>
-
-//
-// Launch with
-//    -d <source_files_directory>
-//    -o <output_file_name>
-//
+#include "correspondences_args.h"
 
 void
 usage(const std::string &prog_name) {
@@ -48,19 +46,4 @@ parse_args(int argc, char *argv[], std::string &source_directory, std::string &o
     }
     handle_arg(argv[0], argv[1], argv[2], source_directory, output_file_name);
     handle_arg(argv[0], argv[3], argv[4], source_directory, output_file_name);
-}
-
-int
-main(int argc, char *argv[]) {
-    using namespace std;
-
-    string source_directory;
-    string output_file_name;
-
-    parse_args(argc, argv, source_directory, output_file_name);
-
-    cout << "Read data from directory : " << source_directory << endl;
-    cout << "Save file as : " << output_file_name << endl;
-
-    return 0;
 }

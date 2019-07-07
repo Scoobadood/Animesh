@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "surfel.hpp"
+#include "surfel_compute.hpp"
 
 /**
  * Perform orientation field optimisation.

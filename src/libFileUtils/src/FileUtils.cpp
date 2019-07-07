@@ -337,3 +337,17 @@ const std::string path_to_file_on_desktop( const std::string& file_name ) {
    }
    return make_pair(file_name, extension);
 }
+
+/**
+ * Produce a string representing the path to a file in a directory
+ * @param directory The path of the directory.
+ * @param filename The name of the file.
+ */
+std::string file_in_directory(const std::string &directory, const std::string &filename) {
+    std::string full_path = directory;
+    if(directory.back() != '/') {
+        full_path.append("/");
+    }
+    return full_path.append(filename);
+}
+

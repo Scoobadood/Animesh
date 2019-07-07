@@ -1,23 +1,25 @@
-#include "surfel.hpp"
+#include "surfel_compute.hpp"
 #include "surfel_io.h"
 #include "smooth.h"
-#include "args.h"
+#include "mesher_args.h"
 
 //
-// Launch with -s surfel_file or 
-//             -d source_files_directory
+// Launch with -s surfel_file or
+
+//             -d <source_files_directory>
+//             -c <correspondence_file_name> or if missing they will be assumed to be in source files directory.
 //
 int main( int argc, char *argv[] ) {
   using namespace std;
 
-  Arguments args;
+  MesherArguments args;
   parse_args( argc, argv, args);
 
   vector<Surfel> surfels;
-  if( args.load_source == Arguments::FILE) {
+  if( args.source == MesherArguments::FILE) {
     load_from_file(args.file_or_directory, surfels);
-  } else { /* use_directory */
-    load_from_directory(args.file_or_directory, surfels);
+  } else { /* compute */
+      compute_surfels(args, surfels);
     save_to_file( "surfel_table.bin", surfels);
   }
   // Now start smoothing

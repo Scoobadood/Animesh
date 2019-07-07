@@ -79,3 +79,10 @@ std::string get_cwd();
 const std::string path_to_file_on_desktop( const std::string& file_name );
 
 std::vector<std::string> tokenise(const std::string& line);
+
+/**
+ * Produce a string representing the path to a file in a directory
+ * @param directory The path of the directory.
+ * @param filename The name of the file.
+ */
+std::string file_in_directory(const std::string &directory, const std::string &filename);

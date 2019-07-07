@@ -1,4 +1,5 @@
 #include "surfel_io.h"
+#include "io_utils.h"
 #include <iostream>
 
 /*
@@ -9,28 +10,6 @@
 	********************************************************************************
 */
 
-/**
- * Write an unisgned int
- */
-void
-write_unsigned_int( std::ofstream& file, unsigned int value ) {
-    file.write( (const char *)&value, sizeof( unsigned int ) );
-}
-/**
- * Write a float
- */
-void
-write_float( std::ofstream& file, float value ) {
-    file.write( (const char *)&value, sizeof( float ) );
-}
-/**
- * Write an unisgned int
- */
-void
-write_size_t( std::ofstream& file, std::size_t value ) {
-    file.write( (const char *)&value, sizeof( std::size_t ) );
-}
-
 /*
  * Write a vector
  */
@@ -40,9 +19,7 @@ write_vector_3f( std::ofstream& file, Eigen::Vector3f vector ) {
     write_float(file, vector.y());
     write_float(file, vector.z());
 }
-/**
- * Save surfel data as binary file to disk
- */
+
 /**
  * Save surfel data as binary file to disk
  */
@@ -91,27 +68,6 @@ save_to_file( const std::string& file_name,
     }
     file.close();
     cout << " done." << endl;
-}
-
-unsigned int
-read_unsigned_int( std::ifstream& file ) {
-    unsigned int i;
-    file.read( (char *)&i, sizeof(i) );
-    return i;
-}
-
-std::size_t
-read_size_t( std::ifstream& file ) {
-    size_t i;
-    file.read( (char *)&i, sizeof(i) );
-    return i;
-}
-
-float
-read_float( std::ifstream& file ) {
-    float value;
-    file.read( (char *)&value, sizeof(float) );
-    return value;
 }
 
 Eigen::Vector3f

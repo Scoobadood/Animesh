@@ -9,6 +9,24 @@ DepthMapPyramid::DepthMapPyramid(const DepthMap& depth_map) {
 }
 
 /**
+ * Merge four values into a single depth value to propagate up.
+ * Compute mean of non-zero values.
+ */
+float
+merge(float * source_values) {
+    float m = 0.0f;
+    float c = 0;
+    for( int i=0; i<4; ++i ) {
+        if( source_values[i] > 0.0f ) {
+            m += source_values[i];
+            c ++;
+        }
+    }
+    m /= c;
+    return m;
+}
+
+/**
  * Downsample a Depth Map.
  * Generate a new depth map with half the edge length of the source one.
  * New depths are computed as the mean of the
@@ -17,13 +35,31 @@ DepthMapPyramid::DepthMapPyramid(const DepthMap& depth_map) {
  */
 DepthMap
 DepthMapPyramid::down_sample(const DepthMap& source_map) {
-    DepthMap dm{};
-    for( int row = 0; row < source_map.rows(); ++row) {
+    int new_rows = source_map.rows() / 2;
+    int new_cols= source_map.cols() / 2;
+    float *new_data = new float[[new_rows * new_cols];
 
+    for( int r = 0; r < new_rows; ++r) {
+        for( int c = 0; c < new_cols; ++c ) {
+            int source_row = row * 2;
+            int source_col = col * 2;
+            float values[4];
+            values[0] = source_map.depth_at(source_row,                                 source_col);
+            values[1] = source_map.depth_at(min(source_row + 1, source_map.rows() - 1), source_col);
+            values[2] = source_map.depth_at(source_row,                                 min(source_col + 1, source_map.cols() - 1));
+            values[3] = source_map.depth_at(min(source_row + 1, source_map.rows() - 1), min(source_col + 1, source_map.cols() - 1));
+            new_data[r * new_rows ] = merge(values);
+        }
     }
+    return DepthMap{ new_rows, new_cols, new_data };
 }
 
-void DepthMapPyramid::set_num_levels(int num_levels) {
+/**
+ * Set the number of levels. Recompute new levels as necessary.
+ * @param num_levels The number of levels, minimum of 1.
+ */
+void 
+DepthMapPyramid::set_num_levels(int num_levels) {
     using namespace std;
 
     if( num_levels < 1 ) {
@@ -33,7 +69,6 @@ void DepthMapPyramid::set_num_levels(int num_levels) {
         depth_maps.erase( depth_maps.begin() + num_levels, depth_maps.end());
         return;
     }
-
     while( depth_maps.size() < num_levels) {
         depth_maps.push_back(down_sample(depth_maps.back()));
     }

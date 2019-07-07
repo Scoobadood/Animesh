@@ -1,6 +1,6 @@
 file(GLOB SOURCES "src/*.cpp")
 
-add_library(DepthMap STATIC ${SOURCES})
+add_library(DepthMap STATIC ${SOURCES} src/DepthMapPyramid.cpp include/DepthMap/DepthMapPyramid.h)
 
 # Define headers for this library. PUBLIC headers are used for
 # compiling the library, and will be added to consumers' build

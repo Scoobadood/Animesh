@@ -24,6 +24,14 @@ public:
 	 */
 	DepthMap(const std::string& filename);
 
+	/**
+	 * Construct from an array of floats and dimensions
+	 * @param rows The number of rows provided.
+	 * @param cols The number of columns provided.
+	 * @param depth_data a rows*cols, row major set of depths.
+	 */
+	 DepthMap(int rows, int cols, float * depth_data);
+
 	inline unsigned int rows() const { return height;}
 	inline unsigned int cols() const { return width;}
 	float depth_at(unsigned int row, unsigned int col) const {

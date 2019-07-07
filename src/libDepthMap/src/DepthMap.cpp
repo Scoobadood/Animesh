@@ -41,6 +41,22 @@ DepthMap::DepthMap(const std::string& filename) {
 	}
 }
 
+
+/**
+ * Construct from an array of floats and dimensions
+ * @param rows The number of rows provided.
+ * @param cols The number of columns provided.
+ * @param depth_data a rows*cols, row major set of depths.
+ */
+DepthMap::DepthMap(int rows, int cols, float * depth_data) {
+    this->width = cols;
+    this->height = rows;
+    unsigned int num_entries = rows * cols;
+    this->depth_data = new float[num_entries];
+    memcpy(this->depth_data, depth_data, num_entries * sizeof(float));
+}
+
+
 float median_value(const std::vector<float>& v) {
 	using namespace std;
 	if( v.size() == 0 ) return 0;

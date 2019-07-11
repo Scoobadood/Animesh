@@ -34,7 +34,7 @@ merge(const float * source_values) {
  * @return
  */
 DepthMap
-DepthMapPyramid::down_sample(const DepthMap& source_map) {
+DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<std::pair<int,int>, std::pair<int,int>>& mapping) {
     using namespace std;
 
     int new_rows = source_map.rows() / 2;
@@ -46,10 +46,17 @@ DepthMapPyramid::down_sample(const DepthMap& source_map) {
             unsigned int source_row = r * 2;
             unsigned int source_col = c * 2;
             float values[4];
-            values[0] = source_map.depth_at(source_row,                                 source_col);
-            values[1] = source_map.depth_at(min(source_row + 1, source_map.rows() - 1), source_col);
-            values[2] = source_map.depth_at(source_row,                                 min(source_col + 1, source_map.cols() - 1));
-            values[3] = source_map.depth_at(min(source_row + 1, source_map.rows() - 1), min(source_col + 1, source_map.cols() - 1));
+            pair<int,int> mapped_pixels[4];
+
+            mapped_pixels[0] = make_pair(source_row,                                 source_col);
+            mapped_pixels[1] = make_pair(min(source_row + 1, source_map.rows() - 1), source_col);
+            mapped_pixels[2] = make_pair(source_row,                                 min(source_col + 1, source_map.cols() - 1));
+            mapped_pixels[3] = make_pair(min(source_row + 1, source_map.rows() - 1), min(source_col + 1, source_map.cols() - 1));
+
+            for( int i= 0; i<4; ++i ) {
+                values[i] = source_map.depth_at(mapped_pixels[i].first, mapped_pixels[i].second);
+                mapping.insert(make_pair(make_pair(r, c), mapped_pixels[i]));
+            }
             new_data[r * new_rows ] = merge(values);
         }
     }
@@ -68,10 +75,34 @@ DepthMapPyramid::set_num_levels(int num_levels) {
         throw runtime_error("Can't have less than one level for a DepthMapPyramid");
     }
     if( depth_maps.size() > num_levels) {
-        depth_maps.erase( depth_maps.begin() + num_levels, depth_maps.end());
+        remove_levels(num_levels);
         return;
     }
     while( depth_maps.size() < num_levels) {
-        depth_maps.push_back(down_sample(depth_maps.back()));
+        make_new_level();
     }
 }
+
+/**
+ * Delete unwanted levels and their mappings
+ */
+void
+DepthMapPyramid::remove_levels(int from_level) {
+    mappings.erase( mappings.begin() + from_level, mappings.end());
+    depth_maps.erase( depth_maps.begin() + from_level, depth_maps.end());
+}
+
+
+void
+DepthMapPyramid::make_new_level() {
+    using namespace std;
+
+    if(depth_maps.back().rows() < 2 || depth_maps.back().cols() < 2 ) {
+        throw runtime_error("Too small to downsize");
+    }
+    multimap<pair<int,int>, pair<int,int>> mapping;
+    DepthMap dm = down_sample(depth_maps.back(), mapping);
+    depth_maps.push_back(dm);
+    mappings.push_back(mapping);
+}
+

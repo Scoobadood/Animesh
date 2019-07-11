@@ -13,7 +13,7 @@ DepthMapPyramid::DepthMapPyramid(const DepthMap& depth_map) {
  * Compute mean of non-zero values.
  */
 float
-merge(float * source_values) {
+merge(const float * source_values) {
     float m = 0.0f;
     float c = 0;
     for( int i=0; i<4; ++i ) {
@@ -35,14 +35,16 @@ merge(float * source_values) {
  */
 DepthMap
 DepthMapPyramid::down_sample(const DepthMap& source_map) {
+    using namespace std;
+
     int new_rows = source_map.rows() / 2;
     int new_cols= source_map.cols() / 2;
-    float *new_data = new float[[new_rows * new_cols];
+    auto new_data = new float[new_rows * new_cols];
 
     for( int r = 0; r < new_rows; ++r) {
         for( int c = 0; c < new_cols; ++c ) {
-            int source_row = row * 2;
-            int source_col = col * 2;
+            unsigned int source_row = r * 2;
+            unsigned int source_col = c * 2;
             float values[4];
             values[0] = source_map.depth_at(source_row,                                 source_col);
             values[1] = source_map.depth_at(min(source_row + 1, source_map.rows() - 1), source_col);

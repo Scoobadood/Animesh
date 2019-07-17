@@ -56,6 +56,33 @@ TEST_F(TestDepthMapPyramid, MergeIdenticalDepthsShouldGiveMean) {
     EXPECT_EQ( dmp.level(1).depth_at(0,0), 10);
 }
 
+TEST_F(TestDepthMapPyramid, MergedLevelShouldBeHalfSize) {
+    DepthMap d{"depthmap_test_data/4x4x10.dat"};
+    DepthMapPyramid dmp{d};
+
+    dmp.set_num_levels(2);
+    EXPECT_EQ( dmp.level(1).rows(), 2 );
+    EXPECT_EQ( dmp.level(1).cols(), 2 );
+}
+
+TEST_F(TestDepthMapPyramid, MergedDepthsSHouldNotinlcudeZeroes) {
+    DepthMap d{"depthmap_test_data/4x4x10_with_zeroes.dat"};
+    DepthMapPyramid dmp{d};
+
+    dmp.set_num_levels(2);
+    EXPECT_EQ( dmp.level(1).depth_at(0,0), 10);
+    EXPECT_EQ( dmp.level(1).depth_at(0,1), 10);
+}
+
+TEST_F(TestDepthMapPyramid, MergedDepthsSHouldAggregateZeroesToZero) {
+    DepthMap d{"depthmap_test_data/4x4x10_with_zeroes.dat"};
+    DepthMapPyramid dmp{d};
+
+    dmp.set_num_levels(2);
+    EXPECT_EQ( dmp.level(1).depth_at(1,0), 0);
+}
+
+
 
 
 

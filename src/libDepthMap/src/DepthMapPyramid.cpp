@@ -22,7 +22,7 @@ merge(const float * source_values) {
             c ++;
         }
     }
-    m /= c;
+    m = (c != 0 ) ? m / c  : 0;
     return m;
 }
 
@@ -57,7 +57,7 @@ DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<std::pair
                 values[i] = source_map.depth_at(mapped_pixels[i].first, mapped_pixels[i].second);
                 mapping.insert(make_pair(make_pair(r, c), mapped_pixels[i]));
             }
-            new_data[r * new_rows ] = merge(values);
+            new_data[r * new_rows + c ] = merge(values);
         }
     }
     return DepthMap{ new_rows, new_cols, new_data };

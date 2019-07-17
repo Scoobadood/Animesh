@@ -31,7 +31,7 @@ export( TARGETS DepthMap
 
 file( GLOB TEST_SOURCES "tests/*.cpp" )
 add_executable(testDepthMap
-    ${TEST_SOURCES})
+    ${TEST_SOURCES} tests/TestDepthMapPyramid.cpp tests/testDepthMapPyramid.h)
 
 target_link_libraries(testDepthMap 
 	DepthMap 

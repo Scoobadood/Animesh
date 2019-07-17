@@ -68,7 +68,7 @@ DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<std::pair
  * @param num_levels The number of levels, minimum of 1.
  */
 void 
-DepthMapPyramid::set_num_levels(int num_levels) {
+DepthMapPyramid::set_num_levels(unsigned int num_levels) {
     using namespace std;
 
     if( num_levels < 1 ) {

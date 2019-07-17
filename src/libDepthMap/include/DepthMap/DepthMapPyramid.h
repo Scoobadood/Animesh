@@ -17,7 +17,16 @@ class DepthMapPyramid {
 public:
     explicit DepthMapPyramid(const DepthMap &depth_map);
 
-    void set_num_levels(int num_levels);
+    void set_num_levels(unsigned int num_levels);
+
+    unsigned int num_levels() const { return depth_maps.size();}
+
+    const DepthMap& level(unsigned int level) const {
+        if( level >= depth_maps.size()) {
+            throw std::runtime_error( "Level out of range ");
+        }
+        return depth_maps[level];
+    }
 
 private:
     std::vector<DepthMap> depth_maps;

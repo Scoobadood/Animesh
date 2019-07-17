@@ -50,9 +50,7 @@ TEST_F( TestDepthMap, HorizontalEdgeTest ) {
 	// Count how many cells have non-0 depths.
 	count = count_non_zero_cells(d);
 
-	dump(d);
-
-	EXPECT_EQ( count, 20);
+	EXPECT_EQ( count, 22);
 }
 
 TEST_F( TestDepthMap, VerticalEdgeTest ) {
@@ -65,9 +63,7 @@ TEST_F( TestDepthMap, VerticalEdgeTest ) {
 	// Count how many cells have non-0 depths.
 	count = count_non_zero_cells(d);
 
-	dump(d);
-
-	EXPECT_EQ( count, 20);
+	EXPECT_EQ( count, 22);
 }
 
 TEST_F( TestDepthMap, SolidBlockTest ) {
@@ -79,8 +75,6 @@ TEST_F( TestDepthMap, SolidBlockTest ) {
 
 	// Count how many cells have non-0 depths.
 	count = count_non_zero_cells(d);
-
-	dump(d);
 
 	EXPECT_EQ( count, 25);
 }
@@ -95,8 +89,6 @@ TEST_F( TestDepthMap, StepEdgeTest ) {
 	// Count how many cells have non-0 depths.
 	count = count_non_zero_cells(d);
 
-	dump(d);
-
 	EXPECT_EQ( count, 25);
 }
 
@@ -110,9 +102,7 @@ TEST_F( TestDepthMap, NoisyCentreTest ) {
 	// Count how many cells have non-0 depths.
 	count = count_non_zero_cells(d);
 
-	dump(d);
-
-	EXPECT_EQ( count, 25);
+	EXPECT_EQ( count, 24);
 }
 
 TEST_F( TestDepthMap, DiagonalEdgeTest ) {
@@ -125,15 +115,14 @@ TEST_F( TestDepthMap, DiagonalEdgeTest ) {
 	// Count how many cells have non-0 depths.
 	count = count_non_zero_cells(d);
 
-	dump(d);
-
 	EXPECT_EQ( count, 25);
 }
 
 void dump_normals (const std::vector<std::vector<std::vector<float>>>& normals) {
 	for( int row = 0; row< normals.size(); row++ ) {
 		for( int col = 0; col < normals[row].size(); col++) {
-			std::cout << normals[row][col][0] << ", "
+			std::cout << "[" << row << "][" << col << "]"
+			          << normals[row][col][0] << ", "
 					  << normals[row][col][1] << ", "
 					  << normals[row][col][2] << std::endl;
 		}
@@ -166,7 +155,7 @@ TEST_F( TestDepthMap, TopCentralNormalIsZ ) {
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
 
-	EXPECT_EQ( normals[1][3][0], 0.0f);
+    EXPECT_EQ( normals[1][3][0], 0.0f);
 	EXPECT_EQ( normals[1][3][1], 0.0f);
 	EXPECT_EQ( normals[1][3][2], 1.0f);
 }
@@ -180,4 +169,3 @@ TEST_F( TestDepthMap, LeftCentralNormalIsZ ) {
 	EXPECT_EQ( normals[3][1][1], 0.0f);
 	EXPECT_EQ( normals[3][1][2], 1.0f);
 }
-

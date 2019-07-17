@@ -72,7 +72,7 @@ float median_value(const std::vector<float>& v) {
 }
 
 int 
-DepthMap::get_valid_neighbours(unsigned int row, unsigned int col, bool eightConnected) const {
+DepthMap::get_valid_directions(unsigned int row, unsigned int col, bool eightConnected) const {
 	int flags = 0;
 	if( row > 0 ) {
 		flags |= UP;
@@ -106,9 +106,15 @@ inline int clear_flag_if_zero( float value, int flags, DepthMap::tDirection flag
 	return flags & (!flag);
 }
 
+/**
+ * Given a row and column, get the depths of adjacent pixels in the depth map.
+ * If eightConnected is true, consider diagonal neighbours, otherwise only left irght up and down.
+ * Populates neighbour_depths with depth values (or 0.0) and returns a flag in indicating
+ * which values are valid.
+ */
 int 
 DepthMap::get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected) const {
-	int flags = get_valid_neighbours(row, col, eightConnected);
+	int flags = get_valid_directions(row, col, eightConnected);
 	float d;
 	if( flag_is_set(flags, UP) ) {
 		d = depth_at(row-1, col);
@@ -195,9 +201,10 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 			float vp = fabsf( dp[3] - dp[2]);
 
 			bool rel = false;
+
+            // First case: hp > ts && vp > ts ==> p is near discontinuity
+            // p is reliable if |Dpi - Dp| <= Tl for *any* i
 			if( hp > ts && vp > ts) {
-				// First case: hp > ts && vp > ts ==> p is near ts
-				// p is reliable if |Dpi - Dp| <= Tl for *any* i
 				for( int i=0; i<4; i++ ) {
 					if( fabsf(dp[i] - p) <= tl) {
 						rel = true;
@@ -206,18 +213,9 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 				}
 			}
 
-			else if (vp > ts && hp <= tl) { 
-				// Second case: p near VERTICAL discontinutiy. Check HORIZONTAL neighbours for reliability
-				for( int i=0; i<2; i++ ) {
-					if( fabsf(dp[i] - p) <= tl) {
-						rel = true;
-						break;
-					}
-				}
-			}
-
-			else if ( hp > ts && vp <= tl) {
-				// Third case: p near HORIZONTAL discontinutiy. Check VERTICAL neighbours for reliability
+            // Second case: p near HORIZONTAL discontinutiy. Check VERTICAL neighbours for reliability
+            // i.e. we want this pixel to be part of either the upper or lower region, not straddling.
+			else if (vp > ts && hp <= tl) {
 				for( int i=2; i<4; i++ ) {
 					if( fabsf(dp[i] - p) <= tl) {
 						rel = true;
@@ -226,8 +224,19 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 				}
 			}
 
+            // Third case: p near VERTICAL discontinutiy. Check HORIZONTAL neighbours for reliability
+            // i.e. we want this pixel to be part of either the left or right region, not straddling.
+			else if ( hp > ts && vp <= tl) {
+				for( int i=0; i<2; i++ ) {
+					if( fabsf(dp[i] - p) <= tl) {
+						rel = true;
+						break;
+					}
+				}
+			}
+
+            // Fourth case: Generally all points in homogeneous region but p may be an outlier check for this.
 			else {
-				// Fourth case: Generally allpoints in homogeneous region but p may be an outlier check for this.
 				for( int i=0; i<4; i++ ) {
 					if( fabsf(dp[i] - p) <= tl) {
 						rel = true;
@@ -253,6 +262,8 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 /**
  * Compute normals that have all adjacent data set in the depth map,
  * that is, those normals which can be computed fully from depth data alone.
+ * // TODO: An alternative approach is here: https://cromwell-intl.com/3d/normals.html
+ *
  */
 void
 DepthMap::compute_natural_normals( ) {
@@ -263,20 +274,26 @@ DepthMap::compute_natural_normals( ) {
 		vector<tNormal> normal_row_types;
 		for( int col = 0; col < cols(); ++col) {
 			float d = depth_at( row, col );
-			float neighbour_depths[4];
-			// If depth is invalid or we don't have four neighbours, skip
-			int neighbours_present = get_neighbour_depths(row,col, neighbour_depths, false);
-			if( ( d == 0.0f) || neighbours_present != FOUR ) {
-				// Stash a placeholder
-				normal_row.push_back(vector<float>{0,0,0});
-			    if( d == 0.0f || neighbours_present == 0) {
-			    	normal_row_types.push_back(NONE);
-			    } else {
-			    	normal_row_types.push_back(DERIVED);
-			    }
-				continue;
+
+			// if depth is 0 then theres no normal to be had here.
+			if( d == 0.0f ) {
+                normal_row_types.push_back(NONE);
+                normal_row.push_back(vector<float>{0,0,0});
+                continue;
 			}
 
+
+			float neighbour_depths[4];
+			int neighbours_present = get_neighbour_depths(row, col, neighbour_depths, false);
+
+			// If there are not four neighbours then I have a derived normal
+            if( neighbours_present != FOUR ) {
+                normal_row_types.push_back(DERIVED);
+                normal_row.push_back(vector<float>{0,0,0});
+                continue;
+            }
+
+            // Otherwise I have a natural normal
 			float dzdx = neighbour_depths[3] - neighbour_depths[2];
 			float dzdy = neighbour_depths[1] - neighbour_depths[0];
 			float scale = sqrt(dzdx*dzdx + dzdy*dzdy + 1.0f);
@@ -289,6 +306,16 @@ DepthMap::compute_natural_normals( ) {
 		normals.push_back(normal_row);
 		normal_types.push_back(normal_row_types);
 	}
+
+	// DEBUG
+	// Dump the types
+//    for( auto const& row : normal_types) {
+//        for( auto const& norm_type : row ) {
+//            std::cout << " " << ((norm_type == NONE) ? "." : ((norm_type == NATURAL) ? "n" : "d"));
+//        }
+//        std::cout << std::endl;
+//    }
+	// END DEBUG
 }
 
 void

@@ -3,6 +3,7 @@
 //
 
 #include "DepthMap/DepthMapPyramid.h"
+#include <iostream>
 
 DepthMapPyramid::DepthMapPyramid(const DepthMap& depth_map) {
     depth_maps.push_back(depth_map);
@@ -34,29 +35,32 @@ merge(const float * source_values) {
  * @return
  */
 DepthMap
-DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<std::pair<int,int>, std::pair<int,int>>& mapping) {
+DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<PixelCoord, PixelCoord>& mapping) {
     using namespace std;
 
     int new_rows = source_map.rows() / 2;
     int new_cols= source_map.cols() / 2;
     auto new_data = new float[new_rows * new_cols];
 
-    for( int r = 0; r < new_rows; ++r) {
-        for( int c = 0; c < new_cols; ++c ) {
+    for( unsigned int r = 0; r < new_rows; ++r) {
+        for( unsigned int c = 0; c < new_cols; ++c ) {
             unsigned int source_row = r * 2;
             unsigned int source_col = c * 2;
             float values[4];
-            pair<int,int> mapped_pixels[4];
+            vector<PixelCoord> mapped_pixels;
 
-            mapped_pixels[0] = make_pair(source_row,                                 source_col);
-            mapped_pixels[1] = make_pair(min(source_row + 1, source_map.rows() - 1), source_col);
-            mapped_pixels[2] = make_pair(source_row,                                 min(source_col + 1, source_map.cols() - 1));
-            mapped_pixels[3] = make_pair(min(source_row + 1, source_map.rows() - 1), min(source_col + 1, source_map.cols() - 1));
+            mapped_pixels.emplace_back(source_row, source_col );
+            mapped_pixels.emplace_back(min(source_row + 1, source_map.rows() - 1), source_col );
+            mapped_pixels.emplace_back(source_row, min(source_col + 1, source_map.cols() - 1) );
+            mapped_pixels.emplace_back(min(source_row + 1, source_map.rows() - 1), min(source_col + 1, source_map.cols() - 1) );
 
             for( int i= 0; i<4; ++i ) {
-                values[i] = source_map.depth_at(mapped_pixels[i].first, mapped_pixels[i].second);
-                mapping.insert(make_pair(make_pair(r, c), mapped_pixels[i]));
+                values[i] = source_map.depth_at(mapped_pixels[i].row, mapped_pixels[i].col);
+                if( values[i] > 0.0f) {
+                    mapping.insert(make_pair(PixelCoord{r, c}, mapped_pixels[i]));
+                }
             }
+            // TODO: Merge knows we skip 0s and so chouls be responsible for ignoring mappings.
             new_data[r * new_rows + c ] = merge(values);
         }
     }
@@ -100,9 +104,24 @@ DepthMapPyramid::make_new_level() {
     if(depth_maps.back().rows() < 2 || depth_maps.back().cols() < 2 ) {
         throw runtime_error("Too small to downsize");
     }
-    multimap<pair<int,int>, pair<int,int>> mapping;
+    multimap<PixelCoord, PixelCoord> mapping;
     DepthMap dm = down_sample(depth_maps.back(), mapping);
     depth_maps.push_back(dm);
     mappings.push_back(mapping);
 }
 
+std::vector<DepthMapPyramid::PixelCoord>
+DepthMapPyramid::mapped_pixels(unsigned int level, unsigned int row, unsigned int col) const {
+    using namespace std;
+
+    if( level == 0 ) throw runtime_error( "Level must be > 0 in mapped_pixels()");
+    if( level > mappings.size())throw runtime_error( "Level too big in mapped_pixels()");
+
+    auto range_of_mappings = mappings[level-1].equal_range(PixelCoord{row, col});
+    // Iterate over the range
+    vector<PixelCoord> results;
+    for (auto it = range_of_mappings .first; it != range_of_mappings .second; it++) {
+        results.push_back(it->second);
+    }
+    return results;
+}

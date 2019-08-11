@@ -11,6 +11,7 @@
 #include <FileUtils/PgmFileParser.h>
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
+#include <DepthMap/DepthMapPyramid.h>
 
 #include "correspondences_compute.h"
 #include "correspondences_io.h"
@@ -230,58 +231,33 @@ get_depth_files_in_directory(const std::string &directory_name) {
     ********************************************************************************
 */
 
-
 /**
  * Load the depth maps from a list of files into memory
  * as a vector.
  */
 void
-load_depth_maps(const std::string &source_directory, std::vector<DepthMap> &depth_maps) {
+load_depth_map_pyramids(const std::string &source_directory, const MesherArguments &args,
+                        std::vector<DepthMapPyramid> &depth_map_pyramids) {
     using namespace std;
-    cout << "Reading depth maps ..." << flush;
-
+    cout << "Reading depth maps pyramids..." << flush;
 
     vector<string> files = get_depth_files_in_directory(source_directory);
     if (files.empty()) {
         throw runtime_error("No depth images found in " + source_directory);
     }
 
-    depth_maps.clear();
+    depth_map_pyramids.clear();
     int count = 0;
     int target = files.size();
     for (const auto &file_name : files) {
         cout << " \r" << ++count << " of " << target << flush;
         DepthMap dm{file_name};
-        depth_maps.push_back(dm);
-    }
-    cout << endl;
-}
-
-
-/**
- * Preprocess depth maps to 
- * - remove noise
- * - remove dubious data (ie edge points)
- */
-void
-preprocess_depth_maps(std::vector<DepthMap> &depth_maps) {
-    using namespace std;
-    cout << "Preprocessing depth maps : " << flush;
-
-    const float TS = 8.0f;
-    const float TL = 3.0f;
-    int count = 0;
-    int target = depth_maps.size();
-
-    for (auto dm : depth_maps) {
-        cout << "\rPreprocessing depth maps : " << ++count << " of " << target << flush;
-        dm.cull_unreliable_depths(TS, TL);
+        dm.cull_unreliable_depths(args.ts, args.tl);
         dm.get_normals();
+        depth_map_pyramids.emplace_back(dm);
     }
-    cout << endl;
+    cout << endl << "Read " << depth_map_pyramids.size() << " files." << endl;
 }
-
-
 
 /*
 	For each correspondence
@@ -294,8 +270,8 @@ preprocess_depth_maps(std::vector<DepthMap> &depth_maps) {
  */
 void
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                 const std::vector<std::vector<PixelInFrame>> &correspondences,
-                 std::vector<Surfel> &surfels) {
+                    const std::vector<std::vector<PixelInFrame>> &correspondences,
+                    std::vector<Surfel> &surfels) {
     using namespace std;
     cout << "Generating surfels : " << flush;
 
@@ -368,7 +344,6 @@ compute_surfels(const MesherArguments& args,
     using namespace std;
 
     const std::string dir = args.file_or_directory;
-
     cout << "Loading from directory " << dir << "..." << endl;
 
     vector<vector<PixelInFrame>> correspondences;
@@ -378,12 +353,68 @@ compute_surfels(const MesherArguments& args,
         compute_correspondences(dir, correspondences);
     }
 
-    vector<DepthMap> depth_maps;
-    load_depth_maps(dir, depth_maps);
+    vector<DepthMapPyramid> depth_map_pyramids;
+    load_depth_map_pyramids(dir, args, depth_map_pyramids);
 
-    preprocess_depth_maps(depth_maps);
+    // Generate L0 surfels
+    vector<DepthMap> level_depth_maps;
+    for( const auto& pyr : depth_map_pyramids) {
+        level_depth_maps.push_back(pyr.level(0));
+    }
+    generate_surfels(level_depth_maps, correspondences, surfels);
 
-    generate_surfels(depth_maps, correspondences, surfels);
+    // SAMPLE CODE
+    //   Generate the next level of surfels up as a demo of how we would do this repeatedly
+    for( auto pyr : depth_map_pyramids) {
+        //   We start by generating the depth map pyramid next level
+        pyr.set_num_levels(1);
+    }
+
+    //   Now we need to use the mappings to thin the correspondences
+
+    vector<vector<PixelInFrame>> target_correspondences;
+    //    for set S_s in S
+    for( const auto& correspondence : correspondences ) {
+        //    Make set T_s
+        vector<PixelInFrame> target_correspondence;
+
+        //    for element I_i in S_s
+        for (const auto &element : correspondence) {
+            //    J_i = map(I_i)
+            auto j_i = map(element);
+
+            //    fwd_map.insert(I_i --> J_i );
+            fwd_map.insert(e, j_i);
+
+            //    bkw_multi_map.insert(J_i --> I_i);
+            bkw_map.insert(make_pair(j_i, element));
+
+            //    add J_j to T_s
+            target_correspondence.push_back(j_i);
+
+            //    j_to_t_map.put(J_j, T_s)
+            j_to_t_map.insert(make_pair(j_i, target_correspondences.size()));
+            //    endfor
+        }
+        //            endfor
+    }
+
+
+        //    for each J_j
+        //    get the set of T_s maped to J_j
+        //    merge them into a new T_t
+        //    Update J_j’s mappings to be to T_t
+        //    endfor
+    }
+
+    vector<vector<PixelInFrame>> next_level_correspondences;
+    thin_correspondences()
+    // for each correspondence
+    // for each point in the correspondece
+    // find the mapping and add that point to the new corr
+
+
+
 
     cout << " done." << endl;
 }

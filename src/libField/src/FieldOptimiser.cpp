@@ -1020,7 +1020,7 @@ FieldOptimiser::optimise_do_one_step() {
     m_optimising_last_error = new_error;
     if( is_converged ) {
         if( optimise_end_tier() ) {
-            optimise_end(); // stop_optimising
+            optimise_end(); // optimise_end
         }
     }
 }

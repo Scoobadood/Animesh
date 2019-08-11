@@ -2,6 +2,8 @@
 #include "surfel_io.h"
 #include "smooth.h"
 #include "mesher_args.h"
+#include "surfel_hierarchy.h"
+#include <DepthMap/DepthMapPyramid.h>
 
 //
 // Launch with -s surfel_file or
@@ -15,17 +17,11 @@ int main( int argc, char *argv[] ) {
   MesherArguments args;
   parse_args( argc, argv, args);
 
-  vector<Surfel> surfels;
-  if( args.source == MesherArguments::FILE) {
-    load_from_file(args.file_or_directory, surfels);
-  } else { /* compute */
-      compute_surfels(args, surfels);
-    save_to_file( "surfel_table.bin", surfels);
-  }
-  // Now start smoothing
-  optimise(surfels);
-  save_to_file( "surfel_table_converged.bin", surfels);
-  
+  // Construct a hierarchy of surfels
+  SurfelHierarchy sh(0.01f);
+
+  sh.optimise();
+
   return 0;
 }
 

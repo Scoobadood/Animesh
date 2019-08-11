@@ -1,81 +1,118 @@
-#include "smooth.h"
-#include <Eigen/Core>
-#include <random>
-#include <math.h>
-#include <iostream>
-#include <RoSy/RoSy.h>
-#include <sys/stat.h>
+//
+// Created by Dave Durbin on 2019-08-11.
+//
 
-static bool g_is_optimising = false;
-static float g_optimisation_error;
-static const int MAX_ITERATIONS = 50000;
+#include "surfel_hierarchy.h"
+#include <sys/stat.h>
+#include <random>
+#include <RoSy/RoSy.h>
+
+
 static const long RANDOM_SEED = 919765;
 
-/*
-   ********************************************************************************
-   **                                                                            **
-   **             Utilities                                                      **
-   **                                                                            **
-   ********************************************************************************
-*/
 
-std::size_t
-random_index(unsigned int max_index) {
-    static std::default_random_engine e{RANDOM_SEED};
-    static std::uniform_real_distribution<> dis(0, max_index);
-    return std::floor(dis(e));
+/**
+ * Optimise the entire hierarchy. Do each level repeatedly until converged.
+ */
+void
+SurfelHierarchy::optimise( ) {
+    using namespace std;
+
+    if( is_optimising ) {
+        throw runtime_error( "Already optimising");
+    }
+
+    optimise_begin();
+    while( optimising_should_continue() ) {
+        optimise_do_one_step( );
+    }
+    optimise_end();
 }
 
 /**
- * Check for presence of a file to see if we should stop
+ * Start global smoothing.
+ */
+void
+SurfelHierarchy::optimise_begin() {
+    is_optimising = true;
+    smoothing_level = levels.size() - 1;
+    is_starting_new_level = true;
+}
+
+/**
+ * Perform post-smoothing tidy up.
+ */
+void
+SurfelHierarchy::optimise_end() {
+    is_optimising = false;
+}
+
+
+/**
+ * Do start of level set up. Mostly computing current residual error in this level.
+ */
+void
+SurfelHierarchy::optimise_begin_level() {
+    last_smoothing_error = compute_error( );
+}
+
+/**
+ * Measure the change in error. If it's below some threshold, consider this level converged.
  */
 bool
-check_stop_flag() {
+SurfelHierarchy::check_convergence( ) {
+    float latest_error = compute_error();
+    float delta_error = fabsf( latest_error - last_smoothing_error);
+    last_smoothing_error = latest_error;
+    return ( delta_error / last_smoothing_error < convergence_threshold );
+}
+
+/**
+ * Calculate remaining error.
+ */
+float
+SurfelHierarchy::compute_error( ) {
+    // TODO Implement me.
+    return 0.0f;
+
+}
+
+/**
+ * Check whether optimising should stop either because user asked for that to happen or else
+ * because convergence has happened.
+ */
+bool
+SurfelHierarchy::optimising_should_continue() {
+    return (user_canceled_optimise() || optimising_converged);
+}
+
+/**
+ * Check whether optimising should stop either because user asked for that to happen or else
+ * because convergence has happened.
+ */
+bool
+SurfelHierarchy::user_canceled_optimise() {
     struct stat buffer;
     return (stat("halt", &buffer) == 0);
 }
 
-/*
-   ********************************************************************************
-   **                                                                            **
-   **             Optimisation                                                   **
-   **                                                                            **
-   ********************************************************************************
-*/
-
-
-void
-optimise_begin(std::vector<Surfel> &surfels) {
-    sort_frame_data(surfels);
-    g_is_optimising = true;
-}
-
-void
-optimise_end() {
-    g_is_optimising = false;
-}
-
-float
-total_error() {
-    // std::cout << "total_error() not yet implemented" << std::endl;
-    return 0.0f;
-}
-
 /**
- * @param error The currently computed error.
- * @return True if this has converged, i.e. the difference in error over the last two iterations is less than some threshold.
+ * Perform a single step of optimisation.
  */
-bool
-check_convergence(float error) {
-    float delta_error = error - g_optimisation_error;
-    // TODO: Check if delta_error is below some threshold
-    static int iterations = 0;
-    if (iterations % 100 == 0) {
-        std::cout << "****************************************" << std::endl
-                  << "check_convergence() " << iterations << " iterations" << std::endl
-                  << "****************************************" << std::endl;
+void
+SurfelHierarchy::optimise_do_one_step() {
+    using namespace std;
+
+    if( is_starting_new_level) {
+        optimise_begin_level();
     }
-    return (++iterations == MAX_ITERATIONS);
+
+    optimise_do_one_surfel();
+
+    bool converged = check_convergence( );
+    if( converged ) {
+        optimise_end_level();
+    }
 }
 
 /**
@@ -119,20 +156,20 @@ find_common_frames(const std::vector<FrameData> &surfel_frames,
  * tan/norm are converted to the orignating surfel's frame of reference.
  */
 void
-get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
+SurfelHierarchy::get_eligible_normals_and_tangents(std::size_t level_idx,
                                   std::size_t surfel_idx,
                                   std::vector<Eigen::Vector3f> &eligible_normals,
                                   std::vector<Eigen::Vector3f> &eligible_tangents) {
     using namespace std;
     using namespace Eigen;
 
-    const vector<FrameData> &surfel_frames = surfels.at(surfel_idx).frame_data;
+    const vector<FrameData> &surfel_frames = levels.at(level_idx).at(surfel_idx).frame_data;
 
     // For each neighbour
     int total_common_frames = 0;
-    for (size_t neighbour_idx : surfels.at(surfel_idx).neighbouring_surfels) {
+    for (size_t neighbour_idx : levels.at(level_idx).at(surfel_idx).neighbouring_surfels) {
 
-        const vector<FrameData> &neighbour_frames = surfels.at(neighbour_idx).frame_data;
+        const vector<FrameData> &neighbour_frames = levels.at(level_idx).at(neighbour_idx).frame_data;
         vector<pair<FrameData, FrameData>> common_frames;
         find_common_frames(surfel_frames, neighbour_frames, common_frames);
         total_common_frames += common_frames.size();
@@ -150,7 +187,7 @@ get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
             //    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
             //	  transform from frame space to free space using surfel data. (inv of stored)
             const Matrix3f neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
-            Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * surfels.at(neighbour_idx).tangent;
+            Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * levels.at(level_idx).at(neighbour_idx).tangent;
             Vector3f neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
             eligible_normals.push_back(neighbour_norm_in_surfel_space);
             eligible_tangents.push_back(neighbour_tan_in_surfel_space);
@@ -161,26 +198,26 @@ get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
 
 /**
  * Compute a new tangent for the given surfel S
- * 
+ *
  * for each neighbouring surfel N of S
  *   find any frame f in which both N and S are visible
  *   obtain MfS the transformation matrix from frame f for S
  *   obtain dirNS from MfS * dirN
- *   perform 4RoSy smoothing operation on dirS and dirNS 
+ *   perform 4RoSy smoothing operation on dirS and dirNS
  * end
  */
 Eigen::Vector3f
-compute_new_tangent_for_surfel(const std::vector<Surfel> &surfels, size_t surfel_idx) {
+SurfelHierarchy::compute_new_tangent_for_surfel(std::size_t level_idx, std::size_t surfel_idx) {
     using namespace Eigen;
     using namespace std;
 
     // Get vector of eligible normal/tangent pairs
     vector<Vector3f> normals;
     vector<Vector3f> tangents;
-    get_eligible_normals_and_tangents(surfels, surfel_idx, normals, tangents);
+    get_eligible_normals_and_tangents(level_idx, surfel_idx, normals, tangents);
 
     // Merge all neighbours; implicitly using optiminsing tier tangents
-    Vector3f new_tangent = surfels.at(surfel_idx).tangent;
+    Vector3f new_tangent = levels.at(level_idx).at(surfel_idx).tangent;
 
     float weight = 0;
     for (size_t idx = 0; idx < normals.size(); ++idx) {
@@ -192,50 +229,41 @@ compute_new_tangent_for_surfel(const std::vector<Surfel> &surfels, size_t surfel
     return new_tangent;
 }
 
-/**
- * Perform a single step of optimisation.
- */
-bool
-optimise_do_one_step(std::vector<Surfel> &surfels) {
+void
+SurfelHierarchy::optimise_do_one_surfel() {
     using namespace std;
     using namespace Eigen;
 
-    // If not optimising, perform setup
-    if (!g_is_optimising) {
-        optimise_begin(surfels); //setup_optimisation();
-    }
-
-    // Select random surfel 
-    size_t surfel_idx = random_index(surfels.size());
+    // Select random surfel
+    size_t surfel_idx = random_index(levels.at(smoothing_level).size());
 
     // Update this one
-    Vector3f new_tangent = compute_new_tangent_for_surfel(surfels, surfel_idx);
-    surfels.at(surfel_idx).tangent = new_tangent;
-
-    // Check for done-ness
-    float new_error = total_error();
-    bool is_converged = check_convergence(new_error);
-    g_optimisation_error = new_error;
-    if (is_converged) {
-        optimise_end(); // optimise_end
-    }
-    return is_converged;
+    Vector3f new_tangent = compute_new_tangent_for_surfel(smoothing_level, surfel_idx);
+    levels.at(smoothing_level).at(surfel_idx).tangent = new_tangent;
 }
 
 /**
- * Perform orientation field optimisation.
- * Continuously step until done.
+ * Tidy up at end of level and propagate values down to next level or else flag smoothing as converged
+ * if this was level 0.
  */
 void
-optimise(std::vector<Surfel> &surfels) {
-    bool done = check_stop_flag();
-    while (!done) {
-        done = optimise_do_one_step(surfels);
-        if (!done) {
-            done = check_stop_flag();
-            if (done) {
-                std::cout << "Halted" << std::endl;
-            }
-        }
+SurfelHierarchy::optimise_end_level( ) {
+    // If curent level is 0, we have now converged
+    if( smoothing_level == 0 ) {
+        optimising_converged = true;
+        return;
     }
+    // TODO Else propagate values down and decrement level counter and set start of level flag.
 }
+
+/**
+ * Select a random integer in the range [0, max_index)
+ */
+std::size_t
+SurfelHierarchy::random_index(unsigned int max_index) {
+    static std::default_random_engine e{RANDOM_SEED};
+    static std::uniform_real_distribution<> dis(0, max_index);
+    return std::floor(dis(e));
+}
+
+

@@ -60,7 +60,7 @@ DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<PixelCoor
                     mapping.insert(make_pair(PixelCoord{r, c}, mapped_pixels[i]));
                 }
             }
-            // TODO: Merge knows we skip 0s and so chouls be responsible for ignoring mappings.
+            // TODO: Merge knows we skip 0s and so should be responsible for ignoring mappings.
             new_data[r * new_rows + c ] = merge(values);
         }
     }

@@ -18,6 +18,10 @@ typedef struct Arguments {
 
   // Load from file.
   Source source;
+
+  // Depth map preprocessing parameters
+  float ts;
+  float tl;
 } MesherArguments;
 
 /**

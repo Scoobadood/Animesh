@@ -66,4 +66,8 @@ parse_args(int argc, char *argv[], MesherArguments &args) {
     } else {
         usage(argv[0]);
     }
+
+    // TODO: Read these from file or args too.
+    args.ts = 8.0f;
+    args.tl = 3.0f;
 }

@@ -26,7 +26,7 @@ add_executable(mesher
         correspondences_args.cpp correspondences_args.h
         correspondences_io.cpp correspondences_io.h
         io_utils.cpp io_utils.h
-        types.h)
+        types.h surfel_hierarchy.cpp surfel_hierarchy.h)
 
 # Building the executable
 add_executable(correspondences

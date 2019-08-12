@@ -3,7 +3,6 @@
 #include <vector>
 #include <Eigen/Core>
 #include <fstream>
-#include "depth_image_loader.h"
 
 struct PixelInFrame {
 	unsigned int x;

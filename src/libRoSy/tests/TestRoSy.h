@@ -4,7 +4,7 @@
 #include <vector>
 #include "gtest/gtest.h"
 
-class TestRoSy : public ::testing::Test {
+class TestProperties : public ::testing::Test {
 public:
 	Eigen::Vector3f vec_1_0_0{ 1.0f, 0.0f, 0.0f };
 	Eigen::Vector3f vec_0_1_0{ 0.0f, 1.0f, 0.0f };

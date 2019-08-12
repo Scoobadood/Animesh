@@ -15,8 +15,8 @@ static void expectVectorsAreNear(const Eigen::Vector3f& a, const Eigen::Vector3f
     }
 }
 
-void TestRoSy::SetUp( ) {}
-void TestRoSy::TearDown( ) {}
+void TestProperties::SetUp( ) {}
+void TestProperties::TearDown( ) {}
 
 
 /* ********************************************************************************
@@ -24,7 +24,7 @@ void TestRoSy::TearDown( ) {}
  * *  Test average rosy vectors
  * *   
  * ********************************************************************************/
-TEST_F( TestRoSy, AverageVectorsFirstWeightZeroGivesSecondVector) {
+TEST_F(TestProperties, AverageVectorsFirstWeightZeroGivesSecondVector) {
     using namespace Eigen;
 
     Vector3f avg = average_rosy_vectors( 	vec_1_0_0, vec_0_1_0, 0, 
@@ -32,7 +32,7 @@ TEST_F( TestRoSy, AverageVectorsFirstWeightZeroGivesSecondVector) {
     expectVectorsAreNear( vec_0_0_1, avg);
 }
 
-TEST_F( TestRoSy, AverageVectorsSecondWeightZeroGivesFirstVector) {
+TEST_F(TestProperties, AverageVectorsSecondWeightZeroGivesFirstVector) {
     using namespace Eigen;
 
     Vector3f avg = average_rosy_vectors(	vec_1_0_0, vec_0_1_0, 1, 
@@ -40,7 +40,7 @@ TEST_F( TestRoSy, AverageVectorsSecondWeightZeroGivesFirstVector) {
     expectVectorsAreNear( vec_1_0_0, avg);
 }
 
-TEST_F( TestRoSy, AverageVectorsSharedNormal) {
+TEST_F(TestProperties, AverageVectorsSharedNormal) {
     using namespace Eigen;
 
     Vector3f avg = average_rosy_vectors(	vec_1_0_0, vec_0_1_0, 1,

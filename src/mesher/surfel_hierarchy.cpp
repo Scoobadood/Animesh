@@ -4,27 +4,40 @@
 
 #include "surfel_hierarchy.h"
 #include <sys/stat.h>
+#include <vector>
+#include <map>
+#include <utility>
 #include <random>
 #include <RoSy/RoSy.h>
 
 
 static const long RANDOM_SEED = 919765;
 
+SurfelHierarchy::SurfelHierarchy(float convergence_threshold) : num_frames{ 9 } {
+    this->convergence_threshold = convergence_threshold;
+    is_optimising = false;
+    is_starting_new_level = false;
+    optimising_converged = false;
+    last_optimising_error = 0.0f;
+    optimising_level = -1;
+
+    populate_neighbours_by_surfel_frame();
+}
 
 /**
  * Optimise the entire hierarchy. Do each level repeatedly until converged.
  */
 void
-SurfelHierarchy::optimise( ) {
+SurfelHierarchy::optimise() {
     using namespace std;
 
-    if( is_optimising ) {
-        throw runtime_error( "Already optimising");
+    if (is_optimising) {
+        throw runtime_error("Already optimising");
     }
 
     optimise_begin();
-    while( optimising_should_continue() ) {
-        optimise_do_one_step( );
+    while (optimising_should_continue()) {
+        optimise_do_one_step();
     }
     optimise_end();
 }
@@ -35,7 +48,7 @@ SurfelHierarchy::optimise( ) {
 void
 SurfelHierarchy::optimise_begin() {
     is_optimising = true;
-    smoothing_level = levels.size() - 1;
+    optimising_level = levels.size() - 1;
     is_starting_new_level = true;
 }
 
@@ -53,28 +66,100 @@ SurfelHierarchy::optimise_end() {
  */
 void
 SurfelHierarchy::optimise_begin_level() {
-    last_smoothing_error = compute_error( );
+    populate_frame_to_surfel();
+    populate_norm_tan_by_surfel_frame();
+    last_optimising_error = compute_error();
 }
 
 /**
  * Measure the change in error. If it's below some threshold, consider this level converged.
  */
 bool
-SurfelHierarchy::check_convergence( ) {
+SurfelHierarchy::check_convergence() {
     float latest_error = compute_error();
-    float delta_error = fabsf( latest_error - last_smoothing_error);
-    last_smoothing_error = latest_error;
-    return ( delta_error / last_smoothing_error < convergence_threshold );
+    float delta_error = fabsf(latest_error - last_optimising_error);
+    last_optimising_error = latest_error;
+    return (delta_error / last_optimising_error < convergence_threshold);
 }
 
 /**
- * Calculate remaining error.
+ * Compute the erorr per surfel/per frame
  */
 float
-SurfelHierarchy::compute_error( ) {
-    // TODO Implement me.
-    return 0.0f;
+SurfelHierarchy::compute_error() {
+    using namespace std;
+    using namespace Eigen;
 
+    const size_t num_surfels = levels.at(optimising_level).size();
+
+    // Zero out the error.
+    float error[num_surfels][num_frames];
+    float surfel_error[num_surfels];
+    float frame_error[num_frames];
+    for (int s = 0; s < num_surfels; ++s) {
+        for (int f = 0; f < num_frames; ++f) {
+            error[s][f] = 0.0f;
+        }
+        surfel_error[s] = 0.0f;
+    }
+    for (float &f : frame_error) {
+        f = 0.0f;
+    }
+    float total_error = 0.0f;
+
+    // For each frame
+    for (int f = 0; f < num_frames; ++f) {
+        // Get surfels in frame
+        const auto &surfels_in_this_frame = surfels_by_frame.at(f);
+
+        // For each surfel in the frame, compute the error with each neighbour
+        for (const auto &s : surfels_in_this_frame) {
+            const auto surfel_in_frame = make_pair(s.get().id, f);
+            const auto surfel_in_frame_at_level = make_tuple(optimising_level, s.get().id, f);
+            const auto this_surfel_in_this_frame = norm_tan_by_surfel_frame.at(surfel_in_frame);
+
+            const auto &neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame_at_level);
+
+            float err = 0.0f;
+            int count = 0;
+            for (const auto &n :neighbours_of_this_surfel) {
+                //TODO NB We can cache error computations here
+                const auto this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at(make_pair(n.get().id, f));
+
+                // Compute the error between this surfel in this frame and the neighblur in this frame.
+                err += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
+                count++;
+            }
+            err /= (float) count;
+            error[s.get().id][f] += err;
+            surfel_error[s.get().id] += err;
+            frame_error[f] += err;
+        }
+    }
+    return total_error;
+}
+
+
+// TODO: It feels like this is not a great error measure and we should rotate the two tangents into the same
+// plane before computing the angle between them.
+//
+/**
+ * Compute the error between two tangent vectors as the square of the angle between their 4RoSy rotations.
+ *
+ * @param first First normal/tangent pair.
+ * @param second Second normal/tangent pair.
+ * @return
+ */
+float
+SurfelHierarchy::compute_error(const std::pair<Eigen::Vector3f, Eigen::Vector3f> &first,
+                               const std::pair<Eigen::Vector3f, Eigen::Vector3f> &second) {
+    using namespace std;
+    using namespace Eigen;
+
+    // parameter order in RoSy is tangent, normal
+    pair<Vector3f, Vector3f> best_pair = best_rosy_vector_pair(first.second, first.first, second.second, second.first);
+    float theta = angle_between_vectors(best_pair.first, best_pair.second);
+    return (theta * theta);
 }
 
 /**
@@ -92,7 +177,7 @@ SurfelHierarchy::optimising_should_continue() {
  */
 bool
 SurfelHierarchy::user_canceled_optimise() {
-    struct stat buffer;
+    struct stat buffer{};
     return (stat("halt", &buffer) == 0);
 }
 
@@ -103,14 +188,14 @@ void
 SurfelHierarchy::optimise_do_one_step() {
     using namespace std;
 
-    if( is_starting_new_level) {
+    if (is_starting_new_level) {
         optimise_begin_level();
     }
 
     optimise_do_one_surfel();
 
-    bool converged = check_convergence( );
-    if( converged ) {
+    bool converged = check_convergence();
+    if (converged) {
         optimise_end_level();
     }
 }
@@ -157,9 +242,9 @@ find_common_frames(const std::vector<FrameData> &surfel_frames,
  */
 void
 SurfelHierarchy::get_eligible_normals_and_tangents(std::size_t level_idx,
-                                  std::size_t surfel_idx,
-                                  std::vector<Eigen::Vector3f> &eligible_normals,
-                                  std::vector<Eigen::Vector3f> &eligible_tangents) {
+                                                   std::size_t surfel_idx,
+                                                   std::vector<Eigen::Vector3f> &eligible_normals,
+                                                   std::vector<Eigen::Vector3f> &eligible_tangents) {
     using namespace std;
     using namespace Eigen;
 
@@ -187,7 +272,8 @@ SurfelHierarchy::get_eligible_normals_and_tangents(std::size_t level_idx,
             //    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
             //	  transform from frame space to free space using surfel data. (inv of stored)
             const Matrix3f neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
-            Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * levels.at(level_idx).at(neighbour_idx).tangent;
+            Vector3f neighbour_tan_in_surfel_space =
+                    neighbour_to_surfel * levels.at(level_idx).at(neighbour_idx).tangent;
             Vector3f neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
             eligible_normals.push_back(neighbour_norm_in_surfel_space);
             eligible_tangents.push_back(neighbour_tan_in_surfel_space);
@@ -235,11 +321,11 @@ SurfelHierarchy::optimise_do_one_surfel() {
     using namespace Eigen;
 
     // Select random surfel
-    size_t surfel_idx = random_index(levels.at(smoothing_level).size());
+    size_t surfel_idx = random_index(levels.at(optimising_level).size());
 
     // Update this one
-    Vector3f new_tangent = compute_new_tangent_for_surfel(smoothing_level, surfel_idx);
-    levels.at(smoothing_level).at(surfel_idx).tangent = new_tangent;
+    Vector3f new_tangent = compute_new_tangent_for_surfel(optimising_level, surfel_idx);
+    levels.at(optimising_level).at(surfel_idx).tangent = new_tangent;
 }
 
 /**
@@ -247,9 +333,9 @@ SurfelHierarchy::optimise_do_one_surfel() {
  * if this was level 0.
  */
 void
-SurfelHierarchy::optimise_end_level( ) {
+SurfelHierarchy::optimise_end_level() {
     // If curent level is 0, we have now converged
-    if( smoothing_level == 0 ) {
+    if (optimising_level == 0) {
         optimising_converged = true;
         return;
     }
@@ -266,4 +352,142 @@ SurfelHierarchy::random_index(unsigned int max_index) {
     return std::floor(dis(e));
 }
 
+/**
+ * Build the norm_tan_by_surfel_frame data structure for this level of the
+ * surfel hierarchy. Note that tans will be updated every optimisation
+ * We should calculat this once per level and then update each time we change a tan.
+ */
+void
+SurfelHierarchy::populate_norm_tan_by_surfel_frame() {
+    using namespace std;
+    using namespace Eigen;
 
+    norm_tan_by_surfel_frame.clear();
+
+    /*
+       For each surfel
+       For each framedata in the surfel
+       Generate a surfel-frame pair
+       transform the norm and tan
+       put it in the map.
+     */
+    for (const auto &surfel : levels.at(optimising_level)) {
+        for (const auto &fd : surfel.frame_data) {
+            pair<size_t, size_t> surfel_in_frame = make_pair(surfel.id, fd.pixel_in_frame.frame);
+            Vector3f new_norm = fd.normal;
+            Vector3f new_tan = fd.transform * surfel.tangent;
+            norm_tan_by_surfel_frame.insert(make_pair(surfel_in_frame, make_pair(new_norm, new_tan)));
+        }
+    }
+}
+
+/**
+ * Populate the surfels per fram map.
+ */
+void
+SurfelHierarchy::populate_frame_to_surfel() {
+    using namespace std;
+    assert(num_frames > 0);
+    /*
+      For each surfel
+      For each frame
+      add the surfel to the frame.
+     */
+    surfels_by_frame.clear();
+    for (int i = 0; i < num_frames; ++i) {
+        vector<reference_wrapper<const Surfel>> empty;
+        surfels_by_frame.push_back(empty);
+    }
+
+    for (const auto &surfel : levels.at(optimising_level)) {
+        for (const auto &fd : surfel.frame_data) {
+            surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel);
+        }
+    }
+}
+
+/**
+ * Build the neighbours_by_surfel_frame data structure for this level of the
+ * surfel hierarchy. Neighbours stay neighbours throughout and so we can compute this
+ * once during surfel hierarchy extraction.
+ * We assume that
+ * -- neighbours by surfel frame is empty
+ * -- surfels_by_frame is populated for this level
+ *
+ * But num_frames and num_surfels are both known.
+ */
+void
+SurfelHierarchy::populate_neighbours_by_surfel_frame() {
+    using namespace std;
+
+    assert( !levels.empty() );
+    assert( !surfels_by_frame.empty());
+
+    /*
+      Build a map from frame to surfel const ref
+      For each surfel
+      For each frame data
+      Get a vector of surfels in that frame (from map)
+      Get a vector of neighbouring surfels (from surfel)
+      Sort both by surfel index
+      iterate across both finding common elements
+      For each common element, add an entry to the map.
+     */
+    for( size_t level = 0; level < levels.size(); ++level) {
+        for (const auto &surfel : levels.at(level)) {
+            auto neighbours_of_this_surfel = surfel.neighbouring_surfels;
+            for (const auto &fd : surfel.frame_data) {
+                size_t frame = fd.pixel_in_frame.frame;
+                vector<reference_wrapper<const Surfel>> surfels_in_this_frame = surfels_by_frame.at(frame);
+                vector<reference_wrapper<const Surfel>> neighbours_in_this_frame;
+                compute_intersection_of(neighbours_of_this_surfel, surfels_in_this_frame, neighbours_in_this_frame);
+                neighbours_by_surfel_frame.insert( //
+                        make_pair( //
+                                make_tuple(level, surfel.id, frame),
+                                neighbours_in_this_frame));
+            }
+        }
+    }
+}
+
+/**
+ * Compute the intersection of the two provided vectors and place the results into the third.
+ */
+void
+SurfelHierarchy::compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel,
+                                         std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
+                                         std::vector<std::reference_wrapper<const Surfel>> neighbours_in_this_frame) {
+    using namespace std;
+
+    // Sort neighbours of tis surfel
+    sort(neighbours_of_this_surfel.begin(),
+         neighbours_of_this_surfel.end(),
+         [](size_t s1, size_t s2) {
+             return s1 < s2;
+         });
+
+    sort(surfels_in_this_frame.begin(),
+         surfels_in_this_frame.end(),
+         [](const Surfel &s1, const Surfel &s2) {
+             return s1.id < s2.id;
+         });
+
+    // Iterate across them both
+    auto it1 = neighbours_of_this_surfel.begin();
+    auto it2 = surfels_in_this_frame.begin();
+    while (it1 != neighbours_of_this_surfel.end() && it2 != surfels_in_this_frame.end()) {
+        size_t s1 = *it1;
+        const Surfel &surfel = *it2;
+        size_t s2 = surfel.id;
+
+        if (s1 < s2) {
+            it1++;
+        } else if (s2 < s1) {
+            it2++;
+        } else {
+            neighbours_in_this_frame.emplace_back(surfel);
+            it1++;
+            it2++;
+        }
+    }
+}

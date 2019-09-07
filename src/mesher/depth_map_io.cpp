@@ -78,3 +78,26 @@ load_depth_map_pyramids(MesherArguments &args, std::vector<DepthMapPyramid> &pyr
     do_load(dir, args.ts, args.tl, pyramids);
 }
 
+std::vector<DepthMap>
+load_depth_maps(const std::string& source_directory) {
+    using namespace std;
+
+    vector<DepthMap> depth_maps;
+
+    vector<string> depth_file_names = get_depth_files_in_directory(source_directory);
+    if (depth_file_names.empty()) {
+        throw runtime_error("No depth images found in " + source_directory);
+    }
+
+    int count = 0;
+    int target = depth_file_names.size();
+    for (const auto &file_name : depth_file_names) {
+        cout << " \r" << ++count << " of " << target << flush;
+        depth_maps.emplace_back(file_name);
+        depth_maps.end()->cull_unreliable_depths(ts, tl);
+        depth_maps.end()->get_normals();
+    }
+    cout << endl << "Read " << depth_maps.size() << " depth maps." << endl;
+
+    return depth_maps;
+}

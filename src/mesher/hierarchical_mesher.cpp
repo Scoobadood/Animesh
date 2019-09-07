@@ -1,16 +1,11 @@
 #include <iostream>
 #include <vector>
 #include <Properties/Properties.h>
+#include <DepthMap/DepthMap.h>
 
 void usage(const std::string &prog_name) {
     std::cout << "usage: " << prog_name << " [source_directory]" << std::endl;
     exit(-1);
-}
-
-std::vector<std::vector<float>> load_depth_data(const std::string& source_directory) {
-    using namespace std;
-
-    return vector<vector<float>>{};
 }
 
 int main(int argc, char *argv[]) {
@@ -27,7 +22,7 @@ int main(int argc, char *argv[]) {
     Properties p{property_file_name};
 
     string source_directory = p.getProperty("source-directory");
-    vector<vector<float>> depth_maps = load_depth_data(source_directory);
+    vector<DepthMap> depth_maps = load_depth_maps(source_directory);
 
     return 0;
 }

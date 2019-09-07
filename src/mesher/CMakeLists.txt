@@ -44,6 +44,7 @@ add_executable(correspondences
 
 target_link_libraries(animesh
         Properties
+        DepthMap
         )
 
 target_link_libraries(mesher

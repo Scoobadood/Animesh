@@ -5,7 +5,7 @@
 
 #include <FileUtils/PgmFileParser.h>
 
-#include "surfel_compute.hpp"
+#include "surfel_compute.h"
 #include "correspondences_compute.h"
 
 static const char *VERTEX_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*vertex_[0-9]+\.pgm)";

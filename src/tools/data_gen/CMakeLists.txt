@@ -38,7 +38,7 @@ if (assimp_FOUND)
 endif(assimp_FOUND)
 
 # Data Generator
-add_executable(dat_gen ${SOURCES})
+add_executable(dat_gen ${SOURCES} ray_trace.cl)
 
 target_include_directories(
   dat_gen PUBLIC 

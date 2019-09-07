@@ -10,10 +10,14 @@
 #include <random>
 #include <RoSy/RoSy.h>
 
+#include "surfel_compute.h"
 
 static const long RANDOM_SEED = 919765;
 
-SurfelHierarchy::SurfelHierarchy(float convergence_threshold) : num_frames{ 9 } {
+SurfelHierarchy::SurfelHierarchy( //
+        std::vector<DepthMapPyramid> depth_map_pyramids, //
+        std::vector<std::vector<PixelInFrame>> correspondences, //
+        float convergence_threshold) : num_frames{9} {
     this->convergence_threshold = convergence_threshold;
     is_optimising = false;
     is_starting_new_level = false;
@@ -21,6 +25,9 @@ SurfelHierarchy::SurfelHierarchy(float convergence_threshold) : num_frames{ 9 } 
     last_optimising_error = 0.0f;
     optimising_level = -1;
 
+    make_surfel_hierarchy();
+
+    populate_frame_to_surfel();
     populate_neighbours_by_surfel_frame();
 }
 
@@ -420,8 +427,8 @@ void
 SurfelHierarchy::populate_neighbours_by_surfel_frame() {
     using namespace std;
 
-    assert( !levels.empty() );
-    assert( !surfels_by_frame.empty());
+    assert(!levels.empty());
+    assert(!surfels_by_frame.empty());
 
     /*
       Build a map from frame to surfel const ref
@@ -433,7 +440,7 @@ SurfelHierarchy::populate_neighbours_by_surfel_frame() {
       iterate across both finding common elements
       For each common element, add an entry to the map.
      */
-    for( size_t level = 0; level < levels.size(); ++level) {
+    for (size_t level = 0; level < levels.size(); ++level) {
         for (const auto &surfel : levels.at(level)) {
             auto neighbours_of_this_surfel = surfel.neighbouring_surfels;
             for (const auto &fd : surfel.frame_data) {
@@ -489,5 +496,61 @@ SurfelHierarchy::compute_intersection_of(std::vector<size_t> neighbours_of_this_
             it1++;
             it2++;
         }
+    }
+}
+
+
+/**
+ * Compute the next level of correspondences from the current level.
+ */
+std::vector<std::vector<PixelInFrame>>
+merge_correspondences(const std::vector<std::vector<PixelInFrame>>& correspondences,
+        std::vector<DepthMapPyramid>& depth_map_pyramids, int level) {
+    using namespace std;
+
+    // For each frame
+
+    // for each pixel in the next level
+    // If the pixel is not valid move on.
+
+    // If the pixel has been flagged as done, move on.
+
+    // Find out which pixels this one mapped to in lower levels (through the pixel map) ==> [pif ... ]
+    // Collect the list of surfels which are then children of this one.
+
+    //  For each child surfel
+    //    Add all PIFs from all frames into a list [pif ...]
+
+    //  For all pifs in the list
+    //     look up the target parent pif (using the level map)
+    //     add the target pif to the set of correspondences for this pixel.
+    //     flag these pifs as mapped
+
+
+
+
+    vector<vector<PixelInFrame>> merged_correspondences;
+    return merged_correspondences;
+}
+
+void
+SurfelHierarchy::make_surfel_hierarchy( std::vector<DepthMapPyramid>& dmp,
+        const std::vector<std::vector<PixelInFrame>>& correspondences,
+        unsigned int  num_levels) {
+
+    using namespace std;
+
+    dmp.at(0).set_num_levels(num_levels);
+
+    const vector<vector<PixelInFrame>>& current_corr = correspondences;
+    for (int l =0; l< num_levels; ++l) {
+        vector<Surfel> surfels;
+        vector<DepthMap> level_depth_maps;
+        for (const auto &pyr : dmp) {
+            level_depth_maps.push_back(pyr.level(l));
+        }
+        generate_surfels(level_depth_maps, correspondences, surfels);
+        levels.push_back(surfels);
+        current_corr = merge_correspondences(correspondences, dmp, l);
     }
 }

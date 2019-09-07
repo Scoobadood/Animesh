@@ -1,6 +1,7 @@
-//
-// Created by Dave Durbin on 2019-07-06.
-//
+/**
+ * Compute correspondences given a source directory.
+ * Created by Dave Durbin on 2019-07-06.
+ */
 
 #ifndef ANIMESH_CORRESPONDENCES_COMPUTE_H
 #define ANIMESH_CORRESPONDENCES_COMPUTE_H

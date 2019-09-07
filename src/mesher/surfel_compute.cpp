@@ -7,7 +7,7 @@
 #include <regex>
 #include <random>
 #include <iostream>
-#include "surfel_compute.hpp"
+#include "surfel_compute.h"
 #include <FileUtils/PgmFileParser.h>
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
@@ -16,8 +16,6 @@
 #include "correspondences_compute.h"
 #include "correspondences_io.h"
 #include "mesher_args.h"
-
-static const char *DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth_[0-9]+\.mat)";
 
 /*
 	********************************************************************************
@@ -198,31 +196,6 @@ populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
 }
 
 
-std::vector<std::string>
-get_depth_files_in_directory(const std::string &directory_name) {
-    using namespace std;
-
-    vector<string> file_names;
-    files_in_directory(directory_name, file_names, [](string name) {
-        using namespace std;
-
-        std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-
-        const regex file_name_regex(DEPTH_FILE_NAME_REGEX);
-        return regex_match(name, file_name_regex);
-    });
-    // Construct full path names
-    vector<string> full_path_names;
-    for (auto const &file_name : file_names) {
-        string path_name = file_in_directory(directory_name, file_name);
-        full_path_names.push_back(path_name);
-    }
-    std::sort(full_path_names.begin(), full_path_names.end());
-    return full_path_names;
-}
-
-
-
 /*
 	********************************************************************************
 	**																			  **
@@ -230,34 +203,6 @@ get_depth_files_in_directory(const std::string &directory_name) {
 	**																			  **
     ********************************************************************************
 */
-
-/**
- * Load the depth maps from a list of files into memory
- * as a vector.
- */
-void
-load_depth_map_pyramids(const std::string &source_directory, const MesherArguments &args,
-                        std::vector<DepthMapPyramid> &depth_map_pyramids) {
-    using namespace std;
-    cout << "Reading depth maps pyramids..." << flush;
-
-    vector<string> files = get_depth_files_in_directory(source_directory);
-    if (files.empty()) {
-        throw runtime_error("No depth images found in " + source_directory);
-    }
-
-    depth_map_pyramids.clear();
-    int count = 0;
-    int target = files.size();
-    for (const auto &file_name : files) {
-        cout << " \r" << ++count << " of " << target << flush;
-        DepthMap dm{file_name};
-        dm.cull_unreliable_depths(args.ts, args.tl);
-        dm.get_normals();
-        depth_map_pyramids.emplace_back(dm);
-    }
-    cout << endl << "Read " << depth_map_pyramids.size() << " files." << endl;
-}
 
 /*
 	For each correspondence
@@ -316,105 +261,3 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
 	**																			  **
 	********************************************************************************
 */
-
-
-/*
-	Load and clean depth maps
-	--> Output DepthMap objects
-	--> Compute normals
-	--> Sets up is_normal_valid_at()
-
-	Load correspondences (from depth maps)
-	--> Load vectors,
-	--> Construct map from framepixel to vertex (If normal is valid)
-
-	Make correspondences from map
-
-	For each correspondence
-		Make a surfel
-		-- For each Frame/Pixel mapping from that correspondence compute the one we will use
-		-- Compute the normal (or get it)
-		-- Cmpute the transformation matrix
-		-- Store the Frame Data
-		-- Init the random direction vector.
-*/
-void
-compute_surfels(const MesherArguments& args,
-                std::vector<Surfel> &surfels) {
-    using namespace std;
-
-    const std::string dir = args.file_or_directory;
-    cout << "Loading from directory " << dir << "..." << endl;
-
-    vector<vector<PixelInFrame>> correspondences;
-    if( args.load_correspondences_from_file) {
-        load_correspondences_from_file(args.correspondence_file_name, correspondences);
-    } else {
-        compute_correspondences(dir, correspondences);
-    }
-
-    vector<DepthMapPyramid> depth_map_pyramids;
-    load_depth_map_pyramids(dir, args, depth_map_pyramids);
-
-    // Generate L0 surfels
-    vector<DepthMap> level_depth_maps;
-    for( const auto& pyr : depth_map_pyramids) {
-        level_depth_maps.push_back(pyr.level(0));
-    }
-    generate_surfels(level_depth_maps, correspondences, surfels);
-
-    // SAMPLE CODE
-    //   Generate the next level of surfels up as a demo of how we would do this repeatedly
-    for( auto pyr : depth_map_pyramids) {
-        //   We start by generating the depth map pyramid next level
-        pyr.set_num_levels(1);
-    }
-
-    //   Now we need to use the mappings to thin the correspondences
-
-    vector<vector<PixelInFrame>> target_correspondences;
-    //    for set S_s in S
-    for( const auto& correspondence : correspondences ) {
-        //    Make set T_s
-        vector<PixelInFrame> target_correspondence;
-
-        //    for element I_i in S_s
-        for (const auto &element : correspondence) {
-            //    J_i = map(I_i)
-            auto j_i = map(element);
-
-            //    fwd_map.insert(I_i --> J_i );
-            fwd_map.insert(e, j_i);
-
-            //    bkw_multi_map.insert(J_i --> I_i);
-            bkw_map.insert(make_pair(j_i, element));
-
-            //    add J_j to T_s
-            target_correspondence.push_back(j_i);
-
-            //    j_to_t_map.put(J_j, T_s)
-            j_to_t_map.insert(make_pair(j_i, target_correspondences.size()));
-            //    endfor
-        }
-        //            endfor
-    }
-
-
-        //    for each J_j
-        //    get the set of T_s maped to J_j
-        //    merge them into a new T_t
-        //    Update J_j’s mappings to be to T_t
-        //    endfor
-    }
-
-    vector<vector<PixelInFrame>> next_level_correspondences;
-    thin_correspondences()
-    // for each correspondence
-    // for each point in the correspondece
-    // find the mapping and add that point to the new corr
-
-
-
-
-    cout << " done." << endl;
-}

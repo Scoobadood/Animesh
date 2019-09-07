@@ -8,11 +8,17 @@
 #include <vector>
 #include <map>
 #include <utility>
+#include <DepthMap/DepthMapPyramid.h>
 
 #include "types.h"
 
 class SurfelHierarchy {
 public:
+    SurfelHierarchy( //
+            std::vector<DepthMapPyramid> depth_map_pyramids, //
+            std::vector<std::vector<PixelInFrame>> correspondences, //
+            float convergence_threshold);
+
     /**
      * @return The number of levels in the hierarchy
      */
@@ -22,8 +28,6 @@ public:
      * Smooth the hierarchy.
      */
     void optimise();
-
-    explicit SurfelHierarchy(float convergence_threshold);
 
 private:
     std::vector<std::vector<Surfel>> levels;
@@ -80,7 +84,7 @@ private:
     /**
      * The number of frames in the sequence. Initialised when the data is laoded.
      */
-     const size_t num_frames;
+    const size_t num_frames;
 
     /**
      * Start global smoothing.
@@ -200,6 +204,15 @@ private:
     compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel,
                             std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
                             std::vector<std::reference_wrapper<const Surfel>> neighbours_in_this_frame);
+
+    /**
+     * Construct a Surfel hierarchy given depth map myramids and correspondences.
+     */
+    void
+    make_surfel_hierarchy(std::vector<DepthMapPyramid> &dmp,
+                          const std::vector<std::vector<PixelInFrame>> &correspondences,
+                          unsigned int num_levels);
+
 };
 
 

@@ -2,7 +2,12 @@
 // by Sam Lapere, 2016, http://raytracey.blogspot.com
 // Code based on http://simpleopencl.blogspot.com/2013/06/tutorial-simple-start-with-opencl-and-c.html
 
+/*
+ * Usage dat_gen file.obj <optional_cam_file> <optional_suffix>
+ */
+
 #include "model_cl.hpp"
+#include "utility.hpp"
 
 #include <iostream>
 #include <vector>
@@ -12,17 +17,8 @@
 #include <math.h>
 #include <Camera/Camera.h>
 
-#ifdef __APPLE__
-#include "cl.hpp"
-#else /// your stuff for linux
-#include <CL/cl.hpp> // main OpenCL include file 
-#endif
 
 #include <FileUtils/ObjFileParser.h>
-
-#define DEFAULT_DEVICE 3
-
-using namespace cl;
 
 const std::string CAMERA_FILE = "camera.txt";
 
@@ -34,112 +30,8 @@ float inline rad2deg(float rad) {
 	return (rad * 180.0) / M_PI;
 }
 
-std::string loadCode( const std::string& kernelPath ) {
-	using namespace std;
-
-	string code;
-	ifstream file;
-	file.exceptions (ifstream::failbit | ifstream::badbit);
-	try {
-		file.open(kernelPath);
-		stringstream stream;
-		stream << file.rdbuf();
-		file.close();
-		code   = stream.str();
-	}
-	catch (ifstream::failure& e) {
-		cout << "ERROR::FILE_NOT_SUCCESFULLY_READ" << endl;
-	}
-	return code;
-}
 
 
-Platform selectPlatform() {
-	using namespace std;
-
-	// Find all available OpenCL platforms (e.g. AMD, Nvidia, Intel)
-	vector<Platform> platforms;
-	Platform::get(&platforms);
-
-	if ( platforms.empty() ) {
-		cerr << "No OpenCL platform available" << endl;
-		exit(-1);
-	}
-
-	Platform platform;
-	if ( platforms.size() == 1 ) {
-		platform = platforms[0];
-	} else {
-		// Show the names of all available OpenCL platforms
-		cout << "Available OpenCL platforms: \n\n";
-		for (unsigned int i = 0; i < platforms.size(); i++) {
-			cout << "\t" << i + 1 << ": " << platforms[i].getInfo<CL_PLATFORM_NAME>() << endl;
-		}
-
-		// Choose and create an OpenCL platform
-		cout << endl << "Enter the number of the OpenCL platform you want to use: ";
-		unsigned int input = 0;
-		cin >> input;
-
-		// Handle incorrect user input
-		while (input < 1 || input > platforms.size()) {
-			cin.clear(); //clear errors/bad flags on cin
-			cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
-			cout << "No such platform." << endl << "Enter the number of the OpenCL platform you want to use: ";
-			cin >> input;
-		}
-
-		platform = platforms[input - 1];
-	}
-	cout << "Using OpenCL platform: \t" << platform.getInfo<CL_PLATFORM_NAME>() << endl;
-	return platform;
-}
-
-Device selectDevice(Platform& platform) {
-	using namespace std;
-
-	// Find all available OpenCL devices (e.g. CPU, GPU or integrated GPU)
-	vector<Device> devices;
-	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
-
-	if ( devices.size() == 0 ) {
-		cerr << "No devices available on platform " << platform.getInfo<CL_PLATFORM_NAME>() << endl;
-		exit(-1);
-	}
-
-	Device device;
-
-	if ( devices.size() == 1 ) {
-		device = devices[0];
-	} else {
-	#ifdef DEFAULT_DEVICE
-		device = devices[DEFAULT_DEVICE - 1];
-	#else
-		// Print the names of all available OpenCL devices on the chosen platform
-		cout << "Available OpenCL devices on this platform: " << endl << endl;
-		for (unsigned int i = 0; i < devices.size(); i++) {
-			cout << "\t" << i + 1 << ": " << devices[i].getInfo<CL_DEVICE_NAME>() << endl;
-		}
-
-		// Choose an OpenCL device
-		cout << endl << "Enter the number of the OpenCL device you want to use: ";
-		unsigned int input = 0;
-		cin >> input;
-
-		// Handle incorrect user input
-		while (input < 1 || input > devices.size()) {
-			cin.clear(); //clear errors/bad flags on cin
-			cin.ignore(cin.rdbuf()->in_avail(), '\n'); // ignores exact number of chars in cin buffer
-			cout << "No such device. Enter the number of the OpenCL device you want to use: ";
-			cin >> input;
-		}
-		device = devices[input - 1];
-	#endif
-	}
-	cout << endl << "Using OpenCL device: \t" << device.getInfo<CL_DEVICE_NAME>() << endl << endl;
-
-	return device;
-}
 
 
 inline float clamp(float x) { return x < 0.0f ? 0.0f : x > 1.0f ? 1.0f : x; }
@@ -153,6 +45,7 @@ void saveDepthImage(const std::string& fileName,
 					cl_float * data) {
 	using namespace std;
 
+	cout << "Saving depth image" << endl;
 	std::ofstream saveFile{fileName, std::ios::out};
 	std::size_t idx = 0;
 	for( unsigned int row = 0; row < height; row++ ) {
@@ -163,6 +56,7 @@ void saveDepthImage(const std::string& fileName,
 		saveFile << endl;
 	}
 	saveFile.close();
+	cout << "...done" << endl;
 }
 
 
@@ -198,25 +92,6 @@ void saveImage(const std::string& fileName, unsigned int width, unsigned int hei
 	}
 	saveFile.close();
 }
-
-void buildProgram( Program& program, const Device& device ) {
-	using namespace std;
-
-	cl_int result = program.build({ device }, "");
-	if (result) {
-		if (result == CL_BUILD_PROGRAM_FAILURE) {
-			string name     = device.getInfo<CL_DEVICE_NAME>();
-			string buildlog = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
-			cerr << "Build log for " << name << ":" << endl
-			     << buildlog << endl;    		// Print the log
-		}
-		else {
-			cout << "Error during compilation! (" << result << ")" << endl;
-		}
-		exit( -1 );
-	}
-}
-
 
 void loadMesh( const std::string& filename,
                cl_float3 ** cpuVertices,
@@ -263,8 +138,29 @@ void loadMesh( const std::string& filename,
 	*pNumFaces = numFaces;
 }
 
+
+// cl::Kernel makeKernel( cl::Program& program, std::string& name) {
+// 	using namespace std;
+// 	using namespace cl;
+
+// 	// Create a kernel (entry point in the OpenCL source program)
+// 	// kernels are the basic units of executable code that run on the OpenCL device
+// 	// the kernel forms the starting point into the OpenCL program, analogous to main() in CPU code
+// 	// kernels can be called from the host (CPU)
+// 	cl_int err;
+// 	Kernel kernel{program, name, &err};
+// 	if ( err != CL_SUCCESS) {
+// 		cerr << "Failed to create kernel " << err << endl;
+// 		throw runtime_error( "Failed to create kernel");
+// 	}
+// 	cout << "Kernel created" << endl;
+// 	return kernel;
+// }
+
 int main(int argc, char * argv[]) {
 	using namespace std;
+	using namespace cl;
+
 
 	if( argc < 2 ) {
 		cerr << "ERROR::NOMODEL" << endl;
@@ -299,17 +195,16 @@ int main(int argc, char * argv[]) {
 	// Build the program and check for compilation errors (exit on fail)
 	buildProgram(program, device);
 
-	// Create a kernel (entry point in the OpenCL source program)
-	// kernels are the basic units of executable code that run on the OpenCL device
-	// the kernel forms the starting point into the OpenCL program, analogous to main() in CPU code
-	// kernels can be called from the host (CPU)
+	// Kernel ray_trace_kernel;
+	// Kernel barycentric_kernel;
 	cl_int err;
 	Kernel kernel{program, "ray_trace", &err};
 	if ( err != CL_SUCCESS) {
 		cerr << "Failed to create kernel " << err << endl;
-	} else {
-		cout << "Kernel created" << endl;
+		throw runtime_error( "Failed to create kernel");
 	}
+	cout << "Kernel created" << endl;
+
 
 	// Create data arrays on the host (= CPU)
 	const unsigned int width = 640;
@@ -323,8 +218,10 @@ int main(int argc, char * argv[]) {
 	unsigned int numVertices;
 	unsigned int numFaces;
 	Camera cpuCamera = loadCameraFromFile(camera_filename);
+	cout << "Camera loaded" << endl;
 
 	loadMesh( model_filename, &cpuVertices, &cpuFaces, &cpuFaceNormals, &numVertices, &numFaces);
+	cout << "Mesh loaded " << numVertices << "v " << numFaces << "f" << endl;
 
 	// Create buffers (memory objects) on the OpenCL device, allocate memory and copy input data to device.
 	// Flags indicate how the buffer should be used e.g. read-only, write-only, read-write
@@ -398,6 +295,7 @@ int main(int argc, char * argv[]) {
 	if ( err != CL_SUCCESS) {
 		cerr << "Failed to read buffer " << err << endl;
 	}
+	cout << "Kernel finished" << endl;
 
 	// export as text format float file
 	string depthFileName = "/Users/dave/Desktop/depth" + suffix + ".mat";

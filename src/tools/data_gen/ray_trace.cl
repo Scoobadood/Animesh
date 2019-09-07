@@ -1,3 +1,7 @@
+/*
+ * Construct correspondences between pixels in different images of the same mesh
+ * before and after deformation
+ */
 
 __constant float PI = 3.14159265359f;
 

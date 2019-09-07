@@ -34,6 +34,10 @@ Properties::Properties(const std::string &file_name) {
     using namespace std;
 
     ifstream in_file(file_name);
+    if(!in_file) {
+        cout << "Error opening file " << file_name << endl;
+        throw runtime_error("counldn't read property file");
+    }
     for( string line; getline( in_file, line ); ) {
         // Trim the string to remove leading and trailing spaces
         line = trim(line);

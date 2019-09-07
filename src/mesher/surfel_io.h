@@ -1,5 +1,5 @@
 #pragma once
-#include "surfel_compute.hpp"
+#include "surfel_compute.h"
 
 /**
  * Save surfel data as binary file to disk

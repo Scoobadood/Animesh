@@ -5,6 +5,7 @@
 #ifndef ANIMESH_DEPTH_MAP_IO_H
 #define ANIMESH_DEPTH_MAP_IO_H
 
+#include <vector>
 #include <DepthMap/DepthMapPyramid.h>
 #include "mesher_args.h"
 
@@ -17,6 +18,6 @@ void
 load_depth_map_pyramids(MesherArguments &args, std::vector<DepthMapPyramid> &pyramids);
 
 std::vector<DepthMap>
-load_depth_maps(const std::string& source_directory);
+load_depth_maps(const std::string& source_directory, float ts, float tl);
 
 #endif //ANIMESH_DEPTH_MAP_IO_H

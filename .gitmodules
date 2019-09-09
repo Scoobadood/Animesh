@@ -1,0 +1,3 @@
+[submodule "src/third_party/cpd"]
+	path = src/third_party/cpd
+	url = https://github.com/gadomski/cpd.git

@@ -10,7 +10,7 @@
 
 #include "depth_map_io.h"
 
-static const char *DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth_[0-9]+\.mat)";
+static const char *DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth[0-9]+\.mat)";
 
 std::vector<std::string>
 get_depth_files_in_directory(const std::string &directory_name) {
@@ -79,7 +79,7 @@ load_depth_map_pyramids(MesherArguments &args, std::vector<DepthMapPyramid> &pyr
 }
 
 std::vector<DepthMap>
-load_depth_maps(const std::string& source_directory) {
+load_depth_maps(const std::string& source_directory, float ts, float tl) {
     using namespace std;
 
     vector<DepthMap> depth_maps;
@@ -94,8 +94,8 @@ load_depth_maps(const std::string& source_directory) {
     for (const auto &file_name : depth_file_names) {
         cout << " \r" << ++count << " of " << target << flush;
         depth_maps.emplace_back(file_name);
-        depth_maps.end()->cull_unreliable_depths(ts, tl);
-        depth_maps.end()->get_normals();
+        depth_maps.back().cull_unreliable_depths(ts, tl);
+        depth_maps.back().get_normals();
     }
     cout << endl << "Read " << depth_maps.size() << " depth maps." << endl;
 

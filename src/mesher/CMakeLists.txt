@@ -14,6 +14,10 @@ add_definitions(${PCL_DEFINITIONS})
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
+# Need CPD
+set(Cpd_DIR "${PROJECT_SOURCE_DIR}/third_party/cpd/install/lib/cmake/cpd")
+find_package(Cpd REQUIRED)
+
 
 # Building the executable
 add_executable(mesher
@@ -23,7 +27,6 @@ add_executable(mesher
         mesher_args.cpp mesher_args.h
         surfel_io.cpp surfel_io.h
         correspondences_compute.cpp correspondences_compute.h
-        correspondences_args.cpp correspondences_args.h
         correspondences_io.cpp correspondences_io.h
         io_utils.cpp io_utils.h
         types.h surfel_hierarchy.cpp surfel_hierarchy.h depth_map_io.h depth_map_io.cpp)
@@ -31,20 +34,14 @@ add_executable(mesher
 
 # Building the executable
 add_executable(animesh
+        depth_map_io.h depth_map_io.cpp
+        correspondences_compute.h correspondences_compute.cpp
         hierarchical_mesher.cpp)
-
-# Building the executable
-add_executable(correspondences
-        correspondences.cpp
-        correspondences_compute.cpp correspondences_compute.h
-        correspondences_args.cpp correspondences_args.h
-        correspondences_io.cpp  correspondences_io.h
-        types.h
-        io_utils.cpp io_utils.h)
 
 target_link_libraries(animesh
         Properties
         DepthMap
+        Cpd::Library-C++
         )
 
 target_link_libraries(mesher
@@ -55,18 +52,10 @@ target_link_libraries(mesher
         Camera
         ${PCL_LIBRARIES})
 
-target_link_libraries(correspondences
-        FileUtils
-        )
-
 target_compile_features(animesh
         PUBLIC
         cxx_std_11)
 
 target_compile_features(mesher
-        PUBLIC
-        cxx_std_11)
-
-target_compile_features(correspondences
         PUBLIC
         cxx_std_11)

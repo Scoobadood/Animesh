@@ -38,8 +38,8 @@ DepthMap
 DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<PixelCoord, PixelCoord>& mapping) {
     using namespace std;
 
-    int new_rows = source_map.rows() / 2;
-    int new_cols= source_map.cols() / 2;
+    unsigned int new_rows = source_map.rows() / 2;
+    unsigned int new_cols= source_map.cols() / 2;
     auto new_data = new float[new_rows * new_cols];
 
     for( unsigned int r = 0; r < new_rows; ++r) {

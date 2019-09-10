@@ -30,7 +30,7 @@ public:
 	 * @param cols The number of columns provided.
 	 * @param depth_data a rows*cols, row major set of depths.
 	 */
-	 DepthMap(int rows, int cols, float * depth_data);
+	 DepthMap(unsigned int rows, unsigned int cols, float * depth_data);
 
 	inline unsigned int rows() const { return height;}
 	inline unsigned int cols() const { return width;}
@@ -44,6 +44,12 @@ public:
 	int get_valid_directions(unsigned int row, unsigned int col, bool eightConnected) const;
 	static bool flag_is_set( int flags, DepthMap::tDirection flag );
 	bool is_normal_defined(unsigned int row, unsigned int col) const;
+
+	/**
+	 * Subsample a depth map and return a map that is half the size (rounded down) in each dimension.
+	 * Entries in the resulting map are computed from the mean of entries in this map.
+	 */
+	DepthMap resample() const;
 
 private:
 	typedef enum {

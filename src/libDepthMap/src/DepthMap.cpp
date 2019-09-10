@@ -48,7 +48,7 @@ DepthMap::DepthMap(const std::string& filename) {
  * @param cols The number of columns provided.
  * @param depth_data a rows*cols, row major set of depths.
  */
-DepthMap::DepthMap(int rows, int cols, float * depth_data) {
+DepthMap::DepthMap(unsigned int rows, unsigned int cols, float * depth_data) {
     this->width = cols;
     this->height = rows;
     unsigned int num_entries = rows * cols;
@@ -396,3 +396,61 @@ DepthMap::is_normal_defined(unsigned int row, unsigned int col) const {
 	vector<float> n = normals.at(row).at(col);
 	return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
 }
+
+/**
+ * Merge four values into a single depth value to propagate up.
+ * Compute mean of non-zero values.
+ */
+static float
+merge(const float * source_values) {
+    float sum = 0.0f;
+    int count = 0;
+    for( int i=0; i<4; ++i ) {
+        if( source_values[i] > 0.0f ) {
+            sum += source_values[i];
+            count ++;
+        }
+    }
+    return count != 0 ? (sum / count) : 0;
+}
+
+/**
+ * Subsample a depth map and return a map that is half the size (rounded down) in each dimension.
+ * Entries in the resulting map are computed from the mean of entries in this map.
+ */
+DepthMap
+DepthMap::resample() const {
+    using namespace std;
+
+    unsigned int new_rows = rows() / 2;
+    unsigned int new_cols= cols() / 2;
+    auto new_data = new float[new_rows * new_cols];
+
+    struct PixelCoord {
+        unsigned int row;
+        unsigned int col;
+        PixelCoord(unsigned int r, unsigned int c) :row(r), col(c) {}
+    };
+
+    for( unsigned int r = 0; r < new_rows; ++r) {
+        for( unsigned int c = 0; c < new_cols; ++c ) {
+            unsigned int source_row = r * 2;
+            unsigned int source_col = c * 2;
+            float values[4];
+            vector<PixelCoord> mapped_pixels;
+
+            mapped_pixels.emplace_back(source_row, source_col );
+            mapped_pixels.emplace_back(min(source_row + 1, rows() - 1), source_col );
+            mapped_pixels.emplace_back(source_row, min(source_col + 1, cols() - 1) );
+            mapped_pixels.emplace_back(min(source_row + 1, rows() - 1), min(source_col + 1, cols() - 1) );
+
+            for( int i= 0; i<4; ++i ) {
+                values[i] = depth_at(mapped_pixels[i].row, mapped_pixels[i].col);
+            }
+            // TODO: Merge knows we skip 0s and so should be responsible for ignoring mappings.
+            new_data[r * new_rows + c ] = merge(values);
+        }
+    }
+    return DepthMap{ new_rows, new_cols, new_data };
+}
+

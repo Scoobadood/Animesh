@@ -34,7 +34,6 @@ add_subdirectory( libArgs )
 add_subdirectory( libFileUtils )
 add_subdirectory( mesher )
 add_subdirectory( tools )
-add_subdirectory( third_party/cpd )
 
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)

@@ -9,6 +9,7 @@
 #include <vector>
 #include "types.h"
 #include <DepthMap/DepthMap.h>
+#include <Camera/Camera.h>
 
 /**
  * Compute the correspondences between pixels in cleaned depth maps
@@ -16,6 +17,6 @@
  * is a PixelInFrame
  */
 std::vector<std::vector<PixelInFrame>>
-compute_correspondences(const std::vector<DepthMap>& depth_maps);
+compute_correspondences(const std::vector<Camera>& cameras, const std::vector<DepthMap>& depth_maps);
 
 #endif //ANIMESH_CORRESPONDENCES_COMPUTE_H

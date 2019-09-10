@@ -244,7 +244,37 @@ Eigen::Vector3f backproject(const Camera& camera,
 
 	Vector3f rayDirection = (pixelCoordinate - cam_origin).normalized();;
 	return cam_origin + (rayDirection * depth);
+
+
+
+//    [h, w] = size(im);
+//
+//    f_x = (w * 0.5) / tan(deg2rad(fov(2)) * 0.5);
+//    f_y = (h * 0.5) / tan(deg2rad(fov(1)) * 0.5);
+//
+//    u = repmat( 1:w, [h,1]);
+//    v = repmat( [1:h]', [1,w]);
+//    cx = ones(h,w) * w * 0.5;
+//    cy = ones(h,w) * h * 0.5;
+//
+//    X = ((u - cx) / f_x) .* im;
+//    Y = ((v - cy) / f_y) .* im;
+//
+//    xyz = [X(:), Y(:), im(:)];
+//
+//    % strip entries which are all zero.
+//            xyz = xyz(logical(xyz(:,3)),:);
+
 }
+
+void
+backproject(const Camera& camera,int pixel_x, int pixel_y, float depth, float * world_x, float * world_y, float * world_z) {
+    Eigen::Vector3f point = backproject(camera, pixel_x, pixel_y, depth);
+    *world_x = point(0);
+    *world_y = point(1);
+    *world_z = point(2);
+}
+
 
 std::ostream& operator<<(std::ostream& os, const Camera& camera) {
 	using namespace std;

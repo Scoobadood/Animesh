@@ -2,6 +2,7 @@
 
 #include <Eigen/Core>
 #include <map>
+#include <memory>
 
 namespace animesh {
 

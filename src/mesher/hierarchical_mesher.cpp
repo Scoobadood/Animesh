@@ -66,8 +66,20 @@ int main(int argc, char *argv[]) {
         depth_map_hierarchy.push_back(depth_maps);
     }
 
-    // generate correspondences
-    vector<vector<PixelInFrame>> correspondences = compute_correspondences(cameras, depth_maps);
+    // For each level
+    int level = num_levels - 1;
+
+    while( level >= 0 ) {
+        // Propagate chnages down
+
+        // Generate correspondences
+        vector<vector<PixelInFrame>> correspondences = compute_correspondences(cameras, depth_maps);
+
+        // Generate Surfels for this level from correspondences
+
+        // Smooth this level
+
+    }
 
     return 0;
 }

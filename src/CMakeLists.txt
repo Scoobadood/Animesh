@@ -3,6 +3,8 @@ cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
+set(GIT_VERSION_STRING "git version 2.20.1 (Apple Git-117)")
+
 project( Animesh
          VERSION 0.1 
          LANGUAGES CXX )

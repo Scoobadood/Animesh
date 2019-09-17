@@ -49,9 +49,9 @@ add_custom_command(
 	DEPENDS testCamera
 	)
 
-add_custom_target(copy-runtime-files ALL
-    COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/runtime-files-dir ${CMAKE_BINARY_DIR}/runtime-files-dir
-    )
+#add_custom_target(copy-runtime-files ALL
+#    COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/runtime-files-dir ${CMAKE_BINARY_DIR}/runtime-files-dir
+#    )
 
 
 add_test( NAME FileMissingFocalLengthShouldThrow COMMAND testCamera --gtest_filter=FileMissingFocalLengthShouldThrow)

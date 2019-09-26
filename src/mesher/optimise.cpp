@@ -32,7 +32,8 @@ Optimiser::optimise(std::vector<Surfel>& surfels) {
 bool
 Optimiser::user_canceled_optimise() {
     struct stat buffer{};
-    return (stat("halt", &buffer) == 0);
+    auto rv = stat("halt", &buffer);
+    return ( rv == 0);
 }
 
 
@@ -153,7 +154,7 @@ Optimiser::compute_error(const std::pair<Eigen::Vector3f, Eigen::Vector3f> &firs
  */
 bool
 Optimiser::optimising_should_continue() {
-    return (user_canceled_optimise() || optimising_converged);
+    return (!user_canceled_optimise() && !optimising_converged);
 }
 
 /**

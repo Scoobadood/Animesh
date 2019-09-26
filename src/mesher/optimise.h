@@ -1,36 +1,46 @@
-//
-// Created by Dave Durbin on 2019-08-11.
-//
+#pragma once
 
-#ifndef ANIMESH_SURFEL_HIERARCHY_H
-#define ANIMESH_SURFEL_HIERARCHY_H
+#include "surfel_compute.h"
 
-#include <vector>
 #include <map>
-#include <utility>
-#include <DepthMap/DepthMapPyramid.h>
+#include <vector>
 
-#include "types.h"
-
-class SurfelHierarchy {
+class Optimiser {
 public:
-    SurfelHierarchy( //
-            std::vector<DepthMapPyramid> depth_map_pyramids, //
-            std::vector<std::vector<PixelInFrame>> correspondences, //
-            float convergence_threshold);
-
     /**
-     * @return The number of levels in the hierarchy
+     * Perform orientation field optimisation.
+     * Continuously step until done.
      */
-    int num_levels() const { return levels.size(); }
+    void
+    optimise(std::vector<Surfel> &surfels);
 
-    /**
-     * Smooth the hierarchy.
-     */
-    void optimise();
+    Optimiser(float convergence_threshold, size_t num_frames) {
+        is_optimising = false;
+        last_optimising_error = 0.0;
+        optimising_converged = false;
+        this->convergence_threshold = convergence_threshold;
+        this->num_frames = num_frames;
+    }
 
 private:
-    std::vector<std::vector<Surfel>> levels;
+    /**
+     * Start optimisation
+     */
+    void
+    optimise_begin(std::vector<Surfel>& surfels);
+
+    /**
+     * Perform post-optimisation tidy up.
+     */
+    void
+    optimise_end();
+
+    /**
+     * Check whether optimising should stop either because user asked for that to happen or else
+     * because convergence has happened.
+     */
+    bool
+    optimising_should_continue();
 
     /**
      * Flag indicating that smoothing is in progress
@@ -71,10 +81,10 @@ private:
 
     /**
      * Useful cache for error computation. Stores a list of surfels which are neighbours of the gievn surfels in frame
-     * Key is level, surfel, frame
+     * Key is surfel, frame
      * Value is a vector of const surfel&
      */
-    std::map<std::tuple<size_t, size_t, size_t>, std::vector<std::reference_wrapper<const Surfel>>> neighbours_by_surfel_frame;
+    std::map<std::pair<size_t, size_t>, std::vector<std::reference_wrapper<const Surfel>>> neighbours_by_surfel_frame;
 
     /**
      * Map from frame to the surfels in it. Populated once per level.
@@ -82,24 +92,14 @@ private:
     std::vector<std::vector<std::reference_wrapper<const Surfel>>> surfels_by_frame;
 
     /**
-     * The number of frames in the sequence. Initialised when the data is laoded.
+     * The number of frames in the sequence.
      */
-    const size_t num_frames;
-
-    /**
-     * Start global smoothing.
-     */
-    void optimise_begin();
+    size_t num_frames;
 
     /**
      * Perform a single step of optimisation.
      */
-    void optimise_do_one_step();
-
-    /**
-     * Perform post-smoothing tidy up.
-     */
-    void optimise_end();
+    void optimise_do_one_step(std::vector<Surfel>& surfels);
 
     /**
      * Do start of level set up. Mostly computing current residual error in this level.
@@ -109,12 +109,12 @@ private:
     /**
      * Select one random surfel and smooth with neighbours
      */
-    void optimise_do_one_surfel();
+    void optimise_do_one_surfel(std::vector<Surfel>& surfels);
 
     /**
      * Measure the change in error. If it's below some threshold, consider this level converged.
      */
-    bool check_convergence();
+    bool check_convergence(std::vector<Surfel>& surfels);
 
     /**
      * Tidy up at end of level and propagate values down to next level or else flag smoothing as converged
@@ -125,21 +125,14 @@ private:
     /**
      * Calculate remaining error.
      */
-    float compute_error();
+    float compute_error(std::vector<Surfel>& surfels);
 
     /**
      * Calculate error between two normal/tangent pairs.
      */
-    float
+    static float
     compute_error(const std::pair<Eigen::Vector3f, Eigen::Vector3f> &first,
                   const std::pair<Eigen::Vector3f, Eigen::Vector3f> &second);
-
-
-    /**
-     * Check whether optimising should stop either because user asked for that to happen or else
-     * because convergence has happened.
-     */
-    bool optimising_should_continue();
 
     /**
      * Check whether optimising should stop either because user asked for that to happen or else
@@ -163,7 +156,7 @@ private:
      * end
      */
     Eigen::Vector3f
-    compute_new_tangent_for_surfel(std::size_t level_idx, std::size_t surfel_idx);
+    compute_new_tangent_for_surfel(const std::vector<Surfel> &surfels, std::size_t surfel_idx) const;
 
     /**
      * Populate tangents and normals with all eligible tangents, normals from surfel's neighbours
@@ -171,17 +164,17 @@ private:
      * tan/norm are converted to the orignating surfel's frame of reference.
      */
     void
-    get_eligible_normals_and_tangents(std::size_t level_idx,
+    get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
                                       std::size_t surfel_idx,
                                       std::vector<Eigen::Vector3f> &eligible_normals,
-                                      std::vector<Eigen::Vector3f> &eligible_tangents);
+                                      std::vector<Eigen::Vector3f> &eligible_tangents) const;
 
     /**
      * Build the norm_tan_by_surfel_frame data structure for this level of the
      * surfel hierarchy.
      */
     void
-    populate_norm_tan_by_surfel_frame();
+    populate_norm_tan_by_surfel_frame(std::vector<Surfel>& surfels);
 
     /**
      * Build the neighbours_by_surfel_frame data structure for this level of the
@@ -189,31 +182,21 @@ private:
      * once during surfel hierarchy extraction.
      */
     void
-    populate_neighbours_by_surfel_frame();
+    populate_neighbours_by_surfel_frame(const std::vector<Surfel>& surfels);
 
     /**
      * Populate the surfels per fram map.
      */
     void
-    populate_frame_to_surfel();
+    populate_frame_to_surfel(std::vector<Surfel>& surfels);
 
     /**
      * Compute the intersection of the two provided vectors and place the results into the third.
      */
-    void
+    static void
     compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel,
                             std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
                             std::vector<std::reference_wrapper<const Surfel>> neighbours_in_this_frame);
 
-    /**
-     * Construct a Surfel hierarchy given depth map myramids and correspondences.
-     */
-    void
-    make_surfel_hierarchy(std::vector<DepthMapPyramid> &dmp,
-                          const std::vector<std::vector<PixelInFrame>> &correspondences,
-                          unsigned int num_levels);
 
 };
-
-
-#endif //ANIMESH_SURFEL_HIERARCHY_H

@@ -1,6 +1,6 @@
 #include "surfel_compute.h"
 #include "surfel_io.h"
-#include "smooth.h"
+#include "optimise.h"
 #include "mesher_args.h"
 #include "surfel_hierarchy.h"
 #include "depth_map_io.h"

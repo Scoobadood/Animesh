@@ -35,12 +35,15 @@ find_package(Cpd REQUIRED)
 add_executable(animesh
         depth_map_io.h depth_map_io.cpp
         correspondences_compute.h correspondences_compute.cpp
+        optimise.h optimise.cpp
+        surfel_compute.h surfel_compute.cpp
         hierarchical_mesher.cpp)
 
 target_link_libraries(animesh
         Properties
         DepthMap
         Camera
+        RoSy
         Cpd::Library-C++
         )
 

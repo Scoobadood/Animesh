@@ -155,11 +155,14 @@ compute_correspondences(const std::vector<Camera> &cameras, const std::vector<De
         cout << "Group : " << group << endl;
         // Advance to next non-duplicate entry.
         int count = 0;
+        vector<PixelInFrame> this_group;
         do {
             ++it;
             ++count;
             cout << "[" << it->second.frame << ", " << it->second.x << ", " << it->second.y << "] ";
+            this_group.push_back(it->second);
         } while (it != group_to_members.end() && group == it->first);
+        correspondences.push_back(this_group);
         cout << " (" << count << " members)" << endl;
     }
     cout << group_to_members.size() << " correspondence groups found" << endl;

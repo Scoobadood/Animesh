@@ -12,7 +12,7 @@ project( Animesh
 set(PROJECT_VERSION 0.1)
 
 # Tell cmake where to find modules
-set(CMAKE_MODULE_PATH "/Users/dave/Library/Mobile Documents/com~apple~CloudDocs/PhD/Code/animesh/src/cmake_modules")
+set(CMAKE_MODULE_PATH "/Users/dave/Animesh/src/cmake_modules")
 
 # Write targets to bin directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../bin)

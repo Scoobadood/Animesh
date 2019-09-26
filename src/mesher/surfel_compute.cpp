@@ -215,9 +215,11 @@ populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
  */
 void
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                    const std::vector<std::vector<PixelInFrame>> &correspondences,
-                    std::vector<Surfel> &surfels) {
+                 const std::vector<std::vector<PixelInFrame>> &correspondences,
+                 std::vector<Surfel> &surfels) {
     using namespace std;
+    assert(correspondences.size() > 0);
+
     cout << "Generating surfels : " << flush;
 
     surfels.clear();
@@ -236,11 +238,11 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
         // Cull correspondence groups that have no valid depth map entries
         vector<PixelInFrame> pruned_correspondences;
         for (auto pif : correspondence_group) {
-            if( depth_maps[pif.frame].is_normal_defined(pif.y, pif.x) ) {
+            if (depth_maps[pif.frame].is_normal_defined(pif.y, pif.x)) {
                 pruned_correspondences.push_back(pif);
             }
         }
-        if( !pruned_correspondences.empty()) {
+        if (!pruned_correspondences.empty()) {
             surfel.id = surfels.size();
             populate_frame_data(pruned_correspondences, depth_maps, surfel.frame_data);
             surfels.push_back(surfel);

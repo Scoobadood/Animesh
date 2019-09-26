@@ -4,6 +4,8 @@
 #include <DepthMap/DepthMap.h>
 #include "depth_map_io.h"
 #include "correspondences_compute.h"
+#include "surfel_compute.h"
+#include "optimise.h"
 #include "types.h"
 
 void usage(const std::string &prog_name) {
@@ -22,6 +24,12 @@ resample_depth_maps(const std::vector<DepthMap>& depth_maps ) {
     }
     return resampled_depth_maps;
 }
+
+void
+initialise_surfels( std::vector<Surfel>& surfels, const std::vector<Surfel>& previous_level) {
+    // TODO: Bootstrap orientation vectors from the previous level
+}
+
 
 int main(int argc, char *argv[]) {
     using namespace std;
@@ -44,10 +52,11 @@ int main(int argc, char *argv[]) {
     float tl = p.getFloatProperty("tl");
     vector<DepthMap> depth_maps = load_depth_maps(source_directory, ts, tl);
     depth_map_hierarchy.push_back(depth_maps);
+    size_t num_frames = depth_maps.size();
 
     // Load cameras
-    vector<Camera> cameras;
     // TODO: Move to loading these from disk rather than constructing by hand.
+    vector<Camera> cameras;
     for( int i=0; i<depth_maps.size(); ++i ) {
         cameras.emplace_back(
                 (float[]){ 5.0f, 0.0f, 0.0f}, // position
@@ -60,25 +69,37 @@ int main(int argc, char *argv[]) {
     }
 
     // Construct the hierarchy
+    cout << "Constructing depth map hierarchy" << endl;
     int num_levels = p.getIntProperty("num-levels");
     for ( int i=0; i<num_levels; i++ ) {
+        cout << "\r" << i << " of " << num_levels << "    " << flush;
         depth_maps = resample_depth_maps(depth_maps);
         depth_map_hierarchy.push_back(depth_maps);
     }
+    cout << endl;
 
     // For each level
     int level = num_levels - 1;
-
+    vector<Surfel> previous_level;
     while( level >= 0 ) {
+        cout << "Level : " << level << endl;
         // Propagate chnages down
 
         // Generate correspondences
-        vector<vector<PixelInFrame>> correspondences = compute_correspondences(cameras, depth_maps);
+        vector<vector<PixelInFrame>> correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));
 
         // Generate Surfels for this level from correspondences
+        vector<Surfel> surfels;
+        generate_surfels(depth_map_hierarchy.at(level), correspondences, surfels);
+
+        // Populate with values from previous level if they exist
+        initialise_surfels( surfels, previous_level);
 
         // Smooth this level
+        Optimiser o{0.1, num_frames };
+        o.optimise(surfels);
 
+        --level;
     }
 
     return 0;

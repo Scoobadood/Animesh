@@ -25,6 +25,22 @@ struct PixelInFrame {
     }
 };
 
+struct SurfelInFrame {
+    size_t frame_index;
+    size_t surfel_index;
+
+    SurfelInFrame(size_t s, size_t f) {
+        frame_index = f;
+        surfel_index = s;
+    }
+    bool operator<(const SurfelInFrame& other) const {
+        if( frame_index != other.frame_index)
+            return frame_index < other.frame_index;
+
+        return surfel_index < other.surfel_index;
+    }
+};
+
 struct FrameData {
     PixelInFrame	pixel_in_frame; 	// x, y, frame
     float 			depth;				// Depth of range scan at this pixel.

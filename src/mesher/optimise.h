@@ -27,7 +27,7 @@ private:
      * Start optimisation
      */
     void
-    optimise_begin(std::vector<Surfel>& surfels);
+    optimise_begin(const std::vector<Surfel>& surfels);
 
     /**
      * Perform post-optimisation tidy up.
@@ -77,14 +77,14 @@ private:
      * Useful cache for error computation. Recalculated per level.
      * A map from a surfel/frame pair to that surfel's transformed normal and tangent in that frame.
      */
-    std::map<std::pair<size_t, size_t>, std::pair<Eigen::Vector3f, Eigen::Vector3f>> norm_tan_by_surfel_frame;
+    std::map<SurfelInFrame, std::pair<Eigen::Vector3f, Eigen::Vector3f>> norm_tan_by_surfel_frame;
 
     /**
      * Useful cache for error computation. Stores a list of surfels which are neighbours of the gievn surfels in frame
      * Key is surfel, frame
      * Value is a vector of const surfel&
      */
-    std::map<std::pair<size_t, size_t>, std::vector<std::reference_wrapper<const Surfel>>> neighbours_by_surfel_frame;
+    std::map<SurfelInFrame, std::vector<std::reference_wrapper<const Surfel>>> neighbours_by_surfel_frame;
 
     /**
      * Map from frame to the surfels in it. Populated once per level.
@@ -125,7 +125,7 @@ private:
     /**
      * Calculate remaining error.
      */
-    float compute_error(std::vector<Surfel>& surfels);
+    float compute_error(const std::vector<Surfel>& surfels);
 
     /**
      * Calculate error between two normal/tangent pairs.
@@ -174,7 +174,7 @@ private:
      * surfel hierarchy.
      */
     void
-    populate_norm_tan_by_surfel_frame(std::vector<Surfel>& surfels);
+    populate_norm_tan_by_surfel_frame(const std::vector<Surfel>& surfels);
 
     /**
      * Build the neighbours_by_surfel_frame data structure for this level of the
@@ -188,7 +188,7 @@ private:
      * Populate the surfels per fram map.
      */
     void
-    populate_frame_to_surfel(std::vector<Surfel>& surfels);
+    populate_frame_to_surfel(const std::vector<Surfel>& surfels);
 
     /**
      * Compute the intersection of the two provided vectors and place the results into the third.
@@ -196,7 +196,7 @@ private:
     static void
     compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel,
                             std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
-                            std::vector<std::reference_wrapper<const Surfel>> neighbours_in_this_frame);
+                            std::vector<std::reference_wrapper<const Surfel>>& neighbours_in_this_frame);
 
 
 };

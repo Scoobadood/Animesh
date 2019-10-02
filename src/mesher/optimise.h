@@ -14,12 +14,14 @@ public:
     void
     optimise(std::vector<Surfel> &surfels);
 
-    Optimiser(float convergence_threshold, size_t num_frames) {
+    Optimiser(float convergence_threshold, size_t num_frames, size_t surfels_per_step) {
         is_optimising = false;
         last_optimising_error = 0.0;
         optimising_converged = false;
         this->convergence_threshold = convergence_threshold;
         this->num_frames = num_frames;
+        if( surfels_per_step == 0 ) throw std::runtime_error("surfels per step must be at least 1");
+        this->surfels_per_step = surfels_per_step;
     }
 
 private:
@@ -95,6 +97,11 @@ private:
      * The number of frames in the sequence.
      */
     size_t num_frames;
+
+    /**
+     * NUmber of Surfels to adjust each step of optimisation
+     */
+     size_t surfels_per_step;
 
     /**
      * Perform a single step of optimisation.

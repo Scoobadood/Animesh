@@ -21,6 +21,9 @@ Optimiser::optimise(std::vector<Surfel> &surfels) {
     optimise_begin(surfels);
     while (optimising_should_continue()) {
         optimise_do_one_step(surfels);
+        // Then, project each Surfel's norm and tangent to each frame in which it appears
+        populate_norm_tan_by_surfel_frame(surfels);
+        optimising_converged = check_convergence(surfels);
     }
     optimise_end();
 }
@@ -48,10 +51,6 @@ Optimiser::optimise_begin(const std::vector<Surfel> &surfels) {
     populate_norm_tan_by_surfel_frame(surfels);
     // Populate map of neighbours for a surfel in a frame
     populate_neighbours_by_surfel_frame(surfels);
-
-    for( const auto& e : neighbours_by_surfel_frame) {
-        std::cout << e.first.surfel_index << " in frame " << e.first.frame_index << " has " << e.second.size() << " neighbours " << std::endl;
-    }
     // Compute initial error values
     last_optimising_error = compute_error(surfels);
     is_optimising = true;
@@ -176,8 +175,9 @@ void
 Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
     using namespace std;
 
-    optimise_do_one_surfel(surfels);
-    check_convergence(surfels);
+    for( int i=0; i<surfels_per_step; ++i ) {
+        optimise_do_one_surfel(surfels);
+    }
 }
 
 /**
@@ -304,6 +304,7 @@ Optimiser::optimise_do_one_surfel(std::vector<Surfel> &surfels) {
     size_t surfel_idx = random_index(surfels.size());
 
     // Update this one
+    Vector3f old_tangent = surfels.at(surfel_idx).tangent;
     Vector3f new_tangent = compute_new_tangent_for_surfel(surfels, surfel_idx);
     surfels.at(surfel_idx).tangent = new_tangent;
 }

@@ -15,19 +15,71 @@ void usage(const std::string &prog_name) {
 
 
 std::vector<DepthMap>
-resample_depth_maps(const std::vector<DepthMap>& depth_maps ) {
+resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
     vector<DepthMap> resampled_depth_maps;
-    for( const auto& dm : depth_maps) {
+    for (const auto &dm : depth_maps) {
         resampled_depth_maps.push_back(dm.resample());
     }
     return resampled_depth_maps;
 }
 
 void
-initialise_surfels( std::vector<Surfel>& surfels, const std::vector<Surfel>& previous_level) {
+initialise_surfels(std::vector<Surfel> &surfels, const std::vector<Surfel> &previous_level) {
+    using namespace std;
+    using namespace Eigen;
+
+    if( previous_level.empty()) return;
+
     // TODO: Bootstrap orientation vectors from the previous level
+    /*
+     For each Surfel s in level n
+      For each pixel in frame pif for s
+         Derive the source pixels in level n-1 pif_next (there will be at most four)
+            Store reference from pif_next to tangent of s
+
+    Generate surfels at n-1
+    For each surfel s at n-1
+      For each pixel in frame pif for s
+        Look up tangent(s) for pif and average them to bootstrap tangent for s
+
+     */
+    map<PixelInFrame, Vector3f> pif_to_tangent;
+    for (const auto &surfel : previous_level) {
+        for (const auto &fd : surfel.frame_data) {
+            pif_to_tangent.emplace(
+                    PixelInFrame{fd.pixel_in_frame.x * 2, fd.pixel_in_frame.y * 2, fd.pixel_in_frame.frame},
+                    surfel.tangent);
+            pif_to_tangent.emplace(
+                    PixelInFrame{fd.pixel_in_frame.x * 2, fd.pixel_in_frame.y * 2 + 1, fd.pixel_in_frame.frame},
+                    surfel.tangent);
+            pif_to_tangent.emplace(
+                    PixelInFrame{fd.pixel_in_frame.x * 2 + 1, fd.pixel_in_frame.y * 2, fd.pixel_in_frame.frame},
+                    surfel.tangent);
+            pif_to_tangent.emplace(
+                    PixelInFrame{fd.pixel_in_frame.x * 2 + 1, fd.pixel_in_frame.y * 2 + 1, fd.pixel_in_frame.frame},
+                    surfel.tangent);
+        }
+    }
+
+    Vector3f tangent{0.0f, 0.0f, 0.0};
+    int count = 0;
+    for (auto &surfel : surfels) {
+        for (const auto &fd : surfel.frame_data) {
+            auto it = pif_to_tangent.find(fd.pixel_in_frame);
+            if (it != pif_to_tangent.end()) {
+                tangent += it->second;
+                ++count;
+            } else {
+                cout << "Warning. Could not find entry for PIF (" << fd.pixel_in_frame.x << ", " << fd.pixel_in_frame.y
+                     << ", " << fd.pixel_in_frame.frame << ") in initialiser table." << endl;
+            }
+            if( count != 0 ) {
+                surfel.tangent = (tangent / count).normalized();
+            }
+        }
+    }
 }
 
 
@@ -54,24 +106,26 @@ int main(int argc, char *argv[]) {
     depth_map_hierarchy.push_back(depth_maps);
     size_t num_frames = depth_maps.size();
 
+    size_t surfels_per_step = p.getIntProperty("surfels-per-step");
+
     // Load cameras
     // TODO: Move to loading these from disk rather than constructing by hand.
     vector<Camera> cameras;
-    for( int i=0; i<depth_maps.size(); ++i ) {
+    for (int i = 0; i < depth_maps.size(); ++i) {
         cameras.emplace_back(
-                (float[]){ 5.0f, 0.0f, 0.0f}, // position
-                (float[]){ 0.0f, 0.0f, 0.0f}, // view
-                (float[]){ 0.0f, 1.0f, 0.0f}, // up
-                (float[]){ 40.0f, 30.0f },        // resolution
-                (float[]){ 35.0f, 35.0f},     // fov
+                (float[]) {5.0f, 0.0f, 0.0f}, // position
+                (float[]) {0.0f, 0.0f, 0.0f}, // view
+                (float[]) {0.0f, 1.0f, 0.0f}, // up
+                (float[]) {40.0f, 30.0f},        // resolution
+                (float[]) {35.0f, 35.0f},     // fov
                 5.0f                 // focal distance
-                );
+        );
     }
 
     // Construct the hierarchy
     cout << "Constructing depth map hierarchy" << endl;
     int num_levels = p.getIntProperty("num-levels");
-    for ( int i=0; i<num_levels; i++ ) {
+    for (int i = 0; i < num_levels; i++) {
         cout << "\r" << i << " of " << num_levels << "    " << flush;
         depth_maps = resample_depth_maps(depth_maps);
         depth_map_hierarchy.push_back(depth_maps);
@@ -81,7 +135,7 @@ int main(int argc, char *argv[]) {
     // For each level
     int level = num_levels - 1;
     vector<Surfel> previous_level;
-    while( level >= 0 ) {
+    while (level >= 0) {
         cout << "Level : " << level << endl;
         // Propagate chnages down
 
@@ -93,11 +147,14 @@ int main(int argc, char *argv[]) {
         generate_surfels(depth_map_hierarchy.at(level), correspondences, surfels);
 
         // Populate with values from previous level if they exist
-        initialise_surfels( surfels, previous_level);
+        initialise_surfels(surfels, previous_level);
 
         // Smooth this level
-        Optimiser o{0.1, num_frames };
+        Optimiser o{0.1, num_frames, surfels_per_step};
         o.optimise(surfels);
+
+        // Copy surfels into previous level for propagation down.
+        previous_level = surfels;
 
         --level;
     }

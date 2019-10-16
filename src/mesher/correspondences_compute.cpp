@@ -6,6 +6,7 @@
 #include "surfel_compute.h"
 #include "correspondences_compute.h"
 #include <cpd/nonrigid.hpp>
+#include <cpd/gauss_transform_fgt.hpp>
 
 static std::vector<std::pair<unsigned int, unsigned int>>
 depth_map_to_pixels(const DepthMap &depth_map) {
@@ -120,6 +121,11 @@ compute_correspondences(const std::vector<Camera> &cameras, const std::vector<De
         cpd::Nonrigid nonrigid;
         nonrigid.correspondence(true);
         nonrigid.normalize(false);
+        nonrigid.gauss_transform(
+                move(
+                        unique_ptr<cpd::GaussTransform>(new cpd::GaussTransformFgt())
+                )
+        );
         cpd::NonrigidResult result = nonrigid.run(fixed, moving);
 
         for (unsigned int src_point_idx = 0; src_point_idx < result.correspondence.size(); ++src_point_idx) {

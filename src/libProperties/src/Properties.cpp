@@ -7,6 +7,8 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vector>
+#include <string>
 
 std::string &ltrim(std::string &str, const std::string &chars = "\t\n\v\f\r ") {
     str.erase(0, str.find_first_not_of(chars));
@@ -72,4 +74,27 @@ float Properties::getFloatProperty(const std::string &key) const {
     std::string val = getProperty(key);
     float f = std::stof(val);
     return f;
+}
+
+struct compare
+{
+    std::string key;
+    compare(std::string const &s): key(s) { }
+
+    bool operator()(std::string const &s)
+    {
+        return (s == key);
+    }
+};
+
+bool Properties::getBooleanProperty(const std::string& key) const {
+    using namespace std;
+
+    string val = getProperty(key);
+    bool b = false;
+    vector<string> yes{"yes", "Yes", "YES", "y", "true", "True", "TRUE", "t", "1"};
+    vector<string> no{"no", "No", "NO", "n", "false", "False", "FALSE", "f", "0"};
+    if( any_of(yes.begin(), yes.end(), compare(key))) return true;
+    if( !any_of(no.begin(), no.end(), compare(key))) return false;
+    throw  runtime_error( "Unrecognised boolean value in properties file");
 }

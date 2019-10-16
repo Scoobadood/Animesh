@@ -2,8 +2,10 @@
 #include <vector>
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
+#include <omp.h>
 #include "depth_map_io.h"
 #include "correspondences_compute.h"
+#include "correspondences_io.h"
 #include "surfel_compute.h"
 #include "optimise.h"
 #include "types.h"
@@ -86,6 +88,10 @@ initialise_surfels(std::vector<Surfel> &surfels, const std::vector<Surfel> &prev
 int main(int argc, char *argv[]) {
     using namespace std;
 
+ #pragma omp parallel
+  {
+  std::cout << omp_get_num_threads() << std::endl; // prints 8, 8 times
+  }
 
     string property_file_name;
     if (argc == 2) {
@@ -137,10 +143,24 @@ int main(int argc, char *argv[]) {
     vector<Surfel> previous_level;
     while (level >= 0) {
         cout << "Level : " << level << endl;
-        // Propagate chnages down
+        // TODO: Seed correspondences for next level Propagate changes down
 
         // Generate correspondences
-        vector<vector<PixelInFrame>> correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));
+        vector<vector<PixelInFrame>> correspondences;
+        if( p.getBooleanProperty("load-correspondences") ) {
+            string corr_file_template = p.getProperty("correspondence-file-template");
+            size_t size = snprintf( nullptr, 0, corr_file_template.c_str(), level ) + 1; // Extra space for '\0'
+            std::unique_ptr<char[]> buf( new char[ size ] );
+            snprintf( buf.get(), size, corr_file_template.c_str(), level );
+            string file_name = std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+            // TODO: Make this compile
+            cout << "Loading correspondences from file " << file_name << endl;
+ //           load_correspondences_from_file(file_name, correspondences);
+        } else {
+            cout << "Computing correspondences from scratch" << endl;
+            correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));
+        }
+
 
         // Generate Surfels for this level from correspondences
         vector<Surfel> surfels;

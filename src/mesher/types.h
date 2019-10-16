@@ -1,6 +1,7 @@
 //
 // Created by Dave Durbin on 2019-07-06.
 //
+#pragma once
 
 #ifndef ANIMESH_TYPES_H
 #define ANIMESH_TYPES_H

@@ -27,9 +27,9 @@ load_correspondences_from_file(const std::string &file_name,
         correspondence.clear();
         for( int j=0; j<num_entries; ++j) {
             // PixelInFrame
+            unsigned int frame = read_unsigned_int(file);
             unsigned int x = read_unsigned_int(file);
             unsigned int y = read_unsigned_int(file);
-            unsigned int frame = read_unsigned_int(file);
             correspondence.push_back(PixelInFrame{x, y, frame});
         }
         correspondences.push_back(correspondence);
@@ -53,9 +53,9 @@ save_correspondences_to_file(const std::string &file_name,
         write_unsigned_int( file, correspondence.size());
         for( auto const &  pixel_in_frame  : correspondence) {
             // PixelInFrame
+            write_unsigned_int( file, pixel_in_frame.frame);
             write_unsigned_int( file, pixel_in_frame.x);
             write_unsigned_int( file, pixel_in_frame.y);
-            write_unsigned_int( file, pixel_in_frame.frame);
         }
     }
     file.close();

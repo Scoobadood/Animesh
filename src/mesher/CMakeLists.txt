@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
+
 # Build type flags
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
@@ -15,8 +16,19 @@ find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Need CPD
-set(Cpd_DIR "${PROJECT_SOURCE_DIR}/third_party/build/cpd/lib/cmake/cpd")
+set(Cpd_DIR "/usr/local/lib/cmake/cpd")
 find_package(Cpd REQUIRED)
+
+# Need OMP
+find_package(OpenMP )
+if(NOT TARGET OpenMP::OpenMP_CXX)
+    add_library(OpenMP_TARGET INTERFACE)
+    add_library(OpenMP::OpenMP_CXX ALIAS OpenMP_TARGET)
+    target_compile_options(OpenMP_TARGET INTERFACE ${OpenMP_CXX_FLAGS})
+    find_package(Threads REQUIRED)
+    target_link_libraries(OpenMP_TARGET INTERFACE Threads::Threads)
+    target_link_libraries(OpenMP_TARGET INTERFACE ${OpenMP_CXX_FLAGS})
+endif()
 
 # Building the executable
 #add_executable(mesher
@@ -45,6 +57,7 @@ target_link_libraries(animesh
         Camera
         RoSy
         Cpd::Library-C++
+        OpenMP::OpenMP_CXX
         )
 
 #target_link_libraries(mesher

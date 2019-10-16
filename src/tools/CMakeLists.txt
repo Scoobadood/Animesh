@@ -67,4 +67,28 @@ add_executable(dmr
 		mesh.cpp
 		model.cpp)
 
+
+# Need FGT
+set(Fgt_DIR "${PROJECT_SOURCE_DIR}/third_party/build/fgt/lib/cmake/fgt")
+find_package(Fgt REQUIRED)
+
+# Need CPD
+set(Cpd_DIR "${PROJECT_SOURCE_DIR}/third_party/build/cpd/lib/cmake/cpd")
+find_package(Cpd REQUIRED)
+
+# Correspondence pre-compute
+add_executable(corr_util
+		corr_util.cpp
+		../mesher/io_utils.h ../mesher/io_utils.cpp
+		../mesher/correspondences_compute.cpp ../mesher/correspondences_compute.h
+		../mesher/depth_map_io.cpp ../mesher/depth_map_io.h
+		)
+
+
+target_link_libraries(corr_util
+		DepthMap
+		Properties
+		Camera
+		Cpd::Library-C++)
+
 target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})

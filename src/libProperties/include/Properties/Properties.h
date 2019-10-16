@@ -13,6 +13,7 @@ public:
 
     const std::string& getProperty(const std::string& key) const;
     int getIntProperty(const std::string& key) const;
+    bool getBooleanProperty(const std::string& key) const;
     float getFloatProperty(const std::string& key) const;
 
 //private:

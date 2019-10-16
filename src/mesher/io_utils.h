@@ -6,6 +6,7 @@
 #define ANIMESH_IO_UTILS_H
 
 #include <fstream>
+#include <Eigen/Core>
 
 /**
  * Write an unisgned int
@@ -25,6 +26,12 @@ write_float( std::ofstream& file, float value );
 void
 write_size_t( std::ofstream& file, size_t value );
 
+/*
+ * Write a vector
+ */
+void
+write_vector_3f( std::ofstream& file, Eigen::Vector3f vector );
+
 unsigned int
 read_unsigned_int( std::ifstream& file );
 
@@ -33,5 +40,9 @@ read_size_t( std::ifstream& file );
 
 float
 read_float( std::ifstream& file );
+
+
+Eigen::Vector3f
+read_vector_3f( std::ifstream& file );
 
 #endif //ANIMESH_IO_UTILS_H

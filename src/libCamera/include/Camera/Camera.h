@@ -2,6 +2,8 @@
 #include <string>
 #include <Eigen/Core>
 
+#pragma once
+
 typedef struct Camera {
     float position[3];
     float view[3];

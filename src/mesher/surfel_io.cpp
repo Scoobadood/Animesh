@@ -10,15 +10,6 @@
 	********************************************************************************
 */
 
-/*
- * Write a vector
- */
-void
-write_vector_3f( std::ofstream& file, Eigen::Vector3f vector ) {
-    write_float(file, vector.x());
-    write_float(file, vector.y());
-    write_float(file, vector.z());
-}
 
 /**
  * Save surfel data as binary file to disk
@@ -68,15 +59,6 @@ save_to_file( const std::string& file_name,
     }
     file.close();
     cout << " done." << endl;
-}
-
-Eigen::Vector3f
-read_vector_3f( std::ifstream& file ) {
-    float x, y, z;
-    file.read( (char *)&x, sizeof(float) );
-    file.read( (char *)&y, sizeof(float) );
-    file.read( (char *)&z, sizeof(float) );
-    return Eigen::Vector3f{x, y, z};
 }
 
 /**

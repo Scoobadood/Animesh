@@ -156,6 +156,8 @@ Eigen::Matrix3f rotation_between(	const Eigen::Vector3f& point1,
                                     const Eigen::Vector3f& normal2,
                                     const std::vector<Eigen::Vector3f>& neighbours2) {
 	using namespace Eigen;
+	using namespace std;
+
 	assert( neighbours2.size() == neighbours1.size() );
 
 	// First compute the rotations which bring the two normal vectors into alignment with z-axis

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <memory>
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
 #include <omp.h>

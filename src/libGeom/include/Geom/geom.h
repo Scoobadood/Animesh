@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <map>
 #include <memory>
+#include <vector>
 
 namespace animesh {
 

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 std::string &ltrim(std::string &str, const std::string &chars = "\t\n\v\f\r ") {
     str.erase(0, str.find_first_not_of(chars));

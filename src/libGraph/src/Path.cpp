@@ -1,5 +1,6 @@
 #include <vector>
 #include <Graph/Path.h>
+#include <algorithm>
 
 using animesh::Path;
 

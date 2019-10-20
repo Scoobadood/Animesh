@@ -8,7 +8,7 @@ find_package(glfw3 3.2 REQUIRED)
 
 # GLM
 set(CMAKE_PREFIX_PATH, "/usr/local/include:${CMAKE_PREFIX_PATH}")
-find_package(GLM REQUIRED)
+find_package(glm REQUIRED)
 message(STATUS "GLM included at ${GLM_INCLUDE_DIR}")
 
 # OpenGL

@@ -47,6 +47,8 @@ endif()
 add_executable(animesh
         depth_map_io.h depth_map_io.cpp
         correspondences_compute.h correspondences_compute.cpp
+        correspondences_io.h correspondences_io.cpp
+        io_utils.h io_utils.cpp
         optimise.h optimise.cpp
         surfel_compute.h surfel_compute.cpp
         hierarchical_mesher.cpp)

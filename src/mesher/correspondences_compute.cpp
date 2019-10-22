@@ -163,10 +163,10 @@ compute_correspondences(const std::vector<Camera> &cameras, const std::vector<De
         int count = 0;
         vector<PixelInFrame> this_group;
         do {
-            ++it;
-            ++count;
             cout << "[" << it->second.frame << ", " << it->second.x << ", " << it->second.y << "] ";
             this_group.push_back(it->second);
+            ++it;
+            ++count;
         } while (it != group_to_members.end() && group == it->first);
         correspondences.push_back(this_group);
         cout << " (" << count << " members)" << endl;

@@ -89,18 +89,7 @@ initialise_surfels(std::vector<Surfel> &surfels, const std::vector<Surfel> &prev
 int main(int argc, char *argv[]) {
     using namespace std;
 
- #pragma omp parallel
-  {
-  std::cout << omp_get_num_threads() << std::endl; // prints 8, 8 times
-  }
-
-    string property_file_name;
-    if (argc == 2) {
-        property_file_name = argv[1];
-    } else {
-        property_file_name = "animesh.properties";
-    }
-
+    string property_file_name =  (argc == 2) ? argv[1] : "animesh.properties";
     Properties p{property_file_name};
 
     vector<vector<DepthMap>> depth_map_hierarchy;
@@ -156,7 +145,7 @@ int main(int argc, char *argv[]) {
             string file_name = std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
             // TODO: Make this compile
             cout << "Loading correspondences from file " << file_name << endl;
- //           load_correspondences_from_file(file_name, correspondences);
+            load_correspondences_from_file(file_name, correspondences);
         } else {
             cout << "Computing correspondences from scratch" << endl;
             correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));

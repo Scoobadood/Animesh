@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
         cout << "Level : " << level << endl;
         // TODO: Seed correspondences for next level Propagate changes down
 
-        // Generate correspondences
+        // Generate or load correspondences
         vector<vector<PixelInFrame>> correspondences;
         if( p.getBooleanProperty("load-correspondences") ) {
             string corr_file_template = p.getProperty("correspondence-file-template");

@@ -39,14 +39,14 @@ Properties::Properties(const std::string &file_name) {
     ifstream in_file(file_name);
     if(!in_file) {
         cout << "Error opening file " << file_name << endl;
-        throw runtime_error("counldn't read property file");
+        throw runtime_error("couldn't read property file");
     }
     for( string line; getline( in_file, line ); ) {
         // Trim the string to remove leading and trailing spaces
         line = trim(line);
 
         // Skip comments
-        if( line.at(0) == '#' ) {
+        if( line.empty() || line.at(0) == '#' ) {
             continue;
         }
 
@@ -77,25 +77,19 @@ float Properties::getFloatProperty(const std::string &key) const {
     return f;
 }
 
-struct compare
-{
-    std::string key;
-    compare(std::string const &s): key(s) { }
-
-    bool operator()(std::string const &s)
-    {
-        return (s == key);
-    }
-};
-
 bool Properties::getBooleanProperty(const std::string& key) const {
     using namespace std;
 
     string val = getProperty(key);
     bool b = false;
-    vector<string> yes{"yes", "Yes", "YES", "y", "true", "True", "TRUE", "t", "1"};
-    vector<string> no{"no", "No", "NO", "n", "false", "False", "FALSE", "f", "0"};
-    if( any_of(yes.begin(), yes.end(), compare(key))) return true;
-    if( !any_of(no.begin(), no.end(), compare(key))) return false;
-    throw  runtime_error( "Unrecognised boolean value in properties file");
+    vector<string> yes{"yes", "Yes", "YES", "y", "Y", "true", "True", "TRUE", "t", "T", "1"};
+    vector<string> no{"no", "No", "NO", "n", "N", "false", "False", "FALSE", "f", "F", "0"};
+    if( find(yes.begin(), yes.end(), val) != yes.end()) return true;
+    if( find(no.begin(), no.end(), val) != no.end()) return false;
+    throw  runtime_error( "Unrecognised boolean value ["+val+"] in properties file");
 }
+
+
+
+
+

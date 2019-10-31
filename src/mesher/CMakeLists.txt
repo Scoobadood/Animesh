@@ -51,6 +51,7 @@ add_executable(animesh
         io_utils.h io_utils.cpp
         optimise.h optimise.cpp
         surfel_compute.h surfel_compute.cpp
+        surfel_io.h surfel_io.cpp
         hierarchical_mesher.cpp)
 
 target_link_libraries(animesh

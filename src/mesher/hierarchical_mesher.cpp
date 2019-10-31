@@ -10,6 +10,7 @@
 #include "surfel_compute.h"
 #include "optimise.h"
 #include "types.h"
+#include "surfel_io.h"
 
 void usage(const std::string &prog_name) {
     std::cout << "usage: " << prog_name << " [source_directory]" << std::endl;
@@ -130,6 +131,7 @@ int main(int argc, char *argv[]) {
 
     // For each level
     int level = num_levels - 1;
+    vector<Surfel> surfels;
     vector<Surfel> previous_level;
     while (level > 0) {
         cout << "Level : " << level << endl;
@@ -157,7 +159,6 @@ int main(int argc, char *argv[]) {
 
 
         // Generate Surfels for this level from correspondences
-        vector<Surfel> surfels;
         generate_surfels(depth_map_hierarchy.at(level), correspondences, surfels);
 
         // Populate with values from previous level if they exist
@@ -173,7 +174,8 @@ int main(int argc, char *argv[]) {
         --level;
     }
 
-    // 
+    // Save the smoothed surfels in a renderable way
+    save_to_file( "/Users/dave/Desktop/surfel.bin", surfels);
 
     return 0;
 }

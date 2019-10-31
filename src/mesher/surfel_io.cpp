@@ -32,8 +32,8 @@ save_to_file( const std::string& file_name,
         write_unsigned_int( file, surfel.frame_data.size());
         for( auto const &  fd : surfel.frame_data) {
             // PixelInFrame
-            write_size_t( file, fd.pixel_in_frame.x);
-            write_size_t( file, fd.pixel_in_frame.y);
+            write_size_t( file, fd.pixel_in_frame.pixel.x);
+            write_size_t( file, fd.pixel_in_frame.pixel.y);
             write_size_t( file, fd.pixel_in_frame.frame);
             write_float(file, fd.depth);
 
@@ -89,8 +89,9 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
             FrameData fd;
 
             // PixelInFrame
-            fd.pixel_in_frame.x = read_size_t(file);
-            fd.pixel_in_frame.y = read_size_t(file);
+            fd.pixel_in_frame.pixel.x = read_size_t(file);
+            fd.pixel_in_frame.pixel.y = read_size_t(file);
+
             fd.pixel_in_frame.frame = read_size_t(file);
             fd.depth = read_float(file);
 

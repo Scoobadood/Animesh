@@ -7,22 +7,32 @@
 #define ANIMESH_TYPES_H
 
 #include <Eigen/Core>
-
-struct PixelInFrame {
+struct Pixel {
     unsigned int x;
     unsigned int y;
+    Pixel(unsigned int x, unsigned int y) : x{x}, y{y}{
+        // Empty
+    };
+    bool operator< (const Pixel &other) const {
+        if( y != other.y)
+            return y < other.y;
+
+        return x < other.x;
+    }
+};
+
+struct PixelInFrame {
+    Pixel pixel;
     unsigned int frame;
 
-    PixelInFrame(unsigned int x, unsigned int y, unsigned int frame) :x{x}, y{y}, frame{frame}{};
+    PixelInFrame(unsigned int x, unsigned int y, unsigned int frame) : pixel{x, y}, frame{frame}{};
+    PixelInFrame(Pixel pixel, unsigned int frame) : pixel{pixel}, frame{frame}{};
 
     bool operator< (const PixelInFrame &other) const {
         if( frame != other.frame)
             return frame < other.frame;
 
-        if( y != other.y)
-            return y < other.y;
-
-        return x < other.x;
+        return pixel < other.pixel;
     }
 };
 

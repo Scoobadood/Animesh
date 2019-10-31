@@ -54,8 +54,8 @@ save_correspondences_to_file(const std::string &file_name,
         for( auto const &  pixel_in_frame  : correspondence) {
             // PixelInFrame
             write_unsigned_int( file, pixel_in_frame.frame);
-            write_unsigned_int( file, pixel_in_frame.x);
-            write_unsigned_int( file, pixel_in_frame.y);
+            write_unsigned_int( file, pixel_in_frame.pixel.x);
+            write_unsigned_int( file, pixel_in_frame.pixel.y);
         }
     }
     file.close();

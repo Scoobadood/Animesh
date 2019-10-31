@@ -4,7 +4,6 @@
 #include <vector>
 #include <cassert>
 
-
 class DepthMap {
 public:
 	typedef enum {
@@ -20,7 +19,21 @@ public:
 		FOUR = UP | LEFT | RIGHT | DOWN
 	} tDirection;
 
-	/**
+    typedef enum {
+        NONE,
+        DERIVED,
+        NATURAL
+    } tNormal;
+
+    struct NormalWithType {
+        tNormal type;
+        float x;
+        float y;
+        float z;
+        NormalWithType(tNormal t, float xx, float yy, float zz) : type{t}, x{xx}, y{yy}, z{zz} {};
+    };
+
+    /**
 	 * Load from file.
 	 */
 	DepthMap(const std::string& filename);
@@ -51,18 +64,17 @@ public:
 	 * Entries in the resulting map are computed from the mean of entries in this map.
 	 */
 	DepthMap resample() const;
+    NormalWithType normal_at(unsigned int x, unsigned int y) const;
+
 
 private:
-	typedef enum {
-		NONE,
-		DERIVED,
-		NATURAL
-	} tNormal;
-
 	float *depth_data;
 	unsigned int width;
 	unsigned int height;
+
+	// row, col
 	std::vector<std::vector<std::vector<float>>> normals;
+	// row, col
 	std::vector<std::vector<tNormal>> normal_types;
 
 	void compute_normals();
@@ -76,5 +88,4 @@ private:
 		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
 	}
 	int get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected = false) const;
-
 };

@@ -52,16 +52,16 @@ initialise_surfels(std::vector<Surfel> &surfels, const std::vector<Surfel> &prev
     for (const auto &surfel : previous_level) {
         for (const auto &fd : surfel.frame_data) {
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.x * 2, fd.pixel_in_frame.y * 2, fd.pixel_in_frame.frame},
+                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2, fd.pixel_in_frame.pixel.y * 2, fd.pixel_in_frame.frame},
                     surfel.tangent);
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.x * 2, fd.pixel_in_frame.y * 2 + 1, fd.pixel_in_frame.frame},
+                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2, fd.pixel_in_frame.pixel.y * 2 + 1, fd.pixel_in_frame.frame},
                     surfel.tangent);
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.x * 2 + 1, fd.pixel_in_frame.y * 2, fd.pixel_in_frame.frame},
+                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2 + 1, fd.pixel_in_frame.pixel.y * 2, fd.pixel_in_frame.frame},
                     surfel.tangent);
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.x * 2 + 1, fd.pixel_in_frame.y * 2 + 1, fd.pixel_in_frame.frame},
+                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2 + 1, fd.pixel_in_frame.pixel.y * 2 + 1, fd.pixel_in_frame.frame},
                     surfel.tangent);
         }
     }
@@ -75,7 +75,7 @@ initialise_surfels(std::vector<Surfel> &surfels, const std::vector<Surfel> &prev
                 tangent += it->second;
                 ++count;
             } else {
-                cout << "Warning. Could not find entry for PIF (" << fd.pixel_in_frame.x << ", " << fd.pixel_in_frame.y
+                cout << "Warning. Could not find entry for PIF (" << fd.pixel_in_frame.pixel.x << ", " << fd.pixel_in_frame.pixel.y
                      << ", " << fd.pixel_in_frame.frame << ") in initialiser table." << endl;
             }
             if( count != 0 ) {
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
     // Construct the hierarchy
     cout << "Constructing depth map hierarchy" << endl;
     int num_levels = p.getIntProperty("num-levels");
-    for (int i = 0; i < num_levels; i++) {
+    for (int i = 2; i <= num_levels; i++) {
         cout << "\r" << i << " of " << num_levels << "    " << flush;
         depth_maps = resample_depth_maps(depth_maps);
         depth_map_hierarchy.push_back(depth_maps);
@@ -131,7 +131,7 @@ int main(int argc, char *argv[]) {
     // For each level
     int level = num_levels - 1;
     vector<Surfel> previous_level;
-    while (level >= 0) {
+    while (level > 0) {
         cout << "Level : " << level << endl;
         // TODO: Seed correspondences for next level Propagate changes down
 
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
         vector<vector<PixelInFrame>> correspondences;
         if( p.getBooleanProperty("load-correspondences") ) {
             string corr_file_template = p.getProperty("correspondence-file-template");
-            size_t size = snprintf( nullptr, 0, corr_file_template.c_str(), level ) + 1; // Extra space for '\0'
+            size_t size = snprintf( nullptr, 0, corr_file_template.c_str(), level) + 1; // Extra space for '\0'
             std::unique_ptr<char[]> buf( new char[ size ] );
             snprintf( buf.get(), size, corr_file_template.c_str(), level );
             string file_name = std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
@@ -149,6 +149,10 @@ int main(int argc, char *argv[]) {
         } else {
             cout << "Computing correspondences from scratch" << endl;
             correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));
+        }
+
+        if( correspondences.empty()) {
+            throw runtime_error("No correspondences found");
         }
 
 
@@ -168,6 +172,8 @@ int main(int argc, char *argv[]) {
 
         --level;
     }
+
+    // 
 
     return 0;
 }

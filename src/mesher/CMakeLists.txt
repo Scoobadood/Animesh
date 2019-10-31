@@ -59,7 +59,7 @@ target_link_libraries(animesh
         Camera
         RoSy
         Cpd::Library-C++
-        OpenMP::OpenMP_CXX
+#        OpenMP::OpenMP_CXX
         )
 
 #target_link_libraries(mesher

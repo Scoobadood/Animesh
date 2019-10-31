@@ -12,6 +12,7 @@
 #include "../mesher/types.h"
 #include "../mesher/io_utils.h"
 #include "../mesher/correspondences_compute.h"
+#include "../mesher/correspondences_io.h"
 
 
 std::vector<DepthMap>
@@ -87,17 +88,8 @@ int main(int argc, char *argv[]) {
         ofstream file{file_name, ios::out | ios::binary};
         // Generate correspondences
         vector<vector<PixelInFrame>> correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));
+        save_correspondences_to_file(file_name,correspondences);
 
-        // Append to file
-        write_size_t(file, correspondences.size());
-        for( const auto& cg : correspondences) {
-            write_size_t(file, cg.size());
-            for( const auto& pif : cg ) {
-                write_unsigned_int(file, pif.frame);
-                write_unsigned_int(file, pif.x);
-                write_unsigned_int(file, pif.y);
-            }
-        }
         --level;
     }
 

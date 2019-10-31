@@ -81,7 +81,9 @@ add_executable(corr_util
 		corr_util.cpp
 		../mesher/io_utils.h ../mesher/io_utils.cpp
 		../mesher/correspondences_compute.cpp ../mesher/correspondences_compute.h
+		../mesher/correspondences_io.cpp ../mesher/correspondences_io.h
 		../mesher/depth_map_io.cpp ../mesher/depth_map_io.h
+		../mesher/types.h
 		)
 
 

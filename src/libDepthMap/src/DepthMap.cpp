@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
+#include <fstream>
 
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
@@ -272,27 +273,32 @@ void
 DepthMap::compute_natural_normals() {
     using namespace std;
 
+
+    // For each row
     for (int row = 0; row < rows(); ++row) {
-        vector<vector<float>> normal_row;
-        vector<tNormal> normal_row_types;
+
+        // Temp storage for the row's type and normals
+        vector<vector<float>> current_row_normals;
+        vector<tNormal> current_row_normal_types;
+
+        // For each column
         for (int col = 0; col < cols(); ++col) {
             float d = depth_at(row, col);
 
-            // if depth is 0 then there's no normal to be had here.
+            // If depth is 0 then there's no normal to be had here.
             if (d == 0.0f) {
-                normal_row_types.push_back(NONE);
-                normal_row.push_back(vector<float>{0, 0, 0});
+                current_row_normal_types.push_back(NONE);
+                current_row_normals.push_back(vector<float>{0, 0, 0});
                 continue;
             }
-
 
             float neighbour_depths[4];
             int neighbours_present = get_neighbour_depths(row, col, neighbour_depths, false);
 
             // If there are not four neighbours then I have a derived normal
             if (neighbours_present != FOUR) {
-                normal_row_types.push_back(DERIVED);
-                normal_row.push_back(vector<float>{0, 0, 0});
+                current_row_normal_types.push_back(DERIVED);
+                current_row_normals.push_back(vector<float>{0, 0, 0});
                 continue;
             }
 
@@ -303,11 +309,11 @@ DepthMap::compute_natural_normals() {
             dzdx /= scale;
             dzdy /= scale;
             vector<float> norm{-dzdx, -dzdy, 1.0f / scale};
-            normal_row.push_back(norm);
-            normal_row_types.push_back(NATURAL);
+            current_row_normals.push_back(norm);
+            current_row_normal_types.push_back(NATURAL);
         }
-        normals.push_back(normal_row);
-        normal_types.push_back(normal_row_types);
+        normals.push_back(current_row_normals);
+        normal_types.push_back(current_row_normal_types);
     }
 }
 
@@ -375,10 +381,12 @@ DepthMap::compute_normals() {
     // Validation
     int natural_norm_count = 0;
     int derived_norm_count = 0;
+    int zero_norms = 0;
     for (int r = 0; r < rows(); ++r) {
         for (int c = 0; c < cols(); ++c) {
             auto norm_type = normal_types.at(r).at(c);
             if (norm_type == NONE) {
+                zero_norms++;
                 continue;
             }
             if (norm_type == DERIVED) {
@@ -387,7 +395,7 @@ DepthMap::compute_normals() {
                 natural_norm_count++;
             }
             // Check that norm is legal
-            auto normal = normals.at(r).at(c);
+            const auto& normal = normals.at(r).at(c);
             float norm_length = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
             if (isnan(norm_length)) {
                 cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural" ) << " normal at r:" << r << ", c:" << c << endl;
@@ -398,12 +406,16 @@ DepthMap::compute_normals() {
             if (abs(norm_length - 1.0) > 1e-3) {
                 cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal ("<<norm_length<<") at r:" << r << ", c:" << c << endl;
             }
+            if( norm_length == 0.0) zero_norms++;
         }
     }
     if (derived_norm_count + natural_norm_count < 5) {
         cout << "Suspiciously low normal counts derived: " << derived_norm_count << ", natural:" << natural_norm_count
              << endl;
     }
+        cout << endl << zero_norms << " zero norms out of  " << (normal_types.size() * normal_types.at(0).size())
+             << endl;
+
     //
 }
 
@@ -419,6 +431,15 @@ DepthMap::get_normals() const {
     return normals;
 }
 
+std::vector<int>
+normal_to_colour( const std::vector<float>& normal ) {
+    std::vector<int> rgb;
+    rgb.push_back(round((normal.at(0) + 1.0f) * 255 * 0.5));
+    rgb.push_back(round((normal.at(1) + 1.0f) * 255 * 0.5));
+    rgb.push_back(round((normal.at(2) + 1.0f) * 255 * 0.5));
+    rgb.push_back(round((normal.at(2) + 1.0f) * 255 * 0.5));
+    return rgb;
+}
 /**
  * Return true if the normal at the given coordinates is defined, i.e.
  * has a non-0 length.
@@ -428,8 +449,28 @@ DepthMap::get_normals() const {
 bool
 DepthMap::is_normal_defined(unsigned int row, unsigned int col) const {
     using namespace std;
+    volatile bool dumpNormals = true;
     if (normals.size() == 0) {
         (const_cast<DepthMap *>(this))->compute_normals();
+        // DEBUG
+        if( dumpNormals) {
+            ofstream n1("/Users/dave/Desktop/normal_types.pgm");
+            ofstream n2("/Users/dave/Desktop/normals.ppm");
+            n1 << "P2" << endl << cols() << " " << rows() << endl << "5" << endl;
+            n2 << "P3" << endl << cols() << " " << rows() << endl << "255" << endl;
+            for( int row = 0; row < normals.size(); ++row ) {
+                for( int col = 0; col < normals.at(row).size(); ++col ) {
+                    auto t = normal_types.at(row).at(col);
+                    n1 << (t == NONE ? "0" : ( t == DERIVED ? "1" : ( t== NATURAL ? "2" : "3"))) << " ";
+                    auto n = normals.at(row).at(col);
+                    auto nc = normal_to_colour(n);
+                    n2 <<  nc.at(0) << " " << nc.at(1) << " " << nc.at(2) << "     ";
+                }
+                n1 << endl;
+                n2 << endl;
+            }
+        }
+        // END DEBUG
     }
     vector<float> n = normals.at(row).at(col);
     return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
@@ -493,3 +534,7 @@ DepthMap::resample() const {
     return DepthMap{new_rows, new_cols, new_data};
 }
 
+DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
+    NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1), normals.at(y).at(x).at(2) };
+    return n;
+}

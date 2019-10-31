@@ -12,7 +12,8 @@ typedef struct Camera {
     float fov[2];
     float focalDistance;
 
-    Camera(){}
+    Camera() = default;
+
     Camera(const float pos[3], const float v[3], const float u[3], const float res[2], const float fv[2], float f)
             : position{pos[0], pos[1], pos[2]},
               view{v[0], v[1], v[2]},
@@ -31,5 +32,10 @@ std::ostream &operator<<(std::ostream &os, const Camera &camera);
 Eigen::Vector3f backproject(const Camera &camera, int pixel_x, int pixel_y, float depth);
 
 void
-backproject(const Camera &camera, int pixel_x, int pixel_y, float depth, float *world_x, float *world_y,
+backproject(const Camera &camera,
+            unsigned int pixel_x,
+            unsigned int pixel_y,
+            float depth,
+            float *world_x,
+            float *world_y,
             float *world_z);

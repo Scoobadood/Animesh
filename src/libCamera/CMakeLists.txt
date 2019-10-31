@@ -34,6 +34,7 @@ export( TARGETS Camera
 
 file( GLOB TEST_SOURCES "tests/*.cpp" )
 add_executable(testCamera
+		include/Camera/Camera.h
     ${TEST_SOURCES})
 
 target_link_libraries(testCamera 

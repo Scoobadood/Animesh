@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
 
     // Construct the hierarchy
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
-    int num_levels = depth_map_hierarchy.at(0).size();
+    int num_levels = depth_map_hierarchy.size();
 
     // For each level
     unsigned int level = num_levels - 1;

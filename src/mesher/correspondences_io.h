@@ -12,8 +12,8 @@
 
 void
 load_correspondences_from_file(const std::string &file_name,
-                               std::vector<std::vector<const PixelInFrame>> &correspondences);
+                               std::vector<std::vector<PixelInFrame>> &correspondences);
 
 void
 save_correspondences_to_file(const std::string &file_name,
-                             const std::vector<std::vector<const PixelInFrame>> &correspondences);
+                             const std::vector<std::vector<PixelInFrame>> &correspondences);

@@ -3,14 +3,13 @@
 //
 
 #include <iostream>
-#include <fstream>
 
 #include "correspondences_io.h"
 #include "io_utils.h"
 
 void
 load_correspondences_from_file(const std::string &file_name,
-                               std::vector<std::vector<const PixelInFrame>> &correspondences) {
+                               std::vector<std::vector<PixelInFrame>> &correspondences) {
     using namespace std;
 
     cout << "Loading correspondences from " << file_name << "..." << flush;
@@ -23,7 +22,7 @@ load_correspondences_from_file(const std::string &file_name,
 
     for( unsigned int i=0; i< num_correspondences; ++i ) {
         unsigned int num_entries = read_unsigned_int( file);
-        vector<const PixelInFrame> correspondence;
+        vector<PixelInFrame> correspondence;
         correspondence.reserve(num_entries);
 
         for( unsigned int j=0; j<num_entries; ++j) {

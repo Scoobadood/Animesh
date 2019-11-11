@@ -8,14 +8,10 @@
 #include <random>
 #include <iostream>
 #include "surfel_compute.h"
-#include <FileUtils/PgmFileParser.h>
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
-#include <DepthMap/DepthMapPyramid.h>
 
 #include "correspondences_compute.h"
-#include "correspondences_io.h"
-#include "mesher_args.h"
 
 /*
 	********************************************************************************
@@ -215,16 +211,15 @@ populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
 		-- Store the Frame Data
 		-- Init the random direction vector.
  */
-void
+std::vector<Surfel>
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                 const std::vector<std::vector<const PixelInFrame>> &correspondences,
-                 std::vector<Surfel> &surfels) {
+                 const std::vector<std::vector<PixelInFrame>> &correspondences) {
     using namespace std;
     assert(correspondences.size() > 0);
 
     cout << "Generating surfels : " << endl;
 
-    surfels.clear();
+    vector<Surfel> surfels;
 
     // One per correpondence -- except that a correspondence that references a dead/remove pixel should be ignored
     // For each one, add point, depth, normal

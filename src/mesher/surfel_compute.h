@@ -20,7 +20,6 @@ sort_frame_data(std::vector<Surfel>& surfels);
 void 
 randomize_tangents(std::vector<Surfel>& surfels);
 
-void
+std::vector<Surfel>
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                 const std::vector<std::vector<const PixelInFrame>> &correspondences,
-                 std::vector<Surfel> &surfels);
+                 const std::vector<std::vector<PixelInFrame>> &correspondences);

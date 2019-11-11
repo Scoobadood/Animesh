@@ -110,9 +110,9 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
 /**
  * Load the cameras (one per frame)
  */
-std::vector<const Camera>
+std::vector<Camera>
 load_cameras(unsigned int num_frames) {
-    std::vector<const Camera> cameras;
+    std::vector<Camera> cameras;
     // TODO: Move to loading these from disk rather than constructing by hand.
     cameras.reserve(num_frames);
     for (unsigned int i = 0; i < num_frames; ++i) {
@@ -143,7 +143,7 @@ load_depth_maps(const Properties &properties) {
  * Construct depth map hierarch given a vector of sourcde depth maps
  */
 std::vector<std::vector<DepthMap>>
-create_depth_map_hierarchy(const Properties &properties, std::vector<DepthMap> &depth_maps) {
+create_depth_map_hierarchy(const Properties &properties, const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
     vector<vector<DepthMap>> depth_map_hierarchy;
@@ -161,14 +161,14 @@ create_depth_map_hierarchy(const Properties &properties, std::vector<DepthMap> &
     return depth_map_hierarchy;
 }
 
-std::vector<std::vector<const PixelInFrame>>
+std::vector<std::vector<PixelInFrame>>
 get_correspondences(const Properties &properties,
                     unsigned int level,
                     const std::vector<std::vector<DepthMap>> &depth_map_hierarchy,
-                    const std::vector<const Camera> &cameras) {
+                    std::vector<Camera>& cameras) {
     using namespace std;
 
-    vector<vector<const PixelInFrame>> correspondences;
+    vector<vector<PixelInFrame>> correspondences;
 
     if (properties.getBooleanProperty("load-correspondences")) {
         string corr_file_template = properties.getProperty("correspondence-file-template");
@@ -209,14 +209,14 @@ int main(int argc, char *argv[]) {
     size_t num_frames = depth_maps.size();
 
     // Load cameras
-    vector<const Camera> cameras = load_cameras(num_frames);
+    vector<Camera> cameras = load_cameras(num_frames);
 
     // Construct the hierarchy
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
     int num_levels = depth_map_hierarchy.at(0).size();
 
     // For each level
-    int level = num_levels - 1;
+    unsigned int level = num_levels - 1;
     vector<Surfel> previous_level;
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
 
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
 
         // Generate or load correspondences
         // TODO: Seed correspondences for next level Propagate changes down
-        vector<vector<const PixelInFrame>> correspondences = get_correspondences(properties, level, depth_map_hierarchy,
+        vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, level, depth_map_hierarchy,
                                                                                  cameras);
 
         // Generate Surfels for this level from correspondences

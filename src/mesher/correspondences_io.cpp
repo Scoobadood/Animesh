@@ -15,6 +15,9 @@ load_correspondences_from_file(const std::string &file_name,
     cout << "Loading correspondences from " << file_name << "..." << flush;
 
     ifstream file{file_name, ios::out | ios::binary};
+    if( file.fail()) {
+        throw  runtime_error("Failed to open file " + file_name);
+    }
 
     unsigned int num_correspondences = read_unsigned_int( file);
     correspondences.clear();

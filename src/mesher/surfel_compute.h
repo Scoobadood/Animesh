@@ -22,5 +22,5 @@ randomize_tangents(std::vector<Surfel>& surfels);
 
 void
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                 const std::vector<std::vector<PixelInFrame>> &correspondences,
+                 const std::vector<std::vector<const PixelInFrame>> &correspondences,
                  std::vector<Surfel> &surfels);

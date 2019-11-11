@@ -7,7 +7,7 @@ add_subdirectory( data_gen )
 find_package(glfw3 3.2 REQUIRED)
 
 # GLM
-set(CMAKE_PREFIX_PATH, "/usr/local/include:${CMAKE_PREFIX_PATH}")
+set(CMAKE_PREFIX_PATH, "/usr/local/include/glm:${CMAKE_PREFIX_PATH}")
 find_package(glm REQUIRED)
 message(STATUS "GLM included at ${GLM_INCLUDE_DIR}")
 
@@ -66,6 +66,8 @@ add_executable(dmr
 		glutils.cpp
 		mesh.cpp
 		model.cpp)
+target_link_libraries(dmr
+		glm)
 
 
 # Need FGT

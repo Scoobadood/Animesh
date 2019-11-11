@@ -29,7 +29,7 @@ void decomposeCamera(const Camera &camera, Eigen::Matrix3f &K, Eigen::Matrix3f &
 
 std::ostream &operator<<(std::ostream &os, const Camera &camera);
 
-Eigen::Vector3f backproject(const Camera &camera, int pixel_x, int pixel_y, float depth);
+Eigen::Vector3f backproject(const Camera &camera, unsigned int pixel_x, unsigned int pixel_y, float depth);
 
 void
 backproject(const Camera &camera,

@@ -217,7 +217,7 @@ populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
  */
 void
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                 const std::vector<std::vector<PixelInFrame>> &correspondences,
+                 const std::vector<std::vector<const PixelInFrame>> &correspondences,
                  std::vector<Surfel> &surfels) {
     using namespace std;
     assert(correspondences.size() > 0);

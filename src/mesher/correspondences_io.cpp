@@ -10,27 +10,28 @@
 
 void
 load_correspondences_from_file(const std::string &file_name,
-                               std::vector<std::vector<PixelInFrame>> &correspondences) {
+                               std::vector<std::vector<const PixelInFrame>> &correspondences) {
     using namespace std;
 
     cout << "Loading correspondences from " << file_name << "..." << flush;
 
     ifstream file{file_name, ios::out | ios::binary};
+
+    unsigned int num_correspondences = read_unsigned_int( file);
     correspondences.clear();
+    correspondences.reserve(num_correspondences);
 
-    // Count
-    int num_correspondences = read_unsigned_int( file);
-    for( int i=0; i< num_correspondences; ++i ) {
-        vector<PixelInFrame> correspondence;
+    for( unsigned int i=0; i< num_correspondences; ++i ) {
+        unsigned int num_entries = read_unsigned_int( file);
+        vector<const PixelInFrame> correspondence;
+        correspondence.reserve(num_entries);
 
-        int num_entries = read_unsigned_int( file);
-        correspondence.clear();
-        for( int j=0; j<num_entries; ++j) {
+        for( unsigned int j=0; j<num_entries; ++j) {
             // PixelInFrame
             unsigned int frame = read_unsigned_int(file);
             unsigned int x = read_unsigned_int(file);
             unsigned int y = read_unsigned_int(file);
-            correspondence.push_back(PixelInFrame{x, y, frame});
+            correspondence.emplace_back(x, y, frame);
         }
         correspondences.push_back(correspondence);
     }

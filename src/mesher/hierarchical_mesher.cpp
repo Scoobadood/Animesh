@@ -39,63 +39,69 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
     return resampled_depth_maps;
 }
 
-void
-initialise_surfels(std::vector<Surfel> &surfels, const std::vector<Surfel> &previous_level) {
-    using namespace std;
-    using namespace Eigen;
+/**
+ * Given a set of existing surfels (previous level), populate the current level
+ * by propagating the existing level surfel to all 'parent' surfels of the next level.
+ * <pre>
+   For each Surfel s in previous_level
+     For each pixel in frame pif for s
+       Derive the candidate source pixels in surfels, pif_next[] (there will be at most four)
+       Store reference from pif_next[] to tangent of s
 
-    if (previous_level.empty()) return;
-
-    // TODO: Bootstrap orientation vectors from the previous level
-    /*
-     For each Surfel s in level n
-      For each pixel in frame pif for s
-         Derive the source pixels in level n-1 pif_next (there will be at most four)
-            Store reference from pif_next to tangent of s
-
-    Generate surfels at n-1
-    For each surfel s at n-1
+    For each surfel s in surfels
       For each pixel in frame pif for s
         Look up tangent(s) for pif and average them to bootstrap tangent for s
 
-     */
+ * @param surfels Vector of surfels to be initialised
+ * @param previous_level Vector of surfels from which to initialise
+ */
+void
+initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfel> &previous_level) {
+    using namespace std;
+    using namespace Eigen;
+
+    cout << "Initialising surfels from pervious level" << endl;
+
+    if (previous_level.empty())
+        throw runtime_error("Unexpectedly found previous_level was empty");
+
+    // TODO: Bootstrap orientation vectors from the previous level
     map<PixelInFrame, Vector3f> pif_to_tangent;
     for (const auto &surfel : previous_level) {
-        for (const auto &fd : surfel.frame_data) {
+        for (const auto &frame : surfel.frame_data) {
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2, fd.pixel_in_frame.pixel.y * 2, fd.pixel_in_frame.frame},
-                    surfel.tangent);
+                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2, frame.pixel_in_frame.pixel.y * 2,
+                                 frame.pixel_in_frame.frame}, surfel.tangent);
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2, fd.pixel_in_frame.pixel.y * 2 + 1,
-                                 fd.pixel_in_frame.frame},
-                    surfel.tangent);
+                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2, frame.pixel_in_frame.pixel.y * 2 + 1,
+                                 frame.pixel_in_frame.frame}, surfel.tangent);
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2 + 1, fd.pixel_in_frame.pixel.y * 2,
-                                 fd.pixel_in_frame.frame},
-                    surfel.tangent);
+                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2 + 1, frame.pixel_in_frame.pixel.y * 2,
+                                 frame.pixel_in_frame.frame}, surfel.tangent);
             pif_to_tangent.emplace(
-                    PixelInFrame{fd.pixel_in_frame.pixel.x * 2 + 1, fd.pixel_in_frame.pixel.y * 2 + 1,
-                                 fd.pixel_in_frame.frame},
-                    surfel.tangent);
+                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2 + 1, frame.pixel_in_frame.pixel.y * 2 + 1,
+                                 frame.pixel_in_frame.frame}, surfel.tangent);
         }
     }
 
-    Vector3f tangent{0.0f, 0.0f, 0.0};
-    int count = 0;
     for (auto &surfel : surfels) {
-        for (const auto &fd : surfel.frame_data) {
-            auto it = pif_to_tangent.find(fd.pixel_in_frame);
+        int count = 0;
+        Vector3f mean_tangent{0.0f, 0.0f, 0.0};
+        for (const auto &frame : surfel.frame_data) {
+            auto it = pif_to_tangent.find(frame.pixel_in_frame);
             if (it != pif_to_tangent.end()) {
-                tangent += it->second;
+                mean_tangent += it->second;
                 ++count;
             } else {
-                cout << "Warning. Could not find entry for PIF (" << fd.pixel_in_frame.pixel.x << ", "
-                     << fd.pixel_in_frame.pixel.y
-                     << ", " << fd.pixel_in_frame.frame << ") in initialiser table." << endl;
+                cout << "Warning. Could not find entry for PIF (" << frame.pixel_in_frame.pixel.x << ", "
+                     << frame.pixel_in_frame.pixel.y
+                     << ", " << frame.pixel_in_frame.frame << ") in initialiser table." << endl;
             }
-            if (count != 0) {
-                surfel.tangent = (tangent / count).normalized();
-            }
+        }
+        if (count != 0) {
+            surfel.tangent = (mean_tangent / count).normalized();
+        } else {
+            throw runtime_error("Pixel in layer does not have any corresponding pixels in the next layer.");
         }
     }
 }
@@ -211,7 +217,6 @@ int main(int argc, char *argv[]) {
 
     // For each level
     int level = num_levels - 1;
-    vector<Surfel> surfels;
     vector<Surfel> previous_level;
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
 
@@ -224,14 +229,19 @@ int main(int argc, char *argv[]) {
                                                                                  cameras);
 
         // Generate Surfels for this level from correspondences
-        generate_surfels(depth_map_hierarchy.at(level), correspondences, surfels);
+        vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(level), correspondences);
 
         // Populate with values from previous level if they exist
-        initialise_surfels(surfels, previous_level);
+        initialise_surfel_tangents(surfels, previous_level);
 
         // Smooth this level
         Optimiser o{0.1, num_frames, surfels_per_step};
         o.optimise(surfels);
+
+        // Save the smoothed surfels in a renderable way
+        char out_file_name[strlen("/Users/dave/Desktop/surfel_00.bin") + 1];
+        sprintf(out_file_name, "/Users/dave/Desktop/surfel_%2d.bin", level);
+        save_to_file(out_file_name, surfels);
 
         // Copy surfels into previous level for propagation down.
         previous_level = surfels;
@@ -239,8 +249,6 @@ int main(int argc, char *argv[]) {
         --level;
     }
 
-    // Save the smoothed surfels in a renderable way
-    save_to_file("/Users/dave/Desktop/surfel.bin", surfels);
 
     return 0;
 }

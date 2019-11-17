@@ -12,16 +12,8 @@
 #include "types.h"
 #include "surfel_io.h"
 
-/**
- * Print usage instructions if the number of arguments is wrong or arguments are inconsistent
- *
- * @param prog_name The name of the program with path.
- */
-void usage(const std::string &prog_name) {
-    std::cout << "usage: " << prog_name << " [source_directory]" << std::endl;
-    exit(-1);
-}
-
+const char pre_smooth_filename_template[] = "/Users/dave/Desktop/presmooth_%02d.bin";
+const char post_smooth_filename_template[] = "/Users/dave/Desktop/smoothed_%02d.bin";
 
 /**
  * Take the vector of depth maps and subsample each, returnomng a new vector of the sumbsampled maps.
@@ -211,7 +203,7 @@ int main(int argc, char *argv[]) {
     // Load cameras
     vector<Camera> cameras = load_cameras(num_frames);
 
-    // Construct the hierarchy
+    // Construct the hierarchy: number of levels as specified in properties.
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
     int num_levels = depth_map_hierarchy.size();
 
@@ -231,17 +223,26 @@ int main(int argc, char *argv[]) {
         // Generate Surfels for this level from correspondences
         vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(level), correspondences);
 
+        cout << " Initialising tangents" << endl;
+
         // Populate with values from previous level if they exist
-        initialise_surfel_tangents(surfels, previous_level);
+        if( previous_level.size() > 0 ) {
+            initialise_surfel_tangents(surfels, previous_level);
+        }
+
+        // Save the pre-smoothing surfels in a renderable way
+        char out_file_name[strlen(pre_smooth_filename_template) + 1];
+        sprintf(out_file_name, pre_smooth_filename_template, level);
+        save_to_file(out_file_name, surfels);
 
         // Smooth this level
         Optimiser o{0.1, num_frames, surfels_per_step};
         o.optimise(surfels);
 
         // Save the smoothed surfels in a renderable way
-        char out_file_name[strlen("/Users/dave/Desktop/surfel_00.bin") + 1];
-        sprintf(out_file_name, "/Users/dave/Desktop/surfel_%2d.bin", level);
-        save_to_file(out_file_name, surfels);
+        char out_file_name2[strlen(post_smooth_filename_template) + 1];
+        sprintf(out_file_name2, post_smooth_filename_template, level);
+        save_to_file(out_file_name2, surfels);
 
         // Copy surfels into previous level for propagation down.
         previous_level = surfels;

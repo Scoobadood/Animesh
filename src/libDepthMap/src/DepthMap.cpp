@@ -527,7 +527,6 @@ DepthMap::resample() const {
             for (int i = 0; i < 4; ++i) {
                 values[i] = depth_at(mapped_pixels[i].row, mapped_pixels[i].col);
             }
-            // TODO: Merge knows we skip 0s and so should be responsible for ignoring mappings.
             new_data[r * new_cols + c] = merge(values);
         }
     }

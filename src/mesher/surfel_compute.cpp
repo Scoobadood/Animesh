@@ -59,6 +59,7 @@ randomize_tangents(std::vector<Surfel> &surfels) {
         float yc = sqrt(1.0f - (xc * xc));
         surfel.tangent = Eigen::Vector3f{xc, 0.0f, yc};
     }
+    std::cout << "All tangents randomized"<< std::endl;
 }
 
 /**
@@ -264,9 +265,10 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
             cout << "\t rejected - no normals defined for any of  " << corresponding_pifs.size() << " pifs " << endl;
         }
     }
-    cout << endl << " generated " << surfels.size() << " surfels" << endl;
     populate_neighbours(surfels);
     randomize_tangents(surfels);
+    cout << endl << " generated " << surfels.size() << " surfels" << endl;
+    return surfels;
 }
 
 /*

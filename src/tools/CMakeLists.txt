@@ -95,4 +95,19 @@ target_link_libraries(corr_util
 		Camera
 		Cpd::Library-C++)
 
+add_executable(dm_to_point_cloud
+		dm_to_point_cloud.cpp
+		../mesher/io_utils.h ../mesher/io_utils.cpp
+		../mesher/correspondences_compute.cpp ../mesher/correspondences_compute.h
+		../mesher/correspondences_io.cpp ../mesher/correspondences_io.h
+		../mesher/depth_map_io.cpp ../mesher/depth_map_io.h
+		../mesher/types.h
+		)
+
+target_link_libraries(dm_to_point_cloud
+		DepthMap
+		Properties
+		Camera
+		Cpd::Library-C++)
+
 target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})

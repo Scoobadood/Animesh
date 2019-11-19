@@ -12,7 +12,7 @@ import java.util.List;
 
 public class StateToGlData {
   private static final float NORM_SCALE = 0.01f;
-  private static final float TAN_SCALE = 0.05f;
+  private static final float TAN_SCALE = 0.005f;
 
   public static float[] convertStateToGlData(State state, int frame) {
     ImmutableList.Builder<Float> listBuilder = ImmutableList.builder();

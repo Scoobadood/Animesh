@@ -208,11 +208,11 @@ int main(int argc, char *argv[]) {
     int num_levels = depth_map_hierarchy.size();
 
     // For each level
-    unsigned int level = num_levels - 1;
+    int level = num_levels - 1;
     vector<Surfel> previous_level;
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
 
-    while (level > 0) {
+    while (level >= 0) {
         cout << "Level : " << level << endl;
 
         // Generate or load correspondences

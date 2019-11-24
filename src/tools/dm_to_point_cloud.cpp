@@ -24,6 +24,7 @@
 #include <iostream>
 
 const char VALID_PIXL_POINT_CLOUD_TEMPLATE[] = "pointcloud_L%02d_F%02d.txt";
+const char NORMAL_TEMPLATE[] = "normals_L%02d_F%02d.txt";
 const char corr_file_template[] = "corr_L%02d.txt";
 
 /**
@@ -63,10 +64,10 @@ load_cameras(unsigned int num_frames) {
     cameras.reserve(num_frames);
     for (unsigned int i = 0; i < num_frames; ++i) {
         cameras.emplace_back(
-                (float[]) {5.0f, 0.0f, 0.0f}, // position
+                (float[]) {0.0f, 0.0f, 5.0f}, // position
                 (float[]) {0.0f, 0.0f, 0.0f}, // view
                 (float[]) {0.0f, 1.0f, 0.0f}, // up
-                (float[]) {40.0f, 30.0f},        // resolution
+                (float[]) {640.0f, 480.0f},        // resolution
                 (float[]) {35.0f, 35.0f},     // fov
                 5.0f                 // focal distance
         );
@@ -125,13 +126,13 @@ depth_map_to_pixels(const DepthMap &depth_map) {
 }
 
 /*
- * Given a camera, a set of N X,Y coordinates and a depth map, genertate camera space 3D coordinates
+ * Given a camera, a set of N X,Y coordinates and a depth map, generate camera space 3D coordinates
  * and return as an Nx3 matrix
  */
 static Eigen::MatrixX3f
-pixels_to_pointcloud(const Camera &camera,
-                     const std::vector<Pixel> &pixels,
-                     const DepthMap &depth_map) {
+project_pixels_to_pointcloud(const std::vector<Pixel> &pixels,
+                             const Camera &camera,
+                             const DepthMap &depth_map) {
     using namespace std;
 
     struct Point3D {
@@ -141,6 +142,9 @@ pixels_to_pointcloud(const Camera &camera,
 
         Point3D(float x, float y, float z) : x(x), y(y), z(z) {};
     };
+
+    // Compute Scale Factor
+    float scale = depth_map.cols() / camera.resolution[0];
 
     // Filter out zero depth points
     vector<Point3D> valid_points;
@@ -173,6 +177,22 @@ save_point_cloud(Eigen::MatrixX3f pointcloud, unsigned int level, unsigned int f
     ofstream file{file_name};
     for (int row = 0; row < pointcloud.rows(); ++row) {
         file << pointcloud(row, 0) << ", " << pointcloud(row, 1) << ", " << pointcloud(row, 2) << endl;
+    }
+}
+
+void save_normals(const std::vector<Pixel>& valid_pixels,
+        const DepthMap& depth_map,
+        unsigned int level,
+        unsigned int frame,
+        const char file_name_template[] ) {
+    using namespace std;
+
+    char file_name[strlen(file_name_template) + 1];
+    sprintf(file_name, file_name_template, level, frame);
+    ofstream file{file_name};
+    for (const auto& pixel : valid_pixels) {
+        auto normal = depth_map.normal_at(pixel.x, pixel.y);
+        file << normal.x << ", " << normal.y << ", " << normal.z << endl;
     }
 }
 
@@ -226,11 +246,7 @@ merge_groups(std::multimap<unsigned int, PixelInFrame> &group_to_pif,
 }
 
 std::vector<std::vector<Pixel>>
-extract_valid_pixels_for_level(
-        unsigned int level,
-        const std::vector<Camera> &cameras,
-        const std::vector<DepthMap> &depth_maps,
-        std::vector<Eigen::MatrixX3f> &point_clouds) {
+extract_valid_pixels_for_level(const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
     int frame_index = 0;
@@ -238,8 +254,6 @@ extract_valid_pixels_for_level(
     for (const auto &depth_map : depth_maps) {
         vector<Pixel> valid_pixels_in_frame = depth_map_to_pixels(depth_map);
         valid_pixels.push_back(valid_pixels_in_frame);
-        Eigen::MatrixX3f pc = pixels_to_pointcloud(cameras.at(frame_index), valid_pixels_in_frame, depth_map);
-        point_clouds.push_back(pc);
 
         frame_index++;
     }
@@ -247,9 +261,7 @@ extract_valid_pixels_for_level(
 }
 
 std::vector<std::vector<std::vector<Pixel>>>
-extract_valid_pixels_for_all_levels(const std::vector<Camera> &cameras,
-                                    const std::vector<std::vector<DepthMap>> &depth_map_hierarchy,
-                                    std::vector<std::vector<Eigen::MatrixX3f>> &point_clouds) {
+extract_valid_pixels_for_all_levels(const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
     using namespace std;
 
     int num_levels = depth_map_hierarchy.size();
@@ -257,14 +269,48 @@ extract_valid_pixels_for_all_levels(const std::vector<Camera> &cameras,
     vector<vector<vector<Pixel>>> valid_pixels_for_levels;
 
     while (level >= 0) {
-        cout << "Level : " << level << endl;
-        vector<Eigen::MatrixX3f> point_clouds_for_level;
-        valid_pixels_for_levels.push_back(
-                extract_valid_pixels_for_level(level, cameras, depth_map_hierarchy.at(level), point_clouds_for_level));
-        point_clouds.push_back(point_clouds_for_level);
+        cout << "Extracting valid pixels for level : " << level << endl;
+        valid_pixels_for_levels.push_back(extract_valid_pixels_for_level(depth_map_hierarchy.at(level)));
         --level;
     }
     return valid_pixels_for_levels;
+}
+
+std::vector<Eigen::MatrixX3f>
+project_pixels_to_point_clouds(const std::vector<std::vector<Pixel>>& valid_pixels,
+                               const std::vector<Camera> &cameras,
+                               const std::vector<DepthMap> &depth_maps) {
+    using namespace std;
+
+    std::vector<Eigen::MatrixX3f> point_clouds;
+
+    for( unsigned int frame = 0; frame < cameras.size(); ++frame ) {
+        point_clouds.push_back(project_pixels_to_pointcloud(valid_pixels.at(frame),
+                                                            cameras.at(frame),
+                                                            depth_maps.at(frame)));
+    }
+    return point_clouds;
+}
+
+std::vector<std::vector<Eigen::MatrixX3f>>
+project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>>& valid_pixels_for_levels,
+                               const std::vector<Camera> &cameras,
+                               const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
+    using namespace std;
+
+    int num_levels = depth_map_hierarchy.size();
+    int level = num_levels - 1;
+
+    std::vector<std::vector<Eigen::MatrixX3f>> point_clouds;
+    while (level >= 0) {
+        cout << "Computing pointclouds for level : " << level << endl;
+
+        point_clouds.push_back( project_pixels_to_point_clouds( valid_pixels_for_levels.at(level),
+                cameras,
+                depth_map_hierarchy.at(level)));
+        --level;
+    }
+    return point_clouds;
 }
 
 
@@ -404,17 +450,26 @@ int main(int argc, char *argv[]) {
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
 
     // Vector of level, frame, pixel index
-    vector<vector<Eigen::MatrixX3f>> point_clouds_for_all_levels;
+    vector<vector<vector<Pixel>>> valid_pixels_for_levels = extract_valid_pixels_for_all_levels(depth_map_hierarchy);
 
-    vector<vector<vector<Pixel>>> valid_pixels_for_levels = extract_valid_pixels_for_all_levels(cameras,
-                                                                                                depth_map_hierarchy,
-                                                                                                point_clouds_for_all_levels);
+    // Project valid pixels into point clouds
+    vector<vector<Eigen::MatrixX3f>> point_clouds_for_all_levels =
+    project_pixels_to_point_clouds(valid_pixels_for_levels, cameras, depth_map_hierarchy);
     for (unsigned int level = 0; level < point_clouds_for_all_levels.size(); ++level) {
         for (unsigned int frame = 0; frame < point_clouds_for_all_levels.at(level).size(); ++frame) {
             save_point_cloud(point_clouds_for_all_levels.at(level).at(frame), level, frame,
                              VALID_PIXL_POINT_CLOUD_TEMPLATE);
         }
     }
+
+    // Save also the normals for each valid pixel
+    for (unsigned int level = 0; level < valid_pixels_for_levels.size(); ++level) {
+        for (unsigned int frame = 0; frame < valid_pixels_for_levels.at(level).size(); ++frame) {
+            save_normals(valid_pixels_for_levels.at(level).at(frame), depth_map_hierarchy.at(level).at(frame), level, frame,
+                             NORMAL_TEMPLATE);
+        }
+    }
+
 
     // Now compute correspondences
     compute_and_save_correspondences(valid_pixels_for_levels);

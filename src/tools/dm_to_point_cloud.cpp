@@ -446,6 +446,11 @@ int main(int argc, char *argv[]) {
     // Load cameras
     vector<Camera> cameras = load_cameras(num_frames);
 
+    // Compute normals
+    for( unsigned int f = 0; f < num_frames; ++f ) {
+        depth_maps.at(f).compute_normals(cameras.at(f));
+    }
+
     // Construct the hierarchy: number of levels as specified in properties.
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
 
@@ -469,6 +474,7 @@ int main(int argc, char *argv[]) {
                              NORMAL_TEMPLATE);
         }
     }
+    return 1;
 
 
     // Now compute correspondences

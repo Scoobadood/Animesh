@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cassert>
+#include <Camera/Camera.h>
 
 class DepthMap {
 public:
@@ -65,7 +66,7 @@ public:
 	 */
 	DepthMap resample() const;
     NormalWithType normal_at(unsigned int x, unsigned int y) const;
-
+    void compute_normals(const Camera& camera);
 
 private:
 	float *depth_data;
@@ -77,8 +78,7 @@ private:
 	// row, col
 	std::vector<std::vector<tNormal>> normal_types;
 
-	void compute_normals();
-	void compute_natural_normals();
+	void compute_natural_normals(const Camera& camera);
 	void compute_derived_normals();
 
 	inline unsigned int index(unsigned int row, unsigned int col) const {

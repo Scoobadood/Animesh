@@ -95,7 +95,6 @@ load_depth_maps(const std::string& source_directory, float ts, float tl) {
         cout << " \r" << ++count << " of " << target << flush;
         depth_maps.emplace_back(file_name);
         depth_maps.back().cull_unreliable_depths(ts, tl);
-        depth_maps.back().get_normals();
     }
     cout << endl << "Read " << depth_maps.size() << " depth maps." << endl;
 

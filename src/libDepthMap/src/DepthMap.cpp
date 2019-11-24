@@ -7,6 +7,9 @@
 #include <cstring>
 #include <algorithm>
 #include <fstream>
+#include "../../libCamera/include/Camera/Camera.h"
+
+const bool DUMP_NORMALS = true;
 
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
@@ -267,10 +270,12 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
  * Compute normals that have all adjacent data set in the depth map,
  * that is, those normals which can be computed fully from depth data alone.
  * // TODO: An alternative approach is here: https://cromwell-intl.com/3d/normals.html
+ * // Currently using this: https://stackoverflow.com/questions/34644101/calculate-surface-normals-from-depth-image-using-neighboring-pixels-cross-produc
+ *
  *
  */
 void
-DepthMap::compute_natural_normals() {
+DepthMap::compute_natural_normals(const Camera& camera) {
     using namespace std;
 
 
@@ -280,6 +285,9 @@ DepthMap::compute_natural_normals() {
         // Temp storage for the row's type and normals
         vector<vector<float>> current_row_normals;
         vector<tNormal> current_row_normal_types;
+
+        // Compute the scale factor from depths to pixels
+
 
         // For each column
         for (int col = 0; col < cols(); ++col) {
@@ -302,13 +310,27 @@ DepthMap::compute_natural_normals() {
                 continue;
             }
 
+            // Backproject the depths
+            // TODO: This is super slow and we sill be calculating the same points over and over
+            // We should avoid this if possible by back projecting all points once
+
             // Otherwise I have a natural normal
-            float dzdx = neighbour_depths[3] - neighbour_depths[2];
-            float dzdy = neighbour_depths[1] - neighbour_depths[0];
-            float scale = sqrt(dzdx * dzdx + dzdy * dzdy + 1.0f);
-            dzdx /= scale;
-            dzdy /= scale;
-            vector<float> norm{-dzdx, -dzdy, 1.0f / scale};
+            Eigen::Vector3f a = backproject(camera, col+1, row, neighbour_depths[3]);
+            Eigen::Vector3f b = backproject(camera, col-1, row, neighbour_depths[2]);
+            Eigen::Vector3f c1 = a - b;
+//            float dzdx = (c[2] / c[0]);
+//            float dzdx = (neighbour_depths[3] - neighbour_depths[2]) / 2.0f;
+            a = backproject(camera, col, row+1, neighbour_depths[1]);
+            b = backproject(camera, col, row-1, neighbour_depths[0]);
+            Eigen::Vector3f c2 = a - b;
+//            float dzdy = (c[2] / c[0]);
+//            float dzdy = (neighbour_depths[1] - neighbour_depths[0]) / 2.0f;
+//            float scale = sqrt(dzdx * dzdx + dzdy * dzdy + 1.0f);
+//            dzdx /= scale;
+//            dzdy /= scale;
+            auto n = c1.cross(c2);
+            n.normalize();
+            vector<float> norm{n(0), n(1), n(2)};
             current_row_normals.push_back(norm);
             current_row_normal_types.push_back(NATURAL);
         }
@@ -366,58 +388,6 @@ DepthMap::compute_derived_normals() {
     }
 }
 
-/**
- * Compute the surface normals for each point in the
- * depth map.
- */
-void
-DepthMap::compute_normals() {
-    using namespace std;
-
-    compute_natural_normals();
-    compute_derived_normals();
-
-
-    // Validation
-    int natural_norm_count = 0;
-    int derived_norm_count = 0;
-    int zero_norms = 0;
-    for (int r = 0; r < rows(); ++r) {
-        for (int c = 0; c < cols(); ++c) {
-            auto norm_type = normal_types.at(r).at(c);
-            if (norm_type == NONE) {
-                zero_norms++;
-                continue;
-            }
-            if (norm_type == DERIVED) {
-                derived_norm_count++;
-            } else {
-                natural_norm_count++;
-            }
-            // Check that norm is legal
-            const auto& normal = normals.at(r).at(c);
-            float norm_length = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-            if (isnan(norm_length)) {
-                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural" ) << " normal at r:" << r << ", c:" << c << endl;
-            } else
-            if (norm_length == 0.0) {
-                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at r:" << r << ", c:" << c << endl;
-            } else
-            if (abs(norm_length - 1.0) > 1e-3) {
-                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal ("<<norm_length<<") at r:" << r << ", c:" << c << endl;
-            }
-            if( norm_length == 0.0) zero_norms++;
-        }
-    }
-    if (derived_norm_count + natural_norm_count < 5) {
-        cout << "Suspiciously low normal counts derived: " << derived_norm_count << ", natural:" << natural_norm_count
-             << endl;
-    }
-        cout << endl << zero_norms << " zero norms out of  " << (normal_types.size() * normal_types.at(0).size())
-             << endl;
-
-    //
-}
 
 /**
  * Return the normals. Compute them if needed.
@@ -426,7 +396,7 @@ const std::vector<std::vector<std::vector<float>>> &
 DepthMap::get_normals() const {
     using namespace std;
     if (normals.size() == 0) {
-        (const_cast<DepthMap *>(this))->compute_normals();
+        throw runtime_error("Normals not calculated. Call compute_normalsd() first");
     }
     return normals;
 }
@@ -440,6 +410,7 @@ normal_to_colour( const std::vector<float>& normal ) {
     rgb.push_back(round((normal.at(2) + 1.0f) * 255 * 0.5));
     return rgb;
 }
+
 /**
  * Return true if the normal at the given coordinates is defined, i.e.
  * has a non-0 length.
@@ -449,28 +420,8 @@ normal_to_colour( const std::vector<float>& normal ) {
 bool
 DepthMap::is_normal_defined(unsigned int row, unsigned int col) const {
     using namespace std;
-    volatile bool dumpNormals = true;
     if (normals.size() == 0) {
-        (const_cast<DepthMap *>(this))->compute_normals();
-        // DEBUG
-        if( dumpNormals) {
-            ofstream n1("/Users/dave/Desktop/normal_types.pgm");
-            ofstream n2("/Users/dave/Desktop/normals.ppm");
-            n1 << "P2" << endl << cols() << " " << rows() << endl << "5" << endl;
-            n2 << "P3" << endl << cols() << " " << rows() << endl << "255" << endl;
-            for( int row = 0; row < normals.size(); ++row ) {
-                for( int col = 0; col < normals.at(row).size(); ++col ) {
-                    auto t = normal_types.at(row).at(col);
-                    n1 << (t == NONE ? "0" : ( t == DERIVED ? "1" : ( t== NATURAL ? "2" : "3"))) << " ";
-                    auto n = normals.at(row).at(col);
-                    auto nc = normal_to_colour(n);
-                    n2 <<  nc.at(0) << " " << nc.at(1) << " " << nc.at(2) << "     ";
-                }
-                n1 << endl;
-                n2 << endl;
-            }
-        }
-        // END DEBUG
+        throw runtime_error("Normals not calculated. Call compute_normalsd() first");
     }
     vector<float> n = normals.at(row).at(col);
     return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
@@ -536,4 +487,76 @@ DepthMap::resample() const {
 DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
     NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1), normals.at(y).at(x).at(2) };
     return n;
+}
+/**
+ * Compute the surface normals for each point in the
+ * depth map.
+ */
+void
+DepthMap::compute_normals(const Camera& camera) {
+    using namespace std;
+
+
+    compute_natural_normals(camera);
+    compute_derived_normals();
+
+
+    // Validation
+    int natural_norm_count = 0;
+    int derived_norm_count = 0;
+    int zero_norms = 0;
+    for (int r = 0; r < rows(); ++r) {
+        for (int c = 0; c < cols(); ++c) {
+            auto norm_type = normal_types.at(r).at(c);
+            if (norm_type == NONE) {
+                zero_norms++;
+                continue;
+            }
+            if (norm_type == DERIVED) {
+                derived_norm_count++;
+            } else {
+                natural_norm_count++;
+            }
+            // Check that norm is legal
+            const auto& normal = normals.at(r).at(c);
+            float norm_length = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+            if (isnan(norm_length)) {
+                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural" ) << " normal at r:" << r << ", c:" << c << endl;
+            } else
+            if (norm_length == 0.0) {
+                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at r:" << r << ", c:" << c << endl;
+            } else
+            if (abs(norm_length - 1.0) > 1e-3) {
+                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal ("<<norm_length<<") at r:" << r << ", c:" << c << endl;
+            }
+            if( norm_length == 0.0) zero_norms++;
+        }
+    }
+    if (derived_norm_count + natural_norm_count < 5) {
+        cout << "Suspiciously low normal counts derived: " << derived_norm_count << ", natural:" << natural_norm_count
+             << endl;
+    }
+    cout << endl << zero_norms << " zero norms out of  " << (normal_types.size() * normal_types.at(0).size())
+         << endl;
+
+    //
+    // DEBUG
+    if( DUMP_NORMALS) {
+        ofstream n1("/Users/dave/Desktop/normal_types.pgm");
+        ofstream n2("/Users/dave/Desktop/normals.ppm");
+        n1 << "P2" << endl << cols() << " " << rows() << endl << "5" << endl;
+        n2 << "P3" << endl << cols() << " " << rows() << endl << "255" << endl;
+        for( int row = 0; row < normals.size(); ++row ) {
+            for( int col = 0; col < normals.at(row).size(); ++col ) {
+                auto t = normal_types.at(row).at(col);
+                n1 << (t == NONE ? "0" : ( t == DERIVED ? "1" : ( t== NATURAL ? "2" : "3"))) << " ";
+                auto n = normals.at(row).at(col);
+                auto nc = normal_to_colour(n);
+                n2 <<  nc.at(0) << " " << nc.at(1) << " " << nc.at(2) << "     ";
+            }
+            n1 << endl;
+            n2 << endl;
+        }
+    }
+    // END DEBUG
 }

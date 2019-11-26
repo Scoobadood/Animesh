@@ -420,10 +420,7 @@ normal_to_colour( const std::vector<float>& normal ) {
 bool
 DepthMap::is_normal_defined(unsigned int row, unsigned int col) const {
     using namespace std;
-    if (normals.size() == 0) {
-        throw runtime_error("Normals not calculated. Call compute_normalsd() first");
-    }
-    vector<float> n = normals.at(row).at(col);
+    vector<float> n = get_normals().at(row).at(col);
     return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
 }
 
@@ -485,6 +482,7 @@ DepthMap::resample() const {
 }
 
 DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
+    get_normals();
     NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1), normals.at(y).at(x).at(2) };
     return n;
 }
@@ -536,8 +534,10 @@ DepthMap::compute_normals(const Camera& camera) {
         cout << "Suspiciously low normal counts derived: " << derived_norm_count << ", natural:" << natural_norm_count
              << endl;
     }
-    cout << endl << zero_norms << " zero norms out of  " << (normal_types.size() * normal_types.at(0).size())
-         << endl;
+    int num_norms = normal_types.size() * normal_types.at(0).size();
+    if( ((zero_norms * 100) / num_norms) > 95) {
+        cout << "Suspiciously high zero norms : " << zero_norms << " out of  " << num_norms << endl;
+    }
 
     //
     // DEBUG

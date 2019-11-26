@@ -16,4 +16,4 @@
  * is a PixelInFrame
  */
 std::vector<std::vector<PixelInFrame>>
-compute_correspondences(const std::vector<Camera>& cameras, const std::vector<DepthMap>& depth_maps);
+compute_correspondences(const std::vector<Camera> &cameras, const std::vector<DepthMap> &depth_maps);

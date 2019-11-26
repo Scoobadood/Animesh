@@ -12,23 +12,26 @@ load_correspondences_from_file(const std::string &file_name,
                                std::vector<std::vector<PixelInFrame>> &correspondences) {
     using namespace std;
 
-    cout << "Loading correspondences from " << file_name << "..." << flush;
+    cout << "Loading correspondences from " << file_name << endl;
 
     ifstream file{file_name, ios::out | ios::binary};
-    if( file.fail()) {
-        throw  runtime_error("Failed to open file " + file_name);
+    if (file.fail()) {
+        throw runtime_error("Failed to open file " + file_name);
     }
 
-    unsigned int num_correspondences = read_unsigned_int( file);
+    unsigned int num_correspondences = read_unsigned_int(file);
     correspondences.clear();
     correspondences.reserve(num_correspondences);
 
-    for( unsigned int i=0; i< num_correspondences; ++i ) {
-        unsigned int num_entries = read_unsigned_int( file);
+
+    int count = 0;
+    for (unsigned int i = 0; i < num_correspondences; ++i) {
+        cout << " \r" << ++count << " of " << num_correspondences << flush;
+        unsigned int num_entries = read_unsigned_int(file);
         vector<PixelInFrame> correspondence;
         correspondence.reserve(num_entries);
 
-        for( unsigned int j=0; j<num_entries; ++j) {
+        for (unsigned int j = 0; j < num_entries; ++j) {
             // PixelInFrame
             unsigned int frame = read_unsigned_int(file);
             unsigned int x = read_unsigned_int(file);
@@ -50,15 +53,15 @@ save_correspondences_to_file(const std::string &file_name,
 
     ofstream file{file_name, ios::out | ios::binary};
     // Count
-    write_unsigned_int( file, correspondences.size());
-    for( auto const & correspondence : correspondences) {
+    write_unsigned_int(file, correspondences.size());
+    for (auto const &correspondence : correspondences) {
         // Number of entries
-        write_unsigned_int( file, correspondence.size());
-        for( auto const &  pixel_in_frame  : correspondence) {
+        write_unsigned_int(file, correspondence.size());
+        for (auto const &pixel_in_frame  : correspondence) {
             // PixelInFrame
-            write_unsigned_int( file, pixel_in_frame.frame);
-            write_unsigned_int( file, pixel_in_frame.pixel.x);
-            write_unsigned_int( file, pixel_in_frame.pixel.y);
+            write_unsigned_int(file, pixel_in_frame.frame);
+            write_unsigned_int(file, pixel_in_frame.pixel.x);
+            write_unsigned_int(file, pixel_in_frame.pixel.y);
         }
     }
     file.close();

@@ -169,7 +169,6 @@ get_correspondences(const Properties &properties,
         snprintf(buf.get(), size, corr_file_template.c_str(), level);
         string file_name = std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 
-        cout << "Loading correspondences from file " << file_name << endl;
         load_correspondences_from_file(file_name, correspondences);
     } else {
         cout << "Computing correspondences from scratch" << endl;

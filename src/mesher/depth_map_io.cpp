@@ -82,8 +82,9 @@ std::vector<DepthMap>
 load_depth_maps(const std::string& source_directory, float ts, float tl) {
     using namespace std;
 
-    vector<DepthMap> depth_maps;
+    cout << "Loading depth maps from " << source_directory << endl;
 
+    vector<DepthMap> depth_maps;
     vector<string> depth_file_names = get_depth_files_in_directory(source_directory);
     if (depth_file_names.empty()) {
         throw runtime_error("No depth images found in " + source_directory);
@@ -92,11 +93,11 @@ load_depth_maps(const std::string& source_directory, float ts, float tl) {
     int count = 0;
     int target = depth_file_names.size();
     for (const auto &file_name : depth_file_names) {
-        cout << " \r" << ++count << " of " << target << flush;
+        cout << " \r  " << ++count << " of " << target << flush;
         depth_maps.emplace_back(file_name);
         depth_maps.back().cull_unreliable_depths(ts, tl);
     }
-    cout << endl << "Read " << depth_maps.size() << " depth maps." << endl;
+    cout << endl << "  done. " << endl;
 
     return depth_maps;
 }

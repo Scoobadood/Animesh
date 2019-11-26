@@ -48,6 +48,7 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
     vector<DepthMap> resampled_depth_maps;
+    resampled_depth_maps.reserve(depth_maps.size());
     for (const auto &dm : depth_maps) {
         resampled_depth_maps.push_back(dm.resample());
     }
@@ -143,9 +144,6 @@ project_pixels_to_pointcloud(const std::vector<Pixel> &pixels,
         Point3D(float x, float y, float z) : x(x), y(y), z(z) {};
     };
 
-    // Compute Scale Factor
-    float scale = depth_map.cols() / camera.resolution[0];
-
     // Filter out zero depth points
     vector<Point3D> valid_points;
     for (const auto &pixel : pixels) {
@@ -175,7 +173,7 @@ save_point_cloud(Eigen::MatrixX3f pointcloud, unsigned int level, unsigned int f
     char file_name[strlen(file_name_template) + 1];
     sprintf(file_name, file_name_template, level, frame);
     ofstream file{file_name};
-    for (int row = 0; row < pointcloud.rows(); ++row) {
+    for (unsigned int row = 0; row < pointcloud.rows(); ++row) {
         file << pointcloud(row, 0) << ", " << pointcloud(row, 1) << ", " << pointcloud(row, 2) << endl;
     }
 }
@@ -200,11 +198,11 @@ void
 compute_correspondences(unsigned int level,
                         unsigned int frame,
                         std::map<unsigned int, unsigned int> &correspondence,
-                        const char file_name_template[]) {
-    char fixedPoints[strlen(file_name_template) + 1];
-    char movingPoints[strlen(file_name_template) + 1];
-    sprintf(movingPoints, file_name_template, level, frame);
-    sprintf(fixedPoints, file_name_template, level, frame + 1);
+                        const std::string& file_name_template) {
+    char fixedPoints[file_name_template.length() + 1];
+    char movingPoints[file_name_template.length() + 1];
+    sprintf(movingPoints, file_name_template.c_str(), level, frame);
+    sprintf(fixedPoints, file_name_template.c_str(), level, frame + 1);
 
     cpd::Matrix fixed = cpd::matrix_from_path(fixedPoints);
     cpd::Matrix moving = cpd::matrix_from_path(movingPoints);
@@ -216,7 +214,7 @@ compute_correspondences(unsigned int level,
     cpd::RigidResult result = rigid.run(fixed, moving);
 
     correspondence.clear();
-    for (int i = 0; i < result.correspondence.size(); ++i) {
+    for (unsigned int i = 0; i < result.correspondence.size(); ++i) {
         correspondence.emplace(i, result.correspondence(i));
     }
 }
@@ -268,8 +266,8 @@ extract_valid_pixels_for_all_levels(const std::vector<std::vector<DepthMap>> &de
     int level = num_levels - 1;
     vector<vector<vector<Pixel>>> valid_pixels_for_levels;
 
-    while (level >= 0) {
-        cout << "Extracting valid pixels for level : " << level << endl;
+    for( unsigned int level = 0; level < num_levels; ++level) {
+        cout << "Extracting valid pixels for level : " << (level + 1)<< endl;
         valid_pixels_for_levels.push_back(extract_valid_pixels_for_level(depth_map_hierarchy.at(level)));
         --level;
     }
@@ -369,7 +367,8 @@ update_correspondence_groups(
 std::multimap<unsigned int, PixelInFrame>
 compute_correspondences_for_level(
         unsigned int level,
-        const std::vector<std::vector<Pixel>> &valid_pixels_for_level) {
+        const std::vector<std::vector<Pixel>> &valid_pixels_for_level,
+        const std::string& pointcloud_file_name_template) {
     using namespace std;
     using namespace std::chrono;
 
@@ -385,7 +384,7 @@ compute_correspondences_for_level(
         cout << "  From frame: " << from_frame << " to frame: " << (from_frame + 1) << endl;
         // Gen correspondences
         std::map<unsigned int, unsigned int> corr;
-        compute_correspondences(level, from_frame, corr, VALID_PIXL_POINT_CLOUD_TEMPLATE);
+        compute_correspondences(level, from_frame, corr, pointcloud_file_name_template);
 
         milliseconds duration = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - start;
         float elapsed = (duration.count() - (duration.count() % 100)) / 1000.0f;
@@ -418,15 +417,18 @@ write_correspondences_to_file(
     }
 }
 
-void compute_and_save_correspondences(const std::vector<std::vector<std::vector<Pixel>>> &valid_pixels_for_levels) {
+void compute_and_save_correspondences(
+        const std::vector<std::vector<std::vector<Pixel>>> &valid_pixels_for_levels,
+        const std::string& pointcloud_file_name_template) {
     using namespace std;
 
     // Returning results which we _also_ write to file.
     int level = valid_pixels_for_levels.size() - 1;
     while (level >= 0) {
-        multimap<unsigned int, PixelInFrame> group_to_pif = compute_correspondences_for_level(level,
-                                                                                              valid_pixels_for_levels.at(
-                                                                                                      level));
+        multimap<unsigned int, PixelInFrame> group_to_pif = compute_correspondences_for_level(
+                level,
+                valid_pixels_for_levels.at(level),
+                pointcloud_file_name_template);
         write_correspondences_to_file(level, group_to_pif);
         --level;
     }
@@ -474,13 +476,9 @@ int main(int argc, char *argv[]) {
                              NORMAL_TEMPLATE);
         }
     }
-    return 1;
-
 
     // Now compute correspondences
-    compute_and_save_correspondences(valid_pixels_for_levels);
+    compute_and_save_correspondences(valid_pixels_for_levels, VALID_PIXL_POINT_CLOUD_TEMPLATE);
 
     return 0;
 }
-
-

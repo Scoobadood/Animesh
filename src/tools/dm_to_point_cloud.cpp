@@ -17,6 +17,7 @@
 #include <fstream>
 #include "../mesher/types.h"
 #include "../mesher/depth_map_io.h"
+#include "../mesher/correspondences_io.h"
 
 #include <cpd/gauss_transform_fgt.hpp>
 //#include <cpd/jsoncpp.hpp>
@@ -269,7 +270,6 @@ extract_valid_pixels_for_all_levels(const std::vector<std::vector<DepthMap>> &de
     for( unsigned int level = 0; level < num_levels; ++level) {
         cout << "Extracting valid pixels for level : " << (level + 1)<< endl;
         valid_pixels_for_levels.push_back(extract_valid_pixels_for_level(depth_map_hierarchy.at(level)));
-        --level;
     }
     return valid_pixels_for_levels;
 }
@@ -301,7 +301,7 @@ project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>
 
 
     std::vector<std::vector<Eigen::MatrixX3f>> point_clouds;
-    while (level >= 0) {
+    for( unsigned int level = 0; level < num_levels; ++level) {
         cout << "Computing pointclouds for level : " << level << endl;
 
         // Clone cameras
@@ -318,7 +318,6 @@ project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>
         point_clouds.push_back( project_pixels_to_point_clouds( valid_pixels_for_levels.at(level),
                 level_cameras,
                 depth_map_hierarchy.at(level)));
-        --level;
     }
     return point_clouds;
 }
@@ -429,6 +428,34 @@ write_correspondences_to_file(
     }
 }
 
+std::vector<std::multimap<unsigned int, PixelInFrame>>
+compute_correspondences(
+        const std::vector<std::vector<std::vector<Pixel>>> &valid_pixels_for_levels,
+        const std::string& pointcloud_file_name_template) {
+    using namespace std;
+
+    vector<multimap<unsigned int, PixelInFrame>> corrs_by_level;
+
+    // Returning results which we _also_ write to file.
+    for( unsigned int level = 0; level < valid_pixels_for_levels.size(); ++level) {
+        multimap<unsigned int, PixelInFrame> group_to_pif = compute_correspondences_for_level(
+                level,
+                valid_pixels_for_levels.at(level),
+                pointcloud_file_name_template);
+        corrs_by_level.push_back(group_to_pif);
+    }
+    return corrs_by_level;
+}
+
+void
+write_correspondences(const std::vector<std::multimap<unsigned int, PixelInFrame>>& correspondences ) {
+    unsigned int level = 0;
+    for( const auto& level_corrs : correspondences ) {
+        write_correspondences_to_file(level, level_corrs);
+        ++level;
+    }
+}
+
 void compute_and_save_correspondences(
         const std::vector<std::vector<std::vector<Pixel>>> &valid_pixels_for_levels,
         const std::string& pointcloud_file_name_template) {
@@ -460,13 +487,15 @@ int main(int argc, char *argv[]) {
     // Load cameras
     vector<Camera> cameras = load_cameras(num_frames);
 
-    // Compute normals
-    for( unsigned int f = 0; f < num_frames; ++f ) {
-        depth_maps.at(f).compute_normals(cameras.at(f));
-    }
-
     // Construct the hierarchy: number of levels as specified in properties.
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
+
+    // Compute normals
+    for (unsigned int l = 0; l < depth_map_hierarchy.size(); ++l) {
+        for (unsigned int f = 0; f < num_frames; ++f) {
+            depth_map_hierarchy.at(l).at(f).compute_normals(cameras.at(f));
+        }
+    }
 
     // Vector of level, frame, pixel index
     vector<vector<vector<Pixel>>> valid_pixels_for_levels = extract_valid_pixels_for_all_levels(depth_map_hierarchy);
@@ -490,7 +519,31 @@ int main(int argc, char *argv[]) {
     }
 
     // Now compute correspondences
-    compute_and_save_correspondences(valid_pixels_for_levels, VALID_PIXL_POINT_CLOUD_TEMPLATE);
+    vector<multimap<unsigned int, PixelInFrame>> corrs_by_level = compute_correspondences(valid_pixels_for_levels, VALID_PIXL_POINT_CLOUD_TEMPLATE);
+    write_correspondences(corrs_by_level);
 
+
+    // TEMPORARY FUDGE TO READ CORRS FROM FILE RATHER THAN GENERATE THEM
+    
+    // END FUDGE
+
+    // Cluster and write to level files.
+    unsigned int level = 0;
+    for( const auto& corrs_for_level : corrs_by_level) {
+        // Convert multimap of pif to vec<vec<pif>>
+        vector<vector<PixelInFrame>> out;
+        for (auto it1 = corrs_for_level.begin(), it2 = it1, end = corrs_for_level.end(); it1 != end; it1 = it2){
+            out.emplace_back();
+            for ( ; it1->first == it2->first; ++it2){
+                out.back().push_back(it2->second);
+            }
+        }
+
+
+        cout << "Saving level " << level << "correspondences" << endl;
+        char file_name[1024];
+        sprintf(file_name, "level_%02d_corr.bin", level);
+        save_correspondences_to_file(file_name, out);
+    }
     return 0;
 }

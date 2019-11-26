@@ -299,12 +299,24 @@ project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>
     int num_levels = depth_map_hierarchy.size();
     int level = num_levels - 1;
 
+
     std::vector<std::vector<Eigen::MatrixX3f>> point_clouds;
     while (level >= 0) {
         cout << "Computing pointclouds for level : " << level << endl;
 
+        // Clone cameras
+        std::vector<Camera> level_cameras;
+        for( const auto& camera : cameras ) {
+            Camera lc{camera.position, camera.view, camera.up, camera.resolution, camera.fov, camera.focalDistance};
+            lc.resolution[0] /= (1 << level);
+            lc.resolution[1] /= (1 << level);
+
+            level_cameras.push_back(lc);
+        }
+
+        // Transform cameras for this level by adjusting their screen resolution
         point_clouds.push_back( project_pixels_to_point_clouds( valid_pixels_for_levels.at(level),
-                cameras,
+                level_cameras,
                 depth_map_hierarchy.at(level)));
         --level;
     }

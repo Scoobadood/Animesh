@@ -518,15 +518,17 @@ int main(int argc, char *argv[]) {
         }
     }
 
+#ifndef FUDGE_FLAG
     // Now compute correspondences
     vector<multimap<unsigned int, PixelInFrame>> corrs_by_level = compute_correspondences(valid_pixels_for_levels, VALID_PIXL_POINT_CLOUD_TEMPLATE);
     write_correspondences(corrs_by_level);
 
-
+#else
     // TEMPORARY FUDGE TO READ CORRS FROM FILE RATHER THAN GENERATE THEM
-    
-    // END FUDGE
 
+
+        // END FUDGE
+#endif
     // Cluster and write to level files.
     unsigned int level = 0;
     for( const auto& corrs_for_level : corrs_by_level) {

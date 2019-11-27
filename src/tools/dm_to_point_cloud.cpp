@@ -38,6 +38,12 @@ void usage(const std::string &prog_name) {
     exit(-1);
 }
 
+/**
+ * Return a vector of Pixel coordinates for only those pixels in a frame which are 'valid'
+ * Valid in this context menas that they have non-zero depth and a well defined normal.
+ * @param depth_map
+ * @return
+ */
 static std::vector<Pixel>
 depth_map_to_pixels(const DepthMap &depth_map) {
     using namespace std;
@@ -47,7 +53,7 @@ depth_map_to_pixels(const DepthMap &depth_map) {
     for (unsigned int r = 0; r < depth_map.rows(); ++r) {
         for (unsigned int c = 0; c < depth_map.cols(); ++c) {
             float depth = depth_map.depth_at(r, c);
-            if (depth > 0.0f) {
+            if( depth_map.is_normal_defined(r, c)) {
                 valid_pixels.emplace_back(c, r);
             }
         }

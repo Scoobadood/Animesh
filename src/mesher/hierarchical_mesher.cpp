@@ -146,7 +146,7 @@ create_depth_map_hierarchy(const Properties &properties, const std::vector<Depth
     cout << "1 of " << num_levels << "    " << flush;
     for (int i = 2; i <= num_levels; i++) {
         cout << "\r" << i << " of " << num_levels << "    " << flush;
-        depth_map_hierarchy.push_back(resample_depth_maps(depth_maps));
+        depth_map_hierarchy.push_back(resample_depth_maps(depth_map_hierarchy.at(i-2)));
     }
     cout << endl;
 
@@ -205,6 +205,12 @@ int main(int argc, char *argv[]) {
     // Construct the hierarchy: number of levels as specified in properties.
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
     int num_levels = depth_map_hierarchy.size();
+    // Compute normals
+    for (unsigned int l = 0; l < num_levels; ++l) {
+        for (unsigned int f = 0; f < num_frames; ++f) {
+            depth_map_hierarchy.at(l).at(f).compute_normals(cameras.at(f));
+        }
+    }
 
     // For each level
     int level = num_levels - 1;

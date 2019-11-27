@@ -546,6 +546,7 @@ int main(int argc, char *argv[]) {
         char file_name[1024];
         sprintf(file_name, "level_%02d_corr.bin", level);
         save_correspondences_to_file(file_name, out);
+        ++level;
     }
     return 0;
 }

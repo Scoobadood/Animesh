@@ -13,18 +13,8 @@
 #include "../mesher/io_utils.h"
 #include "../mesher/correspondences_compute.h"
 #include "../mesher/correspondences_io.h"
+#include "../mesher/utilities.h"
 
-
-std::vector<DepthMap>
-resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
-    using namespace std;
-
-    vector<DepthMap> resampled_depth_maps;
-    for (const auto &dm : depth_maps) {
-        resampled_depth_maps.push_back(dm.resample());
-    }
-    return resampled_depth_maps;
-}
 
 int main(int argc, char *argv[]) {
     using namespace std;
@@ -66,14 +56,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Construct the hierarchy
-    cout << "Constructing depth map hierarchy" << endl;
-    int num_levels = p.getIntProperty("num-levels");
-    for (int i = 0; i < num_levels; i++) {
-        cout << "\r" << i << " of " << num_levels << "    " << flush;
-        depth_maps = resample_depth_maps(depth_maps);
-        depth_map_hierarchy.push_back(depth_maps);
-    }
-    cout << endl;
+    depth_map_hierarchy = create_depth_map_hierarchy(p, depth_maps);
+    int num_levels = depth_maps.size();
 
     // For each level
     int level = num_levels - 1;

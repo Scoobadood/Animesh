@@ -86,6 +86,7 @@ add_executable(corr_util
 		../mesher/correspondences_io.cpp ../mesher/correspondences_io.h
 		../mesher/depth_map_io.cpp ../mesher/depth_map_io.h
 		../mesher/types.h
+		../mesher/utilities.h ../mesher/utilities.cpp
 		)
 
 
@@ -102,6 +103,7 @@ add_executable(dm_to_point_cloud
 		../mesher/correspondences_io.cpp ../mesher/correspondences_io.h
 		../mesher/depth_map_io.cpp ../mesher/depth_map_io.h
 		../mesher/types.h
+		../mesher/utilities.h ../mesher/utilities.cpp
 		)
 
 target_link_libraries(dm_to_point_cloud

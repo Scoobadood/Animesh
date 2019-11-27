@@ -82,28 +82,6 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
     }
 }
 
-
-/**
- * Load the cameras (one per frame)
- */
-std::vector<Camera>
-load_cameras(unsigned int num_frames) {
-    std::vector<Camera> cameras;
-    // TODO: Move to loading these from disk rather than constructing by hand.
-    cameras.reserve(num_frames);
-    for (unsigned int i = 0; i < num_frames; ++i) {
-        cameras.emplace_back(
-                (float[]) {5.0f, 0.0f, 0.0f}, // position
-                (float[]) {0.0f, 0.0f, 0.0f}, // view
-                (float[]) {0.0f, 1.0f, 0.0f}, // up
-                (float[]) {40.0f, 30.0f},        // resolution
-                (float[]) {35.0f, 35.0f},     // fov
-                5.0f                 // focal distance
-        );
-    }
-    return cameras;
-}
-
 std::vector<std::vector<PixelInFrame>>
 get_correspondences(const Properties &properties,
                     unsigned int level,

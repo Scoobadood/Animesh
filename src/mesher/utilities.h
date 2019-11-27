@@ -25,4 +25,12 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps);
  */
 std::vector<std::vector<DepthMap>>
 create_depth_map_hierarchy(const Properties &properties, const std::vector<DepthMap> &depth_maps);
+
+
+/**
+ * Load the cameras (one per frame)
+ */
+std::vector<Camera>
+load_cameras(unsigned int num_frames);
+
 #endif //ANIMESH_UTILITIES_H

@@ -38,27 +38,6 @@ void usage(const std::string &prog_name) {
     exit(-1);
 }
 
-/**
- * Load the cameras (one per frame)
- */
-std::vector<Camera>
-load_cameras(unsigned int num_frames) {
-    std::vector<Camera> cameras;
-    // TODO: Move to loading these from disk rather than constructing by hand.
-    cameras.reserve(num_frames);
-    for (unsigned int i = 0; i < num_frames; ++i) {
-        cameras.emplace_back(
-                (float[]) {0.0f, 0.0f, 5.0f}, // position
-                (float[]) {0.0f, 0.0f, 0.0f}, // view
-                (float[]) {0.0f, 1.0f, 0.0f}, // up
-                (float[]) {640.0f, 480.0f},        // resolution
-                (float[]) {35.0f, 35.0f},     // fov
-                5.0f                 // focal distance
-        );
-    }
-    return cameras;
-}
-
 static std::vector<Pixel>
 depth_map_to_pixels(const DepthMap &depth_map) {
     using namespace std;

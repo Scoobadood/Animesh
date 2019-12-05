@@ -31,15 +31,19 @@ public class StateToGlData {
           Pair<Vector3f, Vector3f> p = StateUtilities.projectSurfelToFrame(s, fd);
           Vector3f pointInSpace = camera.backproject((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
 
+          System.out.println( String.format("Point in space: %0.2f %0.2f %0.2f", pointInSpace.x, pointInSpace.y, pointInSpace.z) );
+          System.out.println( String.format(" Normal: %0.2f %0.2f %0.2f", p.second.x, p.second.y, p.second.z) );
+          System.out.println( String.format("    Tan: %0.2f %0.2f %0.2f", p.first.x, p.first.y, p.first.z) );
+
           // Get the point in 3-space
           listBuilder.add(pointInSpace.x);
           listBuilder.add(pointInSpace.y);
           listBuilder.add(pointInSpace.z);
 
           // Push normal
-          listBuilder.add(pointInSpace.x + pointInSpace.x * NORM_SCALE);
-          listBuilder.add(pointInSpace.y + pointInSpace.y * NORM_SCALE);
-          listBuilder.add(pointInSpace.z + pointInSpace.z * NORM_SCALE);
+          listBuilder.add(pointInSpace.x + p.second.x * NORM_SCALE);
+          listBuilder.add(pointInSpace.y + p.second.y * NORM_SCALE);
+          listBuilder.add(pointInSpace.z + p.second.z * NORM_SCALE);
 
           // Get the point in 3-space
           listBuilder.add(pointInSpace.x);

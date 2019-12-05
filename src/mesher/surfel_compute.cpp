@@ -13,6 +13,8 @@
 
 #include "correspondences_compute.h"
 
+#undef CONNECT_STRATEGY_8
+
 /*
 	********************************************************************************
 	**																			  **
@@ -79,10 +81,11 @@ are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2) {
     if (dx == 0 && dy == 0) {
         return false;
     }
-    if (std::abs(dx) <= 1 && std::abs(dy) <= 1) {
-        return true;
-    }
-    return false;
+#ifdef CONNECT_STRATEGY_8
+    return( (std::abs(dx) <= 1 && std::abs(dy) <= 1) );
+#else
+    return ((std::abs(dx) + std::abs(dy)) == 1);
+#endif
 }
 
 /**
@@ -120,8 +123,8 @@ are_neighbours(const Surfel &surfel1, const Surfel &surfel2) {
     auto it1 = fd1.begin();
     auto it2 = fd2.begin();
     while ((it1 != fd1.end()) && (it2 != fd2.end())) {
-        PixelInFrame pif1 = it1->pixel_in_frame;
-        PixelInFrame pif2 = it2->pixel_in_frame;
+        PixelInFrame& pif1 = it1->pixel_in_frame;
+        PixelInFrame& pif2 = it2->pixel_in_frame;
         if (pif1.frame == pif2.frame) {
             if (are_neighbours(pif1, pif2)) {
                 return true;
@@ -146,7 +149,7 @@ are_neighbours(const Surfel &surfel1, const Surfel &surfel2) {
  * P and Pn are neighbours.
  * The list of neighbours for a surfel is unique, that is, no mater how many frames
  * contain projections of S and Sn which are neighbours, Sn will occur only once in 
- * the ilst of S's neighbours.
+ * the list of S's neighbours.
  * @param surfels The list of all surfels.
  * @param neighbours 
  */
@@ -160,14 +163,15 @@ populate_neighbours(std::vector<Surfel> &surfels) {
     }
     int target = surfels.size();
 
-    for (int i = 0, count = 0; i < surfels.size() - 1; ++i) {
+    for (unsigned int i = 0, count = 0; i < surfels.size() - 1; ++i) {
         cout << "\rPopulating neighbour : " << ++count << " of " << target << flush;
-        for (int j = i + 1; j < surfels.size(); ++j) {
+        for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfels.at(i), surfels.at(j))) {
                 surfels.at(i).neighbouring_surfels.push_back(j);
                 surfels.at(j).neighbouring_surfels.push_back(i);
             }
         }
+        cout << surfels.at(i).neighbouring_surfels.size() << " neighbours found for surfel " << i << endl;
     }
     cout << endl;
 }
@@ -184,12 +188,14 @@ populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
     using namespace std;
     using namespace Eigen;
 
-    Vector3f y{0.0, 1.0, 0.0};
-    for (auto c : correspondence_group) {
-        vector<float> n = depth_maps.at(c.frame).get_normals().at(c.pixel.y).at(c.pixel.x);
-        Vector3f target_normal{n.at(0), n.at(1), n.at(2)};
-        float depth = depth_maps.at(c.frame).depth_at(c.pixel.y, c.pixel.x);
-        FrameData fd{c, depth, vector_to_vector_rotation(y, target_normal), target_normal};
+    Vector3f y_axis{0.0, 1.0, 0.0};
+    for (auto pif : correspondence_group) {
+        const auto& normal = depth_maps.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
+        Vector3f target_normal{normal.x, normal.y, normal.z};
+        float depth = depth_maps.at(pif.frame).depth_at(pif.pixel.y, pif.pixel.x);
+
+        // Compute forward transform from ideal space to this frame
+        FrameData fd{pif, depth, vector_to_vector_rotation(y_axis, target_normal), target_normal};
         frame_data.push_back(fd);
     }
 }
@@ -202,6 +208,51 @@ populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
 	**																			  **
     ********************************************************************************
 */
+
+std::vector<PixelInFrame> filter_pifs_with_normals(const std::vector<PixelInFrame>& corresponding_pifs,
+                                            const std::vector<DepthMap>& depth_maps) {
+    using namespace std;
+
+    // Although the pixels in frames may be in correspondence, it's not necessarily true that
+    // each of them has a valid normal (it may have insufficient neighbours, be on an edge or
+    // whatever. Filter them.
+    vector<PixelInFrame> pifs_with_normals;
+    for (const auto& pif : corresponding_pifs) {
+        if (depth_maps[pif.frame].is_normal_defined(pif.pixel.y, pif.pixel.x)) {
+            pifs_with_normals.push_back(pif);
+            auto nn = depth_maps[pif.frame].normal_at(pif.pixel.x, pif.pixel.y);
+            cout << "  { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y <<"} --> Norm: {"<<nn.type << " " << nn.x << " " << nn.y << " " << nn.z << "}" << endl;
+        } else {
+            cout << "  skipping { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y <<"} --> No normal" << endl;
+        }
+    }
+    return pifs_with_normals;
+}
+
+bool generate_surfel(const std::vector<PixelInFrame>& corresponding_pifs,
+        const std::vector<DepthMap>& depth_maps,
+        unsigned int next_surfel_id,
+        Surfel& surfel) {
+    using namespace std;
+
+    // Dump the corr group for debugging
+    cout << "   Correspondence group: ";
+    for (const auto& pif : corresponding_pifs) {
+        cout << "   { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y <<"} ";
+    }
+    cout << endl;
+
+
+    if (!corresponding_pifs.empty()) {
+        surfel.id = next_surfel_id;
+        populate_frame_data(corresponding_pifs, depth_maps, surfel.frame_data);
+        cout << "\t surfel generated" << endl;
+        return true;
+    }
+
+    cout << "\t rejected - no normals defined for any of  " << corresponding_pifs.size() << " pifs " << endl;
+    return false;
+}
 
 /*
 	For each correspondence
@@ -216,56 +267,39 @@ std::vector<Surfel>
 generate_surfels(const std::vector<DepthMap> &depth_maps,
                  const std::vector<std::vector<PixelInFrame>> &correspondences) {
     using namespace std;
-    assert(correspondences.size() > 0);
+    assert(!correspondences.empty());
 
-    cout << "Generating surfels : " << endl;
 
     vector<Surfel> surfels;
 
     // One per correpondence -- except that a correspondence that references a dead/remove pixel should be ignored
     // For each one, add point, depth, normal
-    map<PixelInFrame, size_t> pixel_in_frame_to_surfel;
+//    map<PixelInFrame, size_t> pixel_in_frame_to_surfel;
 
     int count = 0;
     int target = correspondences.size();
+    // Iteratae over each correspondence and generate a surfel.
     for (auto const &corresponding_pifs : correspondences) {
-        Surfel surfel;
-
-        cout << "Considering possible surfel : " << ++count << " of possible " << target << endl;
-        cout << "   Correspondence group: ";
-        for (auto pif : corresponding_pifs) {
-            cout << "   { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y <<"} ";
-        }
-        cout << endl;
-
+        cout << "Considering possible surfel : " << ++count << " of " << target << " candidates" << endl;
 
         // Although the pixels in frames may be in correspondence, it's not necessarily true that
         // each of them has a valid normal (it may have insufficient neighbours, be on an edge or
-        // whatever.
-        vector<PixelInFrame> pifs_with_normals;
-        for (auto pif : corresponding_pifs) {
-            // Force normal generation
-            depth_maps[pif.frame].is_normal_defined(pif.pixel.y, pif.pixel.x);
-            auto nn = depth_maps[pif.frame].normal_at(pif.pixel.x, pif.pixel.y);
-            cout << "  cg: { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y <<"} --> Norm: {"<<nn.type << " " << nn.x << " " << nn.y << " " << nn.z << "}" << endl;
+        // whatever. Filter them.
+        vector<PixelInFrame> pifs_with_normals = filter_pifs_with_normals(corresponding_pifs, depth_maps);
 
-            if (depth_maps[pif.frame].is_normal_defined(pif.pixel.y, pif.pixel.x)) {
-                pifs_with_normals.push_back(pif);
-            }
-        }
-        if (!pifs_with_normals.empty()) {
-            surfel.id = surfels.size();
-            populate_frame_data(pifs_with_normals, depth_maps, surfel.frame_data);
+        Surfel surfel;
+        if(generate_surfel(pifs_with_normals, depth_maps, surfels.size() + 1, surfel)) {
             surfels.push_back(surfel);
-            for (auto pif : pifs_with_normals) {
-                pixel_in_frame_to_surfel.insert(make_pair<>(pif, surfel.id));
-            }
-            cout << "\t surfel generated" << endl;
-        } else {
-            cout << "\t rejected - no normals defined for any of  " << corresponding_pifs.size() << " pifs " << endl;
+//            for (auto pif : pifs_with_normals) {
+//                pixel_in_frame_to_surfel.insert(make_pair<>(pif, surfel.id));
+//            }
         }
     }
+
+    // Build inter-surfel neighbour list
     populate_neighbours(surfels);
+
+    // Initialise tangents to random, legal values.
     randomize_tangents(surfels);
     cout << endl << " generated " << surfels.size() << " surfels" << endl;
     return surfels;

@@ -268,47 +268,30 @@ update_correspondence_groups(
     using namespace std;
 
     // Use corr to update the correspondence groups
-    for (const auto &item : corr) {
+    for (const auto &from_to_pair : corr) {
 
-        PixelInFrame pif1{valid_pixels_for_level.at(from_frame).at(item.first), from_frame};
-        PixelInFrame pif2{valid_pixels_for_level.at(from_frame + 1).at(item.second), from_frame + 1};
+        PixelInFrame from_pif{valid_pixels_for_level.at(from_frame).at(from_to_pair.first), from_frame};
+        PixelInFrame to_pif{valid_pixels_for_level.at(from_frame + 1).at(from_to_pair.second), from_frame + 1};
 
         // Lookup groups for first and second pifs
-        auto it = pif_to_group.find(pif1);
-        unsigned int pif1_group_id = (it == pif_to_group.end()) ? 0 : it->second;
-        it = pif_to_group.find(pif2);
-        unsigned int pif2_group_id = (it == pif_to_group.end()) ? 0 : it->second;
+        const auto& from_it = pif_to_group.find(from_pif);
+        unsigned int from_pif_group_id = (from_it == pif_to_group.end()) ? 0 : from_it->second;
+        const auto& to_it = pif_to_group.find(to_pif);
+        unsigned int to_pif_group_id = (to_it == pif_to_group.end()) ? 0 : to_it->second;
 
         // If first has a group but not second, add second to first's group
-        if (pif1_group_id != 0 && pif2_group_id == 0) {
+        if (from_pif_group_id != 0 && to_pif_group_id == 0) {
             // Add second pif to first group
-            group_to_pif.emplace(pif1_group_id, pif2);
-            pif_to_group.emplace(pif2, pif1_group_id);
+            group_to_pif.emplace(from_pif_group_id, to_pif);
+            pif_to_group.emplace(to_pif, from_pif_group_id);
         }
-            // If second has a group but not first, add first to second's group
-        else if (pif1_group_id == 0 && pif2_group_id != 0) {
-            // Add first pif to second group
-            group_to_pif.emplace(pif2_group_id, pif1);
-            pif_to_group.emplace(pif1, pif2_group_id);
-        }
-            // If neither has a group, create a new one and add both
-        else if (pif1_group_id == 0 && pif2_group_id == 0) {
-            unsigned int next_group_id = group_to_pif.size() + 1;
-            // Add first and second pifs to a new group
-            pif_to_group.emplace(pif1, next_group_id);
-            pif_to_group.emplace(pif2, next_group_id);
-            group_to_pif.emplace(next_group_id, pif1);
-            group_to_pif.emplace(next_group_id, pif2);
-            ++next_group_id;
-        }
-            // Both are in the groups but the groups are different
-        else if (pif1_group_id != pif2_group_id) {
-            merge_groups(group_to_pif, pif_to_group, pif1, pif1_group_id, pif2, pif2_group_id);
-        }
-        // By default they are both in the same group and no action is required.
     }
 }
 
+/*
+ * Returns a map from an int (the correspondence group id) to one or more PIFs
+ * which represent the path of that pif across multiple framnes.
+ */
 std::multimap<unsigned int, PixelInFrame>
 compute_correspondences_for_level(
         unsigned int level,

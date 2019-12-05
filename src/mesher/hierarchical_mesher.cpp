@@ -36,7 +36,7 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
     using namespace std;
     using namespace Eigen;
 
-    cout << "Initialising surfels from pervious level" << endl;
+    cout << "Initialising surfels from previous level" << endl;
 
     if (previous_level.empty())
         throw runtime_error("Unexpectedly found previous_level was empty");
@@ -77,7 +77,8 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
         if (count != 0) {
             surfel.tangent = (mean_tangent / count).normalized();
         } else {
-            throw runtime_error("Pixel in layer does not have any corresponding pixels in the next layer.");
+            cout << "Surfel cannot be mapped to next level." << endl;
+//            throw runtime_error("Pixel in layer does not have any corresponding pixels in the next layer.");
         }
     }
 }
@@ -85,7 +86,7 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
 std::vector<std::vector<PixelInFrame>>
 get_correspondences(const Properties &properties,
                     unsigned int level,
-                    const std::vector<std::vector<DepthMap>> &depth_map_hierarchy,
+                    const std::vector<DepthMap> &depth_map,
                     std::vector<Camera>& cameras) {
     using namespace std;
 
@@ -101,7 +102,7 @@ get_correspondences(const Properties &properties,
         load_correspondences_from_file(file_name, correspondences);
     } else {
         cout << "Computing correspondences from scratch" << endl;
-        correspondences = compute_correspondences(cameras, depth_map_hierarchy.at(level));
+        correspondences = compute_correspondences(cameras, depth_map);
     }
 
     if (correspondences.empty()) {
@@ -141,18 +142,19 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // For each level
+    // For each level from coarsest down
     int level = num_levels - 1;
     vector<Surfel> previous_level;
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
 
     while (level >= 0) {
-        cout << "Level : " << level << endl;
+        cout << "Generating surfels for level : " << level << endl;
 
         // Generate or load correspondences
         // TODO: Seed correspondences for next level Propagate changes down
-        vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, level, depth_map_hierarchy,
-                                                                                 cameras);
+        vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, level,
+                                                                           depth_map_hierarchy.at(level),
+                                                                           cameras);
 
         // Generate Surfels for this level from correspondences
         vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(level), correspondences);

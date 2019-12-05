@@ -31,22 +31,8 @@ if(NOT TARGET OpenMP::OpenMP_CXX)
 endif()
 
 # Building the executable
-#add_executable(mesher
-#        mesher.cpp
-#        smooth.cpp smooth.h
-#        surfel_compute.cpp surfel_compute.h
-#        mesher_args.cpp mesher_args.h
-#        surfel_io.cpp surfel_io.h
-#        correspondences_compute.cpp correspondences_compute.h
-#        correspondences_io.cpp correspondences_io.h
-#        io_utils.cpp io_utils.h
-#        types.h surfel_hierarchy.cpp surfel_hierarchy.h depth_map_io.h depth_map_io.cpp)
-
-
-# Building the executable
 add_executable(animesh
         depth_map_io.h depth_map_io.cpp
-        correspondences_compute.h correspondences_compute.cpp
         correspondences_io.h correspondences_io.cpp
         io_utils.h io_utils.cpp
         optimise.h optimise.cpp

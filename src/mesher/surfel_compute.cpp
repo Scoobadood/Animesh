@@ -11,8 +11,6 @@
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
 
-#include "correspondences_compute.h"
-
 #undef CONNECT_STRATEGY_8
 
 /*

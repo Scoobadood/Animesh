@@ -4,7 +4,6 @@
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
 #include <omp.h>
-#include "correspondences_compute.h"
 #include "correspondences_io.h"
 #include "surfel_compute.h"
 #include "optimise.h"
@@ -102,7 +101,8 @@ get_correspondences(const Properties &properties,
         load_correspondences_from_file(file_name, correspondences);
     } else {
         cout << "Computing correspondences from scratch" << endl;
-        correspondences = compute_correspondences(cameras, depth_map);
+        throw runtime_error("Not implemented. Copy code from dm_to_pointcloud");
+//        correspondences = compute_correspondences(cameras, depth_map);
     }
 
     if (correspondences.empty()) {

@@ -5,7 +5,7 @@
 #include "surfel_hierarchy.h"
 #include "depth_map_io.h"
 #include "correspondences_io.h"
-#include "correspondences_compute.h"
+
 
 #include <DepthMap/DepthMapPyramid.h>
 

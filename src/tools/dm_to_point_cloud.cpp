@@ -14,19 +14,37 @@
 #include <DepthMap/DepthMap.h>
 #include <Properties/Properties.h>
 #include <Camera/Camera.h>
-#include <fstream>
 #include "../mesher/types.h"
 #include "../mesher/correspondences_io.h"
 #include "../mesher/utilities.h"
 
 #include <cpd/gauss_transform_fgt.hpp>
-//#include <cpd/jsoncpp.hpp>
 #include <cpd/rigid.hpp>
-#include <iostream>
+#include <Eigen/Dense>
+/**
+ * Construct the save file name from a given template and level
+ *
+ */
+std::string
+file_name_from_template_and_level(const std::string &file_name_template, unsigned int level) {
+    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level);
+    char file_name[bufsz + 1];
+    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level);
+    return file_name;
+}
 
-const char VALID_PIXL_POINT_CLOUD_TEMPLATE[] = "pointcloud_L%02d_F%02d.txt";
-const char NORMAL_TEMPLATE[] = "normals_L%02d_F%02d.txt";
-const char corr_file_template[] = "corr_L%02d.txt";
+/**
+ * Construct the save file name from a given template and level and frame
+ *
+ */
+std::string
+file_name_from_template_level_and_frame(const std::string &file_name_template, unsigned int level, unsigned int frame) {
+    // We expect 2x %2dL
+    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level, frame);
+    char file_name[bufsz + 1];
+    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level, frame);
+    return file_name;
+}
 
 /**
  * Print usage instructions if the number of arguments is wrong or arguments are inconsistent
@@ -40,19 +58,19 @@ void usage(const std::string &prog_name) {
 
 /**
  * Return a vector of Pixel coordinates for only those pixels in a frame which are 'valid'
- * Valid in this context menas that they have non-zero depth and a well defined normal.
+ * Valid in this context means that they have non-zero depth and a well defined normal.
+ * In fact having a well defined normal means that they don't have zero depth.
  * @param depth_map
  * @return
  */
 static std::vector<Pixel>
-depth_map_to_pixels(const DepthMap &depth_map) {
+get_valid_pixels_for_depth_map(const DepthMap &depth_map) {
     using namespace std;
 
-    // Filter out zero depth points
+    // Filter out invalid points (points which have no normals is the thing)
     vector<Pixel> valid_pixels;
     for (unsigned int r = 0; r < depth_map.rows(); ++r) {
         for (unsigned int c = 0; c < depth_map.cols(); ++c) {
-            float depth = depth_map.depth_at(r, c);
             if( depth_map.is_normal_defined(r, c)) {
                 valid_pixels.emplace_back(c, r);
             }
@@ -63,12 +81,12 @@ depth_map_to_pixels(const DepthMap &depth_map) {
 
 /*
  * Given a camera, a set of N X,Y coordinates and a depth map, generate camera space 3D coordinates
- * and return as an Nx3 matrix
+ * and return as an Nx3 matrix.
  */
-static Eigen::MatrixX3f
-project_pixels_to_pointcloud(const std::vector<Pixel> &pixels,
-                             const Camera &camera,
-                             const DepthMap &depth_map) {
+static Eigen::MatrixX3d
+project_pixels_to_point_cloud(const std::vector<Pixel> &pixels,
+                              const Camera &camera,
+                              const DepthMap &depth_map) {
     using namespace std;
 
     struct Point3D {
@@ -90,7 +108,7 @@ project_pixels_to_pointcloud(const std::vector<Pixel> &pixels,
     }
 
     // Convert remaining to a Nx3 matrix
-    Eigen::MatrixX3f m{valid_points.size(), 3};
+    Eigen::MatrixX3d m{valid_points.size(), 3};
     int row = 0;
     for (const auto &p : valid_points) {
         m(row, 0) = p.x;
@@ -101,27 +119,51 @@ project_pixels_to_pointcloud(const std::vector<Pixel> &pixels,
     return m;
 }
 
+
+/**
+ * Write a point_cloud to a text file.
+ * Each row contains the X,Y,Z coordinates of a point.
+ *
+ * @param pointcloud
+ * @param file_name
+ */
 void
-save_point_cloud(Eigen::MatrixX3f pointcloud, unsigned int level, unsigned int frame, const char file_name_template[]) {
+save_point_cloud_to_file(Eigen::MatrixX3d point_cloud, const std::string& file_name) {
     using namespace std;
 
-    char file_name[strlen(file_name_template) + 1];
-    sprintf(file_name, file_name_template, level, frame);
     ofstream file{file_name};
-    for (unsigned int row = 0; row < pointcloud.rows(); ++row) {
-        file << pointcloud(row, 0) << ", " << pointcloud(row, 1) << ", " << pointcloud(row, 2) << endl;
+    for (unsigned int row = 0; row < point_cloud.rows(); ++row) {
+        file << point_cloud(row, 0) << ", " << point_cloud(row, 1) << ", " << point_cloud(row, 2) << endl;
     }
 }
 
-void save_normals(const std::vector<Pixel>& valid_pixels,
-        const DepthMap& depth_map,
-        unsigned int level,
-        unsigned int frame,
-        const char file_name_template[] ) {
+void
+save_point_clouds_to_file(const std::vector<std::vector<Eigen::MatrixX3d>> &point_clouds,
+                          const std::string &file_name_template) {
     using namespace std;
 
-    char file_name[strlen(file_name_template) + 1];
-    sprintf(file_name, file_name_template, level, frame);
+    for (unsigned int level = 0; level < point_clouds.size(); ++level) {
+        for (unsigned int frame = 0; frame < point_clouds.at(level).size(); ++frame) {
+            string file_name = file_name_from_template_level_and_frame(file_name_template, level, frame);
+            save_point_cloud_to_file(point_clouds.at(level).at(frame), file_name);
+        }
+    }
+}
+
+/**
+ * Save normals to the given file
+ *
+ * @param valid_pixels
+ * @param depth_map
+ * @param level
+ * @param frame
+ * @param file_name_template
+ */
+void save_normals(const std::vector<Pixel>& valid_pixels,
+        const DepthMap& depth_map,
+        const std::string& file_name ) {
+    using namespace std;
+
     ofstream file{file_name};
     for (const auto& pixel : valid_pixels) {
         auto normal = depth_map.normal_at(pixel.x, pixel.y);
@@ -129,63 +171,118 @@ void save_normals(const std::vector<Pixel>& valid_pixels,
     }
 }
 
+/**
+ * Compute correspondences between two point clouda using CPD
+ *
+ * @param level
+ * @param frame
+ * @param correspondence
+ * @param file_name_template
+ */
 void
-compute_correspondences(unsigned int level,
-                        unsigned int frame,
-                        std::map<unsigned int, unsigned int> &correspondence,
-                        const std::string& file_name_template) {
-    char fixedPoints[file_name_template.length() + 1];
-    char movingPoints[file_name_template.length() + 1];
-    sprintf(movingPoints, file_name_template.c_str(), level, frame);
-    sprintf(fixedPoints, file_name_template.c_str(), level, frame + 1);
+compute_correspondences(const Eigen::MatrixX3d& from_point_cloud,
+                        const Eigen::MatrixX3d& to_point_cloud,
+                        std::map<unsigned int, unsigned int> &correspondence) {
+    using namespace std;
+    using namespace cpd;
 
-    cpd::Matrix fixed = cpd::matrix_from_path(fixedPoints);
-    cpd::Matrix moving = cpd::matrix_from_path(movingPoints);
-    cpd::Rigid rigid;
+    Rigid rigid;
     rigid.gauss_transform(std::move(
             std::unique_ptr<cpd::GaussTransform>(new cpd::GaussTransformFgt())));
     rigid.correspondence(true);
     rigid.normalize(false);
-    cpd::RigidResult result = rigid.run(fixed, moving);
-
+    cpd::RigidResult result = rigid.run(to_point_cloud, from_point_cloud);
     correspondence.clear();
     for (unsigned int i = 0; i < result.correspondence.size(); ++i) {
         correspondence.emplace(i, result.correspondence(i));
     }
 }
 
-void
-merge_groups(std::multimap<unsigned int, PixelInFrame> &group_to_pif,
-             std::map<PixelInFrame, unsigned int> &pif_to_group,
-             PixelInFrame &pif1,
-             unsigned int pif1_group_id,
-             PixelInFrame &pif2,
-             unsigned int pif2_group_id) {
-
+/**
+ *
+ * @param pixels_by_frame
+ * @param point_clouds_by_frame
+ * @return
+ */
+std::vector<std::vector<PixelInFrame>>
+compute_correspondence_paths_for_level(const std::vector<std::vector<Pixel>>& pixels_by_frame,
+                                       const std::vector<Eigen::MatrixX3d>& point_clouds_by_frame) {
     using namespace std;
 
-    // Update mapping for pif2 to be in group 1
-    pif_to_group.at(pif2) = pif1_group_id;
+    map<PixelInFrame, unsigned int> pif_to_path;
+    multimap<unsigned int, PixelInFrame> path_to_pifs;
 
-    // Add mappings for all pif2 group elements to pif1 group
-    pair<multimap<unsigned int, PixelInFrame>::iterator, multimap<unsigned int, PixelInFrame>::iterator> ret;
-    ret = group_to_pif.equal_range(pif2_group_id);
-    for (auto &it = ret.first; it != ret.second; ++it) {
-        // Add pif to pif1 group
-        group_to_pif.emplace(pif1_group_id, it->second);
+    for( unsigned int frame = 0; frame < pixels_by_frame.size() - 1; ++frame ) {
+        map<unsigned int, unsigned int> correspondences;
+        compute_correspondences(point_clouds_by_frame.at(frame), point_clouds_by_frame.at(frame+1), correspondences);
+
+        unsigned int new_path_id = 1;
+        //  For each pixel in from frame
+        for( auto& correspondence : correspondences) {
+
+            PixelInFrame from_pif{pixels_by_frame.at(frame).at(correspondence.first), frame};
+            PixelInFrame to_pif{pixels_by_frame.at(frame+1).at(correspondence.second), frame+1};
+
+            // First corresponds to second.
+            // If first exists in any path, we add to that path
+            auto it = pif_to_path.find(from_pif);
+            if( it != pif_to_path.end() ) {
+                path_to_pifs.insert(make_pair(it->second, to_pif));
+                pif_to_path.insert(make_pair(to_pif, it->second));
+            } else {
+                // Otherwise, we start a new path
+                path_to_pifs.insert(make_pair(new_path_id, to_pif));
+                pif_to_path.insert(make_pair(to_pif, new_path_id));
+                ++new_path_id;
+            }
+        }
     }
-    // Remove the pif 2 group
-    group_to_pif.erase(pif2_group_id);
+
+    // Convert correspondence paths to groups
+    vector<vector<PixelInFrame>> paths;
+    for (auto it1 = path_to_pifs.begin(), it2 = it1, end = path_to_pifs.end(); it1 != end; it1 = it2){
+        paths.emplace_back();
+        for ( ; it1->first == it2->first; ++it2){
+            paths.back().push_back(it2->second);
+        }
+    }
+    return paths;
 }
 
+
+/**
+ * Given pixels and point clouds for all levels
+ * Return paths for all levels
+ * @param pixels_by_level_and_frame
+ * @param point_clouds_by_level_and_frame
+ * @return
+ */
+std::vector<std::vector<std::vector<PixelInFrame>>>
+compute_correspondence_paths(const std::vector<std::vector<std::vector<Pixel>>>& pixels_by_level_and_frame,
+                             const std::vector<std::vector<Eigen::MatrixX3d>>& point_clouds_by_level_and_frame) {
+    std::vector<std::vector<std::vector<PixelInFrame>>> paths;
+    for( unsigned int level = 0; level < pixels_by_level_and_frame.size(); ++level) {
+        paths.push_back( compute_correspondence_paths_for_level(pixels_by_level_and_frame.at(level), point_clouds_by_level_and_frame.at(level)));
+    }
+    return paths;
+}
+
+
+
+/**
+ * Given a vector (per frame) of derpth_maps
+ * Return a vectror (per frame) of valid pixels.
+ * @param depth_maps
+ * @return
+ */
 std::vector<std::vector<Pixel>>
-extract_valid_pixels_for_level(const std::vector<DepthMap> &depth_maps) {
+get_valid_pixels_for_depth_maps(const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
     int frame_index = 0;
     vector<vector<Pixel>> valid_pixels;
     for (const auto &depth_map : depth_maps) {
-        vector<Pixel> valid_pixels_in_frame = depth_map_to_pixels(depth_map);
+        vector<Pixel> valid_pixels_in_frame = get_valid_pixels_for_depth_map(depth_map);
         valid_pixels.push_back(valid_pixels_in_frame);
 
         frame_index++;
@@ -193,200 +290,108 @@ extract_valid_pixels_for_level(const std::vector<DepthMap> &depth_maps) {
     return valid_pixels;
 }
 
+/**
+ * Given a vector (per level) of vectors (per frame) of depthmaps
+ * return a vector (per level) or vectors (per frame) of pixels
+ * representing thre valid pixels.
+ * @param depth_map_hierarchy
+ * @return
+ */
 std::vector<std::vector<std::vector<Pixel>>>
-extract_valid_pixels_for_all_levels(const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
+get_valid_pixels_for_all_levels(const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
     using namespace std;
 
-    int num_levels = depth_map_hierarchy.size();
-    int level = num_levels - 1;
     vector<vector<vector<Pixel>>> valid_pixels_for_levels;
 
-    for( unsigned int level = 0; level < num_levels; ++level) {
-        cout << "Extracting valid pixels for level : " << (level + 1)<< endl;
-        valid_pixels_for_levels.push_back(extract_valid_pixels_for_level(depth_map_hierarchy.at(level)));
+    unsigned int level = 1;
+    for( const auto& depth_maps : depth_map_hierarchy) {
+        cout << "Extracting valid pixels for level : " << level << endl;
+        valid_pixels_for_levels.push_back(get_valid_pixels_for_depth_maps(depth_maps));
+        ++level;
     }
     return valid_pixels_for_levels;
 }
 
-std::vector<Eigen::MatrixX3f>
+/**
+ * Given a vector (per frame) of valid pixels
+ * and a vector (per frame) of cameras
+ * and a vector (per frame) of depth maps
+ * Return a vector (per frame) of 3D points they represent
+ * @param valid_pixels
+ * @param cameras
+ * @param depth_maps
+ * @return
+ */
+std::vector<Eigen::MatrixX3d>
 project_pixels_to_point_clouds(const std::vector<std::vector<Pixel>>& valid_pixels,
                                const std::vector<Camera> &cameras,
                                const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
-    std::vector<Eigen::MatrixX3f> point_clouds;
+    std::vector<Eigen::MatrixX3d> point_clouds;
 
     for( unsigned int frame = 0; frame < cameras.size(); ++frame ) {
-        point_clouds.push_back(project_pixels_to_pointcloud(valid_pixels.at(frame),
-                                                            cameras.at(frame),
-                                                            depth_maps.at(frame)));
+        point_clouds.push_back(project_pixels_to_point_cloud(valid_pixels.at(frame),
+                                                             cameras.at(frame),
+                                                             depth_maps.at(frame)));
     }
     return point_clouds;
 }
 
-std::vector<std::vector<Eigen::MatrixX3f>>
-project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>>& valid_pixels_for_levels,
-                               const std::vector<Camera> &cameras,
-                               const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
+/**
+ * Given a vector (per level) or vectors (per frame) of Pixels
+ * plus asscoiated depth maps and cameras
+ * return a vector (per level) or vectors (per frame) of Eigen X3 matrices conytaining
+ * the 3D points.
+ * @param valid_pixels_for_levels
+ * @param cameras
+ * @param depth_maps_per_frame_and_level
+ * @return
+ */
+std::vector<std::vector<Eigen::MatrixX3d>>
+project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>>& pixels_per_frame_and_level,
+                               const std::vector<Camera> &cameras_per_frame,
+                               const std::vector<std::vector<DepthMap>> &depth_maps_per_frame_and_level) {
     using namespace std;
 
-    int num_levels = depth_map_hierarchy.size();
-    int level = num_levels - 1;
+    int num_levels = depth_maps_per_frame_and_level.size();
 
-
-    std::vector<std::vector<Eigen::MatrixX3f>> point_clouds;
+    std::vector<std::vector<Eigen::MatrixX3d>> point_clouds;
     for( unsigned int level = 0; level < num_levels; ++level) {
         cout << "Computing pointclouds for level : " << level << endl;
 
-        // Clone cameras
+        // Clone cameras and adjust for level
         std::vector<Camera> level_cameras;
-        for( const auto& camera : cameras ) {
+        for( const auto& camera : cameras_per_frame ) {
             Camera lc{camera.position, camera.view, camera.up, camera.resolution, camera.fov, camera.focalDistance};
             lc.resolution[0] /= (1 << level);
             lc.resolution[1] /= (1 << level);
-
             level_cameras.push_back(lc);
         }
 
-        // Transform cameras for this level by adjusting their screen resolution
-        point_clouds.push_back( project_pixels_to_point_clouds( valid_pixels_for_levels.at(level),
-                level_cameras,
-                depth_map_hierarchy.at(level)));
+        point_clouds.push_back( project_pixels_to_point_clouds(pixels_per_frame_and_level.at(level),
+                                                               level_cameras,
+                                                               depth_maps_per_frame_and_level.at(level)));
     }
     return point_clouds;
 }
 
-
-void
-update_correspondence_groups(
-        const std::map<unsigned int, unsigned int> &corr,
-        const std::vector<std::vector<Pixel>> &valid_pixels_for_level,
-        unsigned int from_frame,
-        std::multimap<unsigned int, PixelInFrame> &group_to_pif,
-        std::map<PixelInFrame, unsigned int> &pif_to_group
-) {
-    using namespace std;
-
-    // Use corr to update the correspondence groups
-    for (const auto &from_to_pair : corr) {
-
-        PixelInFrame from_pif{valid_pixels_for_level.at(from_frame).at(from_to_pair.first), from_frame};
-        PixelInFrame to_pif{valid_pixels_for_level.at(from_frame + 1).at(from_to_pair.second), from_frame + 1};
-
-        // Lookup groups for first and second pifs
-        const auto& from_it = pif_to_group.find(from_pif);
-        unsigned int from_pif_group_id = (from_it == pif_to_group.end()) ? 0 : from_it->second;
-        const auto& to_it = pif_to_group.find(to_pif);
-        unsigned int to_pif_group_id = (to_it == pif_to_group.end()) ? 0 : to_it->second;
-
-        // If first has a group but not second, add second to first's group
-        if (from_pif_group_id != 0 && to_pif_group_id == 0) {
-            // Add second pif to first group
-            group_to_pif.emplace(from_pif_group_id, to_pif);
-            pif_to_group.emplace(to_pif, from_pif_group_id);
-        }
-    }
-}
-
-/*
- * Returns a map from an int (the correspondence group id) to one or more PIFs
- * which represent the path of that pif across multiple framnes.
+/**
+ * Save the normals for each pixel.
+ * @param pixels_for_level_and_frame
+ * @param depth_map_hierarchy
+ * @param normal_file_template
  */
-std::multimap<unsigned int, PixelInFrame>
-compute_correspondences_for_level(
-        unsigned int level,
-        const std::vector<std::vector<Pixel>> &valid_pixels_for_level,
-        const std::string& pointcloud_file_name_template) {
-    using namespace std;
-    using namespace std::chrono;
-
-    int num_frames = valid_pixels_for_level.size();
-
-    cout << "Finding correspondences for level : " << level << endl;
-    multimap<unsigned int, PixelInFrame> group_to_pif;
-    map<PixelInFrame, unsigned int> pif_to_group;
-
-    for (unsigned int from_frame = 0; from_frame < num_frames - 1; ++from_frame) {
-        //std::chrono
-        milliseconds start = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-        cout << "  From frame: " << from_frame << " to frame: " << (from_frame + 1) << endl;
-        // Gen correspondences
-        std::map<unsigned int, unsigned int> corr;
-        compute_correspondences(level, from_frame, corr, pointcloud_file_name_template);
-
-        milliseconds duration = duration_cast<milliseconds>(system_clock::now().time_since_epoch()) - start;
-        float elapsed = (duration.count() - (duration.count() % 100)) / 1000.0f;
-
-        update_correspondence_groups(
-                corr,
-                valid_pixels_for_level,
-                from_frame,
-                group_to_pif,
-                pif_to_group);
-
-        cout << "  done in: " << elapsed << "s" << endl;
-    }
-    return group_to_pif;
-}
-
 void
-write_correspondences_to_file(
-        unsigned int level,
-        const std::multimap<unsigned int, PixelInFrame> &group_to_pif) {
-    using namespace std;
+save_normals_to_file(const std::vector<std::vector<std::vector<Pixel>>>& pixels_for_level_and_frame,
+                     const std::vector<std::vector<DepthMap>>& depth_map_hierarchy,
+                     const std::string& normal_file_template) {
+    for (unsigned int level = 0; level < pixels_for_level_and_frame.size(); ++level) {
+        for (unsigned int frame = 0; frame < pixels_for_level_and_frame.at(level).size(); ++frame) {
 
-    // Write correspondences
-    char corr_file_name[strlen(corr_file_template) + 1];
-    sprintf(corr_file_name, corr_file_template, level);
-    ofstream corr_file{corr_file_name};
-    for (const auto &group : group_to_pif) {
-        corr_file << group.first << "--> (" << group.second.frame << ":" << group.second.pixel.x << ","
-                  << group.second.pixel.y << ")" << endl;
-    }
-}
-
-std::vector<std::multimap<unsigned int, PixelInFrame>>
-compute_correspondences(
-        const std::vector<std::vector<std::vector<Pixel>>> &valid_pixels_for_levels,
-        const std::string& pointcloud_file_name_template) {
-    using namespace std;
-
-    vector<multimap<unsigned int, PixelInFrame>> corrs_by_level;
-
-    // Returning results which we _also_ write to file.
-    for( unsigned int level = 0; level < valid_pixels_for_levels.size(); ++level) {
-        multimap<unsigned int, PixelInFrame> group_to_pif = compute_correspondences_for_level(
-                level,
-                valid_pixels_for_levels.at(level),
-                pointcloud_file_name_template);
-        corrs_by_level.push_back(group_to_pif);
-    }
-    return corrs_by_level;
-}
-
-void
-write_correspondences(const std::vector<std::multimap<unsigned int, PixelInFrame>>& correspondences ) {
-    unsigned int level = 0;
-    for( const auto& level_corrs : correspondences ) {
-        write_correspondences_to_file(level, level_corrs);
-        ++level;
-    }
-}
-
-void compute_and_save_correspondences(
-        const std::vector<std::vector<std::vector<Pixel>>> &valid_pixels_for_levels,
-        const std::string& pointcloud_file_name_template) {
-    using namespace std;
-
-    // Returning results which we _also_ write to file.
-    int level = valid_pixels_for_levels.size() - 1;
-    while (level >= 0) {
-        multimap<unsigned int, PixelInFrame> group_to_pif = compute_correspondences_for_level(
-                level,
-                valid_pixels_for_levels.at(level),
-                pointcloud_file_name_template);
-        write_correspondences_to_file(level, group_to_pif);
-        --level;
+            save_normals(pixels_for_level_and_frame.at(level).at(frame), depth_map_hierarchy.at(level).at(frame),
+                         file_name_from_template_level_and_frame(normal_file_template, level, frame));
+        }
     }
 }
 
@@ -407,62 +412,39 @@ int main(int argc, char *argv[]) {
     // Construct the hierarchy: number of levels as specified in properties.
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
 
-    // Compute normals
-    for (unsigned int l = 0; l < depth_map_hierarchy.size(); ++l) {
+    // Compute normals for the hierarchy
+    for (auto & depth_maps_for_level : depth_map_hierarchy) {
         for (unsigned int f = 0; f < num_frames; ++f) {
-            depth_map_hierarchy.at(l).at(f).compute_normals(cameras.at(f));
+            depth_maps_for_level.at(f).compute_normals(cameras.at(f));
         }
     }
 
     // Vector of level, frame, pixel index
-    vector<vector<vector<Pixel>>> valid_pixels_for_levels = extract_valid_pixels_for_all_levels(depth_map_hierarchy);
+    vector<vector<vector<Pixel>>> valid_pixels_for_levels = get_valid_pixels_for_all_levels(depth_map_hierarchy);
 
     // Project valid pixels into point clouds
-    vector<vector<Eigen::MatrixX3f>> point_clouds_for_all_levels =
+    vector<vector<Eigen::MatrixX3d>> point_clouds_for_all_levels =
     project_pixels_to_point_clouds(valid_pixels_for_levels, cameras, depth_map_hierarchy);
-    for (unsigned int level = 0; level < point_clouds_for_all_levels.size(); ++level) {
-        for (unsigned int frame = 0; frame < point_clouds_for_all_levels.at(level).size(); ++frame) {
-            save_point_cloud(point_clouds_for_all_levels.at(level).at(frame), level, frame,
-                             VALID_PIXL_POINT_CLOUD_TEMPLATE);
-        }
+
+    // Save point clouds if requested
+    if( properties.getBooleanProperty("save-point-clouds")) {
+        save_point_clouds_to_file( point_clouds_for_all_levels, properties.getProperty("point-cloud-file-template"));
     }
 
-    // Save also the normals for each valid pixel
-    for (unsigned int level = 0; level < valid_pixels_for_levels.size(); ++level) {
-        for (unsigned int frame = 0; frame < valid_pixels_for_levels.at(level).size(); ++frame) {
-            save_normals(valid_pixels_for_levels.at(level).at(frame), depth_map_hierarchy.at(level).at(frame), level, frame,
-                             NORMAL_TEMPLATE);
-        }
+    // Save normals if requested
+    if( properties.getBooleanProperty("save-normals")) {
+        save_normals_to_file( valid_pixels_for_levels, depth_map_hierarchy, properties.getProperty("normal-file-template"));
     }
 
-#ifndef FUDGE_FLAG
-    // Now compute correspondences
-    vector<multimap<unsigned int, PixelInFrame>> corrs_by_level = compute_correspondences(valid_pixels_for_levels, VALID_PIXL_POINT_CLOUD_TEMPLATE);
-    write_correspondences(corrs_by_level);
+    // Computer Pixel paths across frames
+    vector<vector<vector<PixelInFrame>>> corresponding_paths_by_level = compute_correspondence_paths(valid_pixels_for_levels, point_clouds_for_all_levels);
 
-#else
-    // TEMPORARY FUDGE TO READ CORRS FROM FILE RATHER THAN GENERATE THEM
-
-
-        // END FUDGE
-#endif
     // Cluster and write to level files.
     unsigned int level = 0;
-    for( const auto& corrs_for_level : corrs_by_level) {
-        // Convert multimap of pif to vec<vec<pif>>
-        vector<vector<PixelInFrame>> out;
-        for (auto it1 = corrs_for_level.begin(), it2 = it1, end = corrs_for_level.end(); it1 != end; it1 = it2){
-            out.emplace_back();
-            for ( ; it1->first == it2->first; ++it2){
-                out.back().push_back(it2->second);
-            }
-        }
-
-
+    for( const auto& corrs_for_level : corresponding_paths_by_level) {
         cout << "Saving level " << level << "correspondences" << endl;
-        char file_name[1024];
-        sprintf(file_name, "level_%02d_corr.bin", level);
-        save_correspondences_to_file(file_name, out);
+        string file_name = file_name_from_template_and_level(properties.getProperty("correspondence-file-template"), level);
+        save_correspondences_to_file(file_name, corrs_for_level);
         ++level;
     }
     return 0;

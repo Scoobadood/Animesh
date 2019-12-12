@@ -199,7 +199,8 @@ compute_correspondences(const Eigen::MatrixX3d& from_point_cloud,
 }
 
 /**
- *
+ * Given pixels and point clouds for each frame in a level
+ * Return the paths for points in that level.
  * @param pixels_by_frame
  * @param point_clouds_by_frame
  * @return
@@ -212,12 +213,15 @@ compute_correspondence_paths_for_level(const std::vector<std::vector<Pixel>>& pi
     map<PixelInFrame, unsigned int> pif_to_path;
     multimap<unsigned int, PixelInFrame> path_to_pifs;
 
+    // For each frame find correspondences to the next frame
     for( unsigned int frame = 0; frame < pixels_by_frame.size() - 1; ++frame ) {
         map<unsigned int, unsigned int> correspondences;
+        cout << "  running CPD for from frame : " << frame << endl;
         compute_correspondences(point_clouds_by_frame.at(frame), point_clouds_by_frame.at(frame+1), correspondences);
 
         unsigned int new_path_id = 1;
         //  For each pixel in from frame
+        cout << "  building paths" << endl;
         for( auto& correspondence : correspondences) {
 
             PixelInFrame from_pif{pixels_by_frame.at(frame).at(correspondence.first), frame};
@@ -260,8 +264,11 @@ compute_correspondence_paths_for_level(const std::vector<std::vector<Pixel>>& pi
 std::vector<std::vector<std::vector<PixelInFrame>>>
 compute_correspondence_paths(const std::vector<std::vector<std::vector<Pixel>>>& pixels_by_level_and_frame,
                              const std::vector<std::vector<Eigen::MatrixX3d>>& point_clouds_by_level_and_frame) {
-    std::vector<std::vector<std::vector<PixelInFrame>>> paths;
+    using namespace std;
+
+    vector<vector<vector<PixelInFrame>>> paths;
     for( unsigned int level = 0; level < pixels_by_level_and_frame.size(); ++level) {
+        cout << "Computing correspondences for level : " << level << endl;
         paths.push_back( compute_correspondence_paths_for_level(pixels_by_level_and_frame.at(level), point_clouds_by_level_and_frame.at(level)));
     }
     return paths;
@@ -395,6 +402,24 @@ save_normals_to_file(const std::vector<std::vector<std::vector<Pixel>>>& pixels_
     }
 }
 
+void save_paths_to_file(const std::vector<std::vector<std::vector<PixelInFrame>>> &paths_by_level,
+                        const std::string &path_file_template) {
+    using namespace std;
+
+    unsigned int level = 0;
+    for (const auto &level_paths : paths_by_level) {
+        string file_name = file_name_from_template_and_level(path_file_template, level);
+        ofstream file{file_name};
+        for (const auto &path : level_paths) {
+            for (const auto &pif : path) {
+                file << "( " << pif.frame << ", " << pif.pixel.x << ", " << pif.pixel.y << ") ";
+            }
+            file << endl;
+        }
+        ++level;
+    }
+}
+
 int main(int argc, char *argv[]) {
     using namespace std;
     using namespace std::chrono;
@@ -438,6 +463,11 @@ int main(int argc, char *argv[]) {
 
     // Computer Pixel paths across frames
     vector<vector<vector<PixelInFrame>>> corresponding_paths_by_level = compute_correspondence_paths(valid_pixels_for_levels, point_clouds_for_all_levels);
+
+    // Save paths if requested
+    if( properties.getBooleanProperty("save-paths")) {
+        save_paths_to_file( corresponding_paths_by_level, properties.getProperty("path-file-template"));
+    }
 
     // Cluster and write to level files.
     unsigned int level = 0;

@@ -34,7 +34,16 @@ struct PixelInFrame {
 
         return pixel < other.pixel;
     }
+
 };
+
+inline bool operator==(const Pixel& lhs, const Pixel& rhs){
+    return (lhs.x == rhs.x) && (lhs.y == rhs.y);
+}
+
+inline bool operator==(const PixelInFrame& lhs, const PixelInFrame& rhs){
+    return (lhs.pixel == rhs.pixel) && (lhs.frame == rhs.frame);
+}
 
 struct SurfelInFrame {
     size_t frame_index;

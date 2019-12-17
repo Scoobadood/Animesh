@@ -213,13 +213,13 @@ compute_correspondence_paths_for_level(const std::vector<std::vector<Pixel>>& pi
     map<PixelInFrame, unsigned int> pif_to_path;
     multimap<unsigned int, PixelInFrame> path_to_pifs;
 
+    unsigned int new_path_id = 1;
     // For each frame find correspondences to the next frame
     for( unsigned int frame = 0; frame < pixels_by_frame.size() - 1; ++frame ) {
         map<unsigned int, unsigned int> correspondences;
         cout << "  running CPD for from frame : " << frame << endl;
         compute_correspondences(point_clouds_by_frame.at(frame), point_clouds_by_frame.at(frame+1), correspondences);
 
-        unsigned int new_path_id = 1;
         //  For each pixel in from frame
         cout << "  building paths" << endl;
         for( auto& correspondence : correspondences) {
@@ -227,13 +227,27 @@ compute_correspondence_paths_for_level(const std::vector<std::vector<Pixel>>& pi
             PixelInFrame from_pif{pixels_by_frame.at(frame).at(correspondence.first), frame};
             PixelInFrame to_pif{pixels_by_frame.at(frame+1).at(correspondence.second), frame+1};
 
+            cout << "    Found correspondence " << correspondence.first << " -> " << correspondence.second <<  endl;
+            cout << "                From PIF (f: " << from_pif.frame << " x: " << from_pif.pixel.x << " y: " << from_pif.pixel.y << ")" << endl;
+            cout << "                  To PIF (f: " << to_pif.frame << " x: " << to_pif.pixel.x << " y: " << to_pif.pixel.y << ")" << endl;
+
+            // If second exists in any path, we ignore it.
+            auto it = pif_to_path.find(to_pif);
+            if( it != pif_to_path.end() ) {
+                cout << "         Skipping To PIF : " << it->second << " Adding to PIF to this path" << endl;
+                continue;
+            }
+
             // First corresponds to second.
             // If first exists in any path, we add to that path
-            auto it = pif_to_path.find(from_pif);
+            it = pif_to_path.find(from_pif);
             if( it != pif_to_path.end() ) {
+                cout << "            Path for PIF : " << it->second << " Adding to PIF to this path" << endl;
+
                 path_to_pifs.insert(make_pair(it->second, to_pif));
                 pif_to_path.insert(make_pair(to_pif, it->second));
             } else {
+                cout << "         No path for PIF. Adding new path : " << new_path_id << endl;
                 // Otherwise, we start a new path
                 path_to_pifs.insert(make_pair(new_path_id, to_pif));
                 pif_to_path.insert(make_pair(to_pif, new_path_id));

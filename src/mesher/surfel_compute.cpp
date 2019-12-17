@@ -162,7 +162,7 @@ populate_neighbours(std::vector<Surfel> &surfels) {
     int target = surfels.size();
 
     for (unsigned int i = 0, count = 0; i < surfels.size() - 1; ++i) {
-        cout << "\rPopulating neighbour : " << ++count << " of " << target << flush;
+        cout << "Populating neighbour : " << ++count << " of " << target << endl;
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfels.at(i), surfels.at(j))) {
                 surfels.at(i).neighbouring_surfels.push_back(j);

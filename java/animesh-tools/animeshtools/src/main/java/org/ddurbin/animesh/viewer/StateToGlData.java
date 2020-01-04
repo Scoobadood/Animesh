@@ -11,8 +11,8 @@ import java.io.IOException;
 import java.util.List;
 
 public class StateToGlData {
-  private static final float NORM_SCALE = 0.01f;
-  private static final float TAN_SCALE = 0.005f;
+  private static final float NORM_SCALE = 0.1f;
+  private static final float TAN_SCALE = 0.1f;
 
   public static float[] convertStateToGlData(State state, int frame) {
     ImmutableList.Builder<Float> listBuilder = ImmutableList.builder();
@@ -31,9 +31,8 @@ public class StateToGlData {
           Pair<Vector3f, Vector3f> p = StateUtilities.projectSurfelToFrame(s, fd);
           Vector3f pointInSpace = camera.backproject((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
 
-          System.out.println( String.format("Point in space: %0.2f %0.2f %0.2f", pointInSpace.x, pointInSpace.y, pointInSpace.z) );
-          System.out.println( String.format(" Normal: %0.2f %0.2f %0.2f", p.second.x, p.second.y, p.second.z) );
-          System.out.println( String.format("    Tan: %0.2f %0.2f %0.2f", p.first.x, p.first.y, p.first.z) );
+          System.out.println(String.format("P: %d %d, %d          3D: %4.4f %4.4f %4.4f", fd.pixelInFrame.frameIndex, fd.pixelInFrame.x, fd.pixelInFrame.y, pointInSpace.x, pointInSpace.y, pointInSpace.z));
+          System.out.println(String.format("N: %4.4f %4.4f %4.4f  Tan: %4.4f %4.4f %4.4f", p.second.x, p.second.y, p.second.z, p.first.x, p.first.y, p.first.z));
 
           // Get the point in 3-space
           listBuilder.add(pointInSpace.x);

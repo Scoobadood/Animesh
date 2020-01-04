@@ -7,7 +7,7 @@ import static org.ddurbin.animesh.viewer.MatrixHelper.rotate;
 import static org.ddurbin.animesh.viewer.MatrixHelper.translate;
 
 
-import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.newt.awt.NewtCanvasAWT;
 import com.jogamp.newt.event.MouseEvent;
@@ -22,19 +22,14 @@ import com.jogamp.opengl.GLProfile;
 import com.jogamp.opengl.util.Animator;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.nio.FloatBuffer;
-import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 
 import org.ddurbin.animesh.tools.State;
 import org.ddurbin.animesh.tools.StateUtilities;
-import org.ddurbin.common.Pair;
 import org.ddurbin.common.Vector3f;
 
 
@@ -46,7 +41,6 @@ import org.ddurbin.common.Vector3f;
  */
 public class JoglMain implements GLEventListener, MouseListener {
 
-    private static final String VERSION_STRING = "#version 330\n";
     /*
      * Rendering flags
      */
@@ -66,7 +60,6 @@ public class JoglMain implements GLEventListener, MouseListener {
     private static int width = 1920;
     private static int height = 1080;
     // World
-    private static float[] colours;
     private static float[] vertices;
     /*
      * Rotation matrix
@@ -87,10 +80,15 @@ public class JoglMain implements GLEventListener, MouseListener {
     private float model_ty = 0.0f;
     private float model_tz = 5.0f;
 
+    static final Colour NORMAL_COLOUR = new Colour( 1.0f, 0.0f, 0.0f );
+    static final Colour PRIMARY_TANGENT_COLOUR = new Colour( 0.0f, 1.0f, 0.0f );
+    static final Colour ORTH_TANGENT_COLOUR = new Colour( 1.0f, 1.0f, 2.0f );
+
     /*
      * Shader related variables/handles
      */
     private MyShaderProgram shadProg;
+
     // Where we put our handles for vertex buffers
     private int[] vboHandles;
     //
@@ -99,55 +97,17 @@ public class JoglMain implements GLEventListener, MouseListener {
     private int mouseDownX;
     private int mouseDownY;
 
+    // Ctor
     private JoglMain(float[] projectionMatrix) {
         this.projectionMatrix = projectionMatrix;
     }
 
 
     /**
-     * Store the given RGB colour at the location in the array provided. Alphas is assumed to be 1.0;
-     */
-    private static void setColourAtPosition(float[] arr, int position, float r, float g, float b) {
-        arr[position] = r;
-        arr[position + 1] = g;
-        arr[position + 2] = b;
-        arr[position + 3] = 1.0f;
-    }
-
-    /**
-     * Store the given RGB colour twice, once for each end of a line
-     */
-    private static void setLineColourAtPosition(float[] arr, int position, float r, float g, float b) {
-        setColourAtPosition(arr, position, r, g, b);
-        setColourAtPosition(arr, position + 4, r, g, b);
-    }
-
-    /**
-     * Colour the normal and tangents at the give position in the array.
-     */
-    private static void setColoursForObjectAtPosition(float[] arr, int position) {
-        // Normal is red
-        setLineColourAtPosition(arr, position, 1.0f, 0.0f, 0.0f);
-        // Principal tangent is green
-        setLineColourAtPosition(arr, position + 8, 1.0f, 1.0f, 0.0f);
-        // Other tangents are blue
-        setLineColourAtPosition(arr, position + 16, 1.0f, 1.0f, 1.0f);
-        setLineColourAtPosition(arr, position + 24, 1.0f, 1.0f, 1.0f);
-    }
-
-
-    /**
-     * Load normals and tangets from state file and colour them appropriately.
+     * Load normals and tangents from state file and colour them appropriately.
      */
     private static void createWorld(State state, int frame) {
         vertices = StateToGlData.convertStateToGlData(state, frame);
-        int numItems = (vertices.length / 24);
-        colours = new float[numItems * 32];
-
-        // We have 8 points making 4 lines
-        for (int i = 0; i < (numItems); i++) {
-            setColoursForObjectAtPosition(colours, i * 32);
-        }
     }
 
     /**
@@ -180,7 +140,7 @@ public class JoglMain implements GLEventListener, MouseListener {
         // GLWindow will call the GLEventListener init, reshape, display and dispose
         // functions when needed.
         float[] projectionMatrix = new float[16];
-        createProjectionMatrix((float) Math.toRadians(30), 0.005f, 9.0f, (width / height), projectionMatrix);
+        createProjectionMatrix((float) Math.toRadians(35), 0.005f, 19.0f, (width / height), projectionMatrix);
 
         JoglMain jm = new JoglMain(projectionMatrix);
 
@@ -225,11 +185,12 @@ public class JoglMain implements GLEventListener, MouseListener {
     }
 
     /**
+     * Generate an array of coordinates to be rendered. Return this as well as the size of the resulting items.
      *
      */
-    private Pair<Integer, Integer> removeHidden(float[] renderVertices, float[] renderColours) {
+    private float[] removeHidden() {
         if (!normalsEnabled && !tangentsEnabled && !principalTangentEnabled) {
-            return new Pair(0, 0);
+            return new float[0];
         }
 
         // Construct VM matrix
@@ -243,56 +204,46 @@ public class JoglMain implements GLEventListener, MouseListener {
                 vm[14]
         );
 
+        LinkedList<Float> outputVertices = Lists.newLinkedList();
+        int vertexSourceIndex = 0;
+
         // Each 'object' occupies 2 verts for normal + 6 verts for tangents
         // each vert occupies 3 floats.
         int numItems = (vertices.length / 24);
-        int vertexDestIndex = 0;
-        int colourDestIndex = 0;
         for (int i = 0; i < numItems; i++) {
-
-            int vertexSourceIndex = i * 24;
-            int colourSourceIndex = i * 32;
 
             // we only write items to output that have normals visible to camera
             Vector3f normStart = new Vector3f(vertices[vertexSourceIndex], vertices[vertexSourceIndex + 1], vertices[vertexSourceIndex + 2]);
             Vector3f normEnd = new Vector3f(vertices[vertexSourceIndex + 3], vertices[vertexSourceIndex + 4], vertices[vertexSourceIndex + 5]);
             Vector3f norm = normEnd.minus(normStart);
-
             if (norm.dot(camOrigin) > 0) {
                 if (normalsEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 6);
-                    System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 8);
-                    vertexDestIndex += 6;
-                    colourDestIndex += 8;
+                    for( int v=0; v<6; v++ ) {
+                        outputVertices.add(vertices[vertexSourceIndex++]);
+                    }
+                } else {
+                    vertexSourceIndex += 6;
                 }
-                vertexSourceIndex += 6;
-                colourSourceIndex += 8;
 
                 if (tangentsEnabled) {
                     // Copy 6 vertices worth of coordinates
-                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, 18);
-                    vertexDestIndex += 18;
-
-                    if (principalTangentEnabled) {
-                        // Copy 8 floats worth of colours from here and shift indices
-                        System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 8);
-                        colourDestIndex += 8;
-                        colourSourceIndex += 8;
-                    } else {
-                        // Copy 8 floats worth of colours from 8 floats on, skip the intervening floats
-                        System.arraycopy(colours, colourSourceIndex + 8, renderColours, colourDestIndex, 8);
-                        colourDestIndex += 8;
-                        colourSourceIndex += 8;
+                    for( int v=0; v<18; v++ ) {
+                        outputVertices.add(vertices[vertexSourceIndex++]);
                     }
-                    // Copy 16 floats of colour
-                    System.arraycopy(colours, colourSourceIndex, renderColours, colourDestIndex, 16);
-                    colourDestIndex += 16;
+                } else {
+                    vertexSourceIndex += 18;
                 }
+            } else {
+                vertexSourceIndex += 24;
             }
         }
+
         // Size of items
-        int itemSize = (normalsEnabled ? 6 : 0) + (principalTangentEnabled ? 6 : 0) + (tangentsEnabled ? 12 : 0);
-        return new Pair<>(itemSize, vertexDestIndex);
+        float[] out = new float[outputVertices.size()];
+        for( int i=0; i<out.length; i++ ) {
+            out[i] = outputVertices.get(i);
+        }
+        return out;
     }
 
     private static void createProjectionMatrix(float fovy, float near, float far, float aspect,
@@ -309,106 +260,6 @@ public class JoglMain implements GLEventListener, MouseListener {
         pm[14] = (2 * far * near) / diffZ;
     }
 
-    private String loadResource(String fileName, GL gl) throws Exception {
-        URL u = this.getClass().getClassLoader().getResource(fileName);
-        if (u == null) {
-            throw new Exception("Resource not found");
-        }
-        InputStream str = u.openStream();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(str));
-        StringBuilder sb = new StringBuilder();
-
-        if (gl.isGL3core()) {
-            System.out.println("GL3 core detected: explicit add #version to shaders");
-            sb.append(VERSION_STRING);
-        }
-
-        String line;
-        while ((line = reader.readLine()) != null) {
-            sb.append(line);
-            sb.append("\n");
-        }
-        return sb.toString();
-    }
-
-    private void checkCompileSucceeded(GL4 gl, int shader, String shaderName) throws Exception {
-        //Check compile status.
-        int[] compiled = new int[1];
-        gl.glGetShaderiv(shader, GL4.GL_COMPILE_STATUS, compiled, 0);
-        if (compiled[0] != 0) {
-            System.out.println("Hooray! " + shaderName + " compiled");
-        } else {
-            int[] logLength = new int[1];
-            gl.glGetShaderiv(shader, GL4.GL_INFO_LOG_LENGTH, logLength, 0);
-
-            byte[] log = new byte[logLength[0]];
-            gl.glGetShaderInfoLog(shader, logLength[0], null, 0, log, 0);
-
-            System.err.println("Error compiling the " + shaderName + ": " + new String(log));
-            throw new Exception("Error compiling the shader : " + shaderName);
-        }
-    }
-
-    private String nameForType(int shaderType) throws Exception {
-        switch (shaderType) {
-            case GL4.GL_VERTEX_SHADER:
-                return "vertex shader";
-
-            case GL4.GL_FRAGMENT_SHADER:
-                return "fragment shader";
-
-            case GL4.GL_GEOMETRY_SHADER:
-                return "geometry shader";
-
-            default:
-                throw new Exception(String.format("Unknown shader type %d", shaderType));
-        }
-    }
-
-    private int makeShaderOrFail(GL4 gl, String shaderFileName, int shaderType) throws Exception {
-        String shaderString = loadResource(shaderFileName, gl);
-        if (Strings.isNullOrEmpty(shaderString)) {
-            throw new Exception("Missing or empty " + nameForType(shaderType));
-        }
-        int shader = gl.glCreateShader(shaderType);
-        if (shader == 0) {
-            throw new Exception("Error creating " + nameForType(shaderType));
-        }
-
-        //Compile the vertexShader String into a program.
-        String[] vlines = new String[]{
-                shaderString
-        };
-        int[] vlengths = new int[]{vlines[0].length()};
-        gl.glShaderSource(shader, vlines.length, vlines, vlengths, 0);
-        gl.glCompileShader(shader);
-
-        checkCompileSucceeded(gl, shader, nameForType(shaderType));
-        return shader;
-    }
-
-    private MyShaderProgram setupShaderProgram(GL4 gl) throws Exception {
-        int vertexShader = makeShaderOrFail(gl, "triangle.vert", GL4.GL_VERTEX_SHADER);
-        int fragmentShader = makeShaderOrFail(gl, "triangle.frag", GL4.GL_FRAGMENT_SHADER);
-
-        //Each shaderProgram must have
-        //one vertex shader and one fragment shader.
-        int shaderProgram = gl.glCreateProgram();
-        gl.glAttachShader(shaderProgram, vertexShader);
-        gl.glAttachShader(shaderProgram, fragmentShader);
-
-        //Associate attribute ids with the attribute names inside
-        //the vertex shader.
-        gl.glBindAttribLocation(shaderProgram, 0, "attribute_Position");
-        gl.glBindAttribLocation(shaderProgram, 1, "attribute_Color");
-
-        gl.glLinkProgram(shaderProgram);
-
-        //Get a id number to the uniform_Projection matrix
-        //so that we can update it.
-        int uniProjection = gl.glGetUniformLocation(shaderProgram, "uniform_Projection");
-        return new MyShaderProgram(shaderProgram, vertexShader, fragmentShader, uniProjection);
-    }
 
     private void reportCapabilities(GLAutoDrawable drawable, GL gl) {
         System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
@@ -425,7 +276,7 @@ public class JoglMain implements GLEventListener, MouseListener {
         GL4 gl = drawable.getGL().getGL4();
         try {
             reportCapabilities(drawable, gl);
-            shadProg = setupShaderProgram(gl);
+            shadProg = MyShaderProgram.setupShaderProgram(gl);
             vboHandles = new int[2];
             gl.glGenBuffers(2, vboHandles, 0);
         } catch (Exception e) {
@@ -450,6 +301,8 @@ public class JoglMain implements GLEventListener, MouseListener {
         gl.glViewport((width - height) / 2, 0, height, height);
     }
 
+
+    // Make a transformation matrix based on position of cam.
     private void setTransform(GL4 gl, float[] pvm) {
         identity(pvm);
         float[] newPvm = multiply(rotationMatrix, pvm);
@@ -480,6 +333,49 @@ public class JoglMain implements GLEventListener, MouseListener {
     }
 
     /**
+     * Generate vertex colours.
+     * We are given N, the number of items in a float array and S the size of each item
+     * S can be 0 (we're not showing anything)
+     *          6 (we're showing just normal or primary tangent)
+     * There are V = N/3 vertices.
+     * There are L = V/2 = N/6 lines.
+     * There are I = L/4 = N/24 distinct items.
+     * Each item has a normal, primary tangent, opposing tangent and orthogonal tangents
+     * We must colour them.
+     */
+    float[] generateVertexColours( float[] items) {
+        int itemSize = (normalsEnabled ? 6 : 0) + (tangentsEnabled ? 18 : 0);
+        int numItems = items.length / itemSize;
+        assert( items.length % itemSize == 0 );
+        int totalVertices = numItems * (itemSize / 3);
+
+        // Number of colours depends on a what's on display
+        float[] colours = new float[ totalVertices * 4];
+        int destColourIndex = 0;
+        for( int i=0; i<numItems; i++ ) {
+            if( normalsEnabled) {
+                for( int j=0; j<2; j++ ) {
+                    // Copy normal colour for two vertices
+                    colours[destColourIndex++] = NORMAL_COLOUR.red;
+                    colours[destColourIndex++] = NORMAL_COLOUR.green;
+                    colours[destColourIndex++] = NORMAL_COLOUR.blue;
+                    colours[destColourIndex++] = NORMAL_COLOUR.alpha;
+                }
+            }
+            if( tangentsEnabled) {
+                for( int j=0; j<6; j++ ) {
+                    // Copy normal colour for two vertices
+                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.red;
+                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.green;
+                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.blue;
+                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.alpha;
+                }
+            }
+        }
+        return colours;
+    }
+
+    /**
      * GLEventListener::display.
      */
     public void display(GLAutoDrawable drawable) {
@@ -496,19 +392,14 @@ public class JoglMain implements GLEventListener, MouseListener {
         // Set the MVP matrix
         float[] pvm = new float[16];
         setTransform(gl, pvm);
-        float[] renderVertices = new float[vertices.length];
-        float[] renderColour = new float[colours.length];
-        Pair<Integer, Integer> renderObjects = removeHidden(renderVertices, renderColour);
-        int itemSize = renderObjects.first;
-        int dataSize = renderObjects.second;
-        int numItems = (itemSize == 0) ? 0 : (dataSize / itemSize);
-        renderVertices = Arrays.copyOf(renderVertices, dataSize);
-        renderColour = Arrays.copyOf(renderColour, numItems * (itemSize * 4 / 3));
+
+        float[] renderVertices = removeHidden();
+        float[] renderColour = generateVertexColours(renderVertices);
 
         setVbo(gl, renderVertices, 3, VERTICES_IDX, 0);
         setVbo(gl, renderColour, 4, COLOR_IDX, 1);
 
-        gl.glDrawArrays(GL4.GL_LINES, 0, dataSize); //Draw the vertices as lines
+        gl.glDrawArrays(GL4.GL_LINES, 0, renderVertices.length); //Draw the vertices as lines
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
         gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
     }
@@ -640,28 +531,28 @@ public class JoglMain implements GLEventListener, MouseListener {
         }
     }
 
-    public void enableNormals(boolean normalsEnabled) {
+    void enableNormals(boolean normalsEnabled) {
         this.normalsEnabled = normalsEnabled;
     }
 
-    public boolean isNormalsEnabled() {
+    boolean isNormalsEnabled() {
         return normalsEnabled;
     }
 
-    public void enableTangents(boolean tangentsEnabled) {
+    void enableTangents(boolean tangentsEnabled) {
         this.tangentsEnabled = tangentsEnabled;
     }
 
-    public boolean isTangentsEnabled() {
+    boolean isTangentsEnabled() {
         return tangentsEnabled;
     }
 
 
-    public void enablePrincipalTangent(boolean principalTangentEnabled) {
+    void enablePrincipalTangent(boolean principalTangentEnabled) {
         this.principalTangentEnabled = principalTangentEnabled;
     }
 
-    public boolean isPrincipalTangentEnabled() {
+    boolean isPrincipalTangentEnabled() {
         return principalTangentEnabled;
     }
 
@@ -669,23 +560,4 @@ public class JoglMain implements GLEventListener, MouseListener {
     public void mouseWheelMoved(MouseEvent e) {
     }
 
-    //
-    // Shader support
-    //
-    private static class MyShaderProgram {
-        final int shaderProgramId;
-        final int vertexShaderId;
-        final int fragmentShaderId;
-        final int uniformMvpMatrix;
-
-        MyShaderProgram(int shaderProgramId, //
-                        int vertexShaderId, //
-                        int fragmentShaderId, //
-                        int uniformMvpMatrix) {
-            this.shaderProgramId = shaderProgramId;
-            this.fragmentShaderId = fragmentShaderId;
-            this.vertexShaderId = vertexShaderId;
-            this.uniformMvpMatrix = uniformMvpMatrix;
-        }
-    }
 }

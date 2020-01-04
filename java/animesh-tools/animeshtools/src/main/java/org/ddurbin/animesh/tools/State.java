@@ -40,11 +40,13 @@ public class State {
         public final long x;
         public final long y;
         public final long frameIndex;
-        public PixelInFrame( long x, long y, long frameIndex ) {
+
+        public PixelInFrame(long x, long y, long frameIndex) {
             this.x = x;
             this.y = y;
             this.frameIndex = frameIndex;
         }
+
         /**
          * Return true if the have the same index.
          */
@@ -59,7 +61,7 @@ public class State {
                 return false;
             }
             PixelInFrame otherPixelInFrame = (PixelInFrame) otherObject;
-            return ( (frameIndex == otherPixelInFrame.frameIndex)
+            return ((frameIndex == otherPixelInFrame.frameIndex)
                     && (x == otherPixelInFrame.x)
                     && (y == otherPixelInFrame.y));
         }
@@ -70,10 +72,10 @@ public class State {
     }
 
     public static class FrameData {
-        public final PixelInFrame	pixelInFrame; 	// x, y, frame
-        public final Matrix3f       transform;
-        public final Vector3f       normal;
-        public final float          depth;
+        public final PixelInFrame pixelInFrame;    // x, y, frame
+        public final Matrix3f transform;
+        public final Vector3f normal;
+        public final float depth;
 
 
         FrameData(PixelInFrame pixelInFrame, Matrix3f transform, Vector3f normal, float depth) {
@@ -225,7 +227,7 @@ public class State {
      */
     private static PixelInFrame readPixelInFrame(InputStream in) throws IOException {
         long x = readLong(in);
-        long y= readLong(in);
+        long y = readLong(in);
         long frameIdx = readLong(in);
         return new PixelInFrame(x, y, frameIdx);
     }
@@ -239,6 +241,7 @@ public class State {
     private static FrameData readFrameData(InputStream in)
             throws IOException {
         PixelInFrame pif = readPixelInFrame(in);
+        System.out.println(String.format("> f:%d x:%d y:%d", pif.frameIndex, pif.x, pif.y));
         float depth = readFloat(in);
         Matrix3f transform = readMatrix3f(in);
         Vector3f normal = readVector3f(in);
@@ -251,7 +254,14 @@ public class State {
     private static Surfel readSurfel(InputStream in)
             throws IOException {
         long surfelId = readLong(in);
+        System.out.println("Surfel " + surfelId);
         int numFrames = readInt(in);
+        if (numFrames == 0) {
+            throw new RuntimeException("Expected at least one frame for surfel id " + surfelId);
+        }
+        if (numFrames == 1) {
+//            System.out.println("** WARNING: Surfel " + surfelId + " has only one frame");
+        }
         List<FrameData> frameData = Lists.newArrayList();
         while (numFrames > 0) {
             FrameData fd = readFrameData(in);
@@ -260,6 +270,9 @@ public class State {
         }
 
         int numNeighbours = readInt(in);
+        if (numNeighbours == 0) {
+//            System.out.println("** WARNING: Surfel " + surfelId + " has no neighbours");
+        }
         List<Integer> surfelNeighbours = Lists.newArrayList();
         while (numNeighbours > 0) {
             surfelNeighbours.add((int) readLong(in));
@@ -275,11 +288,14 @@ public class State {
         Check.notNull(in, "Input stream cannot be null");
         List<Surfel> surfels = Lists.newArrayList();
         int numSurfels = readInt(in);
+        if (numSurfels == 0) {
+            throw new RuntimeException("Expected at least one surfel");
+        }
 
         int total = numSurfels;
         int count = 0;
         while (numSurfels > 0) {
-            System.out.print( String.format("\rReading %d of %d    ", ++count, total));
+//            System.out.print(String.format("\rReading %d of %d    ", ++count, total));
             Surfel surfel = readSurfel(in);
             surfels.add(surfel);
             numSurfels--;

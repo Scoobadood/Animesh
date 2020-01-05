@@ -1,6 +1,6 @@
-position=5.0,0.0,0.0
+position=0.0,8.0,10.0
 view=0.0,0.0,0.0
 up=0.0,1.0,0.0
-resolution=640,480
+resolution=160,120
 fov=35.0,35.0
 f=5.0

@@ -22,6 +22,10 @@
 
 const std::string CAMERA_FILE = "camera.txt";
 
+const unsigned int GEN_IMG_WIDTH = 320;
+const unsigned int GEN_IMG_HEIGHT = 240;
+
+
 float inline deg2rad(float deg) {
 	return (deg * M_PI) / 180.0;
 }
@@ -207,8 +211,8 @@ int main(int argc, char * argv[]) {
 
 
 	// Create data arrays on the host (= CPU)
-	const unsigned int width = 640;
-	const unsigned int height = 480;
+	const unsigned int width = GEN_IMG_WIDTH;
+	const unsigned int height = GEN_IMG_HEIGHT;
 	const unsigned int numElements = width * height;
 	cl_float * cpuDepthData  = new cl_float[numElements];
 	cl_int   * cpuVertexData = new cl_int[numElements];
@@ -298,17 +302,17 @@ int main(int argc, char * argv[]) {
 	cout << "Kernel finished" << endl;
 
 	// export as text format float file
-	string depthFileName = "/Users/dave/Desktop/depth" + suffix + ".mat";
+	string depthFileName = "depth" + suffix + ".mat";
 	saveDepthImage(depthFileName, width, height, cpuDepthData);
 
-	depthFileName = "/Users/dave/Desktop/depth" + suffix + ".pgm";
+	depthFileName = "depth" + suffix + ".pgm";
 	saveImage( depthFileName, width, height,
 	[cpuDepthData](int i) {
 		float depth = cpuDepthData[i];
 		if(isinf(depth)) return 0;
 		return (int)(depth * 255);
 	}, 0);
-	string vertexFileName = "/Users/dave/Desktop/vertex" + suffix + ".pgm";
+	string vertexFileName = "vertex" + suffix + ".pgm";
 	saveImage( vertexFileName, width, height,
 	[cpuVertexData](int i) {
 		return cpuVertexData[i];

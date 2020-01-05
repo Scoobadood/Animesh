@@ -414,13 +414,13 @@ normal_to_colour( const std::vector<float>& normal ) {
 /**
  * Return true if the normal at the given coordinates is defined, i.e.
  * has a non-0 length.
- * @param row The row in the depth map for the normal
- * @param col The column in the depth map for the normal
+ * @param x The x coordinate to check
+ * @param y The y coordinate to chec
  */
 bool
-DepthMap::is_normal_defined(unsigned int row, unsigned int col) const {
+DepthMap::is_normal_defined(unsigned int x, unsigned int y) const {
     using namespace std;
-    vector<float> n = get_normals().at(row).at(col);
+    vector<float> n = get_normals().at(y).at(x);
     return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
 }
 

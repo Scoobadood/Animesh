@@ -71,9 +71,9 @@ create_depth_map_hierarchy(const Properties &properties, const std::vector<Depth
     depth_map_hierarchy.reserve(num_levels);
     depth_map_hierarchy.push_back(depth_maps);
     cout << "1 of " << num_levels << "    " << flush;
-    for (int i = 2; i <= num_levels; i++) {
+    for (int i = 1; i <= num_levels; i++) {
         cout << "\r" << i << " of " << num_levels << "    " << flush;
-        depth_map_hierarchy.push_back(resample_depth_maps(depth_map_hierarchy.at(i-2)));
+        depth_map_hierarchy.push_back(resample_depth_maps(depth_map_hierarchy.at(i-1)));
     }
     cout << endl;
 

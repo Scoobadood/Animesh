@@ -49,16 +49,16 @@ public:
 
 	inline unsigned int rows() const { return height;}
 	inline unsigned int cols() const { return width;}
-	float depth_at(unsigned int row, unsigned int col) const {
-		assert( row < height && row >= 0 );
-		assert( col < width && col >= 0 );
-		return depth_data[index(row, col)];
+	float depth_at(unsigned int x, unsigned int y) const {
+		assert( y < height && y >= 0 );
+		assert( x < width && x >= 0 );
+		return depth_data[index(y, x)];
 	}
 	void cull_unreliable_depths(float ts, float tl);
 	const std::vector<std::vector<std::vector<float>>>& get_normals() const;
 	int get_valid_directions(unsigned int row, unsigned int col, bool eightConnected) const;
 	static bool flag_is_set( int flags, DepthMap::tDirection flag );
-	bool is_normal_defined(unsigned int row, unsigned int col) const;
+	bool is_normal_defined(unsigned int x, unsigned int y) const;
 
 	/**
 	 * Subsample a depth map and return a map that is half the size (rounded down) in each dimension.

@@ -71,7 +71,7 @@ get_valid_pixels_for_depth_map(const DepthMap &depth_map) {
     vector<Pixel> valid_pixels;
     for (unsigned int r = 0; r < depth_map.rows(); ++r) {
         for (unsigned int c = 0; c < depth_map.cols(); ++c) {
-            if( depth_map.is_normal_defined(r, c)) {
+            if( depth_map.is_normal_defined(c, r)) {
                 valid_pixels.emplace_back(c, r);
             }
         }
@@ -281,7 +281,7 @@ compute_correspondence_paths(const std::vector<std::vector<std::vector<Pixel>>>&
     using namespace std;
 
     vector<vector<vector<PixelInFrame>>> paths;
-    for( unsigned int level = 0; level < pixels_by_level_and_frame.size(); ++level) {
+    for( int level = pixels_by_level_and_frame.size()-1; level >=0 ; --level) {
         cout << "Computing correspondences for level : " << level << endl;
         paths.push_back( compute_correspondence_paths_for_level(pixels_by_level_and_frame.at(level), point_clouds_by_level_and_frame.at(level)));
     }
@@ -475,21 +475,20 @@ int main(int argc, char *argv[]) {
         save_normals_to_file( valid_pixels_for_levels, depth_map_hierarchy, properties.getProperty("normal-file-template"));
     }
 
-    // Computer Pixel paths across frames
-    vector<vector<vector<PixelInFrame>>> corresponding_paths_by_level = compute_correspondence_paths(valid_pixels_for_levels, point_clouds_for_all_levels);
+    // Computer Pixel paths across frames (for each level and then save)
+    vector<vector<vector<PixelInFrame>>> corresponding_paths_by_level;
+    for( int level = valid_pixels_for_levels.size()-1; level >=0 ; --level) {
+        cout << "Computing correspondences for level : " << level << endl;
+        corresponding_paths_by_level.push_back( compute_correspondence_paths_for_level(valid_pixels_for_levels.at(level), point_clouds_for_all_levels.at(level)));
+
+        cout << "Saving level " << level << "correspondences" << endl;
+        string file_name = file_name_from_template_and_level(properties.getProperty("correspondence-file-template"), level);
+        save_correspondences_to_file(file_name, corresponding_paths_by_level.back());
+    }
 
     // Save paths if requested
     if( properties.getBooleanProperty("save-paths")) {
         save_paths_to_file( corresponding_paths_by_level, properties.getProperty("path-file-template"));
-    }
-
-    // Cluster and write to level files.
-    unsigned int level = 0;
-    for( const auto& corrs_for_level : corresponding_paths_by_level) {
-        cout << "Saving level " << level << "correspondences" << endl;
-        string file_name = file_name_from_template_and_level(properties.getProperty("correspondence-file-template"), level);
-        save_correspondences_to_file(file_name, corrs_for_level);
-        ++level;
     }
     return 0;
 }

@@ -11,8 +11,8 @@
 #include "surfel_io.h"
 #include "utilities.h"
 
-const char pre_smooth_filename_template[] = "/Users/dave/Desktop/presmooth_%02d.bin";
-const char post_smooth_filename_template[] = "/Users/dave/Desktop/smoothed_%02d.bin";
+const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
+const char post_smooth_filename_template[] = "smoothed_%02d.bin";
 
 /**
  * Given a set of existing surfels (previous level), populate the current level
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
     }
 
     // For each level from coarsest down
-    int level = num_levels - 1;
+    int level = num_levels-1;
     vector<Surfel> previous_level;
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
 
@@ -185,7 +185,6 @@ int main(int argc, char *argv[]) {
 
         --level;
     }
-
 
     return 0;
 }

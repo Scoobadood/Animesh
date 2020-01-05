@@ -6,8 +6,6 @@ import static org.ddurbin.animesh.viewer.MatrixHelper.multiply;
 import static org.ddurbin.animesh.viewer.MatrixHelper.rotate;
 import static org.ddurbin.animesh.viewer.MatrixHelper.translate;
 
-
-import com.google.common.collect.Lists;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.newt.awt.NewtCanvasAWT;
 import com.jogamp.newt.event.MouseEvent;
@@ -23,7 +21,6 @@ import com.jogamp.opengl.util.Animator;
 
 import java.awt.*;
 import java.nio.FloatBuffer;
-import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
@@ -40,6 +37,12 @@ import org.ddurbin.common.Vector3f;
  * {@see http://jogamp.org/deployment/jogamp-current/archive/jogamp-all-platforms.7z}
  */
 public class JoglMain implements GLEventListener, MouseListener {
+    private static final int VERTICES_FOR_NORMAL = 2;
+    private static final int FLOATS_FOR_NORMAL = VERTICES_FOR_NORMAL * 3;
+    private static final int VERTICES_FOR_TANGENTS = 6;
+    private static final int FLOATS_FOR_TANGENTS = VERTICES_FOR_TANGENTS * 3;
+    private static final int NUM_COLOUR_PLANES = 4;
+    private static final int BYTES_PER_FLOAT = 4;
 
     /*
      * Rendering flags
@@ -188,9 +191,9 @@ public class JoglMain implements GLEventListener, MouseListener {
      * Generate an array of coordinates to be rendered. Return this as well as the size of the resulting items.
      *
      */
-    private float[] removeHidden() {
+    private int removeHidden(float[] outputVertexData) {
         if (!normalsEnabled && !tangentsEnabled && !principalTangentEnabled) {
-            return new float[0];
+            return 0;
         }
 
         // Construct VM matrix
@@ -204,46 +207,35 @@ public class JoglMain implements GLEventListener, MouseListener {
                 vm[14]
         );
 
-        LinkedList<Float> outputVertices = Lists.newLinkedList();
+        int vertexDestIndex = 0;
         int vertexSourceIndex = 0;
 
         // Each 'object' occupies 2 verts for normal + 6 verts for tangents
         // each vert occupies 3 floats.
-        int numItems = (vertices.length / 24);
+        int numItems = vertices.length / ((VERTICES_FOR_NORMAL + VERTICES_FOR_TANGENTS) * 3);
         for (int i = 0; i < numItems; i++) {
-
-            // we only write items to output that have normals visible to camera
+            // We only write items to output that have normals visible to camera
             Vector3f normStart = new Vector3f(vertices[vertexSourceIndex], vertices[vertexSourceIndex + 1], vertices[vertexSourceIndex + 2]);
             Vector3f normEnd = new Vector3f(vertices[vertexSourceIndex + 3], vertices[vertexSourceIndex + 4], vertices[vertexSourceIndex + 5]);
             Vector3f norm = normEnd.minus(normStart);
             if (norm.dot(camOrigin) > 0) {
                 if (normalsEnabled) {
-                    for( int v=0; v<6; v++ ) {
-                        outputVertices.add(vertices[vertexSourceIndex++]);
-                    }
-                } else {
-                    vertexSourceIndex += 6;
+                    System.arraycopy(vertices, vertexSourceIndex, outputVertexData, vertexDestIndex, FLOATS_FOR_NORMAL);
+                    vertexDestIndex += FLOATS_FOR_NORMAL;
                 }
+                vertexSourceIndex += FLOATS_FOR_NORMAL;
 
                 if (tangentsEnabled) {
-                    // Copy 6 vertices worth of coordinates
-                    for( int v=0; v<18; v++ ) {
-                        outputVertices.add(vertices[vertexSourceIndex++]);
-                    }
-                } else {
-                    vertexSourceIndex += 18;
+                    System.arraycopy(vertices, vertexSourceIndex, outputVertexData, vertexDestIndex, FLOATS_FOR_TANGENTS);
+                    vertexDestIndex += FLOATS_FOR_TANGENTS;
                 }
+                vertexSourceIndex += FLOATS_FOR_TANGENTS;
             } else {
-                vertexSourceIndex += 24;
+                vertexSourceIndex += (FLOATS_FOR_NORMAL + FLOATS_FOR_TANGENTS);
             }
         }
 
-        // Size of items
-        float[] out = new float[outputVertices.size()];
-        for( int i=0; i<out.length; i++ ) {
-            out[i] = outputVertices.get(i);
-        }
-        return out;
+        return vertexDestIndex / 3;
     }
 
     private static void createProjectionMatrix(float fovy, float near, float far, float aspect,
@@ -315,12 +307,11 @@ public class JoglMain implements GLEventListener, MouseListener {
         System.arraycopy(newPvm, 0, pvm, 0, pvm.length);
     }
 
-    private void setVbo(GL4 gl, float[] data, int dataSize, int vboIndex, int vaaIndex) {
-        FloatBuffer fbData = Buffers.newDirectFloatBuffer(data);
+    private void setVbo(GL4 gl, float[] data, int numItems, int dataSize, int vboIndex, int vaaIndex) {
+        FloatBuffer fbData = Buffers.newDirectFloatBuffer(data, 0, numItems * dataSize);
         gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, vboHandles[vboIndex]);
-        int numBytes = data.length * 4;
+        int numBytes = numItems * dataSize * BYTES_PER_FLOAT;
         gl.glBufferData(GL.GL_ARRAY_BUFFER, numBytes, fbData, GL.GL_STATIC_DRAW);
-        fbData = null; // It is OK to release CPU vertices memory after transfer to GPU
 
         // Associate Vertex attribute 0 with the last bound VBO
         gl.glVertexAttribPointer(vaaIndex /* the vertex attribute */,
@@ -343,18 +334,20 @@ public class JoglMain implements GLEventListener, MouseListener {
      * Each item has a normal, primary tangent, opposing tangent and orthogonal tangents
      * We must colour them.
      */
-    float[] generateVertexColours( float[] items) {
-        int itemSize = (normalsEnabled ? 6 : 0) + (tangentsEnabled ? 18 : 0);
-        int numItems = items.length / itemSize;
-        assert( items.length % itemSize == 0 );
-        int totalVertices = numItems * (itemSize / 3);
+    float[] generateVertexColours(int numVertices) {
+        // Compute size of each item (surfel) in vertices
+        int verticesPerSurfel = (normalsEnabled ? VERTICES_FOR_NORMAL : 0) + (tangentsEnabled ? VERTICES_FOR_TANGENTS : 0);
+        if( verticesPerSurfel == 0 ) return new float[0];
+        // Number of items is the number of vertices
+        int numSurfels = numVertices / verticesPerSurfel;
+        assert( numVertices % verticesPerSurfel == 0 );
 
         // Number of colours depends on a what's on display
-        float[] colours = new float[ totalVertices * 4];
+        float[] colours = new float[ numVertices * NUM_COLOUR_PLANES];
         int destColourIndex = 0;
-        for( int i=0; i<numItems; i++ ) {
+        for( int i=0; i<numSurfels; i++ ) {
             if( normalsEnabled) {
-                for( int j=0; j<2; j++ ) {
+                for( int j=0; j<VERTICES_FOR_NORMAL; j++ ) {
                     // Copy normal colour for two vertices
                     colours[destColourIndex++] = NORMAL_COLOUR.red;
                     colours[destColourIndex++] = NORMAL_COLOUR.green;
@@ -363,7 +356,7 @@ public class JoglMain implements GLEventListener, MouseListener {
                 }
             }
             if( tangentsEnabled) {
-                for( int j=0; j<6; j++ ) {
+                for( int j=0; j<VERTICES_FOR_TANGENTS; j++ ) {
                     // Copy normal colour for two vertices
                     colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.red;
                     colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.green;
@@ -393,13 +386,14 @@ public class JoglMain implements GLEventListener, MouseListener {
         float[] pvm = new float[16];
         setTransform(gl, pvm);
 
-        float[] renderVertices = removeHidden();
-        float[] renderColour = generateVertexColours(renderVertices);
+        float[] renderVertices = new float[vertices.length];
+        int numRenderVertices = removeHidden(renderVertices);
+        float[] renderColour = generateVertexColours(numRenderVertices);
 
-        setVbo(gl, renderVertices, 3, VERTICES_IDX, 0);
-        setVbo(gl, renderColour, 4, COLOR_IDX, 1);
+        setVbo(gl, renderVertices, numRenderVertices, 3, VERTICES_IDX, 0);
+        setVbo(gl, renderColour, numRenderVertices,4, COLOR_IDX, 1);
 
-        gl.glDrawArrays(GL4.GL_LINES, 0, renderVertices.length); //Draw the vertices as lines
+        gl.glDrawArrays(GL4.GL_LINES, 0, numRenderVertices); //Draw the vertices as lines
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
         gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
     }

@@ -141,6 +141,3 @@ void buildProgram( cl::Program& program, const cl::Device& device ) {
 		throw runtime_error("Error during compilation");
 	}
 }
-
-
-

@@ -147,6 +147,7 @@ int main(int argc, char *argv[]) {
     vector<Surfel> previous_level;
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
 
+    float convergence_threshold = properties.getFloatProperty("convergence-threshold");
     while (level >= 0) {
         cout << "Generating surfels for level : " << level << endl;
 
@@ -167,12 +168,13 @@ int main(int argc, char *argv[]) {
         }
 
         // Save the pre-smoothing surfels in a renderable way
+
         char out_file_name[strlen(pre_smooth_filename_template) + 1];
         sprintf(out_file_name, pre_smooth_filename_template, level);
         save_to_file(out_file_name, surfels);
 
         // Smooth this level
-        Optimiser o{0.1, num_frames, surfels_per_step};
+        Optimiser o{convergence_threshold, num_frames, surfels_per_step};
         o.optimise(surfels);
 
         // Save the smoothed surfels in a renderable way

@@ -33,4 +33,26 @@ create_depth_map_hierarchy(const Properties &properties, const std::vector<Depth
 std::vector<Camera>
 load_cameras(unsigned int num_frames);
 
+
+/**
+ * Construct the save file name from a given template and level
+ *
+ */
+std::string
+file_name_from_template_and_level(const std::string &file_name_template, unsigned int level);
+
+/**
+ * Construct the save file name from a given template and level and frame
+ *
+ */
+std::string
+file_name_from_template_level_and_frame(const std::string &file_name_template, unsigned int level, unsigned int frame);
+
+/**
+ * Construct a file name from a given template and frame
+ *
+ */
+std::string
+file_name_from_template_and_frame(const std::string &file_name_template, unsigned int frame);
+
 #endif //ANIMESH_UTILITIES_H

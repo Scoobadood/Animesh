@@ -8,6 +8,46 @@
 #include <Properties/Properties.h>
 #include "../mesher/depth_map_io.h"
 
+const std::string CAMERA_TEMPLATE = "camera_F%02d.txt";
+
+/**
+ * Construct the save file name from a given template and level
+ *
+ */
+std::string
+file_name_from_template_and_level(const std::string &file_name_template, unsigned int level) {
+    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level);
+    char file_name[bufsz + 1];
+    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level);
+    return file_name;
+}
+
+/**
+ * Construct the save file name from a given template and level and frame
+ *
+ */
+std::string
+file_name_from_template_level_and_frame(const std::string &file_name_template, unsigned int level, unsigned int frame) {
+    // We expect 2x %2dL
+    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level, frame);
+    char file_name[bufsz + 1];
+    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level, frame);
+    return file_name;
+}
+
+/**
+ * Construct a file name from a given template and frame
+ *
+ */
+std::string
+file_name_from_template_and_frame(const std::string &file_name_template, unsigned int frame) {
+    // We expect %2dL
+    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), frame);
+    char file_name[bufsz + 1];
+    snprintf(file_name, bufsz + 1, file_name_template.c_str(), frame);
+    return file_name;
+}
+
 std::vector<DepthMap>
 load_depth_maps(const Properties &properties) {
     using namespace std;
@@ -25,19 +65,18 @@ load_depth_maps(const Properties &properties) {
  */
 std::vector<Camera>
 load_cameras(unsigned int num_frames) {
+    using namespace std;
+
     std::vector<Camera> cameras;
-    // TODO: Move to loading these from disk rather than constructing by hand.
     cameras.reserve(num_frames);
+    cout << "Loading cameras " << flush;
     for (unsigned int i = 0; i < num_frames; ++i) {
-        cameras.emplace_back(
-                (float[]) {0.0f, 0.0f, 5.0f}, // position
-                (float[]) {0.0f, 0.0f, 0.0f}, // view
-                (float[]) {0.0f, 1.0f, 0.0f}, // up
-                (float[]) {640.0f, 480.0f},        // resolution
-                (float[]) {35.0f, 35.0f},     // fov
-                5.0f                 // focal distance
-        );
+        cout << "\rLoading cameras " << (i+1) << " of " << num_frames << "    " << flush;
+        string file_name = file_name_from_template_and_frame(CAMERA_TEMPLATE, i);
+        Camera camera = loadCameraFromFile(file_name);
+        cameras.push_back(camera);
     }
+    cout << endl;
     return cameras;
 }
 
@@ -57,6 +96,7 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
     }
     return resampled_depth_maps;
 }
+
 
 /**
  * Construct depth map hierarch given a vector of sourcde depth maps
@@ -79,4 +119,7 @@ create_depth_map_hierarchy(const Properties &properties, const std::vector<Depth
 
     return depth_map_hierarchy;
 }
+
+
+
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <cassert>
@@ -84,8 +85,8 @@ private:
 	inline unsigned int index(unsigned int row, unsigned int col) const {
 		return row * width + col;
 	}
-	inline bool is_edge(unsigned int row, unsigned int col) const {
-		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
-	}
+//	inline bool is_edge(unsigned int row, unsigned int col) const {
+//		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
+//	}
 	int get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected = false) const;
 };

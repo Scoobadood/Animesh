@@ -22,31 +22,6 @@
 #include <cpd/rigid.hpp>
 #include <Eigen/Dense>
 /**
- * Construct the save file name from a given template and level
- *
- */
-std::string
-file_name_from_template_and_level(const std::string &file_name_template, unsigned int level) {
-    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level);
-    char file_name[bufsz + 1];
-    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level);
-    return file_name;
-}
-
-/**
- * Construct the save file name from a given template and level and frame
- *
- */
-std::string
-file_name_from_template_level_and_frame(const std::string &file_name_template, unsigned int level, unsigned int frame) {
-    // We expect 2x %2dL
-    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level, frame);
-    char file_name[bufsz + 1];
-    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level, frame);
-    return file_name;
-}
-
-/**
  * Print usage instructions if the number of arguments is wrong or arguments are inconsistent
  *
  * @param prog_name The name of the program with path.
@@ -100,7 +75,7 @@ project_pixels_to_point_cloud(const std::vector<Pixel> &pixels,
     // Filter out zero depth points
     vector<Point3D> valid_points;
     for (const auto &pixel : pixels) {
-        float depth = depth_map.depth_at(pixel.y, pixel.x);
+        float depth = depth_map.depth_at(pixel.x, pixel.y);
         // backproject using camera settings
         float x, y, z;
         backproject(camera, pixel.x, pixel.y, depth, &x, &y, &z);

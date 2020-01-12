@@ -7,6 +7,7 @@
 #include <cstring>
 #include <algorithm>
 #include <fstream>
+#include <Eigen/Dense> // For cross product
 #include "../../libCamera/include/Camera/Camera.h"
 
 const bool DUMP_NORMALS = true;
@@ -124,43 +125,43 @@ DepthMap::get_neighbour_depths(unsigned int row, unsigned int col, float neighbo
     int flags = get_valid_directions(row, col, eightConnected);
     float d;
     if (flag_is_set(flags, UP)) {
-        d = depth_at(row - 1, col);
+        d = depth_at(col, row - 1);
         flags = clear_flag_if_zero(d, flags, UP);
         neighbour_depths[0] = d;
     }
     if (flag_is_set(flags, DOWN)) {
-        d = depth_at(row + 1, col);
+        d = depth_at(col, row + 1);
         flags = clear_flag_if_zero(d, flags, DOWN);
         neighbour_depths[1] = d;
     }
     if (flag_is_set(flags, LEFT)) {
-        d = depth_at(row, col - 1);
+        d = depth_at( col - 1, row);
         flags = clear_flag_if_zero(d, flags, LEFT);
         neighbour_depths[2] = d;
     }
     if (flag_is_set(flags, RIGHT)) {
-        d = depth_at(row, col + 1);
+        d = depth_at(col + 1, row);
         flags = clear_flag_if_zero(d, flags, RIGHT);
         neighbour_depths[3] = d;
     }
     if (eightConnected) {
         if (flag_is_set(flags, UP_LEFT)) {
-            d = depth_at(row - 1, col - 1);
+            d = depth_at(col - 1, row - 1);
             flags = clear_flag_if_zero(d, flags, UP_LEFT);
             neighbour_depths[4] = d;
         }
         if (flag_is_set(flags, UP_RIGHT)) {
-            d = depth_at(row - 1, col + 1);
+            d = depth_at(col - 1, row + 1);
             flags = clear_flag_if_zero(d, flags, UP_RIGHT);
             neighbour_depths[5] = d;
         }
         if (flag_is_set(flags, DOWN_LEFT)) {
-            d = depth_at(row + 1, col - 1);
+            d = depth_at(col + 1, row - 1);
             flags = clear_flag_if_zero(d, flags, DOWN_LEFT);
             neighbour_depths[6] = d;
         }
         if (flag_is_set(flags, DOWN_RIGHT)) {
-            d = depth_at(row + 1, col + 1);
+            d = depth_at(col + 1, row + 1);
             flags = clear_flag_if_zero(d, flags, DOWN_RIGHT);
             neighbour_depths[7] = d;
         }
@@ -291,7 +292,7 @@ DepthMap::compute_natural_normals(const Camera& camera) {
 
         // For each column
         for (int col = 0; col < cols(); ++col) {
-            float d = depth_at(row, col);
+            float d = depth_at(col, row);
 
             // If depth is 0 then there's no normal to be had here.
             if (d == 0.0f) {
@@ -473,7 +474,7 @@ DepthMap::resample() const {
             mapped_pixels.emplace_back(min(source_row + 1, rows() - 1), min(source_col + 1, cols() - 1));
 
             for (int i = 0; i < 4; ++i) {
-                values[i] = depth_at(mapped_pixels[i].row, mapped_pixels[i].col);
+                values[i] = depth_at(mapped_pixels[i].col, mapped_pixels[i].row);
             }
             new_data[r * new_cols + c] = merge(values);
         }

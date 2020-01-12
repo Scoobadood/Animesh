@@ -55,7 +55,7 @@ DepthMapPyramid::down_sample(const DepthMap &source_map, std::multimap<PixelCoor
             mapped_pixels.emplace_back(min(source_row + 1, source_map.rows() - 1), min(source_col + 1, source_map.cols() - 1) );
 
             for( int i= 0; i<4; ++i ) {
-                values[i] = source_map.depth_at(mapped_pixels[i].row, mapped_pixels[i].col);
+                values[i] = source_map.depth_at(mapped_pixels[i].col, mapped_pixels[i].row);
                 if( values[i] > 0.0f) {
                     mapping.insert(make_pair(PixelCoord{r, c}, mapped_pixels[i]));
                 }

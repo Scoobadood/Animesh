@@ -10,7 +10,7 @@ unsigned int TestDepthMap::count_non_zero_cells(DepthMap& d) {
 	unsigned int count = 0;
 	for( int r = 0; r < d.rows(); ++r) {
 		for( int c = 0; c < d.cols(); ++c ) {
-			if( d.depth_at(r,c) > 0.0f ) {
+			if( d.depth_at(c,r) > 0.0f ) {
 				count++;
 			}
 		}
@@ -25,7 +25,7 @@ void dump(const DepthMap& d ) {
 	// Dump it for interest
 	for( int r = 0; r < d.rows(); r++ ) {
 		for( int c = 0; c < d.cols(); c++ ) {
-			std::cout << d.depth_at(r,c) << "  ";
+			std::cout << d.depth_at(c,r) << "  ";
 		}
 		std::cout << std::endl;
 	}

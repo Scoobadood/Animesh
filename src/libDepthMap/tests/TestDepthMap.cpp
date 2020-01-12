@@ -6,10 +6,11 @@ const float INV_SQRT_2 = 1.0f / std::sqrt(2.0f);
 
 void TestDepthMap::SetUp( ) {}
 void TestDepthMap::TearDown() {}
+
 unsigned int TestDepthMap::count_non_zero_cells(DepthMap& d) {
 	unsigned int count = 0;
-	for( int r = 0; r < d.rows(); ++r) {
-		for( int c = 0; c < d.cols(); ++c ) {
+	for( int r = 0; r < d.height(); ++r) {
+		for( int c = 0; c < d.width(); ++c ) {
 			if( d.depth_at(c,r) > 0.0f ) {
 				count++;
 			}
@@ -23,12 +24,16 @@ unsigned int TestDepthMap::count_non_zero_cells(DepthMap& d) {
  * ********************************************************************************/
 void dump(const DepthMap& d ) {
 	// Dump it for interest
-	for( int r = 0; r < d.rows(); r++ ) {
-		for( int c = 0; c < d.cols(); c++ ) {
+	for( int r = 0; r < d.height(); r++ ) {
+		for( int c = 0; c < d.width(); c++ ) {
 			std::cout << d.depth_at(c,r) << "  ";
 		}
 		std::cout << std::endl;
 	}
+}
+
+bool flag_is_set(unsigned int all_flags, DepthMap::tDirection flag ) {
+    return( (all_flags & flag) == flag );
 }
 
 /* ********************************************************************************
@@ -36,8 +41,147 @@ void dump(const DepthMap& d ) {
  * ********************************************************************************/
 TEST_F( TestDepthMap, ShouldParseDimensions ) {
 	DepthMap d{"depthmap_test_data/dm.dat"};
-	EXPECT_EQ( d.cols(), 640);
-	EXPECT_EQ( d.rows(), 480);
+	EXPECT_EQ( d.width(), 640);
+	EXPECT_EQ( d.height(), 480);
+}
+
+class TestDM : DepthMap {
+private:
+    bool connect8;
+
+public:
+    TestDM( unsigned int w, unsigned int h, bool connect8) : DepthMap(w,h,nullptr){
+        this->connect8 = connect8;
+    }
+
+    void testFlags(unsigned int x, unsigned int y, bool expected, tDirection flag) {
+        unsigned int flags = get_valid_directions(x, y, connect8);
+        if( expected) {
+            EXPECT_EQ(flag, flags & flag);
+        } else {
+            EXPECT_EQ(0, flags & flag);
+        }
+    }
+};
+
+TEST_F( TestDepthMap, AllFlagsShouldBeSetForCentre ) {
+    TestDM d{4, 4, true};
+    d.testFlags(1, 1, true, DepthMap::UP);
+    d.testFlags(1, 1, true, DepthMap::UP_LEFT);
+    d.testFlags(1, 1, true, DepthMap::UP_RIGHT);
+    d.testFlags(1, 1, true, DepthMap::LEFT);
+    d.testFlags(1, 1, true, DepthMap::RIGHT);
+    d.testFlags(1, 1, true, DepthMap::DOWN);
+    d.testFlags(1, 1, true, DepthMap::DOWN_LEFT);
+    d.testFlags(1, 1, true, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, FourFlagsShouldBeSetForCentreWithFour ) {
+    TestDM d{4, 4, false};
+    d.testFlags(1, 1, true, DepthMap::UP);
+    d.testFlags(1, 1, false, DepthMap::UP_LEFT);
+    d.testFlags(1, 1, false, DepthMap::UP_RIGHT);
+    d.testFlags(1, 1, true, DepthMap::LEFT);
+    d.testFlags(1, 1, true, DepthMap::RIGHT);
+    d.testFlags(1, 1, true, DepthMap::DOWN);
+    d.testFlags(1, 1, false, DepthMap::DOWN_LEFT);
+    d.testFlags(1, 1, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForTopLeftCorner ) {
+    TestDM d{4, 4, true};
+    d.testFlags(0, 0, false, DepthMap::UP);
+    d.testFlags(0, 0, false, DepthMap::UP_LEFT);
+    d.testFlags(0, 0, false, DepthMap::UP_RIGHT);
+    d.testFlags(0, 0, false, DepthMap::LEFT);
+    d.testFlags(0, 0, true, DepthMap::RIGHT);
+    d.testFlags(0, 0, true, DepthMap::DOWN);
+    d.testFlags(0, 0, false, DepthMap::DOWN_LEFT);
+    d.testFlags(0, 0, true, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForTopRightCorner ) {
+    TestDM d{4, 4, true};
+    d.testFlags(3, 0, false, DepthMap::UP);
+    d.testFlags(3, 0, false, DepthMap::UP_LEFT);
+    d.testFlags(3, 0, false, DepthMap::UP_RIGHT);
+    d.testFlags(3, 0, true, DepthMap::LEFT);
+    d.testFlags(3, 0, false, DepthMap::RIGHT);
+    d.testFlags(3, 0, true, DepthMap::DOWN);
+    d.testFlags(3, 0, true, DepthMap::DOWN_LEFT);
+    d.testFlags(3, 0, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForBottomLeftCorner ) {
+    TestDM d{4, 4, true};
+    d.testFlags(0, 3, true, DepthMap::UP);
+    d.testFlags(0, 3, false, DepthMap::UP_LEFT);
+    d.testFlags(0, 3, true, DepthMap::UP_RIGHT);
+    d.testFlags(0, 3, false, DepthMap::LEFT);
+    d.testFlags(0, 3, true, DepthMap::RIGHT);
+    d.testFlags(0, 3, false, DepthMap::DOWN);
+    d.testFlags(0, 3, false, DepthMap::DOWN_LEFT);
+    d.testFlags(0, 3, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForBottomRightCorner ) {
+    TestDM d{4, 4, true};
+    d.testFlags(3, 3, true, DepthMap::UP);
+    d.testFlags(3, 3, true, DepthMap::UP_LEFT);
+    d.testFlags(3, 3, false, DepthMap::UP_RIGHT);
+    d.testFlags(3, 3, true, DepthMap::LEFT);
+    d.testFlags(3, 3, false, DepthMap::RIGHT);
+    d.testFlags(3, 3, false, DepthMap::DOWN);
+    d.testFlags(3, 3, false, DepthMap::DOWN_LEFT);
+    d.testFlags(3, 3, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, TwoFlagsShouldBeSetForTopLeftCornerWithFour ) {
+    TestDM d{4, 4, false};
+    d.testFlags(0, 0, false, DepthMap::UP);
+    d.testFlags(0, 0, false, DepthMap::UP_LEFT);
+    d.testFlags(0, 0, false, DepthMap::UP_RIGHT);
+    d.testFlags(0, 0, false, DepthMap::LEFT);
+    d.testFlags(0, 0, true, DepthMap::RIGHT);
+    d.testFlags(0, 0, true, DepthMap::DOWN);
+    d.testFlags(0, 0, false, DepthMap::DOWN_LEFT);
+    d.testFlags(0, 0, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, TwoFlagsShouldBeSetForTopRightCornerWithFour ) {
+    TestDM d{4, 4, false};
+    d.testFlags(3, 0, false, DepthMap::UP);
+    d.testFlags(3, 0, false, DepthMap::UP_LEFT);
+    d.testFlags(3, 0, false, DepthMap::UP_RIGHT);
+    d.testFlags(3, 0, true, DepthMap::LEFT);
+    d.testFlags(3, 0, false, DepthMap::RIGHT);
+    d.testFlags(3, 0, true, DepthMap::DOWN);
+    d.testFlags(3, 0, false, DepthMap::DOWN_LEFT);
+    d.testFlags(3, 0, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, TwoFlagsShouldBeSetForBottomLeftCornerWithFour ) {
+    TestDM d{4, 4, false};
+    d.testFlags(0, 3, true, DepthMap::UP);
+    d.testFlags(0, 3, false, DepthMap::UP_LEFT);
+    d.testFlags(0, 3, false, DepthMap::UP_RIGHT);
+    d.testFlags(0, 3, false, DepthMap::LEFT);
+    d.testFlags(0, 3, true, DepthMap::RIGHT);
+    d.testFlags(0, 3, false, DepthMap::DOWN);
+    d.testFlags(0, 3, false, DepthMap::DOWN_LEFT);
+    d.testFlags(0, 3, false, DepthMap::DOWN_RIGHT);
+}
+
+TEST_F( TestDepthMap, TwoFlagsShouldBeSetForBottomRightCornerWithFour ) {
+    TestDM d{4, 4, false};
+    d.testFlags(3, 3, true, DepthMap::UP);
+    d.testFlags(3, 3, false, DepthMap::UP_LEFT);
+    d.testFlags(3, 3, false, DepthMap::UP_RIGHT);
+    d.testFlags(3, 3, true, DepthMap::LEFT);
+    d.testFlags(3, 3, false, DepthMap::RIGHT);
+    d.testFlags(3, 3, false, DepthMap::DOWN);
+    d.testFlags(3, 3, false, DepthMap::DOWN_LEFT);
+    d.testFlags(3, 3, false, DepthMap::DOWN_RIGHT);
 }
 
 TEST_F( TestDepthMap, HorizontalEdgeTest ) {

@@ -15,8 +15,8 @@ const bool DUMP_NORMALS = true;
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
 
-    width = 0;
-    height = 0;
+    m_width = 0;
+    m_height = 0;
 
     vector<vector<float>> rows;
     process_file_by_lines(filename,
@@ -24,10 +24,10 @@ DepthMap::DepthMap(const std::string &filename) {
                               using namespace std;
                               vector<float> depth_image_row;
                               vector<string> tokens = tokenise(text_line);
-                              if (width == 0) {
-                                  width = tokens.size();
+                              if (m_width == 0) {
+                                  m_width = tokens.size();
                               } else {
-                                  if (width != tokens.size()) {
+                                  if (m_width != tokens.size()) {
                                       string message = "Lines of file must all be the same length";
                                       throw std::domain_error(message);
                                   }
@@ -38,12 +38,12 @@ DepthMap::DepthMap(const std::string &filename) {
                               }
                               rows.push_back(depth_image_row);
                           });
-    height = rows.size();
+    m_height = rows.size();
 
-    depth_data = new float[width * height];
-    for (int r = 0; r < height; r++) {
-        for (int c = 0; c < width; c++) {
-            depth_data[index(r, c)] = rows.at(r).at(c);
+    m_depth_data = new float[m_width * m_height];
+    for (unsigned int y = 0; y < m_height; ++y) {
+        for (unsigned int x = 0; x < m_width; ++x) {
+            m_depth_data[index(x, y)] = rows.at(y).at(x);
         }
     }
 }
@@ -51,16 +51,22 @@ DepthMap::DepthMap(const std::string &filename) {
 
 /**
  * Construct from an array of floats and dimensions
- * @param rows The number of rows provided.
- * @param cols The number of columns provided.
+ * @param width The number of columns provided.
+ * @param height The number of rows provided.
  * @param depth_data a rows*cols, row major set of depths.
  */
-DepthMap::DepthMap(unsigned int rows, unsigned int cols, float *depth_data) {
-    this->width = cols;
-    this->height = rows;
-    unsigned int num_entries = rows * cols;
-    this->depth_data = new float[num_entries];
-    memcpy(this->depth_data, depth_data, num_entries * sizeof(float));
+DepthMap::DepthMap(unsigned int width, unsigned int height, float *depth_data) {
+    m_width = width;
+    m_height = height;
+    unsigned int num_entries = width * height;
+    m_depth_data = new float[num_entries];
+    if( depth_data != nullptr ) {
+        memcpy(m_depth_data, depth_data, num_entries * sizeof(float));
+    } else {
+        for( int i=0; i<num_entries; ++i ) {
+            m_depth_data[i] = 0.0f;
+        }
+    }
 }
 
 
@@ -78,27 +84,36 @@ float median_value(const std::vector<float> &v) {
     return tmp[mid];
 }
 
-int
-DepthMap::get_valid_directions(unsigned int row, unsigned int col, bool eightConnected) const {
-    int flags = 0;
-    if (row > 0) {
+/**
+ * Given an (X,Y) coordinate in a depth map, return a set of flags indicating which
+ * directions from this coordinate are valid (in the sense that they fall inside the
+ * depth map.
+ * @param x X coordinate.
+ * @param y Y coordinate.
+ * @param eightConnected If true, consider diagonally adjacent pixels, otherwise just horizontal and vertical.
+ * @return
+ */
+unsigned int
+DepthMap::get_valid_directions(unsigned int x, unsigned int y, bool eightConnected) const {
+    unsigned int flags = 0;
+    if (y > 0) {
         flags |= UP;
         if (eightConnected) {
-            if (col > 0) flags |= UP_LEFT;
-            if (col < cols() - 1) flags |= UP_RIGHT;
+            if (x > 0) flags |= UP_LEFT;
+            if (x < width() - 1) flags |= UP_RIGHT;
         }
     }
-    if (row < rows() - 1) {
+    if (y < height() - 1) {
         flags |= DOWN;
         if (eightConnected) {
-            if (col > 0) flags |= DOWN_LEFT;
-            if (col < cols() - 1) flags |= DOWN_RIGHT;
+            if (x > 0) flags |= DOWN_LEFT;
+            if (x < width() - 1) flags |= DOWN_RIGHT;
         }
     }
-    if (col > 0) {
+    if (x > 0) {
         flags |= LEFT;
     }
-    if (col < cols() - 1) {
+    if (x < width() - 1) {
         flags |= RIGHT;
     }
     return flags;
@@ -176,20 +191,20 @@ DepthMap::get_neighbour_depths(unsigned int row, unsigned int col, float neighbo
 void
 DepthMap::cull_unreliable_depths(float ts, float tl) {
     using namespace std;
-    bool reliable[height][width];
-    for (int r = 0; r < height; ++r) {
-        for (int c = 0; c < width; ++c) {
+    bool reliable[m_height][m_width];
+    for (int r = 0; r < m_height; ++r) {
+        for (int c = 0; c < m_width; ++c) {
             reliable[r][c] = false;
         }
     }
 
-    for (int r = 1; r < height - 1; ++r) {
-        for (int c = 1; c < width - 1; ++c) {
-            float p = depth_data[index(r, c)];
+    for (unsigned int y = 1; y < m_height - 1; ++y) {
+        for (unsigned int x = 1; x < m_width - 1; ++x) {
+            float p = m_depth_data[index(x, y)];
 
             // Handle existing non-depth values
             if (p == 0.0f) {
-                reliable[r][c] = false;
+                reliable[y][x] = false;
                 continue;
             }
 
@@ -199,10 +214,10 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
                  Vp = |D(r-1,c) - D(r+1,c)|
              */
             float dp[] = {
-                    depth_data[index(r, c - 1)],
-                    depth_data[index(r, c + 1)],
-                    depth_data[index(r - 1, c)],
-                    depth_data[index(r + 1, c)]
+                    m_depth_data[index(x, y - 1)],
+                    m_depth_data[index(x, y + 1)],
+                    m_depth_data[index(x - 1, y)],
+                    m_depth_data[index(x + 1, y)]
             };
 
             float hp = fabsf(dp[1] - dp[0]);
@@ -252,15 +267,15 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
                     }
                 }
             }
-            reliable[r][c] = rel;
+            reliable[y][x] = rel;
         }
     }
 
     // Remove unreliable pixels
-    for (int r = 0; r < height; ++r) {
-        for (int c = 0; c < width; ++c) {
-            if (!reliable[r][c]) {
-                depth_data[index(r, c)] = 0.0f;
+    for (int y = 0; y < m_height; ++y) {
+        for (int x = 0; x < m_width; ++x) {
+            if (!reliable[y][x]) {
+                m_depth_data[index(x, y)] = 0.0f;
             }
         }
     }
@@ -281,9 +296,9 @@ DepthMap::compute_natural_normals(const Camera& camera) {
 
 
     // For each row
-    for (int row = 0; row < rows(); ++row) {
+    for (int y = 0; y < height(); ++y) {
 
-        // Temp storage for the row's type and normals
+        // Temp storage for the y's type and normals
         vector<vector<float>> current_row_normals;
         vector<tNormal> current_row_normal_types;
 
@@ -291,8 +306,8 @@ DepthMap::compute_natural_normals(const Camera& camera) {
 
 
         // For each column
-        for (int col = 0; col < cols(); ++col) {
-            float d = depth_at(col, row);
+        for (int x = 0; x < width(); ++x) {
+            float d = depth_at(x, y);
 
             // If depth is 0 then there's no normal to be had here.
             if (d == 0.0f) {
@@ -302,7 +317,7 @@ DepthMap::compute_natural_normals(const Camera& camera) {
             }
 
             float neighbour_depths[4];
-            int neighbours_present = get_neighbour_depths(row, col, neighbour_depths, false);
+            int neighbours_present = get_neighbour_depths(y, x, neighbour_depths, false);
 
             // If there are not four neighbours then I have a derived normal
             if (neighbours_present != FOUR) {
@@ -316,13 +331,13 @@ DepthMap::compute_natural_normals(const Camera& camera) {
             // We should avoid this if possible by back projecting all points once
 
             // Otherwise I have a natural normal
-            Eigen::Vector3f a = backproject(camera, col+1, row, neighbour_depths[3]);
-            Eigen::Vector3f b = backproject(camera, col-1, row, neighbour_depths[2]);
+            Eigen::Vector3f a = backproject(camera, x + 1, y, neighbour_depths[3]);
+            Eigen::Vector3f b = backproject(camera, x - 1, y, neighbour_depths[2]);
             Eigen::Vector3f c1 = a - b;
 //            float dzdx = (c[2] / c[0]);
 //            float dzdx = (neighbour_depths[3] - neighbour_depths[2]) / 2.0f;
-            a = backproject(camera, col, row+1, neighbour_depths[1]);
-            b = backproject(camera, col, row-1, neighbour_depths[0]);
+            a = backproject(camera, x, y + 1, neighbour_depths[1]);
+            b = backproject(camera, x, y - 1, neighbour_depths[0]);
             Eigen::Vector3f c2 = a - b;
 //            float dzdy = (c[2] / c[0]);
 //            float dzdy = (neighbour_depths[1] - neighbour_depths[0]) / 2.0f;
@@ -344,8 +359,8 @@ void
 DepthMap::compute_derived_normals() {
     using namespace std;
 
-    for (size_t row = 0; row < rows(); ++row) {
-        for (size_t col = 0; col < cols(); ++col) {
+    for (size_t row = 0; row < height(); ++row) {
+        for (size_t col = 0; col < width(); ++col) {
             // Skip existing normals
             if (normal_types[row][col] == NONE
                 || normal_types[row][col] == NATURAL) {
@@ -356,7 +371,7 @@ DepthMap::compute_derived_normals() {
             int count = 0;
             for (int ri = row - 1; ri <= row + 1; ri++) {
                 for (int ci = col - 1; ci <= col + 1; ci++) {
-                    if (ri < 0 || ri >= cols() || ci < 0 || ci >= cols()) {
+                    if (ri < 0 || ri >= width() || ci < 0 || ci >= width()) {
                         continue;
                     }
                     if (normal_types[ri][ci] == NONE) {
@@ -450,9 +465,9 @@ DepthMap
 DepthMap::resample() const {
     using namespace std;
 
-    unsigned int new_rows = rows() / 2;
-    unsigned int new_cols = cols() / 2;
-    auto new_data = new float[new_rows * new_cols];
+    unsigned int new_height = height() / 2;
+    unsigned int new_width = width() / 2;
+    auto new_data = new float[new_height * new_width];
 
     struct PixelCoord {
         unsigned int row;
@@ -461,25 +476,25 @@ DepthMap::resample() const {
         PixelCoord(unsigned int r, unsigned int c) : row(r), col(c) {}
     };
 
-    for (unsigned int r = 0; r < new_rows; ++r) {
-        for (unsigned int c = 0; c < new_cols; ++c) {
-            unsigned int source_row = r * 2;
-            unsigned int source_col = c * 2;
+    for (unsigned int y = 0; y < new_height; ++y) {
+        for (unsigned int x = 0; x < new_width; ++x) {
+            unsigned int source_y = y * 2;
+            unsigned int source_x = x * 2;
             float values[4];
             vector<PixelCoord> mapped_pixels;
 
-            mapped_pixels.emplace_back(source_row, source_col);
-            mapped_pixels.emplace_back(min(source_row + 1, rows() - 1), source_col);
-            mapped_pixels.emplace_back(source_row, min(source_col + 1, cols() - 1));
-            mapped_pixels.emplace_back(min(source_row + 1, rows() - 1), min(source_col + 1, cols() - 1));
+            mapped_pixels.emplace_back(source_y, source_x);
+            mapped_pixels.emplace_back(min(source_y + 1, height() - 1), source_x);
+            mapped_pixels.emplace_back(source_y, min(source_x + 1, width() - 1));
+            mapped_pixels.emplace_back(min(source_y + 1, height() - 1), min(source_x + 1, width() - 1));
 
             for (int i = 0; i < 4; ++i) {
                 values[i] = depth_at(mapped_pixels[i].col, mapped_pixels[i].row);
             }
-            new_data[r * new_cols + c] = merge(values);
+            new_data[y * new_width + x] = merge(values);
         }
     }
-    return DepthMap{new_rows, new_cols, new_data};
+    return DepthMap{new_height, new_width, new_data};
 }
 
 DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
@@ -504,9 +519,9 @@ DepthMap::compute_normals(const Camera& camera) {
     int natural_norm_count = 0;
     int derived_norm_count = 0;
     int zero_norms = 0;
-    for (int r = 0; r < rows(); ++r) {
-        for (int c = 0; c < cols(); ++c) {
-            auto norm_type = normal_types.at(r).at(c);
+    for (int y = 0; y < height(); ++y) {
+        for (int x = 0; x < width(); ++x) {
+            auto norm_type = normal_types.at(y).at(x);
             if (norm_type == NONE) {
                 zero_norms++;
                 continue;
@@ -517,16 +532,16 @@ DepthMap::compute_normals(const Camera& camera) {
                 natural_norm_count++;
             }
             // Check that norm is legal
-            const auto& normal = normals.at(r).at(c);
+            const auto& normal = normals.at(y).at(x);
             float norm_length = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
             if (isnan(norm_length)) {
-                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural" ) << " normal at r:" << r << ", c:" << c << endl;
+                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural" ) << " normal at y:" << y << ", x:" << x << endl;
             } else
             if (norm_length == 0.0) {
-                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at r:" << r << ", c:" << c << endl;
+                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:" << x << endl;
             } else
             if (abs(norm_length - 1.0) > 1e-3) {
-                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal ("<<norm_length<<") at r:" << r << ", c:" << c << endl;
+                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal (" << norm_length << ") at y:" << y << ", x:" << x << endl;
             }
             if( norm_length == 0.0) zero_norms++;
         }
@@ -545,8 +560,8 @@ DepthMap::compute_normals(const Camera& camera) {
     if( DUMP_NORMALS) {
         ofstream n1("/Users/dave/Desktop/normal_types.pgm");
         ofstream n2("/Users/dave/Desktop/normals.ppm");
-        n1 << "P2" << endl << cols() << " " << rows() << endl << "5" << endl;
-        n2 << "P3" << endl << cols() << " " << rows() << endl << "255" << endl;
+        n1 << "P2" << endl << height() << " " << width() << endl << "5" << endl;
+        n2 << "P3" << endl << height() << " " << width() << endl << "255" << endl;
         for( int row = 0; row < normals.size(); ++row ) {
             for( int col = 0; col < normals.at(row).size(); ++col ) {
                 auto t = normal_types.at(row).at(col);
@@ -561,3 +576,4 @@ DepthMap::compute_normals(const Camera& camera) {
     }
     // END DEBUG
 }
+

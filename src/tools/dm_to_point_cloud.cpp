@@ -44,10 +44,10 @@ get_valid_pixels_for_depth_map(const DepthMap &depth_map) {
 
     // Filter out invalid points (points which have no normals is the thing)
     vector<Pixel> valid_pixels;
-    for (unsigned int r = 0; r < depth_map.rows(); ++r) {
-        for (unsigned int c = 0; c < depth_map.cols(); ++c) {
-            if( depth_map.is_normal_defined(c, r)) {
-                valid_pixels.emplace_back(c, r);
+    for (unsigned int y = 0; y < depth_map.height(); ++y) {
+        for (unsigned int x = 0; x < depth_map.width(); ++x) {
+            if( depth_map.is_normal_defined(x, y)) {
+                valid_pixels.emplace_back(x, y);
             }
         }
     }

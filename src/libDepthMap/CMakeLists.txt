@@ -1,8 +1,6 @@
 file(GLOB SOURCES "src/*.cpp")
 
 add_library(DepthMap STATIC ${SOURCES}
-        src/DepthMapPyramid.cpp
-        include/DepthMap/DepthMapPyramid.h
         include/DepthMap/DepthMap.h)
 
 # Define headers for this library. PUBLIC headers are used for
@@ -34,8 +32,9 @@ export(TARGETS DepthMap
 # include_directories("${GTEST_INCLUDE_DIRS}")
 
 file(GLOB TEST_SOURCES "tests/*.cpp")
+
 add_executable(testDepthMap
-        ${TEST_SOURCES} tests/TestDepthMapPyramid.cpp tests/testDepthMapPyramid.h)
+        ${TEST_SOURCES} tests/testDepthMap.h)
 
 target_link_libraries(testDepthMap
         DepthMap

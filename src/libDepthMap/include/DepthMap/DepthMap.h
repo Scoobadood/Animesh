@@ -27,6 +27,7 @@ public:
         NATURAL
     } tNormal;
 
+    // A normal to the depth map
     struct NormalWithType {
         tNormal type;
         float x;
@@ -46,44 +47,74 @@ public:
 	 * @param cols The number of columns provided.
 	 * @param depth_data a rows*cols, row major set of depths.
 	 */
-	 DepthMap(unsigned int rows, unsigned int cols, float * depth_data);
+	 DepthMap(unsigned int width, unsigned int height, float * depth_data);
 
-	inline unsigned int rows() const { return height;}
-	inline unsigned int cols() const { return width;}
+	 /** @return the height of the depth map. */
+	inline unsigned int height() const { return this->m_height;}
+
+	/** @return the width of the depth map. */
+	inline unsigned int width() const { return m_width;}
+
+	/**
+	 * @param x
+	 * @param y
+	 *  @return the depth at the giovemn coordinate.
+	 */
 	float depth_at(unsigned int x, unsigned int y) const {
-		assert( y < height && y >= 0 );
-		assert( x < width && x >= 0 );
-		return depth_data[index(y, x)];
+        assert(x < m_width && x >= 0 );
+		assert(y < m_height && y >= 0 );
+		return m_depth_data[index(x, y)];
 	}
+
+    /**
+     * Subsample a depth map and return a map that is half the size (rounded down) in each dimension.
+     * Entries in the resulting map are computed from the mean of entries in this map.
+     */
+    DepthMap resample() const;
+
 	void cull_unreliable_depths(float ts, float tl);
 	const std::vector<std::vector<std::vector<float>>>& get_normals() const;
-	int get_valid_directions(unsigned int row, unsigned int col, bool eightConnected) const;
 	static bool flag_is_set( int flags, DepthMap::tDirection flag );
 	bool is_normal_defined(unsigned int x, unsigned int y) const;
 
-	/**
-	 * Subsample a depth map and return a map that is half the size (rounded down) in each dimension.
-	 * Entries in the resulting map are computed from the mean of entries in this map.
-	 */
-	DepthMap resample() const;
     NormalWithType normal_at(unsigned int x, unsigned int y) const;
     void compute_normals(const Camera& camera);
 
+protected:
+
+    /**
+     * Given an (X,Y) coordinate in a depth map, return a set of flags indicating which
+     * directions from this coordinate are valid (in the sense that they fall inside the
+     * depth map.
+     * @param x X coordinate.
+     * @param y Y coordinate.
+     * @param eightConnected If true, consider diagonally adjacent pixels, otherwise just horizontal and vertical.
+     * @return
+     */
+    unsigned int get_valid_directions(unsigned int x, unsigned int y, bool eightConnected) const;
+
+
 private:
-	float *depth_data;
-	unsigned int width;
-	unsigned int height;
+	float *m_depth_data;
+	unsigned int m_width;
+	unsigned int m_height;
 
 	// row, col
 	std::vector<std::vector<std::vector<float>>> normals;
 	// row, col
 	std::vector<std::vector<tNormal>> normal_types;
 
-	void compute_natural_normals(const Camera& camera);
+    void compute_natural_normals(const Camera& camera);
 	void compute_derived_normals();
 
-	inline unsigned int index(unsigned int row, unsigned int col) const {
-		return row * width + col;
+	/**
+	 * Compute the index into depth_map data for a given (x,y) coordinate.
+	 * @param y The y coordinate
+	 * @param x Tghe x coorinate.
+	 * @return The offset.
+	 */
+	inline unsigned int index(unsigned int x, unsigned int y) const {
+		return y * m_width + x;
 	}
 //	inline bool is_edge(unsigned int row, unsigned int col) const {
 //		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);

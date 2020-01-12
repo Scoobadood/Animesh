@@ -8,8 +8,6 @@ import static org.ddurbin.animesh.viewer.MatrixHelper.translate;
 
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.newt.awt.NewtCanvasAWT;
-import com.jogamp.newt.event.MouseEvent;
-import com.jogamp.newt.event.MouseListener;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL4;
@@ -21,12 +19,14 @@ import com.jogamp.opengl.util.Animator;
 
 import java.awt.*;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 
 import org.ddurbin.animesh.tools.State;
 import org.ddurbin.animesh.tools.StateUtilities;
+import org.ddurbin.common.Pair;
 import org.ddurbin.common.Vector3f;
 
 
@@ -36,20 +36,18 @@ import org.ddurbin.common.Vector3f;
  * @author Xerxes Rånby (xranby)
  * {@see http://jogamp.org/deployment/jogamp-current/archive/jogamp-all-platforms.7z}
  */
-public class JoglMain implements GLEventListener, MouseListener {
-    private static final int VERTICES_FOR_NORMAL = 2;
-    private static final int FLOATS_FOR_NORMAL = VERTICES_FOR_NORMAL * 3;
-    private static final int VERTICES_FOR_TANGENTS = 6;
-    private static final int FLOATS_FOR_TANGENTS = VERTICES_FOR_TANGENTS * 3;
-    private static final int NUM_COLOUR_PLANES = 4;
-    private static final int BYTES_PER_FLOAT = 4;
-
+public class JoglMain implements GLEventListener {
     /*
      * Rendering flags
      */
     private boolean normalsEnabled = true;
     private boolean tangentsEnabled = true;
     private boolean principalTangentEnabled = true;
+
+    /*
+     * Colouring in
+     */
+    SurfelColourer surfelColour;
 
     /*
      * Scene Data
@@ -63,7 +61,7 @@ public class JoglMain implements GLEventListener, MouseListener {
     private static int width = 1920;
     private static int height = 1080;
     // World
-    private static float[] vertices;
+    private float[] vertices;
     /*
      * Rotation matrix
      */
@@ -83,10 +81,6 @@ public class JoglMain implements GLEventListener, MouseListener {
     private float model_ty = 0.0f;
     private float model_tz = 5.0f;
 
-    static final Colour NORMAL_COLOUR = new Colour( 1.0f, 0.0f, 0.0f );
-    static final Colour PRIMARY_TANGENT_COLOUR = new Colour( 0.0f, 1.0f, 0.0f );
-    static final Colour ORTH_TANGENT_COLOUR = new Colour( 1.0f, 1.0f, 2.0f );
-
     /*
      * Shader related variables/handles
      */
@@ -94,106 +88,28 @@ public class JoglMain implements GLEventListener, MouseListener {
 
     // Where we put our handles for vertex buffers
     private int[] vboHandles;
-    //
-    // Mouse Management
-    //
-    private int mouseDownX;
-    private int mouseDownY;
 
     // Ctor
-    private JoglMain(float[] projectionMatrix) {
+    private JoglMain(float[] vertices, float[] projectionMatrix) {
+        this.vertices = vertices;
         this.projectionMatrix = projectionMatrix;
+        this.surfelColour = new SurfelOrientationColourer(vertices);
     }
-
 
     /**
      * Load normals and tangents from state file and colour them appropriately.
      */
-    private static void createWorld(State state, int frame) {
-        vertices = StateToGlData.convertStateToGlData(state, frame);
+    private static float[] createWorld(State state, int frame) {
+        return StateToGlData.convertStateToGlData(state, frame);
     }
 
-    /**
-     * Run it.
-     */
-    public static void main(String[] args) throws Exception {
-        State state = StateUtilities.loadState(args[0], args[1]);
-        int frameId = 6;
-        if( args.length > 2 ) {
-            frameId = Integer.valueOf(args[2]);
-        }
-        createWorld(state, frameId);
-
-
-        GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL4ES3));
-
-        // We may at this point tweak the caps and request a translucent drawable
-        caps.setBackgroundOpaque(false);
-        GLWindow glWindow = GLWindow.create(caps);
-
-        // In this demo we prefer to setup and view the GLWindow directly
-        // this allows the demo to run on -Djava.awt.headless=true systems
-        glWindow.setTitle("Raw GL4 Demo");
-        glWindow.setSize(width, height);
-        glWindow.setUndecorated(false);
-        glWindow.setPointerVisible(true);
-        glWindow.setVisible(true);
-
-        // Finally we connect the GLEventListener application code to the NEWT GLWindow.
-        // GLWindow will call the GLEventListener init, reshape, display and dispose
-        // functions when needed.
-        float[] projectionMatrix = new float[16];
-        createProjectionMatrix((float) Math.toRadians(35), 0.005f, 19.0f, (width / height), projectionMatrix);
-
-        JoglMain jm = new JoglMain(projectionMatrix);
-
-        glWindow.addGLEventListener(jm);
-        glWindow.addMouseListener(jm);
-
-        JFrame frame = new JFrame();
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setTitle("Daves Frame");
-        frame.setBounds(10, 10, 1000, 800);
-
-        JPanel panel = new JPanel();
-        panel.setBackground(Color.blue);
-        panel.setLayout(new BorderLayout());
-        NewtCanvasAWT canvas = new NewtCanvasAWT(glWindow);
-        canvas.setBackground(Color.red);
-        panel.add(canvas, BorderLayout.CENTER);
-        JPanel controls = new ControlPanel(jm);
-        controls.setSize(width / 4, height);
-        panel.add(controls, BorderLayout.WEST);
-
-        frame.getContentPane().add(panel);
-        Animator animator = new Animator();
-        animator.add(glWindow);
-
-        // make the window visible using the EDT
-        final Semaphore windowOpenSemaphore = new Semaphore(0);
-        SwingUtilities.invokeLater(() -> {
-            frame.pack();
-            frame.setVisible(true);
-            windowOpenSemaphore.release();
-        });
-
-        // wait for the window to be visible and start the animation
-        try {
-            final boolean windowOpened = windowOpenSemaphore.tryAcquire(5000, TimeUnit.MILLISECONDS);
-            assert (windowOpened);
-        } catch (final InterruptedException e) {
-            System.err.println("Closing wait interrupted: " + e.getMessage());
-        }
-        animator.start();
-    }
 
     /**
-     * Generate an array of coordinates to be rendered. Return this as well as the size of the resulting items.
-     *
+     * Return an array pf vertices to be rendered and an array of Surfel indics to render
      */
-    private int removeHidden(float[] outputVertexData) {
+    private Pair<float[], int[]> removeHidden() {
         if (!normalsEnabled && !tangentsEnabled && !principalTangentEnabled) {
-            return 0;
+            return new Pair(new float[0],new int[0]);
         }
 
         // Construct VM matrix
@@ -207,35 +123,45 @@ public class JoglMain implements GLEventListener, MouseListener {
                 vm[14]
         );
 
+        // Start with the assumption that we will render everything
+        int numSourceSurfels = vertices.length / (Constants.VERTICES_FOR_FULL_SURFEL * 3);
+        float[] renderVertices = new float[vertices.length];
+        int[] renderSurfelIndices = new int[numSourceSurfels];
+
         int vertexDestIndex = 0;
         int vertexSourceIndex = 0;
+        int numRenderSurfels = 0;
 
         // Each 'object' occupies 2 verts for normal + 6 verts for tangents
         // each vert occupies 3 floats.
-        int numItems = vertices.length / ((VERTICES_FOR_NORMAL + VERTICES_FOR_TANGENTS) * 3);
-        for (int i = 0; i < numItems; i++) {
+        for (int i = 0; i < numSourceSurfels; i++) {
             // We only write items to output that have normals visible to camera
             Vector3f normStart = new Vector3f(vertices[vertexSourceIndex], vertices[vertexSourceIndex + 1], vertices[vertexSourceIndex + 2]);
             Vector3f normEnd = new Vector3f(vertices[vertexSourceIndex + 3], vertices[vertexSourceIndex + 4], vertices[vertexSourceIndex + 5]);
             Vector3f norm = normEnd.minus(normStart);
             if (norm.dot(camOrigin) > 0) {
+                renderSurfelIndices[numRenderSurfels++] = i;
                 if (normalsEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, outputVertexData, vertexDestIndex, FLOATS_FOR_NORMAL);
-                    vertexDestIndex += FLOATS_FOR_NORMAL;
+                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, Constants.FLOATS_FOR_NORMAL);
+                    vertexDestIndex += Constants.FLOATS_FOR_NORMAL;
                 }
-                vertexSourceIndex += FLOATS_FOR_NORMAL;
+                vertexSourceIndex += Constants.FLOATS_FOR_NORMAL;
 
                 if (tangentsEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, outputVertexData, vertexDestIndex, FLOATS_FOR_TANGENTS);
-                    vertexDestIndex += FLOATS_FOR_TANGENTS;
+                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, Constants.FLOATS_FOR_TANGENTS);
+                    vertexDestIndex += Constants.FLOATS_FOR_TANGENTS;
                 }
-                vertexSourceIndex += FLOATS_FOR_TANGENTS;
+                vertexSourceIndex += Constants.FLOATS_FOR_TANGENTS;
             } else {
-                vertexSourceIndex += (FLOATS_FOR_NORMAL + FLOATS_FOR_TANGENTS);
+                vertexSourceIndex += (Constants.FLOATS_FOR_NORMAL + Constants.FLOATS_FOR_TANGENTS);
             }
         }
 
-        return vertexDestIndex / 3;
+        // Copy truncated arrays
+        float[] returnRenderVertices = Arrays.copyOfRange(renderVertices,0,vertexDestIndex);
+        int[] returnRenderSurfelIndices = Arrays.copyOfRange(renderSurfelIndices,0,numRenderSurfels);
+
+        return new Pair(returnRenderVertices, returnRenderSurfelIndices);
     }
 
     private static void createProjectionMatrix(float fovy, float near, float far, float aspect,
@@ -280,9 +206,9 @@ public class JoglMain implements GLEventListener, MouseListener {
     /**
      * GLEventListener::reshape.
      */
-    public void reshape(GLAutoDrawable drawable, int x, int y, int z, int h) {
-        System.out.println("Window resized to width=" + z + " height=" + h);
-        width = z;
+    public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
+        System.out.println("Window resized to width=" + w + " height=" + h);
+        width = w;
         height = h;
 
         // Get gl
@@ -290,7 +216,7 @@ public class JoglMain implements GLEventListener, MouseListener {
 
         // Optional: Set viewport
         // Render to a square at the center of the window.
-        gl.glViewport((width - height) / 2, 0, height, height);
+        gl.glViewport((width - height) / 2, 0, width, height);
     }
 
 
@@ -310,7 +236,7 @@ public class JoglMain implements GLEventListener, MouseListener {
     private void setVbo(GL4 gl, float[] data, int numItems, int dataSize, int vboIndex, int vaaIndex) {
         FloatBuffer fbData = Buffers.newDirectFloatBuffer(data, 0, numItems * dataSize);
         gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, vboHandles[vboIndex]);
-        int numBytes = numItems * dataSize * BYTES_PER_FLOAT;
+        int numBytes = numItems * dataSize * Constants.BYTES_PER_FLOAT;
         gl.glBufferData(GL.GL_ARRAY_BUFFER, numBytes, fbData, GL.GL_STATIC_DRAW);
 
         // Associate Vertex attribute 0 with the last bound VBO
@@ -321,51 +247,6 @@ public class JoglMain implements GLEventListener, MouseListener {
                 0 /* stride */,
                 0 /* The bound VBO data offset */);
         gl.glEnableVertexAttribArray(vaaIndex);
-    }
-
-    /**
-     * Generate vertex colours.
-     * We are given N, the number of items in a float array and S the size of each item
-     * S can be 0 (we're not showing anything)
-     *          6 (we're showing just normal or primary tangent)
-     * There are V = N/3 vertices.
-     * There are L = V/2 = N/6 lines.
-     * There are I = L/4 = N/24 distinct items.
-     * Each item has a normal, primary tangent, opposing tangent and orthogonal tangents
-     * We must colour them.
-     */
-    float[] generateVertexColours(int numVertices) {
-        // Compute size of each item (surfel) in vertices
-        int verticesPerSurfel = (normalsEnabled ? VERTICES_FOR_NORMAL : 0) + (tangentsEnabled ? VERTICES_FOR_TANGENTS : 0);
-        if( verticesPerSurfel == 0 ) return new float[0];
-        // Number of items is the number of vertices
-        int numSurfels = numVertices / verticesPerSurfel;
-        assert( numVertices % verticesPerSurfel == 0 );
-
-        // Number of colours depends on a what's on display
-        float[] colours = new float[ numVertices * NUM_COLOUR_PLANES];
-        int destColourIndex = 0;
-        for( int i=0; i<numSurfels; i++ ) {
-            if( normalsEnabled) {
-                for( int j=0; j<VERTICES_FOR_NORMAL; j++ ) {
-                    // Copy normal colour for two vertices
-                    colours[destColourIndex++] = NORMAL_COLOUR.red;
-                    colours[destColourIndex++] = NORMAL_COLOUR.green;
-                    colours[destColourIndex++] = NORMAL_COLOUR.blue;
-                    colours[destColourIndex++] = NORMAL_COLOUR.alpha;
-                }
-            }
-            if( tangentsEnabled) {
-                for( int j=0; j<VERTICES_FOR_TANGENTS; j++ ) {
-                    // Copy normal colour for two vertices
-                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.red;
-                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.green;
-                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.blue;
-                    colours[destColourIndex++] = PRIMARY_TANGENT_COLOUR.alpha;
-                }
-            }
-        }
-        return colours;
     }
 
     /**
@@ -386,14 +267,18 @@ public class JoglMain implements GLEventListener, MouseListener {
         float[] pvm = new float[16];
         setTransform(gl, pvm);
 
-        float[] renderVertices = new float[vertices.length];
-        int numRenderVertices = removeHidden(renderVertices);
-        float[] renderColour = generateVertexColours(numRenderVertices);
+        // Populate renderVertices with the vertices to be rendered.
+        // Return the number of Surfels (some are hidden) and number of vertices per surfel (some are hidden)
+        Pair<float[], int[]> render =removeHidden();
+        float[] renderVertices = render.first;
+        int[] renderSurfelIndices = render.second;
 
-        setVbo(gl, renderVertices, numRenderVertices, 3, VERTICES_IDX, 0);
-        setVbo(gl, renderColour, numRenderVertices,4, COLOR_IDX, 1);
+        float[] renderColour = surfelColour.generateColoursForSurfels(renderSurfelIndices, normalsEnabled, tangentsEnabled, principalTangentEnabled);
+        int numItems = renderVertices.length/3;
+        setVbo(gl, renderVertices, numItems, 3, VERTICES_IDX, 0);
+        setVbo(gl, renderColour, numItems,4, COLOR_IDX, 1);
 
-        gl.glDrawArrays(GL4.GL_LINES, 0, numRenderVertices); //Draw the vertices as lines
+        gl.glDrawArrays(GL4.GL_LINES, 0, renderVertices.length/2); //Draw the vertices as lines
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
         gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
     }
@@ -415,64 +300,15 @@ public class JoglMain implements GLEventListener, MouseListener {
         System.exit(0);
     }
 
-    @Override
-    public void mouseClicked(MouseEvent e) {
-    }
 
-    @Override
-    public void mouseEntered(MouseEvent e) {
-    }
 
-    @Override
-    public void mouseExited(MouseEvent e) {
-    }
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-        mouseDownX = e.getX();
-        mouseDownY = e.getY();
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-    }
-
-    @Override
-    public void mouseMoved(MouseEvent e) {
-    }
-
-    private boolean isShiftModifier(int mod) {
-        return ((mod & MouseEvent.SHIFT_MASK) != 0)
-                && ((mod & MouseEvent.ALT_MASK) == 0)
-                && ((mod & MouseEvent.META_MASK) == 0)
-                && ((mod & MouseEvent.CTRL_MASK) == 0);
-    }
-
-    private boolean isNoModifier(int mod) {
-        return ((mod & MouseEvent.SHIFT_MASK) == 0)
-                && ((mod & MouseEvent.ALT_MASK) == 0)
-                && ((mod & MouseEvent.META_MASK) == 0)
-                && ((mod & MouseEvent.CTRL_MASK) == 0);
-    }
-
-    private boolean isCmdModifier(int mod) {
-        return ((mod & MouseEvent.SHIFT_MASK) == 0)
-                && ((mod & MouseEvent.ALT_MASK) == 0)
-                && ((mod & MouseEvent.META_MASK) != 0)
-                && ((mod & MouseEvent.CTRL_MASK) == 0);
-    }
-
-    private boolean isCtrlModifier(int mod) {
-        return ((mod & MouseEvent.SHIFT_MASK) == 0)
-                && ((mod & MouseEvent.ALT_MASK) == 0)
-                && ((mod & MouseEvent.META_MASK) == 0)
-                && ((mod & MouseEvent.CTRL_MASK) != 0);
-    }
 
     /*
      * Rotate around X and Y axes
      */
-    private void rotateXY(float deltaX, float deltaY) {
+    public void rotateXY(int dX, int dY) {
+        float deltaX = dX / (float) width;
+        float deltaY = dY / (float) height;
         float[] m = new float[16];
         identity(m);
         m = rotate(m, (float) (-deltaY * Math.PI * 2), 1.0f, 0.0f, 0.0f);
@@ -483,7 +319,8 @@ public class JoglMain implements GLEventListener, MouseListener {
     /*
      * Rotate around Z axis
      */
-    private void rotateZ(float deltaZ) {
+    public void rotateZ(int dZ) {
+        float deltaZ = dZ / (float) width;
         float[] m = new float[16];
         identity(m);
         m = rotate(m, (float) (deltaZ * Math.PI * 2), 0.0f, 0.0f, -1.0f);
@@ -493,36 +330,19 @@ public class JoglMain implements GLEventListener, MouseListener {
     /*
      * Rotate around Z axis.
      */
-    private void pan(float deltaX, float deltaY) {
-        model_tx += 2 * deltaX;
-        model_ty -= 2 * deltaY;
+    public void pan(int dX, int dY) {
+        float deltaX = dX / (float) width;
+        float deltaY = dY / (float) height;
+        model_tx += (2 * deltaX);
+        model_ty -= (2 * deltaY);
     }
 
     /*
      * Zoom in and out
      */
-    private void zoom(float deltaZ) {
+    public void zoom(int dZ) {
+        float deltaZ = dZ / (float)height;
         model_tz -= 2 * deltaZ;
-    }
-
-    @Override
-    public void mouseDragged(MouseEvent e) {
-        float deltaX = (e.getX() - mouseDownX) / (float) width;
-        float deltaY = (e.getY() - mouseDownY) / (float) height;
-        mouseDownX = e.getX();
-        mouseDownY = e.getY();
-
-        int mod = e.getModifiers();
-
-        if (isNoModifier(mod)) {
-            rotateXY(deltaX, deltaY);
-        } else if (isCmdModifier(mod)) {
-            rotateZ(deltaX);
-        } else if (isCtrlModifier(mod)) {
-            zoom(deltaY*4.0f);
-        } else if (isShiftModifier(mod)) {
-            pan(deltaX, deltaY);
-        }
     }
 
     void enableNormals(boolean normalsEnabled) {
@@ -550,8 +370,78 @@ public class JoglMain implements GLEventListener, MouseListener {
         return principalTangentEnabled;
     }
 
-    @Override
-    public void mouseWheelMoved(MouseEvent e) {
-    }
 
+    /**
+     * Run it.
+     */
+    public static void main(String[] args) throws Exception {
+        State state = StateUtilities.loadState(args[0], args[1]);
+        int frameId = 6;
+        if( args.length > 2 ) {
+            frameId = Integer.valueOf(args[2]);
+        }
+        float[] vertices = createWorld(state, frameId);
+
+
+        GLCapabilities caps = new GLCapabilities(GLProfile.get(GLProfile.GL4));
+
+        // We may at this point tweak the caps and request a translucent drawable
+        caps.setBackgroundOpaque(false);
+        GLWindow glWindow = GLWindow.create(caps);
+
+        // In this demo we prefer to setup and view the GLWindow directly
+        // this allows the demo to run on -Djava.awt.headless=true systems
+        glWindow.setTitle("Animesh");
+        glWindow.setSize(width, height);
+        glWindow.setUndecorated(false);
+        glWindow.setPointerVisible(true);
+        glWindow.setVisible(true);
+
+        // Finally we connect the GLEventListener application code to the NEWT GLWindow.
+        // GLWindow will call the GLEventListener init, reshape, display and dispose
+        // functions when needed.
+        float[] projectionMatrix = new float[16];
+        createProjectionMatrix((float) Math.toRadians(35), 0.005f, 19.0f, (width / (float)height), projectionMatrix);
+
+        JoglMain jm = new JoglMain(vertices, projectionMatrix);
+
+        glWindow.addGLEventListener(jm);
+        glWindow.addMouseListener(new AnimeshMouseListener(jm));
+
+        JFrame frame = new JFrame();
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        frame.setTitle("Daves Frame");
+        frame.setBounds(10, 10, 1000, 800);
+
+        JPanel panel = new JPanel();
+        panel.setBackground(Color.blue);
+        panel.setLayout(new BorderLayout());
+        NewtCanvasAWT canvas = new NewtCanvasAWT(glWindow);
+        canvas.setBackground(Color.red);
+        panel.add(canvas, BorderLayout.CENTER);
+        JPanel controls = new ControlPanel(jm);
+        controls.setSize(width / 4, height);
+        panel.add(controls, BorderLayout.WEST);
+
+        frame.getContentPane().add(panel);
+        Animator animator = new Animator();
+        animator.add(glWindow);
+
+        // make the window visible using the EDT
+        final Semaphore windowOpenSemaphore = new Semaphore(0);
+        SwingUtilities.invokeLater(() -> {
+            frame.pack();
+            frame.setVisible(true);
+            windowOpenSemaphore.release();
+        });
+
+        // wait for the window to be visible and start the animation
+        try {
+            final boolean windowOpened = windowOpenSemaphore.tryAcquire(5000, TimeUnit.MILLISECONDS);
+            assert (windowOpened);
+        } catch (final InterruptedException e) {
+            System.err.println("Closing wait interrupted: " + e.getMessage());
+        }
+        animator.start();
+    }
 }

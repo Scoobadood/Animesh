@@ -1,23 +1,42 @@
 package org.ddurbin.animesh.viewer;
 
-public abstract class OrientationSurfelColourer extends AbstractSurfelColourer {
-    protected Colour[] normalColour;
+/*
+ * Constructor extracts normal data and builds an array of Colours
+ */
 
-    protected OrientationSurfelColourer( float[] vertices) {
+public abstract class AbstractOrientationColourer extends AbstractSurfelColourer {
+    // One colour per Surfel
+    private Colour[] colours;
+
+    protected AbstractOrientationColourer(float[] vertices) {
         super( );
-        generateNormalColours(vertices);
+        generateColours(vertices);
     }
 
-    protected OrientationSurfelColourer( float[] vertices, Colour primaryTangentColour, Colour secondaryTangentColour) {
+    protected AbstractOrientationColourer(float[] vertices, Colour primaryTangentColour, Colour secondaryTangentColour) {
         super( primaryTangentColour, secondaryTangentColour);
-        generateNormalColours(vertices);
+        generateColours(vertices);
     }
 
-    private void generateNormalColours( float[] vertices) {
-        int numSurfels = vertices.length / (Constants.VERTICES_FOR_FULL_SURFEL * 3);
-        normalColour = new Colour[numSurfels * Constants.VERTICES_FOR_FULL_SURFEL];
+    protected Colour colourForSurfel( int i ) {
+        return colours[i];
+    }
+
+    /**
+     * Vertices  contains all vertices for all Surfels. These are:
+     * 2 for Normal
+     * 2 for Primary tangent
+     * 2 for Secondarytangent
+     * 2 for orthogonal tangents
+     * We extract the Normal vector, unitise it and generat RGB values im the range 0 .. 1
+     * @param vertices
+     */
+    private void generateColours(float[] vertices) {
+        int floatsPerSurfel = Constants.VERTICES_FOR_FULL_SURFEL * 3;
+        int numSurfels = vertices.length / floatsPerSurfel;
+        colours = new Colour[numSurfels];
         for( int i=0; i<numSurfels; i++ ) {
-            int srcVertexIndex = i * Constants.VERTICES_FOR_FULL_SURFEL * 3;
+            int srcVertexIndex = i * floatsPerSurfel;
 
             // Colour the normal based on the orientation
             float dx = vertices[srcVertexIndex + 3] - vertices[srcVertexIndex + 0];
@@ -28,7 +47,7 @@ public abstract class OrientationSurfelColourer extends AbstractSurfelColourer {
             float ng = 0.5f + ((dy / size) * 0.5f);
             float nb = 0.5f + ((dz / size) * 0.5f);
 
-            normalColour[i] = new Colour(nr, ng, nb);
+            colours[i] = new Colour(nr, ng, nb);
         }
     }
 }

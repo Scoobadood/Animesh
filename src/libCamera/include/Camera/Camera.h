@@ -14,9 +14,9 @@ public:
 
     void look_at( float world_x, float world_y, float world_z );
 
-    void to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate);
+    void to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate) const;
 
-    Eigen::Vector3f to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth);
+    Eigen::Vector3f to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth) const;
 
     /**
      * Get the camera matrix

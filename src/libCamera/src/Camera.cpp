@@ -210,7 +210,7 @@ std::ostream
  * Compute the backprojection of a point from X,Y and depth in world space
  */
 Eigen::Vector3f
-Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth) {
+Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth) const {
     using namespace Eigen;
 
     // Get world coordinates of pixel through which the ray passes
@@ -227,7 +227,7 @@ Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float d
  * Convenience method to to_world_coords a point into an array
  */
 void
-Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate) {
+Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate) const {
     assert( world_coordinate != nullptr);
     Eigen::Vector3f point = to_world_coordinates(pixel_x, pixel_y, depth);
     world_coordinate[0] = point(0);

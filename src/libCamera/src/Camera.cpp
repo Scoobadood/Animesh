@@ -1,10 +1,56 @@
 #include <iostream>
 #include <string>
-#include <sstream>
 #include <fstream>
 #include <math.h>
 #include <Eigen/Geometry>
 #include <Camera/Camera.h>
+
+const double DEG_TO_RAD = M_PI / 180.0;
+
+Camera::Camera(const float position[3],
+               const float view[3], const float up[3], const float res[2],
+               const float fov[2], float f) : camera_origin{position[0], position[1], position[2]},
+                                              looking_at{view[0], view[1], view[2]},
+                                              up{up[0], up[1], up[2]},
+                                              resolution{res[0], res[1]},
+                                              field_of_view{fov[0] * DEG_TO_RAD, fov[1] * DEG_TO_RAD},
+                                              focal_length{f} {
+    compute_camera_parms();
+}
+
+void
+Camera::compute_camera_parms() {
+    using namespace Eigen;
+
+    // n is normal to image plane, points in opposite direction of view point
+    Vector3f N{camera_origin.x() - looking_at.x(),
+               camera_origin.y() - looking_at.y(),
+               camera_origin.z() - looking_at.z()};
+    n = N.normalized();
+
+    // u is a vector that is perpendicular to the plane spanned by
+    // N and view up vector (cam->up)
+    Vector3f U = Vector3f{up.x(), up.y(), up.z()}.cross(n);
+    u = U.normalized();
+
+    // v is a vector perpendicular to N and U
+    v = n.cross(u);
+
+    // Compute dimensions of image plane in world units
+    double image_plane_height = tan(field_of_view.y() * 0.5f ) * 2.0f * focal_length;
+    double image_plane_width = tan(field_of_view.x() * 0.5f ) * 2.0f * focal_length;
+
+    Vector3f image_plane_centre = camera_origin - (n * focal_length);
+    image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
+
+    // Compute pixel dimensions in world units
+    pixel_width = image_plane_width / resolution.x();
+    pixel_height = image_plane_height / resolution.y();
+
+    image_plane_dimensions.x() = image_plane_width;
+    image_plane_dimensions.y() = image_plane_height;
+}
+
 
 void parseVec3(const std::string &str, float vec[3]) {
     using namespace std;
@@ -39,8 +85,7 @@ void parseVec2(const std::string &str, float vec[2]) {
 
 Camera loadCameraFromFile(const std::string &filename) {
     using namespace std;
-
-    Camera camera;
+    using namespace Eigen;
 
     bool fl_position, fl_view, fl_up, fl_resolution, fl_fov, fl_f;
     fl_position = fl_view = fl_up = fl_resolution = fl_fov = fl_f = false;
@@ -48,15 +93,21 @@ Camera loadCameraFromFile(const std::string &filename) {
     ifstream file;
     file.exceptions(ifstream::failbit | ifstream::badbit);
 
-
     try {
         file.open(filename);
     }
-    catch (ifstream::failure e) {
+    catch (ifstream::failure& e) {
         cout << "ERROR::CAMFILE::NOT_FOUND " << filename << endl;
         cerr << strerror(errno) << endl;
-        return camera;
+        throw runtime_error("No camera file found" );
     }
+
+    float position[3];
+    float view_direction[3];
+    float up_direction[3];
+    float resolution[2];
+    float field_of_view[2];
+    float focal_length;
 
     file.exceptions(ifstream::goodbit);
     string line;
@@ -68,51 +119,48 @@ Camera loadCameraFromFile(const std::string &filename) {
             if (getline(is_line, value)) {
                 // Handle the line
                 if (key == "position") {
-                    parseVec3(value, camera.position);
+                    parseVec3(value, position);
                     fl_position = true;
                 } else if (key == "view") {
-                    parseVec3(value, camera.view);
+                    parseVec3(value, view_direction);
                     fl_view = true;
                 } else if (key == "up") {
-                    parseVec3(value, camera.up);
+                    parseVec3(value, up_direction);
                     fl_up = true;
                 } else if (key == "resolution") {
-                    parseVec2(value, camera.resolution);
+                    parseVec2(value, resolution);
                     fl_resolution = true;
                 } else if (key == "fov") {
-                    parseVec2(value, camera.fov);
+                    parseVec2(value, field_of_view);
                     fl_fov = true;
                 } else if (key == "f") {
-                    camera.focalDistance = stof(value);
+                    focal_length = stof(value);
                     fl_f = true;
                 } else {
-                    throw std::domain_error("CAMFILE::UNKNOWN_KEY");
                     cerr << "ERROR::CAMFILE::UNKNOWN_KEY " << key << endl;
+                    throw std::domain_error("CAMFILE::UNKNOWN_KEY");
                 }
             }
         }
     }
 
-
     if (!(fl_position && fl_view && fl_up && fl_resolution && fl_fov && fl_f)) {
-        throw std::domain_error("CAMFILE::MISSING_KEY");
         cerr << "ERROR::CAMFILE::MISSING_KEY" << endl;
+        throw std::domain_error("CAMFILE::MISSING_KEY");
     }
 
-    return camera;
+    return Camera{position, view_direction, up_direction, resolution, field_of_view, focal_length};
 }
 
 /*
- * Get the camera matrix
+ * Get the camera matrix.
  */
-void camera_intrinsics(const Camera &camera, Eigen::Matrix3f &K) {
-
-    float cx = camera.resolution[0] / 2.0f;
-    float cy = camera.resolution[1] / 2.0f;
-    float fx = camera.resolution[0] / tan(camera.fov[0] / 2.0f);
-    float fy = camera.resolution[1] / tan(camera.fov[1] / 2.0f);
+void Camera::camera_intrinsics(Eigen::Matrix3f &K) {
+    double cx = resolution.x() * 0.5;
+    double cy = resolution.y() * 0.5;
+    double fx = resolution.x() / tan(field_of_view.x() * 0.5);
+    double fy = resolution.y() / tan(field_of_view.y() * 0.5);
     float skew = 0.0f;
-
     K << fx, skew, cx,
             0.0f, fy, cy,
             0.0f, 0.0f, 1.0f;
@@ -121,173 +169,92 @@ void camera_intrinsics(const Camera &camera, Eigen::Matrix3f &K) {
 /**
  * Based on https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluLookAt.xml
  */
-void camera_extrinsics(const Camera &camera, Eigen::Matrix3f &R, Eigen::Vector3f &t) {
+void
+Camera::camera_extrinsics(Eigen::Matrix3f &R, Eigen::Vector3f &t) {
     using namespace Eigen;
 
-    Vector3f position{camera.position[0], camera.position[1], camera.position[2]};
-    Vector3f forward = Vector3f{camera.view[0], camera.view[1], camera.view[2]} - position;
-    forward.normalize();
+    R << v.x(), u.x(), n.x(),
+            v.y(), u.y(), n.y(),
+            v.z(), u.z(), n.z();
 
-    Vector3f up{camera.up[0], camera.up[1], camera.up[2]};
-    up.normalize();
-
-    Vector3f s = forward.cross(up);
-    s.normalize();
-    Vector3f u = s.cross(forward);
-
-    R << s.x(), u.x(), -forward.x(),
-            s.y(), u.y(), -forward.y(),
-            s.z(), u.z(), -forward.z();
-
-    t = -R * position;
+    t = -R * camera_origin;
 }
 
-void decomposeCamera(const Camera &camera, Eigen::Matrix3f &K, Eigen::Matrix3f &R, Eigen::Vector3f &t) {
-    camera_intrinsics(camera, K);
-    camera_extrinsics(camera, R, t);
+/**
+ * Break camera down i to extrinsic and intrinsic matrices
+ */
+void
+Camera::decompose(Eigen::Matrix3f &K, Eigen::Matrix3f &R, Eigen::Vector3f &t) {
+    camera_intrinsics(K);
+    camera_extrinsics(R, t);
     std::cout << "Cam R " << R << std::endl;
     std::cout << "Cam t " << t << std::endl;
 }
 
-
 /**
- * Construct an eye coordinate system
- * Input: camera position, center of interest, view-up vector
- * Returns: new origin and three basis vectors
- *
- *               /|
- *              / |
- *             /  |
- *            /   |
- *           / ^  |
- *          / v|  |
- *          |  |-----> n
- *          | /  /
- *          |Lu /
- *          |  /
- *          | /
- *          |/
- *
+ * Friend function for dumping Camera objects
  */
-void construct_camera_coordinate_system(const Camera &camera,
-                                        Eigen::Vector3f &cam_origin,
-                                        Eigen::Vector3f &n,
-                                        Eigen::Vector3f &u,
-                                        Eigen::Vector3f &v) {
-    using namespace Eigen;
-
-    // n is normal to image plane, points in opposite direction of view point
-    Vector3f N{camera.position[0] - camera.view[0],
-               camera.position[1] - camera.view[1],
-               camera.position[2] - camera.view[2]};
-    n = N.normalized();
-
-    // u is a vector that is perpendicular to the plane spanned by
-    // N and view up vector (cam->up)
-    Vector3f U = Vector3f{camera.up[0], camera.up[1], camera.up[2]}.cross(n);
-    u = U.normalized();
-
-    // v is a vector perpendicular to N and U
-    v = n.cross(u);
-
-    // origin is cam centre
-    cam_origin = Vector3f{camera.position[0], camera.position[1], camera.position[2]};
-}
-
-
-void construct_image_plane_origin(const Eigen::Vector2f &fov,
-                                  const float focal_length,
-                                  const Eigen::Vector3f &camera_origin,
-                                  const Eigen::Vector3f &n,
-                                  const Eigen::Vector3f &u,
-                                  const Eigen::Vector3f &v,
-                                  Eigen::Vector3f &image_plane_origin,
-                                  Eigen::Vector2f &image_plane_dimensions) {
-    using namespace Eigen;
-
-    float image_plane_height = tan(fov.y() * 0.5f * (M_PI / 180)) * 2.0f * focal_length;
-    float image_plane_width = tan(fov.x() * 0.5f * (M_PI / 180)) * 2.0f * focal_length;
-
-    Vector3f image_plane_centre = camera_origin - (n * focal_length);
-    image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
-    image_plane_dimensions.x() = image_plane_width;
-    image_plane_dimensions.y() = image_plane_height;
-}
-
-/*
- * Compute the backprojection of a point from X,Y and depth plus camera
- */
-Eigen::Vector3f backproject(const Camera &camera,
-                            unsigned int pixel_x,
-                            unsigned int pixel_y,
-                            float depth) {
-    using namespace Eigen;
-
-    Vector3f cam_origin;
-    Vector3f n, u, v;
-    construct_camera_coordinate_system(camera, cam_origin, n, u, v);
-
-    Vector3f image_plane_origin;
-    Vector2f image_plane_dimensions;
-    construct_image_plane_origin(Vector2f{camera.fov[0], camera.fov[1]}, camera.focalDistance, cam_origin, n, u, v,
-                                 image_plane_origin, image_plane_dimensions);
-
-    // Compute pixel coordinate in world space
-    float pixel_width = image_plane_dimensions.x() / camera.resolution[0];
-    float pixel_height = image_plane_dimensions.y() / camera.resolution[1];
-    Vector3f pixelCoordinate = image_plane_origin
-                               + ((pixel_x + 0.5) * pixel_width * u)
-                               + ((pixel_y + 0.5) * pixel_height * v);
-
-    Vector3f rayDirection = (pixelCoordinate - cam_origin).normalized();;
-    return cam_origin + (rayDirection * depth);
-
-
-
-//    [h, w] = size(im);
-//
-//    f_x = (w * 0.5) / tan(deg2rad(fov(2)) * 0.5);
-//    f_y = (h * 0.5) / tan(deg2rad(fov(1)) * 0.5);
-//
-//    u = repmat( 1:w, [h,1]);
-//    v = repmat( [1:h]', [1,w]);
-//    cx = ones(h,w) * w * 0.5;
-//    cy = ones(h,w) * h * 0.5;
-//
-//    X = ((u - cx) / f_x) .* im;
-//    Y = ((v - cy) / f_y) .* im;
-//
-//    xyz = [X(:), Y(:), im(:)];
-//
-//    % strip entries which are all zero.
-//            xyz = xyz(logical(xyz(:,3)),:);
-
-}
-
-void
-backproject(const Camera &camera,
-            unsigned int pixel_x,
-            unsigned int pixel_y,
-            float depth,
-            float *world_x,
-            float *world_y,
-            float *world_z) {
-    Eigen::Vector3f point = backproject(camera, pixel_x, pixel_y, depth);
-    *world_x = point(0);
-    *world_y = point(1);
-    *world_z = point(2);
-}
-
-
-std::ostream &operator<<(std::ostream &os, const Camera &camera) {
+std::ostream
+&operator<<(std::ostream &os, const Camera &camera) {
     using namespace std;
-    os << "pos : " << camera.position[0] << ", " << camera.position[1] << ", " << camera.position[2] << endl;
-    os << "vew : " << camera.view[0] << ", " << camera.view[1] << ", " << camera.view[2] << endl;
-    os << " up : " << camera.up[0] << ", " << camera.up[1] << ", " << camera.up[2] << endl;
-    os << "res : " << camera.resolution[0] << ", " << camera.resolution[1] << endl;
-    os << "fov : " << camera.fov[0] << ", " << camera.fov[1] << endl;
-    os << "foc : " << camera.focalDistance << endl;
+    os << "pos : " << camera.camera_origin.x() << ", " << camera.camera_origin.y() << ", " << camera.camera_origin.z() << endl;
+    os << "vew : " << camera.n.x() << ", " << camera.n.y() << ", " << camera.n.z() << endl;
+    os << " up : " << camera.v.x() << ", " << camera.v.y() << ", " << camera.v.z() << endl;
+    os << "res : " << camera.resolution.x() << ", " << camera.resolution.y() << endl;
+    os << "fov : " << camera.field_of_view.x() << ", " << camera.field_of_view.y() << endl;
+    os << "foc : " << camera.focal_length << endl;
     return os;
 }
 
+/*
+ * Compute the backprojection of a point from X,Y and depth in world space
+ */
+Eigen::Vector3f
+Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth) {
+    using namespace Eigen;
+
+    // Get world coordinates of pixel through which the ray passes
+   Vector3f pixelCoordinate = image_plane_origin
+                               + ((pixel_x /*+ 0.5*/) * pixel_width * u)
+                               + ((pixel_y /*+ 0.5*/) * pixel_height * v);
+
+   // Now project the ray to the depth expected to give the final world coordinate of the projected point
+    Vector3f rayDirection = (pixelCoordinate - camera_origin).normalized();
+    return camera_origin + (rayDirection * depth);
+}
+
+/*
+ * Convenience method to to_world_coords a point into an array
+ */
+void
+Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate) {
+    assert( world_coordinate != nullptr);
+    Eigen::Vector3f point = to_world_coordinates(pixel_x, pixel_y, depth);
+    world_coordinate[0] = point(0);
+    world_coordinate[1] = point(1);
+    world_coordinate[2] = point(2);
+}
+
+/**
+ * Change the location of the camera in world coordinates.
+ * If keep_facing is true, the camera stays pointed in the same direction as it currently is
+ * otherwise, it rotates to stay pointing at the same point in space.
+ */
+void
+Camera::move_to( float world_x, float world_y, float world_z, bool keep_facing ) {
+    camera_origin << world_x, world_y, world_z;
+    if( keep_facing) {
+        looking_at << world_x - n.x(), world_y - n.y(), world_z - n.z();
+    }
+    compute_camera_parms();
+}
+
+/**
+ * Change the point that the camera is looking at
+ */
+void
+Camera::look_at( float view_x, float view_y, float view_z ) {
+    looking_at << view_x, view_y, view_z;
+    compute_camera_parms();
+}
 

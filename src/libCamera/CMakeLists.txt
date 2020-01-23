@@ -1,6 +1,6 @@
-file(GLOB SOURCES "src/*.cpp")
-
-add_library(Camera STATIC ${SOURCES})
+add_library(Camera STATIC
+		src/Camera.cpp
+		include/Camera/Camera.h)
 
 # Need Eigen3
 find_package(Eigen3 REQUIRED)

@@ -119,5 +119,5 @@ private:
 //	inline bool is_edge(unsigned int row, unsigned int col) const {
 //		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
 //	}
-	int get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[], bool eightConnected = false) const;
+	int get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[], bool eightConnected = false) const;
 };

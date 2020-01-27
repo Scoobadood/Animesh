@@ -86,7 +86,7 @@ std::vector<std::vector<PixelInFrame>>
 get_correspondences(const Properties &properties,
                     unsigned int level,
                     const std::vector<DepthMap> &depth_map,
-                    std::vector<Camera>& cameras) {
+                    std::vector<Camera> &cameras) {
     using namespace std;
 
     vector<vector<PixelInFrame>> correspondences;
@@ -111,6 +111,7 @@ get_correspondences(const Properties &properties,
     return correspondences;
 }
 
+
 /**
  * Entry point
  * Generate a vector of Surfels and save to disk.
@@ -122,17 +123,26 @@ get_correspondences(const Properties &properties,
 int main(int argc, char *argv[]) {
     using namespace std;
 
+    // +-----------------------------------------------------------------------------------------------
+    // | Load properties
+    // +-----------------------------------------------------------------------------------------------
     string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
     Properties properties{property_file_name};
 
-    // Load depth maps
+    // +-----------------------------------------------------------------------------------------------
+    // | Load depth maps
+    // +-----------------------------------------------------------------------------------------------
     vector<DepthMap> depth_maps = load_depth_maps(properties);
     size_t num_frames = depth_maps.size();
 
-    // Load cameras
+    // +-----------------------------------------------------------------------------------------------
+    // | Load cameras
+    // +-----------------------------------------------------------------------------------------------
     vector<Camera> cameras = load_cameras(num_frames);
 
-    // Construct the hierarchy: number of levels as specified in properties.
+    // +-----------------------------------------------------------------------------------------------
+    // | Construct the depth map hierarchy: number of levels as specified in properties.
+    // +-----------------------------------------------------------------------------------------------
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
     int num_levels = depth_map_hierarchy.size();
     // Compute normals
@@ -142,50 +152,60 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // For each level from coarsest down
-    int level = num_levels-1;
-    vector<Surfel> previous_level;
+    // +-----------------------------------------------------------------------------------------------
+    // | Construct Surfels for each level
+    // +-----------------------------------------------------------------------------------------------
     size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
-
     float convergence_threshold = properties.getFloatProperty("convergence-threshold");
-    while (level >= 0) {
-        cout << "Generating surfels for level : " << level << endl;
+    int current_level_index = num_levels - 1;
+    vector<Surfel> previous_level;
+    while (current_level_index >= 0) {
+        cout << "Generating surfels for level : " << current_level_index << endl;
 
-        // Generate or load correspondences
+        // +-----------------------------------------------------------------------------------------------
+        // | Generate or load correspondences
+        // +-----------------------------------------------------------------------------------------------
         // TODO: Seed correspondences for next level Propagate changes down
-        vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, level,
-                                                                           depth_map_hierarchy.at(level),
+        cout << " Getting correspondences" << endl;
+        vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, current_level_index,
+                                                                           depth_map_hierarchy.at(current_level_index),
                                                                            cameras);
 
-        // Generate Surfels for this level from correspondences
-        vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(level), correspondences);
+        // +-----------------------------------------------------------------------------------------------
+        // | Generate Surfels for this level from correspondences
+        // +-----------------------------------------------------------------------------------------------
+        vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences);
 
-        cout << " Initialising tangents" << endl;
-
-        // Populate with values from previous level if they exist
-        if( previous_level.size() > 0 ) {
+        cout << " Initialising tangents";
+        if (previous_level.size() > 0) {
+            cout << " from previous level" << endl;
             initialise_surfel_tangents(surfels, previous_level);
+        } else {
+            cout << " with random values" << endl;
         }
 
-        // Save the pre-smoothing surfels in a renderable way
+        // +-----------------------------------------------------------------------------------------------
+        // | Save the pre-smoothing surfels in a renderable way
+        // +-----------------------------------------------------------------------------------------------
+        auto pre_smoothed_surfels_file_name = file_name_from_template_and_level(pre_smooth_filename_template,
+                                                                                current_level_index);
+        save_surfels_to_file(pre_smoothed_surfels_file_name, surfels);
 
-        char out_file_name[strlen(pre_smooth_filename_template) + 1];
-        sprintf(out_file_name, pre_smooth_filename_template, level);
-        save_to_file(out_file_name, surfels);
-
-        // Smooth this level
+        // +-----------------------------------------------------------------------------------------------
+        // | Smooth this level
+        // +-----------------------------------------------------------------------------------------------
         Optimiser o{convergence_threshold, num_frames, surfels_per_step};
         o.optimise(surfels);
 
-        // Save the smoothed surfels in a renderable way
-        char out_file_name2[strlen(post_smooth_filename_template) + 1];
-        sprintf(out_file_name2, post_smooth_filename_template, level);
-        save_to_file(out_file_name2, surfels);
+        // +-----------------------------------------------------------------------------------------------
+        // | Save the smoothed surfels in a renderable way
+        // +-----------------------------------------------------------------------------------------------
+        auto post_smoothed_surfels_file_name = file_name_from_template_and_level(post_smooth_filename_template,
+                                                                                 current_level_index);
+        save_surfels_to_file(post_smoothed_surfels_file_name, surfels);
 
-        // Copy surfels into previous level for propagation down.
         previous_level = surfels;
-
-        --level;
+        --current_level_index;
     }
 
     return 0;

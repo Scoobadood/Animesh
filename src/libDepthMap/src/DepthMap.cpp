@@ -125,7 +125,7 @@ inline bool DepthMap::flag_is_set(int flags, DepthMap::tDirection flag) {
 
 inline int clear_flag_if_zero(float value, int flags, DepthMap::tDirection flag) {
     if (value != 0.0f) return flags;
-    return flags & (!flag);
+    return flags & (~flag);
 }
 
 /**
@@ -135,48 +135,48 @@ inline int clear_flag_if_zero(float value, int flags, DepthMap::tDirection flag)
  * which values are valid.
  */
 int
-DepthMap::get_neighbour_depths(unsigned int row, unsigned int col, float neighbour_depths[],
+DepthMap::get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[],
                                bool eightConnected) const {
-    int flags = get_valid_directions(row, col, eightConnected);
+    int flags = get_valid_directions(x, y, eightConnected);
     float d;
     if (flag_is_set(flags, UP)) {
-        d = depth_at(col, row - 1);
+        d = depth_at(x, y - 1);
         flags = clear_flag_if_zero(d, flags, UP);
         neighbour_depths[0] = d;
     }
     if (flag_is_set(flags, DOWN)) {
-        d = depth_at(col, row + 1);
+        d = depth_at(x, y + 1);
         flags = clear_flag_if_zero(d, flags, DOWN);
         neighbour_depths[1] = d;
     }
     if (flag_is_set(flags, LEFT)) {
-        d = depth_at( col - 1, row);
+        d = depth_at( x - 1, y);
         flags = clear_flag_if_zero(d, flags, LEFT);
         neighbour_depths[2] = d;
     }
     if (flag_is_set(flags, RIGHT)) {
-        d = depth_at(col + 1, row);
+        d = depth_at(x + 1, y);
         flags = clear_flag_if_zero(d, flags, RIGHT);
         neighbour_depths[3] = d;
     }
     if (eightConnected) {
         if (flag_is_set(flags, UP_LEFT)) {
-            d = depth_at(col - 1, row - 1);
+            d = depth_at(x - 1, y - 1);
             flags = clear_flag_if_zero(d, flags, UP_LEFT);
             neighbour_depths[4] = d;
         }
         if (flag_is_set(flags, UP_RIGHT)) {
-            d = depth_at(col - 1, row + 1);
+            d = depth_at(x - 1, y + 1);
             flags = clear_flag_if_zero(d, flags, UP_RIGHT);
             neighbour_depths[5] = d;
         }
         if (flag_is_set(flags, DOWN_LEFT)) {
-            d = depth_at(col + 1, row - 1);
+            d = depth_at(x + 1, y - 1);
             flags = clear_flag_if_zero(d, flags, DOWN_LEFT);
             neighbour_depths[6] = d;
         }
         if (flag_is_set(flags, DOWN_RIGHT)) {
-            d = depth_at(col + 1, row + 1);
+            d = depth_at(x + 1, y + 1);
             flags = clear_flag_if_zero(d, flags, DOWN_RIGHT);
             neighbour_depths[7] = d;
         }
@@ -317,7 +317,7 @@ DepthMap::compute_natural_normals(const Camera& camera) {
             }
 
             float neighbour_depths[4];
-            int neighbours_present = get_neighbour_depths(y, x, neighbour_depths, false);
+            int neighbours_present = get_neighbour_depths(x, y, neighbour_depths, false);
 
             // If there are not four neighbours then I have a derived normal
             if (neighbours_present != FOUR) {
@@ -331,13 +331,13 @@ DepthMap::compute_natural_normals(const Camera& camera) {
             // We should avoid this if possible by back projecting all points once
 
             // Otherwise I have a natural normal
-            Eigen::Vector3f a = backproject(camera, x + 1, y, neighbour_depths[3]);
-            Eigen::Vector3f b = backproject(camera, x - 1, y, neighbour_depths[2]);
+            Eigen::Vector3f a = camera.to_world_coordinates(x + 1, y, neighbour_depths[3]);
+            Eigen::Vector3f b = camera.to_world_coordinates(x - 1, y, neighbour_depths[2]);
             Eigen::Vector3f c1 = a - b;
 //            float dzdx = (c[2] / c[0]);
 //            float dzdx = (neighbour_depths[3] - neighbour_depths[2]) / 2.0f;
-            a = backproject(camera, x, y + 1, neighbour_depths[1]);
-            b = backproject(camera, x, y - 1, neighbour_depths[0]);
+            a = camera.to_world_coordinates(x, y + 1, neighbour_depths[1]);
+            b = camera.to_world_coordinates(x, y - 1, neighbour_depths[0]);
             Eigen::Vector3f c2 = a - b;
 //            float dzdy = (c[2] / c[0]);
 //            float dzdy = (neighbour_depths[1] - neighbour_depths[0]) / 2.0f;

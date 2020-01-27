@@ -36,6 +36,18 @@ bool flag_is_set(unsigned int all_flags, DepthMap::tDirection flag ) {
     return( (all_flags & flag) == flag );
 }
 
+Camera get_camera( ) {
+    float pos[]{0.0, 100.0, 100.0};
+    float view[]{0.0, 0.0, 0.0};
+    float up[]{0.0, 1.0, 0.0};
+    float res[]{640, 480};
+    float fov[]{75.0, 56.25};
+    Camera camera{
+            pos, view, up, res, fov, 5.0
+    };
+    return camera;
+}
+
 /* ********************************************************************************
  * ** Test DepthMap construction from file
  * ********************************************************************************/
@@ -274,13 +286,24 @@ void dump_normals (const std::vector<std::vector<std::vector<float>>>& normals) 
 }
 
 TEST_F( TestDepthMap, CentralNormalIsZ ) {
+    float data[] {
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0,
+        0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0,
+        0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0,
+        0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0,
+        0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    };
 	// 7x7 map with 5x5 set in centre.
-	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
+    DepthMap d{7, 7, data};
+    d.compute_normals(get_camera());
 	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+	std::vector<float> norm = normals.at(3).at(3);
 
-	EXPECT_EQ( normals[3][3][0], 0.0f);
-	EXPECT_EQ( normals[3][3][1], 0.0f);
-	EXPECT_EQ( normals[3][3][2], 1.0f);
+	EXPECT_EQ( norm.at(0), 0.0f);
+	EXPECT_EQ( norm.at(1), 0.0f);
+	EXPECT_EQ( norm.at(2), 1.0f);
 }
 
 TEST_F( TestDepthMap, TopLeftNormalIsNotThere ) {
@@ -309,7 +332,7 @@ TEST_F( TestDepthMap, LeftCentralNormalIsZ ) {
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
 
-	EXPECT_EQ( normals[3][1][0], 0.0f);
-	EXPECT_EQ( normals[3][1][1], 0.0f);
-	EXPECT_EQ( normals[3][1][2], 1.0f);
+	EXPECT_EQ( normals[1][3][0], 0.0f);
+	EXPECT_EQ( normals[1][3][1], 0.0f);
+	EXPECT_EQ( normals[1][3][2], 1.0f);
 }

@@ -15,8 +15,8 @@
  * Save surfel data as binary file to disk
  */
 void
-save_to_file( const std::string& file_name,
-              const std::vector<Surfel>& surfels)
+save_surfels_to_file(const std::string& file_name,
+                     const std::vector<Surfel>& surfels)
 {
     using namespace std;
 

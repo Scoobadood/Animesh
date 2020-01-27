@@ -76,7 +76,7 @@ project_pixels_to_point_cloud(const std::vector<Pixel> &pixels,
     vector<Point3D> valid_points;
     for (const auto &pixel : pixels) {
         float depth = depth_map.depth_at(pixel.x, pixel.y);
-        // backproject using camera settings
+        // to_world_coords using camera settings
         float x, y, z;
         backproject(camera, pixel.x, pixel.y, depth, &x, &y, &z);
         valid_points.emplace_back(x, y, z);

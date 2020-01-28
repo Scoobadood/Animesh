@@ -9,9 +9,6 @@
 #include <fstream>
 #include <Eigen/Dense> // For cross product
 #include "../../libCamera/include/Camera/Camera.h"
-
-const bool DUMP_NORMALS = true;
-
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
 
@@ -417,16 +414,6 @@ DepthMap::get_normals() const {
     return normals;
 }
 
-std::vector<int>
-normal_to_colour( const std::vector<float>& normal ) {
-    std::vector<int> rgb;
-    rgb.push_back(round((normal.at(0) + 1.0f) * 255 * 0.5));
-    rgb.push_back(round((normal.at(1) + 1.0f) * 255 * 0.5));
-    rgb.push_back(round((normal.at(2) + 1.0f) * 255 * 0.5));
-    rgb.push_back(round((normal.at(2) + 1.0f) * 255 * 0.5));
-    return rgb;
-}
-
 /**
  * Return true if the normal at the given coordinates is defined, i.e.
  * has a non-0 length.
@@ -470,31 +457,26 @@ DepthMap::resample() const {
     auto new_data = new float[new_height * new_width];
 
     struct PixelCoord {
-        unsigned int row;
-        unsigned int col;
+        unsigned int x;
+        unsigned int y;
 
-        PixelCoord(unsigned int r, unsigned int c) : row(r), col(c) {}
+        PixelCoord(unsigned int x, unsigned int y) : x{x}, y{y} {}
     };
 
     for (unsigned int y = 0; y < new_height; ++y) {
         for (unsigned int x = 0; x < new_width; ++x) {
             unsigned int source_y = y * 2;
             unsigned int source_x = x * 2;
-            float values[4];
-            vector<PixelCoord> mapped_pixels;
-
-            mapped_pixels.emplace_back(source_y, source_x);
-            mapped_pixels.emplace_back(min(source_y + 1, height() - 1), source_x);
-            mapped_pixels.emplace_back(source_y, min(source_x + 1, width() - 1));
-            mapped_pixels.emplace_back(min(source_y + 1, height() - 1), min(source_x + 1, width() - 1));
-
-            for (int i = 0; i < 4; ++i) {
-                values[i] = depth_at(mapped_pixels[i].col, mapped_pixels[i].row);
-            }
+            float values[4]{
+                depth_at(source_x, source_y),
+                depth_at(min(source_x + 1, width() - 1), source_y),
+                depth_at(source_x, min(source_y + 1, height() - 1)),
+                depth_at(min(source_x + 1, width() - 1), min(source_y + 1, height() - 1))
+            };
             new_data[y * new_width + x] = merge(values);
         }
     }
-    return DepthMap{new_height, new_width, new_data};
+    return DepthMap{new_width, new_height, new_data};
 }
 
 DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
@@ -554,26 +536,5 @@ DepthMap::compute_normals(const Camera& camera) {
     if( ((zero_norms * 100) / num_norms) > 95) {
         cout << "Suspiciously high zero norms : " << zero_norms << " out of  " << num_norms << endl;
     }
-
-    //
-    // DEBUG
-    if( DUMP_NORMALS) {
-        ofstream n1("/Users/dave/Desktop/normal_types.pgm");
-        ofstream n2("/Users/dave/Desktop/normals.ppm");
-        n1 << "P2" << endl << height() << " " << width() << endl << "5" << endl;
-        n2 << "P3" << endl << height() << " " << width() << endl << "255" << endl;
-        for( int row = 0; row < normals.size(); ++row ) {
-            for( int col = 0; col < normals.at(row).size(); ++col ) {
-                auto t = normal_types.at(row).at(col);
-                n1 << (t == NONE ? "0" : ( t == DERIVED ? "1" : ( t== NATURAL ? "2" : "3"))) << " ";
-                auto n = normals.at(row).at(col);
-                auto nc = normal_to_colour(n);
-                n2 <<  nc.at(0) << " " << nc.at(1) << " " << nc.at(2) << "     ";
-            }
-            n1 << endl;
-            n2 << endl;
-        }
-    }
-    // END DEBUG
 }
 

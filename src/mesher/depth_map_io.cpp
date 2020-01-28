@@ -4,9 +4,9 @@
 
 #include <vector>
 #include <regex>
-
+#include <iostream>
+#include <fstream>
 #include <FileUtils/PgmFileParser.h>
-
 
 #include "depth_map_io.h"
 
@@ -57,4 +57,66 @@ load_depth_maps(const std::string& source_directory, float ts, float tl) {
     cout << endl << "  done. " << endl;
 
     return depth_maps;
+}
+
+void
+save_depth_map_as_pgm(const std::string& file_name, const DepthMap& depth_map) {
+    using namespace std;
+
+    ofstream file{file_name};
+
+    // Find min/max
+    float min_depth = depth_map.depth_at(0, 0);
+    float max_depth = depth_map.depth_at(0, 0);
+
+    for( unsigned int row = 0; row < depth_map.height(); ++row) {
+        for(unsigned int col = 0; col < depth_map.width(); ++col ) {
+            float d = depth_map.depth_at(col,row);
+            if (d < min_depth) min_depth = d;
+            if (d > max_depth) max_depth = d;
+        }
+    }
+
+    float range = max_depth - min_depth;
+
+    file <<  "P2" << endl << depth_map.width() << " " << depth_map.height() << endl << "255" << endl;
+    for( unsigned int row = 0; row < depth_map.height(); ++row) {
+        for(unsigned int col = 0; col < depth_map.width(); ++col ) {
+            float d = (depth_map.depth_at(col, row) - min_depth) / range;
+            file << (int)(round(d * 255)) << " ";
+        }
+        file << endl;
+    }
+}
+
+std::vector<int>
+normal_to_colour( const DepthMap::NormalWithType& nwt ) {
+    std::vector<int> rgb;
+    if( nwt.type == DepthMap::NONE) {
+        rgb.push_back(0);
+        rgb.push_back(0);
+        rgb.push_back(0);
+    } else {
+        rgb.push_back(round((nwt.x + 1.0f) * 255 * 0.5));
+        rgb.push_back(round((nwt.y + 1.0f) * 255 * 0.5));
+        rgb.push_back(round((nwt.z + 1.0f) * 255 * 0.5));
+    }
+    return rgb;
+}
+
+void
+save_normals_as_pgm(const std::string& file_name, const DepthMap& depth_map) {
+    using namespace std;
+
+    ofstream file{file_name};
+    file <<  "P3" << endl << depth_map.width() << " " << depth_map.height() << endl << "255" << endl;
+    for( unsigned int row = 0; row < depth_map.height(); ++row) {
+        for(unsigned int col = 0; col < depth_map.width(); ++col ) {
+            auto n = depth_map.normal_at(col, row);
+            auto nc = normal_to_colour(n);
+            file <<  nc.at(0) << " " << nc.at(1) << " " << nc.at(2) << "     ";
+            file << depth_map.depth_at(col, row) << " ";
+        }
+        file << endl;
+    }
 }

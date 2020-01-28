@@ -10,9 +10,12 @@
 #include "types.h"
 #include "surfel_io.h"
 #include "utilities.h"
+#include "depth_map_io.h"
 
 const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
 const char post_smooth_filename_template[] = "smoothed_%02d.bin";
+const char dm_template[] = "depth_map_genned_L%02d_F%02d.pgm";
+const char norm_template[] = "mormal_map_genned_L%02d_F%02d.ppm";
 
 /**
  * Given a set of existing surfels (previous level), populate the current level
@@ -149,6 +152,17 @@ int main(int argc, char *argv[]) {
     for (unsigned int l = 0; l < num_levels; ++l) {
         for (unsigned int f = 0; f < num_frames; ++f) {
             depth_map_hierarchy.at(l).at(f).compute_normals(cameras.at(f));
+        }
+    }
+    if( properties.getBooleanProperty("dump-depth-maps")) {
+        cout << " Dumping depth maps" << endl;
+        for( unsigned int level=0; level < num_levels; ++level) {
+            for( unsigned int frame=0; frame < num_frames; ++frame ) {
+                auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
+                save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
+                auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);
+                save_normals_as_pgm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
+            }
         }
     }
 

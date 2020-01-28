@@ -105,17 +105,17 @@ normal_to_colour( const DepthMap::NormalWithType& nwt ) {
 }
 
 void
-save_normals_as_pgm(const std::string& file_name, const DepthMap& depth_map) {
+save_normals_as_ppm(const std::string& file_name, const DepthMap& depth_map) {
     using namespace std;
 
     ofstream file{file_name};
     file <<  "P3" << endl << depth_map.width() << " " << depth_map.height() << endl << "255" << endl;
-    for( unsigned int row = 0; row < depth_map.height(); ++row) {
-        for(unsigned int col = 0; col < depth_map.width(); ++col ) {
-            auto n = depth_map.normal_at(col, row);
+    for( unsigned int y = 0; y < depth_map.height(); ++y) {
+        for(unsigned int x = 0; x < depth_map.width(); ++x ) {
+            auto n = depth_map.normal_at(x, y);
             auto nc = normal_to_colour(n);
-            file <<  nc.at(0) << " " << nc.at(1) << " " << nc.at(2) << "     ";
-            file << depth_map.depth_at(col, row) << " ";
+            file << (int) (round(nc.at(0))) << " " << (int) (round(nc.at(1))) << " " << (int) (round(nc.at(2)))
+                 << "     ";
         }
         file << endl;
     }

@@ -15,7 +15,7 @@
 const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
 const char post_smooth_filename_template[] = "smoothed_%02d.bin";
 const char dm_template[] = "depth_map_genned_L%02d_F%02d.pgm";
-const char norm_template[] = "mormal_map_genned_L%02d_F%02d.ppm";
+const char norm_template[] = "normal_map_genned_L%02d_F%02d.ppm";
 
 /**
  * Given a set of existing surfels (previous level), populate the current level
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
                 auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
                 save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
                 auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);
-                save_normals_as_pgm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
+                save_normals_as_ppm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
             }
         }
     }

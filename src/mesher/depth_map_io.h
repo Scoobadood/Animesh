@@ -16,6 +16,6 @@ void
 save_depth_map_as_pgm(const std::string& file_name, const DepthMap& depth_map);
 
 void
-save_normals_as_pgm(const std::string& file_name, const DepthMap& depth_map);
+save_normals_as_ppm(const std::string& file_name, const DepthMap& depth_map);
 
 #endif //ANIMESH_DEPTH_MAP_IO_H

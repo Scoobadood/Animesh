@@ -359,8 +359,8 @@ DepthMap::compute_derived_normals() {
     for (size_t row = 0; row < height(); ++row) {
         for (size_t col = 0; col < width(); ++col) {
             // Skip existing normals
-            if (normal_types[row][col] == NONE
-                || normal_types[row][col] == NATURAL) {
+            if (normal_types.at(row).at(col) == NONE
+                || normal_types.at(row).at(col) == NATURAL) {
                 continue;
             }
 
@@ -371,13 +371,13 @@ DepthMap::compute_derived_normals() {
                     if (ri < 0 || ri >= width() || ci < 0 || ci >= width()) {
                         continue;
                     }
-                    if (normal_types[ri][ci] == NONE) {
+                    if (normal_types.at(ri).at(ci) == NONE) {
                         continue;
                     }
-                    if (normal_types[ri][ci] == NATURAL) {
-                        float nx = normals[ri][ci][0];
-                        float ny = normals[ri][ci][1];
-                        float nz = normals[ri][ci][2];
+                    if (normal_types.at(ri).at(ci) == NATURAL) {
+                        float nx = normals.at(ri).at(ci)[0];
+                        float ny = normals.at(ri).at(ci)[1];
+                        float nz = normals.at(ri).at(ci)[2];
                         sum[0] += nx;
                         sum[1] += ny;
                         sum[2] += nz;
@@ -393,9 +393,9 @@ DepthMap::compute_derived_normals() {
                 float mean_ny = sum[1] / count;
                 float mean_nz = sum[2] / count;
                 float l = sqrt(mean_nx * mean_nx + mean_ny * mean_ny + mean_nz * mean_nz);
-                normals[row][col][0] = mean_nx / l;
-                normals[row][col][1] = mean_ny / l;
-                normals[row][col][2] = mean_nz / l;
+                normals.at(row).at(col)[0] = mean_nx / l;
+                normals.at(row).at(col)[1] = mean_ny / l;
+                normals.at(row).at(col)[2] = mean_nz / l;
             }
         }
     }
@@ -480,7 +480,6 @@ DepthMap::resample() const {
 }
 
 DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
-    get_normals();
     NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1), normals.at(y).at(x).at(2) };
     return n;
 }

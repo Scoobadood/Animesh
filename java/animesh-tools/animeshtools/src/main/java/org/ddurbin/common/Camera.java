@@ -172,8 +172,8 @@ public class Camera {
 
 
     private void constructImagePlaneOrigin(CamCoordSystem ccs) {
-        float imagePlaneHeight = (float) (Math.tan(fov.y * 0.5f * (Math.PI / 180)) * 2.0f * focalDistance);
-        float imagePlaneWidth = (float) (Math.tan(fov.x * 0.5f * (Math.PI / 180)) * 2.0f * focalDistance);
+        float imagePlaneHeight = (float) (Math.tan(Math.toRadians(fov.y * 0.5f)) * 2.0f * focalDistance);
+        float imagePlaneWidth = (float) (Math.tan(Math.toRadians(fov.x * 0.5f)) * 2.0f * focalDistance);
 
         Vector3f imagePlaneCentre = position.minus((ccs.n.times(focalDistance)));
 
@@ -184,7 +184,7 @@ public class Camera {
     /*
      * Compute the backprojection of a point from X,Y and depth plus camera
      */
-    public Vector3f backproject(int pixelX, int pixelY, float depth) {
+    public Vector3f to_world_coordinates(int pixelX, int pixelY, float depth) {
         if( camCoordinateSystem == null ) {
             camCoordinateSystem  = constructCameraCoordinateSystem();
             constructImagePlaneOrigin(camCoordinateSystem);
@@ -194,12 +194,11 @@ public class Camera {
         float pixelWidth = camCoordinateSystem.imagePlaneDimensions.x / resolution.x;
         float pixelHeight = camCoordinateSystem.imagePlaneDimensions.y / resolution.y;
         Vector3f pixelCoordinate = camCoordinateSystem.imagePlaneOrigin
-                .plus(camCoordinateSystem.u.times((pixelX + 0.5f) * pixelWidth))
-                .plus(camCoordinateSystem.v.times((pixelY + 0.5f) * pixelHeight));
+                .plus(camCoordinateSystem.u.times(pixelX * pixelWidth))
+                .plus(camCoordinateSystem.v.times(pixelY * pixelHeight));
 
         Vector3f rayDirection = (pixelCoordinate.minus(camCoordinateSystem.origin)).normalized();
-        ;
-        return position.plus(rayDirection.times(depth));
+        return camCoordinateSystem.origin.plus(rayDirection.times(depth));
     }
 
     public String toString() {

@@ -311,7 +311,6 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
             continue;
         }
 
-        ;
         Surfel surfel = generate_surfel(pifs_with_normals, depth_maps, surfels.size() + 1);
         surfels.push_back(surfel);
     }

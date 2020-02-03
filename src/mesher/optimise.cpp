@@ -72,8 +72,10 @@ bool
 Optimiser::check_convergence(std::vector<Surfel> &surfels) {
     float latest_error = compute_error(surfels);
     float delta_error = fabsf(latest_error - last_optimising_error);
-    last_optimising_error = latest_error;
-    return (delta_error / last_optimising_error < convergence_threshold);
+    last_optimising_error = latest_error;;
+    float pct =  delta_error / last_optimising_error;
+    std::cout << "Error: " << latest_error << ", % reduction " << pct*100 << std::endl;
+    return (pct < convergence_threshold);
 }
 
 /**
@@ -86,10 +88,15 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
 
     const size_t num_surfels = surfels.size();
 
-    // Zero out the error.
+    // Track error by surfel by frame
     float error[num_surfels][num_frames];
+
+    // Track total error per surfel
     float surfel_error[num_surfels];
+
+    // Track total error per frame
     float frame_error[num_frames];
+
     for (int s = 0; s < num_surfels; ++s) {
         for (int f = 0; f < num_frames; ++f) {
             error[s][f] = 0.0f;
@@ -349,16 +356,18 @@ Optimiser::populate_norm_tan_by_surfel_frame(const std::vector<Surfel> &surfels)
 }
 
 /**
- * Populate the surfels per fram map.
+ * Build a mapping from frame to the Surfels which appear in that frame.
+ * This allows us to work with frames individually.
+ * surfels_by_frame is a member variable.
  */
 void
 Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
     using namespace std;
     assert(num_frames > 0);
 
-    // Push an empty vector of Srufel references for each frame
+    // Push an empty vector of Surfel references for each frame
     surfels_by_frame.clear();
-    for (int i = 0; i < num_frames; ++i) {
+    for (int frame_index = 0; frame_index < num_frames; ++frame_index) {
         vector<reference_wrapper<const Surfel>> empty;
         surfels_by_frame.push_back(empty);
     }

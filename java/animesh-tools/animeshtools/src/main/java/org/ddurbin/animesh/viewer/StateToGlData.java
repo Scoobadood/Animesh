@@ -19,7 +19,7 @@ public class StateToGlData {
 
     Camera camera;
     try {
-      camera = Camera.loadFromFile("camera.txt");
+      camera = Camera.loadFromFile(String.format("camera_F%02d.txt", frame));
     } catch (IOException e) {
       throw new RuntimeException("Couldn't load camera file");
     }
@@ -29,10 +29,12 @@ public class StateToGlData {
         if (fd.pixelInFrame.frameIndex == frame) {
           // Get tangent and normal
           Pair<Vector3f, Vector3f> p = StateUtilities.projectSurfelToFrame(s, fd);
-          Vector3f pointInSpace = camera.backproject((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
+          Vector3f pointInSpace = camera.to_world_coordinates((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
 
-          System.out.println(String.format("P: %d %d, %d          3D: %4.4f %4.4f %4.4f", fd.pixelInFrame.frameIndex, fd.pixelInFrame.x, fd.pixelInFrame.y, pointInSpace.x, pointInSpace.y, pointInSpace.z));
-          System.out.println(String.format("N: %4.4f %4.4f %4.4f  Tan: %4.4f %4.4f %4.4f", p.second.x, p.second.y, p.second.z, p.first.x, p.first.y, p.first.z));
+//          System.out.println(String.format("P: %d %d, %d          3D: %4.4f %4.4f %4.4f", fd.pixelInFrame.frameIndex, fd.pixelInFrame.x, fd.pixelInFrame.y, pointInSpace.x, pointInSpace.y, pointInSpace.z));
+//          System.out.println(String.format("N: %4.4f %4.4f %4.4f  Tan: %4.4f %4.4f %4.4f", p.second.x, p.second.y, p.second.z, p.first.x, p.first.y, p.first.z));
+            Vector3f normend = pointInSpace.plus(p.second);
+            System.out.println(String.format("%4.4f, %4.4f, %4.4f, %4.4f, %4.4f, %4.4f;", pointInSpace.x, pointInSpace.y, pointInSpace.z, normend.x, normend.y, normend.z));
 
           // Get the point in 3-space
           listBuilder.add(pointInSpace.x);

@@ -8,7 +8,7 @@
 const int RANDOM_SEED = 474264642;
 
 /**
- * Optimise the entire hierarchy. Do each level repeatedly until converged.
+ * Optimise the vector of surfels
  */
 void
 Optimiser::optimise(std::vector<Surfel> &surfels) {
@@ -97,11 +97,12 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
     // Track total error per frame
     float frame_error[num_frames];
 
-    for (int s = 0; s < num_surfels; ++s) {
-        for (int f = 0; f < num_frames; ++f) {
-            error[s][f] = 0.0f;
+    // Zero all error counts.
+    for (int surfel_idx = 0; surfel_idx < num_surfels; ++surfel_idx) {
+        for (int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+            error[surfel_idx][frame_idx] = 0.0f;
         }
-        surfel_error[s] = 0.0f;
+        surfel_error[surfel_idx] = 0.0f;
     }
     for (float &f : frame_error) {
         f = 0.0f;
@@ -109,13 +110,11 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
     float total_error = 0.0f;
 
     // For each frame
-    for (size_t f = 0; f < num_frames; ++f) {
-        // Get surfels in frame
-        const auto &surfels_in_this_frame = surfels_by_frame.at(f);
-
-        // For each surfel in the frame, compute the error with each neighbour
-        for (const auto &s : surfels_in_this_frame) {
-            const SurfelInFrame surfel_in_frame{s.get().id, f};
+    for (size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+        // For each surfel in this frame, compute the error with its neighbours
+        const auto &surfels_in_this_frame = surfels_by_frame.at(frame_idx);
+        for (const auto &surfel : surfels_in_this_frame) {
+            const SurfelInFrame surfel_in_frame{surfel.get().id, frame_idx};
             const auto this_surfel_in_this_frame = norm_tan_by_surfel_frame.at(surfel_in_frame);
 
             const auto &neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame);
@@ -124,19 +123,19 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
             int count = 0;
             for (const auto &n :neighbours_of_this_surfel) {
                 //TODO NB We can cache error computations here
-                const auto this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at( SurfelInFrame{n.get().id, f});
+                const auto this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at( SurfelInFrame{n.get().id, frame_idx});
 
-                // Compute the error between this surfel in this frame and the neighblur in this frame.
+                // Compute the error between this surfel in this frame and the neighbour in this frame.
                 err += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
                 count++;
             }
-            err = (count > 0) ? (err / (float) count) : 0.0f;
+//            err = (count > 0) ? (err / count) : 0.0f;
             if (count == 0) {
-                cout << "Warning, no neighbours for surfel " << s.get().id << " in frame" << f << endl;
+                cout << "Warning, no neighbours for surfel " << surfel.get().id << " in frame" << frame_idx << endl;
             }
-            error[s.get().id][f] += err;
-            surfel_error[s.get().id] += err;
-            frame_error[f] += err;
+            error[surfel.get().id][frame_idx] += err;
+            surfel_error[surfel.get().id] += err;
+            frame_error[frame_idx] += err;
             total_error += err;
         }
     }

@@ -71,9 +71,7 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
                 mean_tangent += it->second;
                 ++count;
             } else {
-                cout << "Warning. Could not find entry for PIF (" << frame.pixel_in_frame.pixel.x << ", "
-                     << frame.pixel_in_frame.pixel.y
-                     << ", " << frame.pixel_in_frame.frame << ") in initialiser table." << endl;
+                cout << "Warning. Could not find entry for PIF " << frame.pixel_in_frame << " in initialiser table." << endl;
             }
         }
         if (count != 0) {

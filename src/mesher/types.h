@@ -45,6 +45,12 @@ inline bool operator==(const PixelInFrame& lhs, const PixelInFrame& rhs){
     return (lhs.pixel == rhs.pixel) && (lhs.frame == rhs.frame);
 }
 
+inline std::ostream &operator<<(std::ostream &os, const PixelInFrame &pif) {
+    using namespace std;
+    os << "{ f: " << pif.frame << " x: " << pif.pixel.x << " y: " << pif.pixel.y << " }" << endl;
+    return os;
+}
+
 struct SurfelInFrame {
     size_t frame_index;
     size_t surfel_index;

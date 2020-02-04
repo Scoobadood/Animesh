@@ -125,6 +125,30 @@ save_point_clouds_to_file(const std::vector<std::vector<Eigen::MatrixX3d>> &poin
     }
 }
 
+void
+save_pifs_to_file(std::vector<Pixel> pixels, const std::string& file_name) {
+    using namespace std;
+
+    ofstream file{file_name};
+    for (const auto& pixel : pixels) {
+        file << "(" << pixel.x << ", " << pixel.y << ")" << endl;
+    }
+}
+
+
+void
+save_pifs_to_file(const std::vector<std::vector<std::vector<Pixel>>> valid_pixels_for_levels,
+                          const std::string &file_name_template) {
+    using namespace std;
+
+    for (unsigned int level = 0; level < valid_pixels_for_levels.size(); ++level) {
+        for (unsigned int frame = 0; frame < valid_pixels_for_levels.at(level).size(); ++frame) {
+            string file_name = file_name_from_template_level_and_frame(file_name_template, level, frame);
+            save_pifs_to_file(valid_pixels_for_levels.at(level).at(frame), file_name);
+        }
+    }
+}
+
 /**
  * Save normals to the given file
  *
@@ -428,13 +452,16 @@ int main(int argc, char *argv[]) {
 
     // Compute normals for the hierarchy
     for (auto & depth_maps_for_level : depth_map_hierarchy) {
-        for (unsigned int f = 0; f < num_frames; ++f) {
-            depth_maps_for_level.at(f).compute_normals(cameras.at(f));
+        for (unsigned int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+            depth_maps_for_level.at(frame_idx).compute_normals(cameras.at(frame_idx));
         }
     }
 
     // Vector of level, frame, pixel index
     vector<vector<vector<Pixel>>> valid_pixels_for_levels = get_valid_pixels_for_all_levels(depth_map_hierarchy);
+    if(properties.getBooleanProperty("save-valid-pifs")) {
+        save_pifs_to_file(valid_pixels_for_levels, properties.getProperty("pif-file-template"));
+    }
 
     // Project valid pixels into point clouds
     vector<vector<Eigen::MatrixX3d>> point_clouds_for_all_levels =

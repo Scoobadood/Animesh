@@ -77,9 +77,9 @@ project_pixels_to_point_cloud(const std::vector<Pixel> &pixels,
     for (const auto &pixel : pixels) {
         float depth = depth_map.depth_at(pixel.x, pixel.y);
         // to_world_coords using camera settings
-        float x, y, z;
-        backproject(camera, pixel.x, pixel.y, depth, &x, &y, &z);
-        valid_points.emplace_back(x, y, z);
+        float xyz[3];
+        camera.to_world_coordinates(pixel.x, pixel.y, depth, xyz);
+        valid_points.emplace_back(xyz[0], xyz[1], xyz[2]);
     }
 
     // Convert remaining to a Nx3 matrix
@@ -230,26 +230,28 @@ compute_correspondence_paths_for_level(const std::vector<std::vector<Pixel>>& pi
             cout << "                From PIF (f: " << from_pif.frame << " x: " << from_pif.pixel.x << " y: " << from_pif.pixel.y << ")" << endl;
             cout << "                  To PIF (f: " << to_pif.frame << " x: " << to_pif.pixel.x << " y: " << to_pif.pixel.y << ")" << endl;
 
-            // If second exists in any path, we ignore it.
+
+            // If the 'to' PIF exists in any path, we ignore it.
             auto it = pif_to_path.find(to_pif);
             if( it != pif_to_path.end() ) {
-                cout << "         Skipping To PIF : " << it->second << " Adding to PIF to this path" << endl;
+                cout << "         'to' pif is already mapped on path : " << it->second << ". Ignoring this duplicate" << endl;
                 continue;
             }
 
-            // First corresponds to second.
-            // If first exists in any path, we add to that path
+            // If 'from' PIF exists in any path, we add 'to' PIF to that path
             it = pif_to_path.find(from_pif);
             if( it != pif_to_path.end() ) {
-                cout << "            Path for PIF : " << it->second << " Adding to PIF to this path" << endl;
+                cout << "         'from'  PIF is on path : " << it->second << ". Adding 'to' PIF to this path" << endl;
 
                 path_to_pifs.insert(make_pair(it->second, to_pif));
                 pif_to_path.insert(make_pair(to_pif, it->second));
             } else {
-                cout << "         No path for PIF. Adding new path : " << new_path_id << endl;
                 // Otherwise, we start a new path
+                cout << "         Neither'to' PIF or 'from' PIF is on a path. Adding new path with ID : " << new_path_id << endl;
+                path_to_pifs.insert(make_pair(new_path_id, from_pif));
                 path_to_pifs.insert(make_pair(new_path_id, to_pif));
                 pif_to_path.insert(make_pair(to_pif, new_path_id));
+                pif_to_path.insert(make_pair(from_pif, new_path_id));
                 ++new_path_id;
             }
         }
@@ -383,10 +385,7 @@ project_pixels_to_point_clouds(const std::vector<std::vector<std::vector<Pixel>>
         // Clone cameras and adjust for level
         std::vector<Camera> level_cameras;
         for( const auto& camera : cameras_per_frame ) {
-            Camera lc{camera.position, camera.view, camera.up, camera.resolution, camera.fov, camera.focalDistance};
-            lc.resolution[0] /= (1 << level);
-            lc.resolution[1] /= (1 << level);
-            level_cameras.push_back(lc);
+            level_cameras.push_back(scale_camera( camera, 2, 2));
         }
 
         point_clouds.push_back( project_pixels_to_point_clouds(pixels_per_frame_and_level.at(level),
@@ -415,22 +414,19 @@ save_normals_to_file(const std::vector<std::vector<std::vector<Pixel>>>& pixels_
     }
 }
 
-void save_paths_to_file(const std::vector<std::vector<std::vector<PixelInFrame>>> &paths_by_level,
-                        const std::string &path_file_template) {
+// Save paths to file
+void save_paths_to_file(const std::vector<std::vector<PixelInFrame>> &paths,
+                       const std::string &file_name) {
     using namespace std;
 
-    unsigned int level = 0;
-    for (const auto &level_paths : paths_by_level) {
-        string file_name = file_name_from_template_and_level(path_file_template, level);
-        ofstream file{file_name};
-        for (const auto &path : level_paths) {
-            for (const auto &pif : path) {
-                file << "( " << pif.frame << ", " << pif.pixel.x << ", " << pif.pixel.y << ") ";
-            }
-            file << endl;
+    ofstream file{file_name};
+    for( const auto& path: paths) {
+        for (const auto &pif : path) {
+            file << "( " << pif.frame << ", " << pif.pixel.x << ", " << pif.pixel.y << ") ";
         }
-        ++level;
+        file << endl;
     }
+    file << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -481,16 +477,22 @@ int main(int argc, char *argv[]) {
     vector<vector<vector<PixelInFrame>>> corresponding_paths_by_level;
     for( int level = valid_pixels_for_levels.size()-1; level >=0 ; --level) {
         cout << "Computing correspondences for level : " << level << endl;
-        corresponding_paths_by_level.push_back( compute_correspondence_paths_for_level(valid_pixels_for_levels.at(level), point_clouds_for_all_levels.at(level)));
+        // We compute the highest level first so we must push front to store new values
+        // to preserve 0 as the lowest level
+        corresponding_paths_by_level.push_back(compute_correspondence_paths_for_level(valid_pixels_for_levels.at(level),
+                                                                                      point_clouds_for_all_levels.at(
+                                                                                              level)));
 
         cout << "Saving level " << level << "correspondences" << endl;
-        string file_name = file_name_from_template_and_level(properties.getProperty("correspondence-file-template"), level);
-        save_correspondences_to_file(file_name, corresponding_paths_by_level.back());
-    }
+        string correspondence_file_name = file_name_from_template_and_level(properties.getProperty("correspondence-file-template"),
+                                                                            level);
+        save_correspondences_to_file(correspondence_file_name, corresponding_paths_by_level.back());
 
-    // Save paths if requested
-    if( properties.getBooleanProperty("save-paths")) {
-        save_paths_to_file( corresponding_paths_by_level, properties.getProperty("path-file-template"));
+        // Save paths for level if requested
+        if (properties.getBooleanProperty("save-paths")) {
+            string paths_file_name = file_name_from_template_and_level(properties.getProperty("path-file-template"), level);
+            save_paths_to_file(corresponding_paths_by_level.back(), paths_file_name );
+        }
     }
     return 0;
 }

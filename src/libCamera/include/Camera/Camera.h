@@ -70,7 +70,25 @@ private:
     void compute_camera_parms();
 
     friend std::ostream &operator<<(std::ostream &os, const Camera &camera);
+
+    friend Camera scale_camera( const Camera& source_camera, float scale_x, float scale_y ) {
+        const float *position = source_camera.camera_origin.data();
+        const float *up = source_camera.up.data();
+        const float *resolution = source_camera.resolution.data();
+        const float *fov = source_camera.field_of_view.data();
+        Camera lc{position,
+                  source_camera.looking_at.data(),
+                  up,
+                  resolution,
+                  fov,
+                  source_camera.focal_length};
+        lc.resolution[0] /= scale_x;
+        lc.resolution[1] /= scale_y;
+        return lc;
+    }
 };
+
+
 Camera loadCameraFromFile(const std::string &filename);
 
 std::ostream &operator<<(std::ostream &os, const Camera &camera);

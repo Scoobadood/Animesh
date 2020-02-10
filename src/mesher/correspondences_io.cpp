@@ -35,7 +35,7 @@ load_correspondences_from_file(const std::string &file_name,
             // PixelInFrame
             // TODO: Fix ciorrespondence generation and then come back and fix this.
             // Right now correspondences are generated using frames with non0zero rooted count
-            unsigned int frame = read_unsigned_int(file) - 1;
+            unsigned int frame = read_unsigned_int(file);
             unsigned int x = read_unsigned_int(file);
             unsigned int y = read_unsigned_int(file);
             correspondence.emplace_back(x, y, frame);

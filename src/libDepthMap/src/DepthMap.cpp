@@ -8,7 +8,10 @@
 #include <algorithm>
 #include <fstream>
 #include <Eigen/Dense> // For cross product
+#include <pcl/point_types.h>
+#include <pcl/features/normal_3d.h>
 #include "../../libCamera/include/Camera/Camera.h"
+
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
 
@@ -57,10 +60,10 @@ DepthMap::DepthMap(unsigned int width, unsigned int height, float *depth_data) {
     m_height = height;
     unsigned int num_entries = width * height;
     m_depth_data = new float[num_entries];
-    if( depth_data != nullptr ) {
+    if (depth_data != nullptr) {
         memcpy(m_depth_data, depth_data, num_entries * sizeof(float));
     } else {
-        for( int i=0; i<num_entries; ++i ) {
+        for (int i = 0; i < num_entries; ++i) {
             m_depth_data[i] = 0.0f;
         }
     }
@@ -147,7 +150,7 @@ DepthMap::get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_d
         neighbour_depths[1] = d;
     }
     if (flag_is_set(flags, LEFT)) {
-        d = depth_at( x - 1, y);
+        d = depth_at(x - 1, y);
         flags = clear_flag_if_zero(d, flags, LEFT);
         neighbour_depths[2] = d;
     }
@@ -288,7 +291,7 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
  *
  */
 void
-DepthMap::compute_natural_normals(const Camera& camera) {
+DepthMap::compute_natural_normals(const Camera &camera) {
     using namespace std;
 
 
@@ -386,7 +389,7 @@ DepthMap::compute_derived_normals() {
                 }
             }
             // If count == 0; kill this one
-            if( count == 0 ) {
+            if (count == 0) {
                 normal_types.at(row).at(col) = NONE;
             } else {
                 float mean_nx = sum[0] / count;
@@ -468,10 +471,10 @@ DepthMap::resample() const {
             unsigned int source_y = y * 2;
             unsigned int source_x = x * 2;
             float values[4]{
-                depth_at(source_x, source_y),
-                depth_at(min(source_x + 1, width() - 1), source_y),
-                depth_at(source_x, min(source_y + 1, height() - 1)),
-                depth_at(min(source_x + 1, width() - 1), min(source_y + 1, height() - 1))
+                    depth_at(source_x, source_y),
+                    depth_at(min(source_x + 1, width() - 1), source_y),
+                    depth_at(source_x, min(source_y + 1, height() - 1)),
+                    depth_at(min(source_x + 1, width() - 1), min(source_y + 1, height() - 1))
             };
             new_data[y * new_width + x] = merge(values);
         }
@@ -480,15 +483,17 @@ DepthMap::resample() const {
 }
 
 DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
-    NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1), normals.at(y).at(x).at(2) };
+    NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1),
+                     normals.at(y).at(x).at(2)};
     return n;
 }
+
 /**
  * Compute the surface normals for each point in the
  * depth map.
  */
 void
-DepthMap::compute_normals(const Camera& camera) {
+DepthMap::compute_normals(const Camera &camera) {
     using namespace std;
 
 
@@ -513,18 +518,19 @@ DepthMap::compute_normals(const Camera& camera) {
                 natural_norm_count++;
             }
             // Check that norm is legal
-            const auto& normal = normals.at(y).at(x);
+            const auto &normal = normals.at(y).at(x);
             float norm_length = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
             if (isnan(norm_length)) {
-                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural" ) << " normal at y:" << y << ", x:" << x << endl;
-            } else
-            if (norm_length == 0.0) {
-                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:" << x << endl;
-            } else
-            if (abs(norm_length - 1.0) > 1e-3) {
-                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal (" << norm_length << ") at y:" << y << ", x:" << x << endl;
+                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:"
+                     << x << endl;
+            } else if (norm_length == 0.0) {
+                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:"
+                     << x << endl;
+            } else if (abs(norm_length - 1.0) > 1e-3) {
+                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal (" << norm_length
+                     << ") at y:" << y << ", x:" << x << endl;
             }
-            if( norm_length == 0.0) zero_norms++;
+            if (norm_length == 0.0) zero_norms++;
         }
     }
     if (derived_norm_count + natural_norm_count < 5) {
@@ -532,8 +538,7 @@ DepthMap::compute_normals(const Camera& camera) {
              << endl;
     }
     int num_norms = normal_types.size() * normal_types.at(0).size();
-    if( ((zero_norms * 100) / num_norms) > 95) {
+    if (((zero_norms * 100) / num_norms) > 95) {
         cout << "Suspiciously high zero norms : " << zero_norms << " out of  " << num_norms << endl;
     }
 }
-

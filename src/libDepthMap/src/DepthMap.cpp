@@ -496,10 +496,7 @@ void
 DepthMap::compute_normals(const Camera &camera) {
     using namespace std;
 
-
-    compute_natural_normals(camera);
-    compute_derived_normals();
-
+    compute_normals_with_pcl(camera);
 
     // Validation
     int natural_norm_count = 0;
@@ -543,33 +540,91 @@ DepthMap::compute_normals(const Camera &camera) {
     }
 }
 
-
 /**
  * Compute normal using estinate of normal to plane tangent to surface
  */
 void
-compute_normals_with_pcl() {
+DepthMap::compute_normals_with_pcl(const Camera& camera) {
     using namespace pcl;
+    using namespace std;
+
+    struct Pixel {
+        unsigned int x;
+        unsigned int y;
+        Pixel(unsigned int x, unsigned int y) : x{x}, y{y}{
+            // Empty
+        };
+        bool operator< (const Pixel &other) const {
+            if( y != other.y)
+                return y < other.y;
+
+            return x < other.x;
+        }
+    };
+
+
+    // Count number of legitimate normals
+    vector<Pixel> valid_pixels;
+    unsigned int num_points = 0;
+    for (int y = 0; y < height(); ++y) {
+        for (int x = 0; x < width(); ++x) {
+            if( depth_at(x, y) != 0.0f) {
+                num_points++;
+                valid_pixels.emplace_back(x,y);
+            }
+        }
+    }
 
     PointCloud<PointXYZ>::Ptr cloud(new pcl::PointCloud <pcl::PointXYZ>);
+    cloud->points.resize( num_points );
 
-// Create the normal estimation class, and pass the input dataset to it
+    // Populate the point cloud
+    int i = 0;
+    for (const auto& pixel : valid_pixels) {
+        float d = depth_at(pixel.x, pixel.y);
+        // Backproject the depths to get world coord
+        Eigen::Vector3f a = camera.to_world_coordinates(pixel.x, pixel.y, d);
+        cloud->points[i].getVector3fMap() = a;
+        ++i;
+    }
+
+    // Create the normal estimation class, and pass the input dataset to it
     NormalEstimation <PointXYZ, Normal> ne;
     ne.setInputCloud(cloud);
 
-// Create an empty kdtree representation, and pass it to the normal estimation object.
-// Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+    // Create an empty kdtree representation, and pass it to the normal estimation object.
+    // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
     search::KdTree<PointXYZ>::Ptr tree(new search::KdTree<PointXYZ>());
     ne.setSearchMethod(tree);
 
-// Output datasets
+    // Output datasets
     PointCloud<Normal>::Ptr cloud_normals(new pcl::PointCloud <pcl::Normal>);
 
-// Use all neighbors in a sphere of radius 3cm
+    // Use all neighbors in a sphere of radius 3cm
     ne.setRadiusSearch(0.03);
 
-// Compute the features
+    // Compute the features
     ne.compute(*cloud_normals);
 
-// cloud_normals->points.size () should have the same size as the input cloud->points.size ()*
+    // cloud_normals->points.size () should have the same size as the input cloud->points.size ()*
+
+    // Now populate the normal_types and normals
+    for( int y=0; y<height(); ++y ) {
+        vector<vector<float>> normal_row;
+        vector<tNormal> normal_type_row;
+        for( int x=0; x<width(); ++x ) {
+            normal_row.push_back(vector<float>{0, 0, 0});
+            normal_type_row.push_back(NONE);
+        }
+        normals.push_back(normal_row);
+        normal_types.push_back(normal_type_row);
+    }
+
+    // Go back and put in the actual details
+    i = 0;
+    for( const auto& pixel : valid_pixels ) {
+        normal_types.at(pixel.y).at(pixel.x) = NATURAL;
+        normals.at(pixel.y).at(pixel.x) = vector<float>{cloud_normals->points[i].normal_x, cloud_normals->points[i].normal_y, cloud_normals->points[i].normal_z};
+        ++i;
+    }
 }

@@ -106,6 +106,7 @@ private:
 
     void compute_natural_normals(const Camera& camera);
 	void compute_derived_normals();
+    void compute_normals_with_pcl(const Camera& camera);
 
 	/**
 	 * Compute the index into depth_map data for a given (x,y) coordinate.
@@ -114,8 +115,9 @@ private:
 	 * @return The offset.
 	 */
 	inline unsigned int index(unsigned int x, unsigned int y) const {
-		return y * m_width + x;
-	}
+        return y * m_width + x;
+    }
+
 //	inline bool is_edge(unsigned int row, unsigned int col) const {
 //		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
 //	}

@@ -542,3 +542,34 @@ DepthMap::compute_normals(const Camera &camera) {
         cout << "Suspiciously high zero norms : " << zero_norms << " out of  " << num_norms << endl;
     }
 }
+
+
+/**
+ * Compute normal using estinate of normal to plane tangent to surface
+ */
+void
+compute_normals_with_pcl() {
+    using namespace pcl;
+
+    PointCloud<PointXYZ>::Ptr cloud(new pcl::PointCloud <pcl::PointXYZ>);
+
+// Create the normal estimation class, and pass the input dataset to it
+    NormalEstimation <PointXYZ, Normal> ne;
+    ne.setInputCloud(cloud);
+
+// Create an empty kdtree representation, and pass it to the normal estimation object.
+// Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
+    search::KdTree<PointXYZ>::Ptr tree(new search::KdTree<PointXYZ>());
+    ne.setSearchMethod(tree);
+
+// Output datasets
+    PointCloud<Normal>::Ptr cloud_normals(new pcl::PointCloud <pcl::Normal>);
+
+// Use all neighbors in a sphere of radius 3cm
+    ne.setRadiusSearch(0.03);
+
+// Compute the features
+    ne.compute(*cloud_normals);
+
+// cloud_normals->points.size () should have the same size as the input cloud->points.size ()*
+}

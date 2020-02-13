@@ -3,6 +3,13 @@ file(GLOB SOURCES "src/*.cpp")
 add_library(DepthMap STATIC ${SOURCES}
         include/DepthMap/DepthMap.h)
 
+# Need PCL
+find_package(PCL 1.8 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
+
 # Define headers for this library. PUBLIC headers are used for
 # compiling the library, and will be added to consumers' build
 # paths.
@@ -11,12 +18,14 @@ target_include_directories(DepthMap
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
         ${EIGEN3_INCLUDE_DIR}
+        ${PCL_INCLUDE_DIRS}
         PRIVATE
         src)
 
 target_link_libraries(DepthMap
         FileUtils
         Camera
+        ${PCL_LIBRARIES}
         )
 
 # This makes the project importable from the build directory
@@ -38,6 +47,7 @@ add_executable(testDepthMap
 
 target_link_libraries(testDepthMap
         DepthMap
+        ${PCL_LIBRARIES}
         gtest
         gmock)
 

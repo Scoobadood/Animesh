@@ -31,6 +31,9 @@ public:
     void
     decompose(Eigen::Matrix3f &K, Eigen::Matrix3f &R, Eigen::Vector3f &t);
 
+    inline const Eigen::Vector3f
+    origin() const {return camera_origin;}
+
 private:
     Eigen::Vector3f camera_origin;          // World Coordinates
     Eigen::Vector3f looking_at;             // World Coordinates

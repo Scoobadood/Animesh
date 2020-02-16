@@ -601,7 +601,9 @@ DepthMap::compute_normals_with_pcl(const Camera& camera) {
     PointCloud<Normal>::Ptr cloud_normals(new pcl::PointCloud <pcl::Normal>);
 
     // Use all neighbors in a sphere of radius 3cm
-    ne.setRadiusSearch(0.03);
+//    ne.setRadiusSearch(0.03);
+    // Use nearest 5 neighbours regardless
+    ne.setKSearch(5);
 
     // Compute the features
     ne.compute(*cloud_normals);

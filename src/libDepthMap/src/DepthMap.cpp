@@ -606,7 +606,7 @@ DepthMap::compute_normals_with_pcl(const Camera& camera) {
     ne.setKSearch(5);
 
     // Set the view point to disambiguate normal direction
-    ne.setViewPoint(camera.origin().x, camera.origin().y, camera.origin().z );
+    ne.setViewPoint(camera.origin().x(), camera.origin().y(), camera.origin().z() );
 
     // Compute the features
     ne.compute(*cloud_normals);

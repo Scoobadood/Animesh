@@ -74,7 +74,7 @@ Optimiser::check_convergence(std::vector<Surfel> &surfels) {
     float delta_error = fabsf(latest_error - last_optimising_error);
     last_optimising_error = latest_error;;
     float pct =  delta_error / last_optimising_error;
-    std::cout << "Error: " << latest_error << ", (per surfel : " << (latest_error/ surfels.size()) << "). %-age reduction " << pct*100 << std::endl;
+    std::cout << "Mean error per surfel : " << latest_error << ". %age reduction " << pct*100 << std::endl;
     return (pct < convergence_threshold);
 }
 
@@ -86,27 +86,6 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
     using namespace std;
     using namespace Eigen;
 
-    const size_t num_surfels = surfels.size();
-
-    // Track error by surfel by frame
-    float error[num_surfels][num_frames];
-
-    // Track total error per surfel
-    float surfel_error[num_surfels];
-
-    // Track total error per frame
-    float frame_error[num_frames];
-
-    // Zero all error counts.
-    for (int surfel_idx = 0; surfel_idx < num_surfels; ++surfel_idx) {
-        for (int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
-            error[surfel_idx][frame_idx] = 0.0f;
-        }
-        surfel_error[surfel_idx] = 0.0f;
-    }
-    for (float &f : frame_error) {
-        f = 0.0f;
-    }
     float total_error = 0.0f;
 
     // For each frame
@@ -119,27 +98,22 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
 
             const auto &neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame);
 
-            float err = 0.0f;
-            int count = 0;
-            for (const auto &n :neighbours_of_this_surfel) {
+            float surfel_error = 0.0f;
+            for (const auto &n : neighbours_of_this_surfel) {
                 //TODO NB We can cache error computations here
                 const auto this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at( SurfelInFrame{n.get().id, frame_idx});
 
                 // Compute the error between this surfel in this frame and the neighbour in this frame.
-                err += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
-                count++;
+                surfel_error += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
             }
-//            err = (count > 0) ? (err / count) : 0.0f;
-            if (count == 0) {
-                cout << "Warning, no neighbours for surfel " << surfel.get().id << " in frame" << frame_idx << endl;
+            surfel_error = (neighbours_of_this_surfel.size() > 0) ? (surfel_error / neighbours_of_this_surfel.size()) : 0.0f;
+            if (neighbours_of_this_surfel.size() == 0) {
+                cout << "Warning, no neighbours for surfel " << surfel.get().id << " in frame" << frame_idx << " so no error contribution " << endl;
             }
-            error[surfel.get().id][frame_idx] += err;
-            surfel_error[surfel.get().id] += err;
-            frame_error[frame_idx] += err;
-            total_error += err;
+            total_error += surfel_error;
         }
     }
-    return total_error;
+    return total_error / surfels.size();
 }
 
 

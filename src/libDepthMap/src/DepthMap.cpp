@@ -603,7 +603,7 @@ DepthMap::compute_normals_with_pcl(const Camera& camera) {
     // Use all neighbors in a sphere of radius 3cm
 //    ne.setRadiusSearch(0.03);
     // Use nearest 5 neighbours regardless
-    ne.setKSearch(5);
+    ne.setKSearch(15);
 
     // Set the view point to disambiguate normal direction
     ne.setViewPoint(camera.origin().x(), camera.origin().y(), camera.origin().z() );

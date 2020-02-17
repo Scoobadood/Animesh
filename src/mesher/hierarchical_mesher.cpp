@@ -188,12 +188,8 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences);
 
-        cout << " Initialising tangents";
         if (previous_level.size() > 0) {
-            cout << " from previous level" << endl;
             initialise_surfel_tangents(surfels, previous_level);
-        } else {
-            cout << " with random values" << endl;
         }
 
         // +-----------------------------------------------------------------------------------------------

@@ -58,21 +58,14 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
 
 
     // TODO: Bootstrap orientation vectors from the previous level
-    map<PixelInFrame, Vector3f> pif_to_tangent;
+    map<PixelInFrame, NormalTangent> pif_to_normal_tangent;
     for (const auto &surfel : previous_level) {
         for (const auto &frame : surfel.frame_data) {
-            pif_to_tangent.emplace(
-                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2, frame.pixel_in_frame.pixel.y * 2,
-                                 frame.pixel_in_frame.frame}, surfel.tangent);
-            pif_to_tangent.emplace(
-                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2, frame.pixel_in_frame.pixel.y * 2 + 1,
-                                 frame.pixel_in_frame.frame}, surfel.tangent);
-            pif_to_tangent.emplace(
-                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2 + 1, frame.pixel_in_frame.pixel.y * 2,
-                                 frame.pixel_in_frame.frame}, surfel.tangent);
-            pif_to_tangent.emplace(
-                    PixelInFrame{frame.pixel_in_frame.pixel.x * 2 + 1, frame.pixel_in_frame.pixel.y * 2 + 1,
-                                 frame.pixel_in_frame.frame}, surfel.tangent);
+            auto projected_tangent = frame.transform * surfel.tangent;
+            pif_to_normal_tangent.emplace(
+                    PixelInFrame{frame.pixel_in_frame.pixel.x, frame.pixel_in_frame.pixel.y,
+                                 frame.pixel_in_frame.frame},
+                    NormalTangent{frame.normal, projected_tangent});
         }
     }
 
@@ -93,12 +86,16 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
         int count = 0;
         Vector3f mean_tangent{0.0f, 0.0f, 0.0};
         for (const auto &frame : surfel.frame_data) {
-            auto it = pif_to_tangent.find(frame.pixel_in_frame);
-            if (it != pif_to_tangent.end()) {
-                mean_tangent += it->second;
+            PixelInFrame parent_pif{frame.pixel_in_frame.pixel.x / 2,
+                                    frame.pixel_in_frame.pixel.y / 2,
+                                    frame.pixel_in_frame.frame};
+            auto it = pif_to_normal_tangent.find(parent_pif);
+            if (it != pif_to_normal_tangent.end()) {
+                mean_tangent += it->second.tangent;
                 ++count;
+                cout << "Find entry for PIF " << parent_pif << " in higher level." << endl;
             } else {
-                cout << "Warning. Could not find entry for PIF " << frame.pixel_in_frame << " in initialiser table." << endl;
+                cout << "Warning. Could not find entry for PIF " << parent_pif << " in higher level." << endl;
             }
         }
         if (count != 0) {

@@ -67,6 +67,13 @@ struct SurfelInFrame {
     }
 };
 
+struct NormalTangent {
+    Eigen::Vector3f normal;
+    Eigen::Vector3f tangent;
+    NormalTangent(Eigen::Vector3f n, Eigen::Vector3f t) : normal{n}, tangent{t} {
+    }
+};
+
 struct FrameData {
     PixelInFrame	pixel_in_frame; 	// x, y, frame
     float 			depth;				// Depth of range scan at this pixel.

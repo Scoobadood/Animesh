@@ -152,10 +152,10 @@ int main(int argc, char *argv[]) {
             depth_map_hierarchy.at(l).at(f).compute_normals(cameras.at(f));
         }
     }
-    if( properties.getBooleanProperty("dump-depth-maps")) {
+    if (properties.getBooleanProperty("dump-depth-maps")) {
         cout << " Dumping depth maps" << endl;
-        for( unsigned int level=0; level < num_levels; ++level) {
-            for( unsigned int frame=0; frame < num_frames; ++frame ) {
+        for (unsigned int level = 0; level < num_levels; ++level) {
+            for (unsigned int frame = 0; frame < num_frames; ++frame) {
                 auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
                 save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
                 auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);

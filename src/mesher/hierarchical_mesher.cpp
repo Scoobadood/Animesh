@@ -37,11 +37,25 @@ void
 initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfel> &previous_level) {
     using namespace std;
     using namespace Eigen;
-
     cout << "Initialising surfels from previous level" << endl;
 
     if (previous_level.empty())
         throw runtime_error("Unexpectedly found previous_level was empty");
+
+    // Dump the previous level surfels into a human readable format.
+    cout << "Previous level surfels" << endl;
+    for (const auto &surfel : previous_level) {
+        cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
+        for (const auto &frame : surfel.frame_data) {
+            cout << frame.pixel_in_frame.frame << ", ";
+        }
+        cout << endl;
+        for (const auto &frame : surfel.frame_data) {
+            cout << "\t[ f:" << frame.pixel_in_frame.frame << "  x:" << frame.pixel_in_frame.pixel.x << "  y:"
+                 << frame.pixel_in_frame.pixel.y << "]" << endl;
+        }
+    }
+
 
     // TODO: Bootstrap orientation vectors from the previous level
     map<PixelInFrame, Vector3f> pif_to_tangent;
@@ -59,6 +73,19 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
             pif_to_tangent.emplace(
                     PixelInFrame{frame.pixel_in_frame.pixel.x * 2 + 1, frame.pixel_in_frame.pixel.y * 2 + 1,
                                  frame.pixel_in_frame.frame}, surfel.tangent);
+        }
+    }
+
+    cout << "Curtrent level surfels" << endl;
+    for (const auto &surfel : surfels) {
+        cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
+        for (const auto &frame : surfel.frame_data) {
+            cout << frame.pixel_in_frame.frame << ", ";
+        }
+        cout << endl;
+        for (const auto &frame : surfel.frame_data) {
+            cout << "\t[ f:" << frame.pixel_in_frame.frame << "  x:" << frame.pixel_in_frame.pixel.x << "  y:"
+                 << frame.pixel_in_frame.pixel.y << "]" << endl;
         }
     }
 

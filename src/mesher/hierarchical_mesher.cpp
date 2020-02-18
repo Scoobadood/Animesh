@@ -195,9 +195,8 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         // | Save the pre-smoothing surfels in a renderable way
         // +-----------------------------------------------------------------------------------------------
-        auto pre_smoothed_surfels_file_name = file_name_from_template_and_level(pre_smooth_filename_template,
-                                                                                current_level_index);
-        save_surfels_to_file(pre_smoothed_surfels_file_name, surfels);
+        save_surfels_to_file(file_name_from_template_and_level(pre_smooth_filename_template,
+                                                               current_level_index), surfels);
 
         // +-----------------------------------------------------------------------------------------------
         // | Smooth this level
@@ -208,9 +207,8 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         // | Save the smoothed surfels in a renderable way
         // +-----------------------------------------------------------------------------------------------
-        auto post_smoothed_surfels_file_name = file_name_from_template_and_level(post_smooth_filename_template,
-                                                                                 current_level_index);
-        save_surfels_to_file(post_smoothed_surfels_file_name, surfels);
+        save_surfels_to_file(file_name_from_template_and_level(post_smooth_filename_template,
+                                                               current_level_index), surfels);
 
         previous_level = surfels;
         --current_level_index;

@@ -11,11 +11,75 @@
 #include "surfel_io.h"
 #include "utilities.h"
 #include "depth_map_io.h"
+#include "assert.h"
 
 const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
 const char post_smooth_filename_template[] = "smoothed_%02d.bin";
 const char dm_template[] = "depth_map_genned_L%02d_F%02d.pgm";
 const char norm_template[] = "normal_map_genned_L%02d_F%02d.ppm";
+
+void
+dump_pifs_in_surfel( const std::string& message, const std::vector<Surfel>& surfels ) {
+    using namespace std;
+    cout << message << " surfels" << endl;
+    for (const auto &surfel : surfels) {
+        cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
+        for (const auto &frame : surfel.frame_data) {
+            cout << frame.pixel_in_frame.frame << ", ";
+        }
+        cout << endl << "\t";
+        for (const auto &frame : surfel.frame_data) {
+            cout << "[ f:" << frame.pixel_in_frame.frame << "  x:" << frame.pixel_in_frame.pixel.x << "  y:"
+                 << frame.pixel_in_frame.pixel.y << "]";
+        }
+        cout  << endl;
+    }
+}
+
+std::multimap<Surfel&, Surfel&>
+get_surfel_mappings( const std::vector<Surfel>& upper_level, const std::vector<Surfel>& lower_level){
+    using namespace std;
+
+    // Dump the previous level surfels into a human readable format.
+    dump_pifs_in_surfel("Previous level", upper_level);
+    // Dump the current level surfels into human readable form.
+    dump_pifs_in_surfel("Current level", lower_level);
+
+    // Construct a map from upper level PIF to Surfel
+    map<PixelInFrame, Surfel> pif_to_surfel;
+    for (const auto &surfel : upper_level) {
+        for (const auto &frame : surfel.frame_data) {
+            pif_to_surfel.emplace(
+                    PixelInFrame{frame.pixel_in_frame.pixel.x, frame.pixel_in_frame.pixel.y,
+                                 frame.pixel_in_frame.frame},
+                    surfel);
+        }
+    }
+
+    // For each PIF in each surfel in the lower level, find the matching PIF and Surfel(s) in upper level
+    multimap<Surfel&, Surfel&> surfel_surfel_map;
+    vector<int> unparented_surfels;
+    for (auto &surfel : lower_level) {
+        int mapping_count = 0;
+        for (const auto &frame : surfel.frame_data) {
+            PixelInFrame parent_pif{frame.pixel_in_frame.pixel.x / 2,
+                                    frame.pixel_in_frame.pixel.y / 2,
+                                    frame.pixel_in_frame.frame};
+            auto it = pif_to_surfel.find(parent_pif);
+            if (it != pif_to_surfel.end()) {
+                surfel_surfel_map.insert( surfel, it->second);
+            } else {
+                cout << "Warning. Could not find entry for PIF " << parent_pif << " in previous level." << endl;
+            }
+            ++mapping_count;
+        }
+        if(mapping_count == 0 ) {
+            cout << "WARNING. Could not map surfel ID " << surfel.id << " to a parent." << endl;
+            unparented_surfels.push_back(surfel.id);
+        }
+    }
+    return surfel_surfel_map;
+}
 
 /**
  * Given a set of existing surfels (previous level), populate the current level
@@ -39,71 +103,23 @@ initialise_surfel_tangents(std::vector<Surfel> &surfels, const std::vector<Surfe
     using namespace Eigen;
     cout << "Initialising surfels from previous level" << endl;
 
-    if (previous_level.empty())
-        throw runtime_error("Unexpectedly found previous_level was empty");
+    assert( (!previous_level.empty()) && "Unexpectedly found previous_level was empty");
+    assert( (!surfels.empty()) && "Unexpectedly found current level was empty");
 
-    // Dump the previous level surfels into a human readable format.
-    cout << "Previous level surfels" << endl;
-    for (const auto &surfel : previous_level) {
-        cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
-        for (const auto &frame : surfel.frame_data) {
-            cout << frame.pixel_in_frame.frame << ", ";
-        }
-        cout << endl;
-        for (const auto &frame : surfel.frame_data) {
-            cout << "\t[ f:" << frame.pixel_in_frame.frame << "  x:" << frame.pixel_in_frame.pixel.x << "  y:"
-                 << frame.pixel_in_frame.pixel.y << "]" << endl;
-        }
-    }
+    multimap<Surfel&, Surfel&> surfel_surfel_map = get_surfel_mappings(previous_level, surfels);
 
-
-    // TODO: Bootstrap orientation vectors from the previous level
-    map<PixelInFrame, NormalTangent> pif_to_normal_tangent;
-    for (const auto &surfel : previous_level) {
-        for (const auto &frame : surfel.frame_data) {
-            auto projected_tangent = frame.transform * surfel.tangent;
-            pif_to_normal_tangent.emplace(
-                    PixelInFrame{frame.pixel_in_frame.pixel.x, frame.pixel_in_frame.pixel.y,
-                                 frame.pixel_in_frame.frame},
-                    NormalTangent{frame.normal, projected_tangent});
-        }
-    }
-
-    cout << "Curtrent level surfels" << endl;
-    for (const auto &surfel : surfels) {
-        cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
-        for (const auto &frame : surfel.frame_data) {
-            cout << frame.pixel_in_frame.frame << ", ";
-        }
-        cout << endl;
-        for (const auto &frame : surfel.frame_data) {
-            cout << "\t[ f:" << frame.pixel_in_frame.frame << "  x:" << frame.pixel_in_frame.pixel.x << "  y:"
-                 << frame.pixel_in_frame.pixel.y << "]" << endl;
-        }
-    }
-
+    // for each surfel in the lower level
     for (auto &surfel : surfels) {
+
+        // Compute the tangent for this Surfel using parent surfels
         int count = 0;
         Vector3f mean_tangent{0.0f, 0.0f, 0.0};
-        for (const auto &frame : surfel.frame_data) {
-            PixelInFrame parent_pif{frame.pixel_in_frame.pixel.x / 2,
-                                    frame.pixel_in_frame.pixel.y / 2,
-                                    frame.pixel_in_frame.frame};
+            // for each matching value in map
             auto it = pif_to_normal_tangent.find(parent_pif);
-            if (it != pif_to_normal_tangent.end()) {
                 mean_tangent += it->second.tangent;
                 ++count;
-                cout << "Find entry for PIF " << parent_pif << " in higher level." << endl;
-            } else {
-                cout << "Warning. Could not find entry for PIF " << parent_pif << " in higher level." << endl;
-            }
         }
-        if (count != 0) {
             surfel.tangent = (mean_tangent / count).normalized();
-        } else {
-            cout << "Surfel cannot be mapped to next level." << endl;
-//            throw runtime_error("Pixel in layer does not have any corresponding pixels in the next layer.");
-        }
     }
 }
 

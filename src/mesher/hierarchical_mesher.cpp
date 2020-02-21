@@ -12,7 +12,6 @@
 #include "surfel_io.h"
 #include "utilities.h"
 #include "depth_map_io.h"
-#include "assert.h"
 
 const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
 const char post_smooth_filename_template[] = "smoothed_%02d.bin";
@@ -37,18 +36,18 @@ dump_pifs_in_surfel(const std::string &message, const std::vector<Surfel> &surfe
     }
 }
 
-std::map<PixelInFrame, std::reference_wrapper<Surfel>>
+std::map<PixelInFrame, size_t>
 map_pifs_to_surfel_reference(std::vector<Surfel> &surfels) {
     using namespace std;
 
-    map<PixelInFrame, reference_wrapper<Surfel>> pif_to_surfel;
+    map<PixelInFrame, size_t> pif_to_surfel;
     for (Surfel &surfel : surfels) {
         for (const auto &frame : surfel.frame_data) {
             pif_to_surfel.insert(
-                    pair<PixelInFrame, std::reference_wrapper<Surfel>>(
+                    pair<PixelInFrame, int>(
                             PixelInFrame{frame.pixel_in_frame.pixel.x, frame.pixel_in_frame.pixel.y,
                                          frame.pixel_in_frame.frame},
-                            ref(surfel)));
+                            surfel.id));
         }
     }
     return pif_to_surfel;
@@ -63,7 +62,7 @@ namespace std {
     };
 }
 
-std::multimap<std::reference_wrapper<Surfel>, std::reference_wrapper<Surfel>>
+std::multimap<size_t, size_t>
 compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
                                     std::vector<Surfel> &child_level, //
                                     std::vector<int> &unmapped) {
@@ -75,20 +74,20 @@ compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
     dump_pifs_in_surfel("Child level", child_level);
 
     // Construct a map from parent level PIF to Surfel
-    map<PixelInFrame, reference_wrapper<Surfel>> pif_to_surfel = map_pifs_to_surfel_reference(parent_level);
+    map<PixelInFrame, size_t> pif_to_surfel = map_pifs_to_surfel_reference(parent_level);
 
     // For each PIF in each surfel in the child level, find the matching PIF and Surfel(s) in upper level
     // Map from child id to parent ids
-    multimap<reference_wrapper<Surfel>, reference_wrapper<Surfel>> surfel_surfel_map;
+    multimap<size_t, size_t> surfel_surfel_map;
     for (Surfel &surfel : child_level) {
         int mapping_count = 0;
         for (const auto &frame : surfel.frame_data) {
             PixelInFrame parent_pif{frame.pixel_in_frame.pixel.x / 2,
                                     frame.pixel_in_frame.pixel.y / 2,
                                     frame.pixel_in_frame.frame};
-            map<PixelInFrame, reference_wrapper<Surfel>>::iterator it = pif_to_surfel.find(parent_pif);
+            auto it = pif_to_surfel.find(parent_pif);
             if (it != pif_to_surfel.end()) {
-                surfel_surfel_map.insert(pair<reference_wrapper<Surfel>, reference_wrapper<Surfel>>(ref(surfel), it->second));
+                surfel_surfel_map.insert(pair<size_t, size_t>(surfel.id, parent_level.at(it->second).id));
             }
             ++mapping_count;
         }
@@ -116,8 +115,8 @@ compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
  * @param previous_level Vector of surfels from which to initialise
  */
 void
-down_propagate_tangents(
-        std::multimap<std::reference_wrapper<Surfel>, std::reference_wrapper<Surfel>> &child_to_parents) {
+down_propagate_tangents(std::multimap<size_t, size_t> &child_to_parents, std::vector<Surfel> &children,
+                        std::vector<Surfel> &parents) {
 
     using namespace std;
     using namespace Eigen;
@@ -125,15 +124,15 @@ down_propagate_tangents(
 
     // for each surfel in the lower level
     for (auto child_iterator = child_to_parents.begin(); child_iterator != child_to_parents.end(); child_iterator++) {
-        int child_id = child_iterator->first.get().id;
+        size_t child_id = child_iterator->first;
         int count = 0;
         Vector3f mean_tangent{0.0f, 0.0f, 0.0};
         auto parent_iterator = child_iterator;
-        for (; parent_iterator != child_to_parents.end() && (parent_iterator->first.get().id == child_id); ++parent_iterator) {
-            mean_tangent += parent_iterator->second.get().tangent;
+        for (; parent_iterator != child_to_parents.end() && (parent_iterator->first == child_id); ++parent_iterator) {
+            mean_tangent += parents.at(parent_iterator->second).tangent;
             ++count;
         }
-        child_iterator->first.get().tangent = (mean_tangent / count).normalized();
+        children.at(child_iterator->first).tangent = (mean_tangent / count).normalized();
         child_iterator = parent_iterator;
     }
 }
@@ -158,7 +157,6 @@ get_correspondences(const Properties &properties,
     } else {
         cout << "Computing correspondences from scratch" << endl;
         throw runtime_error("Not implemented. Copy code from dm_to_pointcloud");
-//        correspondences = compute_correspondences(cameras, depth_map);
     }
 
     if (correspondences.empty()) {
@@ -243,9 +241,9 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences);
 
-        if (previous_level.size() > 0) {
+        if (!previous_level.empty()) {
             vector<int> unmapped;
-            multimap<reference_wrapper<Surfel>, reference_wrapper<Surfel>> child_to_parent = compute_surfel_parent_child_mapping(
+            multimap<size_t, size_t> child_to_parent = compute_surfel_parent_child_mapping(
                     previous_level,
                     surfels,
                     unmapped);
@@ -264,7 +262,7 @@ int main(int argc, char *argv[]) {
             }
 
             // Propagate tangents down
-            down_propagate_tangents(child_to_parent);
+            down_propagate_tangents(child_to_parent, surfels, previous_level);
         }
 
         // +-----------------------------------------------------------------------------------------------

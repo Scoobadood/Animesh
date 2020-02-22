@@ -47,7 +47,7 @@ inline bool operator==(const PixelInFrame& lhs, const PixelInFrame& rhs){
 
 inline std::ostream &operator<<(std::ostream &os, const PixelInFrame &pif) {
     using namespace std;
-    os << "{ f: " << pif.frame << " x: " << pif.pixel.x << " y: " << pif.pixel.y << " }" << endl;
+    os << "{ f: " << pif.frame << " x: " << pif.pixel.x << " y: " << pif.pixel.y << " }";
     return os;
 }
 

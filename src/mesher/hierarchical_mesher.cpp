@@ -25,12 +25,7 @@ dump_pifs_in_surfel(const std::string &message, const std::vector<Surfel> &surfe
     for (const auto &surfel : surfels) {
         cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
         for (const auto &frame : surfel.frame_data) {
-            cout << frame.pixel_in_frame.frame << ", ";
-        }
-        cout << endl << "\t";
-        for (const auto &frame : surfel.frame_data) {
-            cout << "[ f:" << frame.pixel_in_frame.frame << "  x:" << frame.pixel_in_frame.pixel.x << "  y:"
-                 << frame.pixel_in_frame.pixel.y << "]";
+            cout << frame.pixel_in_frame << " ";
         }
         cout << endl;
     }
@@ -248,7 +243,10 @@ int main(int argc, char *argv[]) {
                     surfels,
                     unmapped);
 
-            // Remove unmapped surfels from this level
+            // Propagate tangents down
+            down_propagate_tangents(child_to_parent, surfels, previous_level);
+
+            // Noew remove unmapped surfels from this level
             if( !unmapped.empty()) {
                 vector<Surfel> kept_surfels;
                 for( const auto& surfel : surfels) {
@@ -260,9 +258,6 @@ int main(int argc, char *argv[]) {
                 }
                 surfels = kept_surfels;
             }
-
-            // Propagate tangents down
-            down_propagate_tangents(child_to_parent, surfels, previous_level);
         }
 
         // +-----------------------------------------------------------------------------------------------

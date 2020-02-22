@@ -32,18 +32,20 @@ dump_pifs_in_surfel(const std::string &message, const std::vector<Surfel> &surfe
 }
 
 std::map<PixelInFrame, size_t>
-map_pifs_to_surfel_reference(std::vector<Surfel> &surfels) {
+map_pifs_to_surfel_index(std::vector<Surfel> &surfels) {
     using namespace std;
 
     map<PixelInFrame, size_t> pif_to_surfel;
+    int idx = 0;
     for (Surfel &surfel : surfels) {
         for (const auto &frame : surfel.frame_data) {
             pif_to_surfel.insert(
                     pair<PixelInFrame, int>(
                             PixelInFrame{frame.pixel_in_frame.pixel.x, frame.pixel_in_frame.pixel.y,
                                          frame.pixel_in_frame.frame},
-                            surfel.id));
+                            idx));
         }
+        ++idx;
     }
     return pif_to_surfel;
 }
@@ -69,26 +71,29 @@ compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
     dump_pifs_in_surfel("Child level", child_level);
 
     // Construct a map from parent level PIF to Surfel
-    map<PixelInFrame, size_t> pif_to_surfel = map_pifs_to_surfel_reference(parent_level);
+    map<PixelInFrame, size_t> pif_to_parent_index = map_pifs_to_surfel_index(parent_level);
 
     // For each PIF in each surfel in the child level, find the matching PIF and Surfel(s) in upper level
     // Map from child id to parent ids
     multimap<size_t, size_t> surfel_surfel_map;
-    for (Surfel &surfel : child_level) {
+
+    int child_index = 0;
+    for (auto &surfel : child_level) {
         int mapping_count = 0;
         for (const auto &frame : surfel.frame_data) {
             PixelInFrame parent_pif{frame.pixel_in_frame.pixel.x / 2,
                                     frame.pixel_in_frame.pixel.y / 2,
                                     frame.pixel_in_frame.frame};
-            auto it = pif_to_surfel.find(parent_pif);
-            if (it != pif_to_surfel.end()) {
-                surfel_surfel_map.insert(pair<size_t, size_t>(surfel.id, parent_level.at(it->second).id));
+            auto it = pif_to_parent_index.find(parent_pif);
+            if (it != pif_to_parent_index.end()) {
+                surfel_surfel_map.insert(pair<size_t, size_t>(child_index, parent_level.at(it->second)));
             }
             ++mapping_count;
         }
         if (mapping_count == 0) {
             unmapped.push_back(surfel.id);
         }
+        ++child_index;
     }
     return surfel_surfel_map;
 }

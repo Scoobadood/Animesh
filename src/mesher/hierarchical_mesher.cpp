@@ -100,20 +100,7 @@ compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
 }
 
 /**
- * Given a set of existing surfels (previous level), populate the current level
- * by propagating the existing level surfel to all 'parent' surfels of the next level.
- * <pre>
-   For each Surfel s in previous_level
-     For each pixel in frame pif for s
-       Derive the candidate source pixels in surfels, pif_next[] (there will be at most four)
-       Store reference from pif_next[] to tangent of s
-
-    For each surfel s in surfels
-      For each pixel in frame pif for s
-        Look up tangent(s) for pif and average them to bootstrap tangent for s
-
- * @param surfels Vector of surfels to be initialised
- * @param previous_level Vector of surfels from which to initialise
+ *
  */
 void
 down_propagate_tangents(std::multimap<size_t, size_t> &child_to_parents, std::vector<Surfel> &children,
@@ -124,14 +111,16 @@ down_propagate_tangents(std::multimap<size_t, size_t> &child_to_parents, std::ve
     cout << "Initialising surfels from previous level" << endl;
 
     // for each surfel in the lower level
-    for (auto child_iterator = child_to_parents.begin(); child_iterator != child_to_parents.end(); child_iterator++) {
-        size_t child_id = child_iterator->first;
+    auto child_iterator = child_to_parents.begin();
+    while ( child_iterator != child_to_parents.end()) {
+        size_t child_index = child_iterator->first;
         int count = 0;
         Vector3f mean_tangent{0.0f, 0.0f, 0.0};
         auto parent_iterator = child_iterator;
-        for (; parent_iterator != child_to_parents.end() && (parent_iterator->first == child_id); ++parent_iterator) {
+        while (parent_iterator != child_to_parents.end() && (parent_iterator->first == child_index)) {
             mean_tangent += parents.at(parent_iterator->second).tangent;
             ++count;
+            ++parent_iterator;
         }
         children.at(child_iterator->first).tangent = (mean_tangent / count).normalized();
         child_iterator = parent_iterator;

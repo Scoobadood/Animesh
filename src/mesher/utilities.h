@@ -24,7 +24,9 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps);
  * Construct depth map hierarch given a vector of sourcde depth maps
  */
 std::vector<std::vector<DepthMap>>
-create_depth_map_hierarchy(const Properties &properties, const std::vector<DepthMap> &depth_maps);
+create_depth_map_hierarchy(const Properties &properties,
+        const std::vector<DepthMap> &depth_maps,
+        const std::vector<Camera> &cameras);
 
 
 /**

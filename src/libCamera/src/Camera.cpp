@@ -19,6 +19,15 @@ Camera::Camera(const float position[3],
 }
 
 void
+Camera::set_image_size( unsigned int width, unsigned int height ) {
+    // Compute pixel dimensions in world units
+    resolution.x() = width;
+    resolution.y() = height;
+    pixel_width = image_plane_dimensions.x() / resolution.x();
+    pixel_height = image_plane_dimensions.y() / resolution.y();
+}
+
+void
 Camera::compute_camera_parms() {
     using namespace Eigen;
 

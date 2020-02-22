@@ -161,6 +161,27 @@ get_correspondences(const Properties &properties,
 }
 
 
+void
+maybe_save_depth_and_normal_maps(const Properties &properties,
+                                 const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
+    using namespace std;
+
+    int num_levels = depth_map_hierarchy.size();
+    int num_frames = depth_map_hierarchy.at(0).size();
+    if (properties.getBooleanProperty("dump-depth-maps")) {
+        cout << " Dumping depth maps" << endl;
+        for (unsigned int level = 0; level < num_levels; ++level) {
+            for (unsigned int frame = 0; frame < num_frames; ++frame) {
+                auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
+                save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
+                auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);
+                save_normals_as_ppm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
+            }
+        }
+    }
+}
+
+
 /**
  * Entry point
  * Generate a vector of Surfels and save to disk.
@@ -192,25 +213,9 @@ int main(int argc, char *argv[]) {
     // +-----------------------------------------------------------------------------------------------
     // | Construct the depth map hierarchy: number of levels as specified in properties.
     // +-----------------------------------------------------------------------------------------------
-    vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
+    vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps, cameras);
+    maybe_save_depth_and_normal_maps(properties, depth_map_hierarchy);
     int num_levels = depth_map_hierarchy.size();
-    // Compute normals
-    for (unsigned int l = 0; l < num_levels; ++l) {
-        for (unsigned int f = 0; f < num_frames; ++f) {
-            depth_map_hierarchy.at(l).at(f).compute_normals(cameras.at(f));
-        }
-    }
-    if (properties.getBooleanProperty("dump-depth-maps")) {
-        cout << " Dumping depth maps" << endl;
-        for (unsigned int level = 0; level < num_levels; ++level) {
-            for (unsigned int frame = 0; frame < num_frames; ++frame) {
-                auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
-                save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
-                auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);
-                save_normals_as_ppm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
-            }
-        }
-    }
 
     // +-----------------------------------------------------------------------------------------------
     // | Construct Surfels for each level

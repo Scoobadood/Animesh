@@ -6,6 +6,7 @@
 #include <iostream>
 #include <DepthMap/DepthMap.h>
 #include <Properties/Properties.h>
+#include <Camera/Camera.h>
 #include "../mesher/depth_map_io.h"
 
 const std::string CAMERA_TEMPLATE = "camera_F%02d.txt";
@@ -102,21 +103,33 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
  * Construct depth map hierarch given a vector of sourcde depth maps
  */
 std::vector<std::vector<DepthMap>>
-create_depth_map_hierarchy(const Properties &properties, const std::vector<DepthMap> &depth_maps) {
+create_depth_map_hierarchy(const Properties &properties,
+                           const std::vector<DepthMap> &depth_maps,
+                           const std::vector<Camera> &cameras) {
     using namespace std;
 
-    vector<vector<DepthMap>> depth_map_hierarchy;
     int num_levels = properties.getIntProperty("num-levels");
     cout << "Constructing depth map hierarchy with " << num_levels << " levels." << endl;
+
+    vector<vector<DepthMap>> depth_map_hierarchy;
     depth_map_hierarchy.reserve(num_levels);
     depth_map_hierarchy.push_back(depth_maps);
     cout << "1 of " << num_levels << "    " << flush;
-    for (int i = 1; i <= num_levels; i++) {
-        cout << "\r" << i << " of " << num_levels << "    " << flush;
+    for (int i = 1; i < num_levels; i++) {
+        cout << "\r" << (i+1) << " of " << num_levels << "    " << flush;
         depth_map_hierarchy.push_back(resample_depth_maps(depth_map_hierarchy.at(i-1)));
     }
     cout << endl;
 
+    //
+    // Compute normals for each level
+    for (auto level_depth_maps : depth_map_hierarchy) {
+        for (int f = 0; f < depth_maps.size(); ++f) {
+            Camera camera = cameras.at(f);
+            camera.set_image_size(level_depth_maps.at(0).width(), level_depth_maps.at(0).height());
+            level_depth_maps.at(f).compute_normals(camera);
+        }
+    }
     return depth_map_hierarchy;
 }
 

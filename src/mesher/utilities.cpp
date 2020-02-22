@@ -123,7 +123,7 @@ create_depth_map_hierarchy(const Properties &properties,
 
     //
     // Compute normals for each level
-    for (auto level_depth_maps : depth_map_hierarchy) {
+    for (auto & level_depth_maps : depth_map_hierarchy) {
         for (int f = 0; f < depth_maps.size(); ++f) {
             Camera camera = cameras.at(f);
             camera.set_image_size(level_depth_maps.at(0).width(), level_depth_maps.at(0).height());

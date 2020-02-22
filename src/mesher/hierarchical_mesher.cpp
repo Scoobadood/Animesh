@@ -36,7 +36,7 @@ map_pifs_to_surfel_index(std::vector<Surfel> &surfels) {
     using namespace std;
 
     map<PixelInFrame, size_t> pif_to_surfel;
-    int idx = 0;
+    size_t idx = 0;
     for (Surfel &surfel : surfels) {
         for (const auto &frame : surfel.frame_data) {
             pif_to_surfel.insert(
@@ -75,27 +75,28 @@ compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
 
     // For each PIF in each surfel in the child level, find the matching PIF and Surfel(s) in upper level
     // Map from child id to parent ids
-    multimap<size_t, size_t> surfel_surfel_map;
+    multimap<size_t, size_t> child_to_parents_index_map;
 
-    int child_index = 0;
-    for (auto &surfel : child_level) {
-        int mapping_count = 0;
-        for (const auto &frame : surfel.frame_data) {
-            PixelInFrame parent_pif{frame.pixel_in_frame.pixel.x / 2,
-                                    frame.pixel_in_frame.pixel.y / 2,
-                                    frame.pixel_in_frame.frame};
+    size_t child_index = 0;
+    for (auto &child_surfel : child_level) {
+
+        unsigned int parents_found = 0;
+        for (const auto &child_frame : child_surfel.frame_data) {
+
+            PixelInFrame parent_pif{child_frame.pixel_in_frame.pixel.x / 2, child_frame.pixel_in_frame.pixel.y / 2,
+                                    child_frame.pixel_in_frame.frame};
             auto it = pif_to_parent_index.find(parent_pif);
             if (it != pif_to_parent_index.end()) {
-                surfel_surfel_map.insert(pair<size_t, size_t>(child_index, parent_level.at(it->second)));
+                child_to_parents_index_map.insert(pair<size_t, size_t>(child_index, it->second));
+                ++parents_found;
             }
-            ++mapping_count;
         }
-        if (mapping_count == 0) {
-            unmapped.push_back(surfel.id);
+        if (parents_found == 0) {
+            unmapped.push_back(child_surfel.id);
         }
         ++child_index;
     }
-    return surfel_surfel_map;
+    return child_to_parents_index_map;
 }
 
 /**

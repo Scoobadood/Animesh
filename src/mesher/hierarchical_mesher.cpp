@@ -252,6 +252,9 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences);
 
+        // +-----------------------------------------------------------------------------------------------
+        // | Propagate tangents down
+        // +-----------------------------------------------------------------------------------------------
         if (!previous_level.empty()) {
             vector<int> unmapped;
             multimap<size_t, size_t> child_to_parent = compute_surfel_parent_child_mapping(

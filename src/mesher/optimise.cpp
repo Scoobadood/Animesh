@@ -106,10 +106,7 @@ Optimiser::compute_error(const std::vector<Surfel> &surfels) {
                 // Compute the error between this surfel in this frame and the neighbour in this frame.
                 surfel_error += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
             }
-            surfel_error = (neighbours_of_this_surfel.size() > 0) ? (surfel_error / neighbours_of_this_surfel.size()) : 0.0f;
-            if (neighbours_of_this_surfel.size() == 0) {
-                cout << "Warning, no neighbours for surfel " << surfel.get().id << " in frame" << frame_idx << " so no error contribution " << endl;
-            }
+            surfel_error = (neighbours_of_this_surfel.empty()) ? 0.0f : (surfel_error / neighbours_of_this_surfel.size());
             total_error += surfel_error;
         }
     }

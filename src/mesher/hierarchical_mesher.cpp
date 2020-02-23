@@ -176,6 +176,22 @@ maybe_save_depth_and_normal_maps(const Properties &properties,
     }
 }
 
+void
+drop_unmapped_surfels(const Properties& properties, std::vector<int>& unmapped, std::vector<Surfel>& surfels ) {
+    using namespace std;
+
+    size_t initial_surfels = surfels.size();
+    if (!unmapped.empty()) {
+        sort(unmapped.begin(), unmapped.end());
+        surfels.erase(remove_if(surfels.begin(), surfels.end(), [unmapped](Surfel s) {
+            return binary_search(unmapped.begin(), unmapped.end(), s.id);
+        }));
+    }
+    if( properties.getBooleanProperty("log-dropped-surfels")) {
+        cout << "Dropped " << unmapped.size() << " of " << initial_surfels << " surfels" << endl;
+    }
+}
+
 
 /**
  * Entry point
@@ -246,18 +262,8 @@ int main(int argc, char *argv[]) {
             // Propagate tangents down
             down_propagate_tangents(child_to_parent, surfels, previous_level);
 
-            // Noew remove unmapped surfels from this level
-            if( !unmapped.empty()) {
-                vector<Surfel> kept_surfels;
-                for( const auto& surfel : surfels) {
-                    if( find(begin(unmapped), end(unmapped), surfel.id) != end(unmapped)) {
-                        cout << "Dropping surfel with id " << surfel.id << " because parent can't be found" << endl;
-                    } else {
-                        kept_surfels.push_back( surfel);
-                    }
-                }
-                surfels = kept_surfels;
-            }
+            // Now remove unmapped surfels from this level
+            drop_unmapped_surfels(properties, unmapped, surfels);
         }
 
         // +-----------------------------------------------------------------------------------------------

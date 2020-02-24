@@ -73,9 +73,9 @@ Optimiser::optimise_end() {
 bool
 Optimiser::check_convergence(std::vector<Surfel> &surfels) {
     float latest_error = compute_mean_error_per_surfel(surfels);
-    float delta_error = fabsf(latest_error - last_optimising_error);
+    float improvement = last_optimising_error - latest_error;
     last_optimising_error = latest_error;
-    float pct = delta_error / last_optimising_error;
+    float pct = improvement / last_optimising_error;
     std::cout << "Mean error per surfel : " << latest_error << ". %age reduction " << pct * 100 << std::endl;
     return (pct < convergence_threshold);
 }

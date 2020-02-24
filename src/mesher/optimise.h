@@ -143,8 +143,6 @@ private:
     float
     compute_mean_error_per_surfel(const std::vector<Surfel>& surfels);
 
-
-
     /**
      * Check whether optimising should stop either because user asked for that to happen or else
      * because convergence has happened.

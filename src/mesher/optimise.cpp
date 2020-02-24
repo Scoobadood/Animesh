@@ -7,6 +7,10 @@
 
 const int RANDOM_SEED = 474264642;
 
+static std::random_device r_device;
+static std::default_random_engine r_engine(r_device());
+
+
 /**
  * Optimise the vector of surfels
  */
@@ -272,9 +276,12 @@ Optimiser::optimise_one_surfel_frame(std::vector<Surfel> &surfels) {
  */
 std::size_t
 Optimiser::random_index(unsigned int max_index) {
-    static std::default_random_engine e{RANDOM_SEED};
-    static std::uniform_real_distribution<> dis(0, max_index);
-    return std::floor(dis(e));
+    assert( max_index >= 1);
+    if( max_index == 1 ) return 0;
+
+    // Seed with a real random value, if available
+    std::uniform_int_distribution<int> uniform_dist(0, max_index-1);
+    return uniform_dist(r_engine);
 }
 
 /**

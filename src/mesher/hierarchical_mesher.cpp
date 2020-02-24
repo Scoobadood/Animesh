@@ -176,6 +176,33 @@ maybe_save_depth_and_normal_maps(const Properties &properties,
     }
 }
 
+/**
+ * When surfels have been dropped, neghour data will be incorrect.
+ * We need to remap neighbour data, removing any bogus neighbours.
+ */
+void
+reconcile_surfel_neighbours(std::vector<Surfel> &surfels) {
+    using namespace std;
+
+    // Stash the surfel IDs that exist into a map with their new index
+    vector<size_t> existing_surfels;
+    size_t idx = 0;
+    for (const auto &surfel : surfels) {
+        existing_surfels.push_back(surfel.id);
+        ++idx;
+    }
+    // Now update lists of neighbours to remove ones that have gone
+    for (auto &surfel : surfels) {
+        surfel.neighbouring_surfels.erase(
+                remove_if(surfel.neighbouring_surfels.begin(), surfel.neighbouring_surfels.end(),
+                          [&](size_t nid) {
+                              return find(existing_surfels.begin(), existing_surfels.end(), nid) ==
+                                     existing_surfels.end();
+                          })
+        );
+    }
+}
+
 void
 drop_unmapped_surfels(const Properties& properties, std::vector<int>& unmapped, std::vector<Surfel>& surfels ) {
     using namespace std;
@@ -267,6 +294,7 @@ int main(int argc, char *argv[]) {
 
             // Now remove unmapped surfels from this level
             drop_unmapped_surfels(properties, unmapped, surfels);
+            reconcile_surfel_neighbours(surfels);
         }
 
         // +-----------------------------------------------------------------------------------------------

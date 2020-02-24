@@ -5,11 +5,8 @@
 #include <RoSy/RoSy.h>
 #include <sys/stat.h>
 
-const int RANDOM_SEED = 474264642;
-
 static std::random_device r_device;
 static std::default_random_engine r_engine(r_device());
-
 
 /**
  * Optimise the vector of surfels
@@ -49,6 +46,8 @@ Optimiser::user_canceled_optimise() {
  */
 void
 Optimiser::optimise_begin(const std::vector<Surfel> &surfels) {
+    is_optimising = true;
+
     // First we construct a mapping from frame to surfel
     populate_frame_to_surfel(surfels);
     // Then, project each Surfel's norm and tangent to each frame in which it appears
@@ -57,7 +56,6 @@ Optimiser::optimise_begin(const std::vector<Surfel> &surfels) {
     populate_neighbours_by_surfel_frame(surfels);
     // Compute initial error values
     last_optimising_error = compute_mean_error_per_surfel(surfels);
-    is_optimising = true;
 }
 
 
@@ -316,8 +314,7 @@ Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
     // Push an empty vector of Surfel references for each frame
     surfels_by_frame.clear();
     for (int frame_index = 0; frame_index < num_frames; ++frame_index) {
-        vector<reference_wrapper<const Surfel>> empty;
-        surfels_by_frame.push_back(empty);
+        surfels_by_frame.emplace_back();
     }
 
     // For each Surfel add it to each frame in which it appears.
@@ -331,7 +328,6 @@ Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
 /**
  * Build the neighbours_by_surfel_frame data structure. Neighbours stay neighbours throughout and so we can compute this once
  * We assume that
- * -- neighbours by surfel frame is empty
  * -- surfels_by_frame is populated for this level
  *
  * But num_frames and num_surfels are both known.
@@ -357,8 +353,8 @@ Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfel
         auto neighbours_of_this_surfel = surfel.neighbouring_surfels;
         for (const auto &fd : surfel.frame_data) {
             size_t frame = fd.pixel_in_frame.frame;
-            vector<reference_wrapper<const Surfel>> surfels_in_this_frame = surfels_by_frame.at(frame);
             vector<reference_wrapper<const Surfel>> neighbours_in_this_frame;
+            const auto & surfels_in_this_frame = surfels_by_frame.at(frame);
             compute_intersection_of(neighbours_of_this_surfel, surfels_in_this_frame, neighbours_in_this_frame);
             neighbours_by_surfel_frame.insert(make_pair(SurfelInFrame{surfel.id, frame}, neighbours_in_this_frame));
         }
@@ -374,7 +370,7 @@ Optimiser::compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel
                                    std::vector<std::reference_wrapper<const Surfel>> &neighbours_in_this_frame) {
     using namespace std;
 
-    // Sort neighbours of tis surfel
+    // Sort neighbours of this surfel
     sort(neighbours_of_this_surfel.begin(),
          neighbours_of_this_surfel.end(),
          [](size_t s1, size_t s2) {

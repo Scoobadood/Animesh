@@ -130,16 +130,20 @@ private:
     void optimise_end_level();
 
     /**
-     * Calculate remaining error.
-     */
-    float compute_error(const std::vector<Surfel>& surfels);
-
-    /**
      * Calculate error between two normal/tangent pairs.
      */
     static float
     compute_error(const std::pair<Eigen::Vector3f, Eigen::Vector3f> &first,
                   const std::pair<Eigen::Vector3f, Eigen::Vector3f> &second);
+
+    float
+    compute_surfel_error_for_frame(size_t surfel_id, size_t frame_id);
+    float
+    compute_surfel_error(const Surfel& surfel);
+    float
+    compute_mean_error_per_surfel(const std::vector<Surfel>& surfels);
+
+
 
     /**
      * Check whether optimising should stop either because user asked for that to happen or else

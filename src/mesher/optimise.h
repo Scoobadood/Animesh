@@ -82,7 +82,7 @@ private:
     std::map<SurfelInFrame, std::pair<Eigen::Vector3f, Eigen::Vector3f>> norm_tan_by_surfel_frame;
 
     /**
-     * Useful cache for error computation. Stores a list of surfels which are neighbours of the gievn surfels in frame
+     * Useful cache for error computation. Stores a list of surfels which are neighbours of the given surfels in frame
      * Key is surfel, frame
      * Value is a vector of const surfel&
      */
@@ -116,7 +116,7 @@ private:
     /**
      * Select one random surfel and smooth with neighbours
      */
-    void optimise_do_one_surfel(std::vector<Surfel>& surfels);
+    void optimise_one_surfel_frame(std::vector<Surfel>& surfels);
 
     /**
      * Measure the change in error. If it's below some threshold, consider this level converged.
@@ -153,30 +153,6 @@ private:
     static std::size_t random_index(unsigned int max_index);
 
     /**
-     * Compute a new tangent for the given surfel S
-     *
-     * for each neighbouring surfel N of S
-     *   find any frame f in which both N and S are visible
-     *   obtain MfS the transformation matrix from frame f for S
-     *   obtain dirNS from MfS * dirN
-     *   perform 4RoSy smoothing operation on dirS and dirNS
-     * end
-     */
-    Eigen::Vector3f
-    compute_new_tangent_for_surfel(const std::vector<Surfel> &surfels, std::size_t surfel_idx) const;
-
-    /**
-     * Populate tangents and normals with all eligible tangents, normals from surfel's neighbours
-     * tan/norm is eligible iff the neighbour and surfel share a common frame
-     * tan/norm are converted to the orignating surfel's frame of reference.
-     */
-    void
-    get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
-                                      std::size_t surfel_idx,
-                                      std::vector<Eigen::Vector3f> &eligible_normals,
-                                      std::vector<Eigen::Vector3f> &eligible_tangents) const;
-
-    /**
      * Build the norm_tan_by_surfel_frame data structure for this level of the
      * surfel hierarchy.
      */
@@ -205,5 +181,11 @@ private:
                             std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
                             std::vector<std::reference_wrapper<const Surfel>>& neighbours_in_this_frame);
 
-
+    /**
+     * Perform smoothing for a single surfel in a single frame
+     * @param surfel_idx The index of the surfel WITHIN the vector
+     * @param frame_idx The index of the frame WITHIN the surfel's frame_data
+     */
+    void
+    smooth_surfel_in_frame(std::vector<Surfel>& surfels, size_t surfel_idx, size_t frame_idx );
 };

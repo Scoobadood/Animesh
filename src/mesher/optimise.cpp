@@ -95,12 +95,12 @@ Optimiser::compute_surfel_error_for_frame(size_t surfel_id, size_t frame_id) {
     float total_neighbour_error = 0.0f;
 
     // Get all neighbours in frame
-
     const SurfelInFrame surfel_in_frame{surfel_id, frame_id};
-    const auto this_surfel_in_this_frame = norm_tan_by_surfel_frame.at(surfel_in_frame);
-    const auto &neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame);
+
+    const auto& this_surfel_in_this_frame = norm_tan_by_surfel_frame.at(surfel_in_frame);
+    const auto& neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame);
     for (const auto &n : neighbours_of_this_surfel) {
-        const auto this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at(SurfelInFrame{n.get().id, frame_id});
+        const auto& this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at(SurfelInFrame{n.get().id, frame_id});
 
         // Compute the error between this surfel in this frame and the neighbour in this frame.
         total_neighbour_error += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
@@ -160,13 +160,13 @@ Optimiser::compute_mean_error_per_surfel(const std::vector<Surfel> &surfels) {
  * @return
  */
 float
-Optimiser::compute_error(const std::pair<Eigen::Vector3f, Eigen::Vector3f> &first,
-                         const std::pair<Eigen::Vector3f, Eigen::Vector3f> &second) {
+Optimiser::compute_error(const NormalTangent& first,
+                         const NormalTangent& second) {
     using namespace std;
     using namespace Eigen;
 
     // parameter order in RoSy is tangent, normal
-    pair<Vector3f, Vector3f> best_pair = best_rosy_vector_pair(first.second, first.first, second.second, second.first);
+    pair<Vector3f, Vector3f> best_pair = best_rosy_vector_pair(first.tangent, first.normal, second.tangent, second.normal);
     float theta = angle_between_vectors(best_pair.first, best_pair.second);
     return (theta * theta);
 }
@@ -236,7 +236,7 @@ Optimiser::smooth_surfel_in_frame(std::vector<Surfel> &surfels, size_t surfel_id
     vector<NormalTangent> neighbour_norm_tans;
     for (const auto &neighbour : neighbours_of_this_surfel) {
         const auto &nt = norm_tan_by_surfel_frame.at(SurfelInFrame{neighbour.get().id, frame_id});
-        neighbour_norm_tans.emplace_back(nt.first, nt.second);
+        neighbour_norm_tans.push_back(nt);
     }
 
     Vector3f new_tangent = compute_smoothed_tangent(source, neighbour_norm_tans);
@@ -298,7 +298,7 @@ Optimiser::populate_norm_tan_by_surfel_frame(const std::vector<Surfel> &surfels)
             SurfelInFrame surfel_in_frame{surfel.id, fd.pixel_in_frame.frame};
             Vector3f new_norm = fd.normal;
             Vector3f new_tan = fd.transform * surfel.tangent;
-            norm_tan_by_surfel_frame.insert(make_pair(surfel_in_frame, make_pair(new_norm, new_tan)));
+            norm_tan_by_surfel_frame.emplace(surfel_in_frame, NormalTangent{new_norm, new_tan});
         }
     }
 }

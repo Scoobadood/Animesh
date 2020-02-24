@@ -79,7 +79,7 @@ private:
      * Useful cache for error computation. Recalculated per level.
      * A map from a surfel/frame pair to that surfel's transformed normal and tangent in that frame.
      */
-    std::map<SurfelInFrame, std::pair<Eigen::Vector3f, Eigen::Vector3f>> norm_tan_by_surfel_frame;
+    std::map<SurfelInFrame, NormalTangent> norm_tan_by_surfel_frame;
 
     /**
      * Useful cache for error computation. Stores a list of surfels which are neighbours of the given surfels in frame
@@ -133,8 +133,8 @@ private:
      * Calculate error between two normal/tangent pairs.
      */
     static float
-    compute_error(const std::pair<Eigen::Vector3f, Eigen::Vector3f> &first,
-                  const std::pair<Eigen::Vector3f, Eigen::Vector3f> &second);
+    compute_error(const NormalTangent& first,
+                  const NormalTangent& second);
 
     float
     compute_surfel_error_for_frame(size_t surfel_id, size_t frame_id);

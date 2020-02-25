@@ -93,6 +93,9 @@ private:
      */
     std::vector<std::vector<std::reference_wrapper<const Surfel>>> surfels_by_frame;
 
+
+    std::map<std::string, Surfel> surfel_by_id;
+
     /**
      * The number of frames in the sequence.
      */
@@ -119,6 +122,11 @@ private:
     void optimise_one_surfel_frame(std::vector<Surfel>& surfels);
 
     /**
+     * Optimise a single Surfel
+     */
+    void optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx);
+
+    /**
      * Measure the change in error. If it's below some threshold, consider this level converged.
      */
     bool check_convergence(std::vector<Surfel>& surfels);
@@ -137,7 +145,7 @@ private:
                   const NormalTangent& second);
 
     float
-    compute_surfel_error_for_frame(size_t surfel_id, size_t frame_id);
+    compute_surfel_error_for_frame(std::string surfel_id, size_t frame_id);
     float
     compute_surfel_error(const Surfel& surfel);
     float
@@ -179,7 +187,7 @@ private:
      * Compute the intersection of the two provided vectors and place the results into the third.
      */
     static void
-    compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel,
+    compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                             std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
                             std::vector<std::reference_wrapper<const Surfel>>& neighbours_in_this_frame);
 

@@ -27,7 +27,7 @@ save_surfels_to_file(const std::string& file_name,
     write_unsigned_int( file, surfels.size());
     for( auto const & surfel : surfels) {
         // ID
-        write_size_t( file, surfel.id);
+        write_string( file, surfel.id);
         // FrameData size
         write_unsigned_int( file, surfel.frame_data.size());
         for( auto const &  fd : surfel.frame_data) {
@@ -53,7 +53,7 @@ save_surfels_to_file(const std::string& file_name,
         }
         write_unsigned_int( file, surfel.neighbouring_surfels.size());
         for( auto idx : surfel.neighbouring_surfels) {
-            write_size_t( file, idx);
+            write_string( file, idx);
         }
         write_vector_3f(file, surfel.tangent);
     }
@@ -82,7 +82,7 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
             cout << "." << flush;
         }
         Surfel s;
-        s.id = read_size_t(file);
+        s.id = read_string(file);
 
         unsigned int num_frames = read_unsigned_int( file );
         for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
@@ -109,7 +109,7 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 
         unsigned int num_neighbours = read_unsigned_int( file );
         for( int nIdx=0; nIdx<num_neighbours; ++nIdx) {
-            s.neighbouring_surfels.push_back( read_size_t( file ) );
+            s.neighbouring_surfels.push_back( read_string( file ) );
         }
 
         s.tangent = read_vector_3f( file );

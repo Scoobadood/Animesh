@@ -182,8 +182,8 @@ populate_neighbours(std::vector<Surfel> &surfels) {
         cout << "Populating neighbour : " << ++count << " of " << target << endl;
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfels.at(i), surfels.at(j))) {
-                surfels.at(i).neighbouring_surfels.push_back(j);
-                surfels.at(j).neighbouring_surfels.push_back(i);
+                surfels.at(i).neighbouring_surfels.push_back(surfels.at(j).id);
+                surfels.at(j).neighbouring_surfels.push_back(surfels.at(i).id);
             }
         }
         cout << surfels.at(i).neighbouring_surfels.size() << " neighbours found for surfel " << i << endl;
@@ -246,6 +246,30 @@ filter_pifs_with_normals(const std::vector<PixelInFrame> &corresponding_pifs,
     return pifs_with_normals;
 }
 
+
+
+std::string
+generate_uuid() {
+    using namespace std;
+
+    static random_device dev;
+    static mt19937 rng(dev());
+
+    uniform_int_distribution<int> dist(0, 15);
+
+    const char *v = "0123456789abcdef";
+    const bool dash[] = { false, false, false, true, false, false, false, true, false, false, false, true, false, false, false };
+
+    string res;
+    for (bool i : dash) {
+        if (i) res += "-";
+        res += v[dist(rng)];
+        res += v[dist(rng)];
+    }
+    return res;
+}
+
+
 /**
  * Actually build a Surfel from the source data.
  *
@@ -256,8 +280,7 @@ filter_pifs_with_normals(const std::vector<PixelInFrame> &corresponding_pifs,
  */
 Surfel
 generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
-                const std::vector<DepthMap> &depth_maps,
-                unsigned int surfel_id) {
+                const std::vector<DepthMap> &depth_maps) {
     using namespace std;
 
     assert( !corresponding_pifs.empty());
@@ -270,7 +293,7 @@ generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
     cout << endl;
 
     Surfel surfel;
-    surfel.id = surfel_id;
+    surfel.id = generate_uuid();
     populate_frame_data(corresponding_pifs, depth_maps, surfel.frame_data);
     cout << "\t surfel generated" << endl;
     return surfel;
@@ -311,7 +334,7 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
             continue;
         }
 
-        Surfel surfel = generate_surfel(pifs_with_normals, depth_maps, surfels.size() + 1);
+        Surfel surfel = generate_surfel(pifs_with_normals, depth_maps);
         surfels.push_back(surfel);
     }
 

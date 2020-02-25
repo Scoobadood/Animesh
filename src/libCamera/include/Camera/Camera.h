@@ -33,7 +33,7 @@ public:
     void
     decompose(Eigen::Matrix3f &K, Eigen::Matrix3f &R, Eigen::Vector3f &t);
 
-    inline const Eigen::Vector3f
+    inline Eigen::Vector3f
     origin() const {return camera_origin;}
 
 private:

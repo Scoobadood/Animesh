@@ -62,7 +62,7 @@ namespace std {
 std::multimap<size_t, size_t>
 compute_surfel_parent_child_mapping(std::vector<Surfel> &parent_level, //
                                     std::vector<Surfel> &child_level, //
-                                    std::vector<int> &unmapped) {
+                                    std::vector<std::string> &unmapped) {
     using namespace std;
 
     // Dump the previous level surfels into a human readable format.
@@ -185,7 +185,7 @@ reconcile_surfel_neighbours(std::vector<Surfel> &surfels) {
     using namespace std;
 
     // Stash the surfel IDs that exist into a map with their new index
-    vector<size_t> existing_surfels;
+    vector<string> existing_surfels;
     size_t idx = 0;
     for (const auto &surfel : surfels) {
         existing_surfels.push_back(surfel.id);
@@ -195,26 +195,26 @@ reconcile_surfel_neighbours(std::vector<Surfel> &surfels) {
     for (auto &surfel : surfels) {
         surfel.neighbouring_surfels.erase(
                 remove_if(surfel.neighbouring_surfels.begin(), surfel.neighbouring_surfels.end(),
-                          [&](size_t nid) {
+                          [&](string nid) {
                               return find(existing_surfels.begin(), existing_surfels.end(), nid) ==
                                      existing_surfels.end();
-                          })
+                          }), surfel.neighbouring_surfels.end()
         );
     }
 }
 
 void
-drop_unmapped_surfels(const Properties& properties, std::vector<int>& unmapped, std::vector<Surfel>& surfels ) {
+drop_unmapped_surfels(const Properties &properties, std::vector<std::string> &unmapped, std::vector<Surfel> &surfels) {
     using namespace std;
 
     size_t initial_surfels = surfels.size();
     if (!unmapped.empty()) {
         sort(unmapped.begin(), unmapped.end());
-        surfels.erase(remove_if(surfels.begin(), surfels.end(), [unmapped](Surfel s) {
+        surfels.erase(remove_if(surfels.begin(), surfels.end(), [unmapped](const Surfel &s) {
             return binary_search(unmapped.begin(), unmapped.end(), s.id);
-        }));
+        }), surfels.end());
     }
-    if( properties.getBooleanProperty("log-dropped-surfels")) {
+    if (properties.getBooleanProperty("log-dropped-surfels")) {
         cout << "Dropped " << unmapped.size() << " of " << initial_surfels << " surfels" << endl;
     }
 }
@@ -283,7 +283,7 @@ int main(int argc, char *argv[]) {
         // | Propagate tangents down
         // +-----------------------------------------------------------------------------------------------
         if (!previous_level.empty()) {
-            vector<int> unmapped;
+            vector<string> unmapped;
             multimap<size_t, size_t> child_to_parent = compute_surfel_parent_child_mapping(
                     previous_level,
                     surfels,

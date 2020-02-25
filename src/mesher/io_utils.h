@@ -45,4 +45,10 @@ read_float( std::ifstream& file );
 Eigen::Vector3f
 read_vector_3f( std::ifstream& file );
 
+
+void
+write_string(std::ofstream& file, std::string value );
+
+std::string
+read_string( std::ifstream& file );
 #endif //ANIMESH_IO_UTILS_H

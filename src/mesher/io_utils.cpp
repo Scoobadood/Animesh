@@ -45,6 +45,23 @@ read_unsigned_int( std::ifstream& file ) {
     return i;
 }
 
+std::string
+read_string( std::ifstream& file ) {
+    std::string str;
+    size_t size;
+    file.read((char *)&size, sizeof(size));
+    str.resize(size);
+    file.read(&str[0], size);
+    return str;
+}
+
+void
+write_string(std::ofstream& file, std::string value ) {
+    size_t size=value.size();
+    file.write((char *) & size,sizeof(size));
+    file.write(value.c_str(),size);
+}
+
 size_t
 read_size_t( std::ifstream& file ) {
     size_t i;

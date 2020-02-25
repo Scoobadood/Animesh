@@ -89,7 +89,7 @@ Optimiser::check_convergence(std::vector<Surfel> &surfels) {
  * return total_neighbour_error / num neighours
  */
 float
-Optimiser::compute_surfel_error_for_frame(size_t surfel_id, size_t frame_id) {
+Optimiser::compute_surfel_error_for_frame(std::string surfel_id, size_t frame_id) {
     float total_neighbour_error = 0.0f;
 
     // Get all neighbours in frame
@@ -190,7 +190,7 @@ Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
         size_t surfel_idx = random_index(surfels.size());
 
         // Smooth the selected surfel frame
-        optimise_surfel(surfels.at(surfel_idx));
+        optimise_surfel(surfels, surfel_idx);
     }
 }
 
@@ -252,10 +252,18 @@ std::vector<std::pair<std::reference_wrapper<const FrameData>, std::reference_wr
 find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
     using namespace std;
 
-    vector<pair<reference_wrapper<const FrameData>, reference_wrapper<const FrameData>>> common_frames;
-    sort(surfel1.frame_data.begin(), surfel1.frame_data.end());
-    sort(surfel2.frame_data.begin(), surfel2.frame_data.end());
+    vector<reference_wrapper<const FrameData>> surfel1_frames;
+    vector<reference_wrapper<const FrameData>> surfel2_frames;
+    for( const auto & f : surfel1.frame_data) {
+        surfel1_frames.push_back(f);
+    }
+    for( const auto & f : surfel2.frame_data) {
+        surfel2_frames.push_back(f);
+    }
+    sort(surfel1_frames.begin(), surfel1_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame > f2.pixel_in_frame.frame;});
+    sort(surfel2_frames.begin(), surfel2_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame > f2.pixel_in_frame.frame;});
 
+    vector<pair<reference_wrapper<const FrameData>, reference_wrapper<const FrameData>>> common_frames;
     auto it1 = surfel1.frame_data.begin();
     auto it2 = surfel2.frame_data.begin();
     while(it1 != surfel1.frame_data.end() && it2 != surfel2.frame_data.end() ) {
@@ -280,18 +288,21 @@ find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
   end
  */
 void
-Optimiser::optimise_surfel(std::vector<Surfel>& surfels, Surfel &surfel) {
+Optimiser::optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx) {
     using namespace std;
     using namespace Eigen;
 
+    Surfel& surfel = surfels.at(surfel_idx);
     for( const auto & n : surfel.neighbouring_surfels) {
+        const auto & neighbour_surfel = surfel_by_id.at(n);
         // Get list of common frames for S and N as pairs of framedata
-        auto common_frames = find_common_frames_for_surfels( surfel, surfels.at(n));
+        auto common_frames = find_common_frames_for_surfels( surfel, neighbour_surfel);
+
         // Select one at random
         //
 
     }
-    neighbours_by_surfel_frame
+    //neighbours_by_surfel_frame
 }
 
 /**
@@ -391,7 +402,7 @@ Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfel
             vector<reference_wrapper<const Surfel>> neighbours_in_this_frame;
             const auto & surfels_in_this_frame = surfels_by_frame.at(frame);
             compute_intersection_of(neighbours_of_this_surfel, surfels_in_this_frame, neighbours_in_this_frame);
-            neighbours_by_surfel_frame.insert(make_pair(SurfelInFrame{surfel.id, frame}, neighbours_in_this_frame));
+            neighbours_by_surfel_frame.emplace(SurfelInFrame{surfel.id, frame}, neighbours_in_this_frame);
         }
     }
 }
@@ -400,7 +411,7 @@ Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfel
  * Compute the intersection of the two provided vectors and place the results into the third.
  */
 void
-Optimiser::compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel,
+Optimiser::compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                                    std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
                                    std::vector<std::reference_wrapper<const Surfel>> &neighbours_in_this_frame) {
     using namespace std;
@@ -408,7 +419,7 @@ Optimiser::compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel
     // Sort neighbours of this surfel
     sort(neighbours_of_this_surfel.begin(),
          neighbours_of_this_surfel.end(),
-         [](size_t s1, size_t s2) {
+         [](string s1, string s2) {
              return s1 < s2;
          });
 
@@ -422,18 +433,18 @@ Optimiser::compute_intersection_of(std::vector<size_t> neighbours_of_this_surfel
     auto it1 = neighbours_of_this_surfel.begin();
     auto it2 = surfels_in_this_frame.begin();
     while (it1 != neighbours_of_this_surfel.end() && it2 != surfels_in_this_frame.end()) {
-        size_t s1 = *it1;
+        string s1 = *it1;
         const Surfel &surfel = *it2;
-        size_t s2 = surfel.id;
+        string s2 = surfel.id;
 
         if (s1 < s2) {
-            it1++;
+            ++it1;
         } else if (s2 < s1) {
-            it2++;
+            ++it2;
         } else {
             neighbours_in_this_frame.emplace_back(surfel);
-            it1++;
-            it2++;
+            ++it1;
+            ++it2;
         }
     }
 }

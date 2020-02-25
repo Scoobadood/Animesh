@@ -50,18 +50,26 @@ target_link_libraries(animesh
 #        OpenMP::OpenMP_CXX
         )
 
-#target_link_libraries(mesher
-#        DepthMap
-#        FileUtils
-#        Graph
-#        RoSy
-#        Camera
-#        ${PCL_LIBRARIES})
-
 target_compile_features(animesh
         PUBLIC
         cxx_std_11)
 
-#target_compile_features(mesher
-#        PUBLIC
-#        cxx_std_11)
+
+# Unit Tests
+
+# Include specific tests
+# include_directories("${GTEST_INCLUDE_DIRS}")
+
+file( GLOB TEST_SOURCES "tests/*.cpp" )
+add_executable(
+        testUtilities
+        surfel_compute.cpp surfel_compute.h
+        ${TEST_SOURCES})
+
+target_link_libraries(testUtilities
+        DepthMap
+        Properties
+        gtest gmock)
+
+#add_test( NAME ZeroLengthVectorsShouldThrow COMMAND testVectorAngles --gtest_filter=ZeroLengthVectorsShouldThrow)
+

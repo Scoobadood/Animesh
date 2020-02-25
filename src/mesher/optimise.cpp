@@ -294,7 +294,7 @@ Optimiser::optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx) {
 
     Surfel& surfel = surfels.at(surfel_idx);
     for( const auto & n : surfel.neighbouring_surfels) {
-        const auto & neighbour_surfel = surfel_by_id.at(n);
+        const auto & neighbour_surfel = Surfel::surfel_by_id.at(n);
         // Get list of common frames for S and N as pairs of framedata
         auto common_frames = find_common_frames_for_surfels( surfel, neighbour_surfel);
 

@@ -93,9 +93,6 @@ private:
      */
     std::vector<std::vector<std::reference_wrapper<const Surfel>>> surfels_by_frame;
 
-
-    std::map<std::string, Surfel> surfel_by_id;
-
     /**
      * The number of frames in the sequence.
      */

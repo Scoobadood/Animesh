@@ -277,7 +277,7 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         // | Generate Surfels for this level from correspondences
         // +-----------------------------------------------------------------------------------------------
-        vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences);
+        vector<Surfel> surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences, properties);
 
         // +-----------------------------------------------------------------------------------------------
         // | Propagate tangents down

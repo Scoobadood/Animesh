@@ -11,8 +11,7 @@
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
 
-#undef CONNECT_STRATEGY_8
-
+std::map<std::string,std::reference_wrapper<Surfel>> Surfel::surfel_by_id;
 
 /**
  * Construct Surfels from correspondences.
@@ -30,29 +29,6 @@
  *     Store the Frame Data
  *     Init the random tangent direction vector (perp to normal)
  */
-
-/*
-	********************************************************************************
-	**																			  **
-	**					Utilities        										  **
-	**																			  **
-	********************************************************************************
-*/
-bool compare_frame_data_by_frame(const FrameData &fd1, const FrameData &fd2) {
-    return fd1.pixel_in_frame.frame < fd2.pixel_in_frame.frame;
-}
-
-/**
- * Sort all framedata for each surfel in ascending order of frame id.
- * We do this once to facilitate finding common frames.
- */
-void
-sort_frame_data(std::vector<Surfel> &surfels) {
-    for (auto surfel : surfels) {
-        sort(surfel.frame_data.begin(), surfel.frame_data.end(), compare_frame_data_by_frame);
-    }
-}
-
 
 /*
 	********************************************************************************
@@ -83,12 +59,12 @@ randomize_tangents(std::vector<Surfel> &surfels) {
 /**
  * Return true if the two pixel in frames are neighbours.
  * They are neighbours if they are in the same frame and adjacent in an 8-connected
- * way. If they have the same coordinates in the frame they aree NOT neighbours.
+ * way. If they have the same coordinates in the frame they are NOT neighbours.
  * @param pif1 The first PixelinFrame.
  * @param pif2 The second PixelinFrame.
  */
 bool
-are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2) {
+are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2, bool use_eight_connected) {
     if (pif1.frame != pif2.frame) {
         return false;
     }
@@ -97,11 +73,10 @@ are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2) {
     if (dx == 0 && dy == 0) {
         return false;
     }
-#ifdef CONNECT_STRATEGY_8
-    return( (std::abs(dx) <= 1 && std::abs(dy) <= 1) );
-#else
-    return ((std::abs(dx) + std::abs(dy)) == 1);
-#endif
+
+    return use_eight_connected
+           ? (std::abs(dx) == 1 || std::abs(dy) == 1)
+           : ((std::abs(dx) + std::abs(dy)) == 1);
 }
 
 /**
@@ -109,40 +84,28 @@ are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2) {
  * S1 is a neighbour of S2 iff:
  * S1 is represented in a frame F by point P1 AND
  * S2 is represented in frame F by point P2 AND
- * P1 and P2 are adjacent in an 8-connected way
- * // TODO: Consider depth disparities. We may have eliminated this as a problem during depth map cleanup but perhaps not.
+ * P1 and P2 are adjacent
  * @param surfel1 The first surfel to consider.
  * @param surfel2 The second surfel to consider.
  */
 bool
-are_neighbours(const Surfel &surfel1, const Surfel &surfel2) {
+are_neighbours(const Surfel &surfel1, const Surfel &surfel2, bool eight_connected) {
     using namespace std;
 
     // Sort framedata for each surfel by frame index
     // TODO: This is an expensive shallow copy operation. We should probably avoid it.
     vector<FrameData> fd1 = surfel1.frame_data;
-    sort(fd1.begin(), fd1.end(), compare_frame_data_by_frame);
+    sort(fd1.begin(), fd1.end());
     vector<FrameData> fd2 = surfel2.frame_data;
-    sort(fd2.begin(), fd2.end(), compare_frame_data_by_frame);
+    sort(fd2.begin(), fd2.end());
 
-    // While both lists have a frame left
-    //   if frame at front of both lists are same
-    //     if points in that frame are neighbours,
-    //       return true
-    //     else
-    //       discard both frames
-    //   else
-    //     discard lower frame
-    //   endif
-    // endwhile
-    // return false
     auto it1 = fd1.begin();
     auto it2 = fd2.begin();
     while ((it1 != fd1.end()) && (it2 != fd2.end())) {
         PixelInFrame& pif1 = it1->pixel_in_frame;
         PixelInFrame& pif2 = it2->pixel_in_frame;
         if (pif1.frame == pif2.frame) {
-            if (are_neighbours(pif1, pif2)) {
+            if (are_neighbours(pif1, pif2, eight_connected)) {
                 return true;
             } else {
                 ++it1;
@@ -170,7 +133,7 @@ are_neighbours(const Surfel &surfel1, const Surfel &surfel2) {
  * @param neighbours 
  */
 void
-populate_neighbours(std::vector<Surfel> &surfels) {
+populate_neighbours(std::vector<Surfel> &surfels, bool eight_connected) {
     using namespace std;
 
     cout << "Populating neighbour : " << flush;
@@ -181,7 +144,7 @@ populate_neighbours(std::vector<Surfel> &surfels) {
     for (unsigned int i = 0, count = 0; i < surfels.size() - 1; ++i) {
         cout << "Populating neighbour : " << ++count << " of " << target << endl;
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
-            if (are_neighbours(surfels.at(i), surfels.at(j))) {
+            if (are_neighbours(surfels.at(i), surfels.at(j), eight_connected)) {
                 surfels.at(i).neighbouring_surfels.push_back(surfels.at(j).id);
                 surfels.at(j).neighbouring_surfels.push_back(surfels.at(i).id);
             }
@@ -295,6 +258,7 @@ generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
     Surfel surfel;
     surfel.id = generate_uuid();
     populate_frame_data(corresponding_pifs, depth_maps, surfel.frame_data);
+
     cout << "\t surfel generated" << endl;
     return surfel;
 }
@@ -312,11 +276,13 @@ generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
  */
 std::vector<Surfel>
 generate_surfels(const std::vector<DepthMap> &depth_maps,
-                 const std::vector<std::vector<PixelInFrame>> &correspondences) {
+                 const std::vector<std::vector<PixelInFrame>> &correspondences,
+                 const Properties& properties) {
     using namespace std;
     assert(!correspondences.empty());
     assert(!depth_maps.empty());
 
+    bool eight_connected = properties.getBooleanProperty("eight-connected");
     vector<Surfel> surfels;
 
     int count = 0;
@@ -336,10 +302,11 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
 
         Surfel surfel = generate_surfel(pifs_with_normals, depth_maps);
         surfels.push_back(surfel);
+        Surfel::surfel_by_id.emplace(surfel.id, ref(surfel));
     }
 
     // Build inter-surfel neighbour list
-    populate_neighbours(surfels);
+    populate_neighbours(surfels, eight_connected);
 
     // Initialise tangents to random, legal values.
     randomize_tangents(surfels);

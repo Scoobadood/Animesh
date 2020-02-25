@@ -8,6 +8,7 @@
 
 #include <Eigen/Core>
 #include <utility>
+#include <map>
 
 struct Pixel {
     unsigned int x;
@@ -95,6 +96,8 @@ struct FrameData {
 };
 
 struct Surfel {
+    static std::map<std::string, std::reference_wrapper<Surfel>> surfel_by_id;
+
     std::string id;
     std::vector<FrameData> frame_data;
     std::vector<std::string> neighbouring_surfels;

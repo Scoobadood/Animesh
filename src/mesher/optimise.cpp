@@ -186,7 +186,11 @@ Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
     using namespace std;
 
     for (int i = 0; i < surfels_per_step; ++i) {
-        optimise_one_surfel_frame(surfels);
+        // Select random surfel
+        size_t surfel_idx = random_index(surfels.size());
+
+        // Smooth the selected surfel frame
+        optimise_surfel(surfels.at(surfel_idx));
     }
 }
 
@@ -242,21 +246,52 @@ Optimiser::smooth_surfel_in_frame(std::vector<Surfel> &surfels, size_t surfel_id
 }
 
 /**
- * Pick a random surfel frame and smooth it with respect to its neighbours
+ * Return a vector of pairs of framedata for each frame that these surfels have in common
+ */
+std::vector<std::pair<std::reference_wrapper<const FrameData>, std::reference_wrapper<const FrameData>>>
+find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
+    using namespace std;
+
+    vector<pair<reference_wrapper<const FrameData>, reference_wrapper<const FrameData>>> common_frames;
+    sort(surfel1.frame_data.begin(), surfel1.frame_data.end());
+    sort(surfel2.frame_data.begin(), surfel2.frame_data.end());
+
+    auto it1 = surfel1.frame_data.begin();
+    auto it2 = surfel2.frame_data.begin();
+    while(it1 != surfel1.frame_data.end() && it2 != surfel2.frame_data.end() ) {
+        if( it1->pixel_in_frame.frame < it2->pixel_in_frame.frame) {
+            ++it1;
+        } else if ( it2->pixel_in_frame.frame < it1->pixel_in_frame.frame) {
+            ++it2;
+        } else {
+            common_frames.emplace_back(ref(*it1), ref(*it2));
+        }
+    }
+    return common_frames;
+}
+
+
+/*
+  for each neighbouring surfel N of S
+    find any frame f in which both N and S are visible
+    obtain MfS the transformation matrix from frame f for S
+    obtain dirNS from MfS * dirN
+    perform 4RoSy smoothing operation on dirS and dirNS
+  end
  */
 void
-Optimiser::optimise_one_surfel_frame(std::vector<Surfel> &surfels) {
+Optimiser::optimise_surfel(std::vector<Surfel>& surfels, Surfel &surfel) {
     using namespace std;
     using namespace Eigen;
 
-    // Select random surfel
-    size_t surfel_idx = random_index(surfels.size());
+    for( const auto & n : surfel.neighbouring_surfels) {
+        // Get list of common frames for S and N as pairs of framedata
+        auto common_frames = find_common_frames_for_surfels( surfel, surfels.at(n));
+        // Select one at random
+        //
 
-    // And pick a random frame
-    size_t frame_idx = random_index(surfels.at(surfel_idx).frame_data.size());
-
-    // Smooth the selected surfel frame
-    smooth_surfel_in_frame(surfels, surfel_idx, frame_idx);
+    }
+    neighbours_by_surfel_frame
 }
 
 /**

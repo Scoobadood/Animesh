@@ -84,6 +84,10 @@ struct FrameData {
 
     FrameData() : pixel_in_frame{0, 0, 0}, depth{0}, transform{Eigen::Matrix3f::Identity()}, normal{Eigen::Vector3f::Zero()}
     {}
+
+    bool operator<(const FrameData& other) const {
+        return pixel_in_frame.frame < other.pixel_in_frame.frame;
+    }
 };
 
 struct Surfel {

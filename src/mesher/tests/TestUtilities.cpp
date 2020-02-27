@@ -2,7 +2,9 @@
 
 #include "../surfel_compute.h"
 
-void TestUtilities::SetUp( ) {}
+void TestUtilities::SetUp( ) {
+
+}
 void TestUtilities::TearDown() {}
 
 /*
@@ -82,6 +84,29 @@ TEST_F( TestUtilities, 4_connected_PIFs_4_far_away_is_not_neighbour ) {
     EXPECT_FALSE(are_neighbours(test_pixel, test_pixel_far_away, false));
 }
 
+// Test Surfel adjacency
+TEST_F( TestUtilities, neighburing_surfels_are_found ) {
+    EXPECT_TRUE(are_neighbours(s1, s1_neighbour, true));
+}
 
+TEST_F( TestUtilities, non_neighburing_surfels_are_found ) {
+    EXPECT_FALSE(are_neighbours(s1, s1_not_neighbour, true));
+}
 
+TEST_F( TestUtilities, populate_surfel_neighbours ) {
+    std::vector<Surfel> surfels { s1, s1_neighbour};
+    populate_neighbours(surfels, true);
 
+    EXPECT_EQ(surfels.at(0).neighbouring_surfels.size(), 1 );
+    EXPECT_EQ(surfels.at(0).neighbouring_surfels.at(0), s1_neighbour.id );
+    EXPECT_EQ(surfels.at(1).neighbouring_surfels.size(), 1 );
+    EXPECT_EQ(surfels.at(1).neighbouring_surfels.at(0), s1.id );
+}
+
+TEST_F( TestUtilities, fail_to_populate_surfel_neighbours ) {
+    std::vector<Surfel> surfels { s1, s1_not_neighbour};
+    populate_neighbours(surfels, true);
+
+    EXPECT_EQ(surfels.at(0).neighbouring_surfels.size(), 0 );
+    EXPECT_EQ(surfels.at(1).neighbouring_surfels.size(), 0 );
+}

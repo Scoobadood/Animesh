@@ -86,12 +86,12 @@ private:
      * Key is surfel, frame
      * Value is a vector of const surfel&
      */
-    std::map<SurfelInFrame, std::vector<std::reference_wrapper<const Surfel>>> neighbours_by_surfel_frame;
+    std::map<SurfelInFrame, std::vector<std::string>> neighbours_by_surfel_frame;
 
     /**
      * Map from frame to the surfels in it. Populated once per level.
      */
-    std::vector<std::vector<std::reference_wrapper<const Surfel>>> surfels_by_frame;
+    std::vector<std::vector<std::string>> surfels_by_frame;
 
     /**
      * The number of frames in the sequence.
@@ -142,9 +142,11 @@ private:
                   const NormalTangent& second);
 
     float
-    compute_surfel_error_for_frame(std::string surfel_id, size_t frame_id);
+    compute_surfel_error_for_frame(const std::string& surfel_id, size_t frame_id);
+
     float
     compute_surfel_error(const Surfel& surfel);
+
     float
     compute_mean_error_per_surfel(const std::vector<Surfel>& surfels);
 
@@ -181,14 +183,6 @@ private:
     populate_frame_to_surfel(const std::vector<Surfel>& surfels);
 
     /**
-     * Compute the intersection of the two provided vectors and place the results into the third.
-     */
-    static void
-    compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
-                            std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
-                            std::vector<std::reference_wrapper<const Surfel>>& neighbours_in_this_frame);
-
-    /**
      * Perform smoothing for a single surfel in a single frame
      * @param surfel_idx The index of the surfel WITHIN the vector
      * @param frame_idx The index of the frame WITHIN the surfel's frame_data
@@ -196,3 +190,11 @@ private:
     void
     smooth_surfel_in_frame(std::vector<Surfel>& surfels, size_t surfel_idx, size_t frame_idx );
 };
+
+
+/**
+ * Compute the intersection of the two provided vectors and place the results into the third.
+ */
+static std::vector<std::string>
+compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
+                        std::vector<std::string> surfels_in_this_frame);

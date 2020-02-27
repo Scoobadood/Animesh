@@ -89,7 +89,7 @@ Optimiser::check_convergence(std::vector<Surfel> &surfels) {
  * return total_neighbour_error / num neighours
  */
 float
-Optimiser::compute_surfel_error_for_frame(std::string surfel_id, size_t frame_id) {
+Optimiser::compute_surfel_error_for_frame(const std::string & surfel_id, size_t frame_id) {
     float total_neighbour_error = 0.0f;
 
     // Get all neighbours in frame
@@ -98,7 +98,7 @@ Optimiser::compute_surfel_error_for_frame(std::string surfel_id, size_t frame_id
     const auto& this_surfel_in_this_frame = norm_tan_by_surfel_frame.at(surfel_in_frame);
     const auto& neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame);
     for (const auto &n : neighbours_of_this_surfel) {
-        const auto& this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at(SurfelInFrame{n.get().id, frame_id});
+        const auto& this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at(SurfelInFrame{n, frame_id});
 
         // Compute the error between this surfel in this frame and the neighbour in this frame.
         total_neighbour_error += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
@@ -237,7 +237,7 @@ Optimiser::smooth_surfel_in_frame(std::vector<Surfel> &surfels, size_t surfel_id
     const auto &neighbours_of_this_surfel = neighbours_by_surfel_frame.at(sif);
     vector<NormalTangent> neighbour_norm_tans;
     for (const auto &neighbour : neighbours_of_this_surfel) {
-        const auto &nt = norm_tan_by_surfel_frame.at(SurfelInFrame{neighbour.get().id, frame_id});
+        const auto &nt = norm_tan_by_surfel_frame.at(SurfelInFrame{neighbour, frame_id});
         neighbour_norm_tans.push_back(nt);
     }
 
@@ -255,10 +255,10 @@ find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
     vector<reference_wrapper<const FrameData>> surfel1_frames;
     vector<reference_wrapper<const FrameData>> surfel2_frames;
     for( const auto & f : surfel1.frame_data) {
-        surfel1_frames.push_back(f);
+        surfel1_frames.emplace_back(f);
     }
     for( const auto & f : surfel2.frame_data) {
-        surfel2_frames.push_back(f);
+        surfel2_frames.emplace_back(f);
     }
     sort(surfel1_frames.begin(), surfel1_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame > f2.pixel_in_frame.frame;});
     sort(surfel2_frames.begin(), surfel2_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame > f2.pixel_in_frame.frame;});
@@ -293,13 +293,16 @@ Optimiser::optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx) {
     using namespace Eigen;
 
     Surfel& surfel = surfels.at(surfel_idx);
+    const auto
     for( const auto & n : surfel.neighbouring_surfels) {
         const auto & neighbour_surfel = Surfel::surfel_by_id.at(n);
         // Get list of common frames for S and N as pairs of framedata
-        auto common_frames = find_common_frames_for_surfels( surfel, neighbour_surfel);
+        const auto common_frames = find_common_frames_for_surfels( surfel, neighbour_surfel);
 
         // Select one at random
-        //
+        int fidx = random_index(common_frames.size());
+        const auto dirNs = common_frames.at(fidx).first.get().transform * neighbour_surfel.get().tangent;
+        average_rosy_vectors(v1, n1, w1, dirNs, common_frames.at(fidx).first.get().normal, w2)
 
     }
     //neighbours_by_surfel_frame
@@ -366,7 +369,7 @@ Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
     // For each Surfel add it to each frame in which it appears.
     for (const auto &surfel : surfels) {
         for (const auto &fd : surfel.frame_data) {
-            surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel);
+            surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel.id);
         }
     }
 }
@@ -396,12 +399,12 @@ Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfel
       For each common element, add an entry to the map.
      */
     for (const auto &surfel : surfels) {
-        auto neighbours_of_this_surfel = surfel.neighbouring_surfels;
+        const auto & neighbours_of_this_surfel = surfel.neighbouring_surfels;
         for (const auto &fd : surfel.frame_data) {
             size_t frame = fd.pixel_in_frame.frame;
-            vector<reference_wrapper<const Surfel>> neighbours_in_this_frame;
+
             const auto & surfels_in_this_frame = surfels_by_frame.at(frame);
-            compute_intersection_of(neighbours_of_this_surfel, surfels_in_this_frame, neighbours_in_this_frame);
+            auto neighbours_in_this_frame = compute_intersection_of(neighbours_of_this_surfel, surfels_in_this_frame);
             neighbours_by_surfel_frame.emplace(SurfelInFrame{surfel.id, frame}, neighbours_in_this_frame);
         }
     }
@@ -410,41 +413,39 @@ Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfel
 /**
  * Compute the intersection of the two provided vectors and place the results into the third.
  */
-void
-Optimiser::compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
-                                   std::vector<std::reference_wrapper<const Surfel>> surfels_in_this_frame,
-                                   std::vector<std::reference_wrapper<const Surfel>> &neighbours_in_this_frame) {
+std::vector<std::string>
+compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
+                                   std::vector<std::string> surfels_in_this_frame) {
     using namespace std;
+
+    auto string_sorter = [](const string& s1, const string& s2) {
+             return s1 < s2;
+         };
 
     // Sort neighbours of this surfel
     sort(neighbours_of_this_surfel.begin(),
          neighbours_of_this_surfel.end(),
-         [](string s1, string s2) {
-             return s1 < s2;
-         });
+         string_sorter);
 
     sort(surfels_in_this_frame.begin(),
          surfels_in_this_frame.end(),
-         [](const Surfel &s1, const Surfel &s2) {
-             return s1.id < s2.id;
-         });
+         string_sorter);
 
     // Iterate across them both
     auto it1 = neighbours_of_this_surfel.begin();
     auto it2 = surfels_in_this_frame.begin();
-    while (it1 != neighbours_of_this_surfel.end() && it2 != surfels_in_this_frame.end()) {
-        string s1 = *it1;
-        const Surfel &surfel = *it2;
-        string s2 = surfel.id;
 
-        if (s1 < s2) {
+    std::vector<std::string> neighbours_in_this_frame;
+    while (it1 != neighbours_of_this_surfel.end() && it2 != surfels_in_this_frame.end()) {
+        if (*it1 < *it2) {
             ++it1;
-        } else if (s2 < s1) {
+        } else if (*it2 < *(it1)) {
             ++it2;
         } else {
-            neighbours_in_this_frame.emplace_back(surfel);
+            neighbours_in_this_frame.emplace_back(*it1);
             ++it1;
             ++it2;
         }
     }
+    return neighbours_in_this_frame;
 }

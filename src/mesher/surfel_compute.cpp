@@ -30,22 +30,21 @@ std::map<std::string,std::reference_wrapper<Surfel>> Surfel::surfel_by_id;
  *     Init the random tangent direction vector (perp to normal)
  */
 
-/*
-	********************************************************************************
-	**																			  **
-	**					Build           										  **
-	**																			  **
-	********************************************************************************
-*/
 
-
+/**
+ * Generate a random float in the range [0, 1)
+ */
 float
 random_zero_to_one() {
     static std::default_random_engine e;
-    static std::uniform_real_distribution<> dis(0, 1); // rage 0 - 1
+    static std::uniform_real_distribution<> dis(0, 1); // range 0 - 1
     return dis(e);
 }
 
+/**
+ * Randomize the tangents of the vec topr of Surfels.
+ * Tangents will be set to a radius of the unit circle in the xy plane
+ */
 void
 randomize_tangents(std::vector<Surfel> &surfels) {
     for (auto &surfel : surfels) {
@@ -53,7 +52,6 @@ randomize_tangents(std::vector<Surfel> &surfels) {
         float yc = sqrt(1.0f - (xc * xc));
         surfel.tangent = Eigen::Vector3f{xc, 0.0f, yc};
     }
-    std::cout << "All tangents randomized"<< std::endl;
 }
 
 /**
@@ -82,8 +80,8 @@ are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2, bool use_eigh
 /**
  * Return true if surfel1 and surfel2 are neighbours.
  * S1 is a neighbour of S2 iff:
- * S1 is represented in a frame F by point P1 AND
- * S2 is represented in frame F by point P2 AND
+ * S1 is represented in a frame F by pixel_in_frame P1 AND
+ * S2 is represented in frame F by pixel_in_frame P2 AND
  * P1 and P2 are adjacent
  * @param surfel1 The first surfel to consider.
  * @param surfel2 The second surfel to consider.
@@ -159,25 +157,23 @@ populate_neighbours(std::vector<Surfel> &surfels, bool eight_connected) {
  * FrameData object which tells us the frame and pixel affected as
  * well as the required transform.
  */
-void
-populate_frame_data(const std::vector<PixelInFrame> &correspondence_group,
-                    const std::vector<DepthMap> &depth_maps,
-                    std::vector<FrameData> &frame_data) {
+std::vector<FrameData>
+populate_frame_data(const std::vector<PixelInFrame> &pifs_in_correspondence_group,
+                    const std::vector<DepthMap> &depth_maps) {
     using namespace std;
     using namespace Eigen;
 
     Vector3f y_axis{0.0, 1.0, 0.0};
-    for (auto pif : correspondence_group) {
+    vector<FrameData> frame_data;
+    for (const auto& pif : pifs_in_correspondence_group) {
         const auto& normal = depth_maps.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
         Vector3f target_normal{normal.x, normal.y, normal.z};
         float depth = depth_maps.at(pif.frame).depth_at(pif.pixel.x, pif.pixel.y);
 
-        // Compute forward transform from ideal space to this frame
-        FrameData fd{pif, depth, vector_to_vector_rotation(y_axis, target_normal), target_normal};
-        frame_data.push_back(fd);
+        frame_data.emplace_back(pif, depth, vector_to_vector_rotation(y_axis, target_normal), target_normal);
     }
+    return frame_data;
 }
-
 
 /**
  * Given a vector of pixel-in-frame items and depth maps,
@@ -193,23 +189,21 @@ filter_pifs_with_normals(const std::vector<PixelInFrame> &corresponding_pifs,
 
     // Although the pixels in frames may be in correspondence, it's not necessarily true that
     // each of them has a valid normal (it may have insufficient neighbours, be on an edge or
-    // whatever. Filter them.
+    // whatever. Filter those out.
     vector<PixelInFrame> pifs_with_normals;
     for (const auto &pif : corresponding_pifs) {
-        if (depth_maps[pif.frame].is_normal_defined(pif.pixel.x, pif.pixel.y)) {
+        if (depth_maps.at(pif.frame).is_normal_defined(pif.pixel.x, pif.pixel.y)) {
             pifs_with_normals.push_back(pif);
-            auto nn = depth_maps[pif.frame].normal_at(pif.pixel.x, pif.pixel.y);
-            cout << "  { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y << "} --> Norm: {"
+
+            const auto & nn = depth_maps.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
+            cout << pif << " --> Normal: {"
                  << nn.type << " " << nn.x << " " << nn.y << " " << nn.z << "}" << endl;
         } else {
-            cout << "  skipping { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y
-                 << "} --> No normal" << endl;
+            cout << "  skipping " << pif << " --> No normal" << endl;
         }
     }
     return pifs_with_normals;
 }
-
-
 
 std::string
 generate_uuid() {
@@ -232,14 +226,8 @@ generate_uuid() {
     return res;
 }
 
-
 /**
  * Actually build a Surfel from the source data.
- *
- * @param corresponding_pifs
- * @param depth_maps
- * @param next_surfel_id
- * @param surfel
  */
 Surfel
 generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
@@ -248,31 +236,22 @@ generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
 
     assert( !corresponding_pifs.empty());
 
-    // Dump the corr group for debugging
-    cout << "   Correspondence group: ";
-    for (const auto &pif : corresponding_pifs) {
-        cout << "   { f:" << pif.frame << "  x:" << pif.pixel.x << "  y:" << pif.pixel.y << "} ";
-    }
-    cout << endl;
-
-    Surfel surfel;
-    surfel.id = generate_uuid();
-    populate_frame_data(corresponding_pifs, depth_maps, surfel.frame_data);
-
-    cout << "\t surfel generated" << endl;
-    return surfel;
+    return Surfel{
+        generate_uuid(),
+        populate_frame_data(corresponding_pifs, depth_maps),
+        vector<string>{},
+        Eigen::Vector3f::Zero()};
 }
 
 
-/*
-	********************************************************************************
-	**																			  **
-	**                                 Entry Point                                **
-	**																			  **
-	********************************************************************************
-*/
+
+/* ******************************************************************************** *
+ * * Tested to this point                                                         * *
+ * ******************************************************************************** */
+
+
 /**
- * Given depoth mapos and correspondences, compute a vector of surfels
+ * Given depth maps and correspondences, compute a vector of surfels
  */
 std::vector<Surfel>
 generate_surfels(const std::vector<DepthMap> &depth_maps,
@@ -283,6 +262,7 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
     assert(!depth_maps.empty());
 
     bool eight_connected = properties.getBooleanProperty("eight-connected");
+
     vector<Surfel> surfels;
 
     int count = 0;
@@ -313,4 +293,3 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
     cout << endl << " generated " << surfels.size() << " surfels" << endl;
     return surfels;
 }
-

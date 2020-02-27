@@ -210,9 +210,14 @@ drop_unmapped_surfels(const Properties &properties, std::vector<std::string> &un
     size_t initial_surfels = surfels.size();
     if (!unmapped.empty()) {
         sort(unmapped.begin(), unmapped.end());
-        surfels.erase(remove_if(surfels.begin(), surfels.end(), [unmapped](const Surfel &s) {
+        auto pend = remove_if(surfels.begin(), surfels.end(), [unmapped](const Surfel &s) {
             return binary_search(unmapped.begin(), unmapped.end(), s.id);
-        }), surfels.end());
+        });
+
+        for (auto p = pend; p != surfels.end(); ++p) {
+            Surfel::surfel_by_id.erase(p->id);
+        }
+        surfels.erase(pend, surfels.end());
     }
     if (properties.getBooleanProperty("log-dropped-surfels")) {
         cout << "Dropped " << unmapped.size() << " of " << initial_surfels << " surfels" << endl;

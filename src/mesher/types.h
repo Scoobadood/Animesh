@@ -84,8 +84,8 @@ struct FrameData {
     float depth;                // Depth of range scan at this pixel.
     Eigen::Matrix3f transform{};            // Computed
     Eigen::Vector3f normal{};                // Normal at pixel in frame
-    FrameData(const PixelInFrame &pif, float depth, Eigen::Matrix3f tran, const Eigen::Vector3f &norm) : pixel_in_frame{
-            pif}, depth{depth}, transform{std::move(tran)}, normal{norm} {}
+    FrameData(const PixelInFrame &pif, float depth, Eigen::Matrix3f tran, Eigen::Vector3f norm) : pixel_in_frame{
+            pif}, depth{depth}, transform{std::move(tran)}, normal{std::move(norm)} {}
 
     FrameData() : pixel_in_frame{0, 0, 0}, depth{0}, transform{Eigen::Matrix3f::Identity()},
                   normal{Eigen::Vector3f::Zero()} {}
@@ -102,6 +102,12 @@ struct Surfel {
     std::vector<FrameData> frame_data;
     std::vector<std::string> neighbouring_surfels;
     Eigen::Vector3f tangent;
+    Surfel(const std::string& id, const std::vector<FrameData>& frames, const std::vector<std::string>& neighbours, const Eigen::Vector3f& tangent) :
+    id{id}, tangent{tangent} {
+        for( auto & fd : frames ) { frame_data.push_back(fd);}
+        for( const auto & nb : neighbours ) { neighbouring_surfels.push_back(nb);}
+    }
+    Surfel(){}
 };
 
 #endif //ANIMESH_TYPES_H

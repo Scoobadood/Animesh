@@ -282,7 +282,9 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
 
         Surfel surfel = generate_surfel(pifs_with_normals, depth_maps);
         surfels.push_back(surfel);
-        Surfel::surfel_by_id.emplace(surfel.id, ref(surfel));
+    }
+    for( auto& s : surfels) {
+        Surfel::surfel_by_id.emplace(s.id, s);
     }
 
     // Build inter-surfel neighbour list

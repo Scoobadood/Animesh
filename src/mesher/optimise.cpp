@@ -77,7 +77,7 @@ Optimiser::check_convergence(std::vector<Surfel> &surfels) {
     last_optimising_error = latest_error;
     float pct = improvement / last_optimising_error;
     std::cout << "Mean error per surfel : " << latest_error << ". %age reduction " << pct * 100 << std::endl;
-    return (pct < convergence_threshold);
+    return (std::abs(pct) < convergence_threshold);
 }
 
 
@@ -260,8 +260,8 @@ find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
     for( const auto & f : surfel2.frame_data) {
         surfel2_frames.emplace_back(f);
     }
-    sort(surfel1_frames.begin(), surfel1_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame > f2.pixel_in_frame.frame;});
-    sort(surfel2_frames.begin(), surfel2_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame > f2.pixel_in_frame.frame;});
+    sort(surfel1_frames.begin(), surfel1_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame < f2.pixel_in_frame.frame;});
+    sort(surfel2_frames.begin(), surfel2_frames.end(), [](const FrameData& f1, const FrameData& f2){return f1.pixel_in_frame.frame < f2.pixel_in_frame.frame;});
 
     vector<pair<reference_wrapper<const FrameData>, reference_wrapper<const FrameData>>> common_frames;
     auto it1 = surfel1.frame_data.begin();
@@ -273,11 +273,57 @@ find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
             ++it2;
         } else {
             common_frames.emplace_back(ref(*it1), ref(*it2));
+            ++it1;
+            ++it2;
         }
     }
     return common_frames;
 }
 
+/**
+ * Populate tangents and normals with all eligible tangents, normals from surfel's neighbours
+ * tan/norm is eligible iff the neighbour and surfel share a common frame
+ * tan/norm are converted to the orignating surfel's frame of reference.
+ */
+std::vector<NormalTangent>
+Optimiser::get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels, std::size_t surfel_idx) const {
+    using namespace std;
+    using namespace Eigen;
+
+    std::vector<NormalTangent> eligible_normals_and_tangents;
+
+    const Surfel& this_surfel = surfels.at(surfel_idx);
+
+    // For each neighbour
+    int total_common_frames = 0;
+    for (const auto& that_surfel_id : this_surfel.neighbouring_surfels) {
+        const Surfel& that_surfel = Surfel::surfel_for_id(that_surfel_id);
+
+        auto common_frames = find_common_frames_for_surfels(this_surfel, that_surfel);
+        total_common_frames += common_frames.size();
+
+        // For each common frame, get normal and tangent in surfel space
+        for (auto const &frame_pair : common_frames) {
+            const Matrix3f surfel_to_frame = frame_pair.first.get().transform;
+            const Matrix3f frame_to_surfel = surfel_to_frame.transpose();
+            const Matrix3f neighbour_to_frame = frame_pair.second.get().transform;
+            Vector3f neighbour_normal_in_frame = frame_pair.second.get().normal;
+
+            // Push the neighbour normal and tangent into the right frame
+            // Transform the frame tangent back to the surfel space using inv. surfel matrix
+            // So we need:
+            //    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
+            //	  transform from frame space to free space using surfel data. (inv of stored)
+            const Matrix3f neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
+            Vector3f neighbour_tan_in_surfel_space = neighbour_to_surfel * that_surfel.tangent;
+            Vector3f neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
+
+            eligible_normals_and_tangents.emplace_back(neighbour_norm_in_surfel_space, neighbour_tan_in_surfel_space);
+        }
+    }
+    // cout << "  total common frames " << total_common_frames << endl;
+    return eligible_normals_and_tangents;
+}
 
 /*
   for each neighbouring surfel N of S
@@ -293,19 +339,21 @@ Optimiser::optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx) {
     using namespace Eigen;
 
     Surfel& surfel = surfels.at(surfel_idx);
-    const auto
-    for( const auto & n : surfel.neighbouring_surfels) {
-        const auto & neighbour_surfel = Surfel::surfel_by_id.at(n);
-        // Get list of common frames for S and N as pairs of framedata
-        const auto common_frames = find_common_frames_for_surfels( surfel, neighbour_surfel);
 
-        // Select one at random
-        int fidx = random_index(common_frames.size());
-        const auto dirNs = common_frames.at(fidx).first.get().transform * neighbour_surfel.get().tangent;
-        average_rosy_vectors(v1, n1, w1, dirNs, common_frames.at(fidx).first.get().normal, w2)
+    // Get vector of eligible normal/tangent pairs
+    vector<NormalTangent> neighbouring_normals_and_tangents=get_eligible_normals_and_tangents(surfels, surfel_idx);
 
+    // Merge all neighbours; implicitly using optiminsing tier tangents
+    Vector3f new_tangent = surfel.tangent;
+
+    float weight = 0;
+    for (const auto & nt : neighbouring_normals_and_tangents) {
+        float edge_weight = 1.0f;
+        new_tangent = average_rosy_vectors(new_tangent, Vector3f{0.0f, 1.0, 0.0f}, weight,nt.tangent, nt.normal, edge_weight);
+        weight += edge_weight;
     }
-    //neighbours_by_surfel_frame
+
+    surfel.tangent = new_tangent;
 }
 
 /**

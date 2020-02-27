@@ -134,6 +134,9 @@ private:
      */
     void optimise_end_level();
 
+    std::vector<NormalTangent>
+    get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels, std::size_t surfel_idx) const;
+
     /**
      * Calculate error between two normal/tangent pairs.
      */

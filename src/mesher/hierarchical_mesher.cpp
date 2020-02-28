@@ -188,12 +188,22 @@ prune_surfel_neighbours(std::vector<Surfel> &surfels) {
 
     // Now update lists of neighbours to remove ones that have gone
     for (auto &surfel : surfels) {
+        int old_neighbour_count = surfel.neighbouring_surfels.size();
+        cout << "Neighbours of " << surfel.id << " before pruning" << endl;
+        for( const auto& id : surfel.neighbouring_surfels ) {
+            cout << "\t" << id << endl;
+        }
         surfel.neighbouring_surfels.erase(
                 remove_if(surfel.neighbouring_surfels.begin(), surfel.neighbouring_surfels.end(),
                           [existing_surfel_ids](const string &neighbour_id) {
                               return binary_search(existing_surfel_ids.begin(), existing_surfel_ids.end(), neighbour_id);
                           }), surfel.neighbouring_surfels.end()
         );
+        cout << "Neighbours of " << surfel.id << " after pruning" << endl;
+        for( const auto& id : surfel.neighbouring_surfels ) {
+            cout << "\t" << id << endl;
+        }
+        cout << "\t" << (old_neighbour_count - surfel.neighbouring_surfels.size()) << " neighbours erased" << endl;
     }
 }
 
@@ -244,6 +254,9 @@ remove_surfels_by_id(std::vector<Surfel> &surfels, std::vector<std::string> &ids
         // optionally log
         if (properties.getBooleanProperty("log-dropped-surfels")) {
             cout << "Removed " << ids_to_remove.size() << " of " << initial_surfel_count << " surfels. Surfels remaining: " << surfels.size() << endl;
+            for( const auto& id : ids_to_remove) {
+                cout << "  " << id << endl;
+            }
         }
     }
 }

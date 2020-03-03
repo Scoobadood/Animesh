@@ -73,7 +73,7 @@ are_neighbours(const PixelInFrame &pif1, const PixelInFrame &pif2, bool use_eigh
     }
 
     return use_eight_connected
-           ? (std::abs(dx) == 1 || std::abs(dy) == 1)
+           ? (std::abs(dx) <= 1 && std::abs(dy) <= 1)
            : ((std::abs(dx) + std::abs(dy)) == 1);
 }
 
@@ -137,19 +137,19 @@ populate_neighbours(std::vector<Surfel> &surfels, bool eight_connected) {
     cout << "Populating neighbour : " << flush;
     assert(!surfels.empty());
 
-    int target = surfels.size();
-
-    for (unsigned int i = 0, count = 0; i < surfels.size() - 1; ++i) {
-        cout << "Populating neighbour : " << ++count << " of " << target << endl;
+    for (unsigned int i = 0; i < surfels.size() - 1; ++i) {
+        Surfel& surfel = surfels.at(i);
+        cout << "Populating neighbours of surfel : " << surfel.id << endl;
+        cout << "\tAlready found " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
-            if (are_neighbours(surfels.at(i), surfels.at(j), eight_connected)) {
-                surfels.at(i).neighbouring_surfels.push_back(surfels.at(j).id);
-                surfels.at(j).neighbouring_surfels.push_back(surfels.at(i).id);
+            if (are_neighbours(surfel, surfels.at(j), eight_connected)) {
+                cout << "\tFound new neighbour : " << surfels.at(j).id << endl;
+                surfel.neighbouring_surfels.push_back(surfels.at(j).id);
+                surfels.at(j).neighbouring_surfels.push_back(surfel.id);
             }
         }
-        cout << surfels.at(i).neighbouring_surfels.size() << " neighbours found for surfel " << i << endl;
+        cout << "\tFinal count is " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
     }
-    cout << endl;
 }
 
 /**

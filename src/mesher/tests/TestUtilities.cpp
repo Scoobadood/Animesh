@@ -49,6 +49,14 @@ TEST_F( TestUtilities, 8_connected_PIFs_8_far_away_is_not_neighbour ) {
     EXPECT_FALSE(are_neighbours(test_pixel, test_pixel_far_away, true));
 }
 
+// Found passing in wilderness
+TEST_F( TestUtilities, not_8_connected_diff_x_1_y_gt_1 ) {
+    EXPECT_FALSE(are_neighbours(PixelInFrame{4,4, 1}, PixelInFrame{5, 10, 1}, true));
+}
+TEST_F( TestUtilities, not_8_connected_diff_x_gt_1_y_1 ) {
+    EXPECT_FALSE(are_neighbours(PixelInFrame{4,4, 1}, PixelInFrame{10, 5, 1}, true));
+}
+
 
 TEST_F( TestUtilities, 4_connected_PIFs_1_are_not_neighbours ) {
     EXPECT_FALSE(are_neighbours(test_pixel, test_pixel_up_left, false));

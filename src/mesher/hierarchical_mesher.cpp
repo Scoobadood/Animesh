@@ -176,34 +176,31 @@ maybe_save_depth_and_normal_maps(const Properties &properties,
  * Remove any surfels which cannot be found from the neighbours of remaining surfels
  */
 void
-prune_surfel_neighbours(std::vector<Surfel> &surfels) {
+prune_surfel_neighbours(std::vector<Surfel> &surfels, std::vector<std::string> &ids_to_remove, const Properties &properties) {
     using namespace std;
-
-    // Stash the surfel IDs that exist into a map with their new index
-    vector<string> existing_surfel_ids{surfels.size()};
-    for (const auto &surfel : surfels) {
-        existing_surfel_ids.push_back(surfel.id);
-    }
-    sort(existing_surfel_ids.begin(), existing_surfel_ids.end());
 
     // Now update lists of neighbours to remove ones that have gone
     for (auto &surfel : surfels) {
         int old_neighbour_count = surfel.neighbouring_surfels.size();
-        cout << "Neighbours of " << surfel.id << " before pruning" << endl;
-        for( const auto& id : surfel.neighbouring_surfels ) {
-            cout << "\t" << id << endl;
+        if (properties.getBooleanProperty("log-pruned-neighbours")) {
+            cout << "Neighbours of " << surfel.id << " before pruning" << endl;
+            for (const auto &id : surfel.neighbouring_surfels) {
+                cout << "\t" << id << endl;
+            }
         }
         surfel.neighbouring_surfels.erase(
                 remove_if(surfel.neighbouring_surfels.begin(), surfel.neighbouring_surfels.end(),
-                          [existing_surfel_ids](const string &neighbour_id) {
-                              return binary_search(existing_surfel_ids.begin(), existing_surfel_ids.end(), neighbour_id);
+                          [ids_to_remove](const string &id) {
+                              return binary_search(ids_to_remove.begin(), ids_to_remove.end(), id);
                           }), surfel.neighbouring_surfels.end()
         );
-        cout << "Neighbours of " << surfel.id << " after pruning" << endl;
-        for( const auto& id : surfel.neighbouring_surfels ) {
-            cout << "\t" << id << endl;
+        if (properties.getBooleanProperty("log-pruned-neighbours")) {
+            cout << "Neighbours of " << surfel.id << " after pruning" << endl;
+            for (const auto &id : surfel.neighbouring_surfels) {
+                cout << "\t" << id << endl;
+            }
+            cout << "\t" << (old_neighbour_count - surfel.neighbouring_surfels.size()) << " neighbours erased" << endl;
         }
-        cout << "\t" << (old_neighbour_count - surfel.neighbouring_surfels.size()) << " neighbours erased" << endl;
     }
 }
 
@@ -332,11 +329,11 @@ int main(int argc, char *argv[]) {
             // Remove orphan surfels from this level
             remove_surfels_by_id(current_level_surfels, orphans, properties);
 
+            // Prune neighbours to handle removed surfels
+            prune_surfel_neighbours(current_level_surfels, orphans, properties);
+
             // Seed the current level surfels with tangents from their parents.
             down_propagate_tangents(child_to_parent_surfel_id_map);
-
-            // Prune neighbours to handle removed surfels
-            prune_surfel_neighbours(current_level_surfels);
 
             // Remove previous level surfels
             unmap_surfels(previous_level_surfels);

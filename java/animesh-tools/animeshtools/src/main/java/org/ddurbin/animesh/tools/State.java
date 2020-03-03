@@ -2,8 +2,6 @@ package org.ddurbin.animesh.tools;
 
 import static org.ddurbin.common.Check.CheckException;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import java.io.IOException;
@@ -11,9 +9,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Vector;
 
 import org.ddurbin.common.Check;
 import org.ddurbin.common.Matrix3f;
@@ -26,22 +22,12 @@ import org.ddurbin.common.Vector3f;
 public class State {
     private static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
-    public static class PointWithNormal {
-        public final Vector3f point;
-        public final Vector3f normal;
-
-        PointWithNormal(Vector3f point, Vector3f normal) {
-            this.point = point;
-            this.normal = normal;
-        }
-    }
-
     public static class PixelInFrame {
         public final long x;
         public final long y;
         public final long frameIndex;
 
-        public PixelInFrame(long x, long y, long frameIndex) {
+        PixelInFrame(long x, long y, long frameIndex) {
             this.x = x;
             this.y = y;
             this.frameIndex = frameIndex;
@@ -72,9 +58,9 @@ public class State {
     }
 
     public static class FrameData {
+        final Matrix3f transform;
+        final Vector3f normal;
         public final PixelInFrame pixelInFrame;    // x, y, frame
-        public final Matrix3f transform;
-        public final Vector3f normal;
         public final float depth;
 
 
@@ -110,16 +96,16 @@ public class State {
     }
 
     public static class Surfel {
-        public final String id;
+        final String id;
         public final List<FrameData> frameData;
-        public final List<Integer> neighbours;
-        public final Vector3f tangent;
+        final List<String> neighbours;
+        final Vector3f tangent;
 
-        Surfel(String id, List<FrameData> frameData, List<Integer> neighbours, Vector3f tangent) {
+        Surfel(String id, List<FrameData> frameData, List<String> neighbours, Vector3f tangent) {
             this.id = id;
-            this.frameData = frameData;
-            this.neighbours = neighbours;
-            this.tangent = tangent;
+            this.frameData = Lists.newArrayList(); this.frameData.addAll(frameData);
+            this.neighbours = Lists.newArrayList(); this.neighbours.addAll(neighbours);
+            this.tangent = new Vector3f(tangent);
         }
 
         /**
@@ -136,7 +122,7 @@ public class State {
                 return false;
             }
             Surfel otherSurfel = (Surfel) otherObject;
-            return otherSurfel.id == this.id;
+            return otherSurfel.id.equals(this.id);
         }
 
         public int hashCode() {
@@ -279,9 +265,6 @@ public class State {
         if (numFrames == 0) {
             throw new RuntimeException("Expected at least one frame for surfel id " + surfelId);
         }
-        if (numFrames == 1) {
-//            System.out.println("** WARNING: Surfel " + surfelId + " has only one frame");
-        }
         List<FrameData> frameData = Lists.newArrayList();
         while (numFrames > 0) {
             FrameData fd = readFrameData(in);
@@ -290,9 +273,6 @@ public class State {
         }
 
         int numNeighbours = readInt(in);
-        if (numNeighbours == 0) {
-//            System.out.println("** WARNING: Surfel " + surfelId + " has no neighbours");
-        }
         List<String> surfelNeighbours = Lists.newArrayList();
         while (numNeighbours > 0) {
             surfelNeighbours.add(readString(in));
@@ -304,7 +284,7 @@ public class State {
         return new Surfel(surfelId, frameData, surfelNeighbours, tangent);
     }
 
-    public static State read(InputStream in) throws CheckException, IOException {
+    static State read(InputStream in) throws CheckException, IOException {
         Check.notNull(in, "Input stream cannot be null");
         List<Surfel> surfels = Lists.newArrayList();
         int numSurfels = readInt(in);
@@ -312,10 +292,7 @@ public class State {
             throw new RuntimeException("Expected at least one surfel");
         }
 
-        int total = numSurfels;
-        int count = 0;
         while (numSurfels > 0) {
-//            System.out.print(String.format("\rReading %d of %d    ", ++count, total));
             Surfel surfel = readSurfel(in);
             surfels.add(surfel);
             numSurfels--;

@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * A 3D vector.
  */
-public class Vector3f {
+public class Vector3f implements Cloneable {
     /**
      * The Y-Axis
      */
@@ -20,6 +20,10 @@ public class Vector3f {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    public Vector3f (Vector3f source) {
+        this(source.x, source.y, source.z);
     }
 
     /**

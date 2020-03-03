@@ -89,8 +89,8 @@ public class MeasureError {
         });
 
         // output error by surfel.
-        errorBySurfel.keySet().stream().sorted(Comparator.comparingLong(s -> s.id)).forEach(s -> {
-            System.out.println(String.format("Surfel : %05d      Error : %8.1f", s.id, errorBySurfel.get(s)));
+        errorBySurfel.keySet().stream().forEach(s -> {
+            System.out.println(String.format("Surfel : %s      Error : %8.1f", s.id, errorBySurfel.get(s)));
         });
     }
 

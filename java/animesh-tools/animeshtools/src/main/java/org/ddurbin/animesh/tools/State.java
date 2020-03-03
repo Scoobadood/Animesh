@@ -110,12 +110,12 @@ public class State {
     }
 
     public static class Surfel {
-        public final long id;
+        public final String id;
         public final List<FrameData> frameData;
         public final List<Integer> neighbours;
         public final Vector3f tangent;
 
-        Surfel(long id, List<FrameData> frameData, List<Integer> neighbours, Vector3f tangent) {
+        Surfel(String id, List<FrameData> frameData, List<Integer> neighbours, Vector3f tangent) {
             this.id = id;
             this.frameData = frameData;
             this.neighbours = neighbours;
@@ -209,6 +209,26 @@ public class State {
     }
 
     /**
+     * Read a String from file.
+     *
+     * @param in InputStream to read from.
+     * @return The string read
+     * @throws IOException If there is a problem reading the data.
+     */
+    private static String readString(InputStream in) throws IOException {
+        byte[] longBuffer = new byte[Long.BYTES];
+        if (in.read(longBuffer) != Long.BYTES) {
+            throw new IOException("Out of data reading int");
+        }
+        long stringLength = ByteBuffer.wrap(longBuffer).order(BYTE_ORDER).getLong();
+        byte[] characters = new byte[(int)stringLength];
+        if (in.read(characters) != stringLength) {
+            throw new IOException("Out of data reading String");
+        }
+        return new String( characters);
+    }
+
+    /**
      * Read a vector of 3 floating point numbers from the input.
      */
     private static Matrix3f readMatrix3f(InputStream in) throws IOException {
@@ -253,7 +273,7 @@ public class State {
      */
     private static Surfel readSurfel(InputStream in)
             throws IOException {
-        long surfelId = readLong(in);
+        String surfelId = readString(in);
         System.out.println("Surfel " + surfelId);
         int numFrames = readInt(in);
         if (numFrames == 0) {
@@ -273,9 +293,9 @@ public class State {
         if (numNeighbours == 0) {
 //            System.out.println("** WARNING: Surfel " + surfelId + " has no neighbours");
         }
-        List<Integer> surfelNeighbours = Lists.newArrayList();
+        List<String> surfelNeighbours = Lists.newArrayList();
         while (numNeighbours > 0) {
-            surfelNeighbours.add((int) readLong(in));
+            surfelNeighbours.add(readString(in));
             numNeighbours--;
         }
 

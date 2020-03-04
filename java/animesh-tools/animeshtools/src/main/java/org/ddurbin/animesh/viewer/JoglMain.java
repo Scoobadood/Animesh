@@ -93,7 +93,7 @@ public class JoglMain implements GLEventListener {
     private JoglMain(float[] vertices, float[] projectionMatrix) {
         this.vertices = vertices;
         this.projectionMatrix = projectionMatrix;
-        this.surfelColour = new SurfelOrientationColourer(vertices);
+        this.surfelColour = new DefaultSurfelColourer(); //SurfelOrientationColourer(vertices);
     }
 
     /**
@@ -104,14 +104,7 @@ public class JoglMain implements GLEventListener {
     }
 
 
-    /**
-     * Return an array pf vertices to be rendered and an array of Surfel indics to render
-     */
-    private Pair<float[], int[]> removeHidden() {
-        if (!normalsEnabled && !tangentsEnabled && !principalTangentEnabled) {
-            return new Pair(new float[0],new int[0]);
-        }
-
+    int[] computeSurfelsToRender( ) {
         // Construct VM matrix
         float[] vm = new float[16];
         identity(vm);
@@ -123,45 +116,54 @@ public class JoglMain implements GLEventListener {
                 vm[14]
         );
 
-        // Start with the assumption that we will render everything
-        int numSourceSurfels = vertices.length / (Constants.VERTICES_FOR_FULL_SURFEL * 3);
-        float[] renderVertices = new float[vertices.length];
+        int numSourceSurfels = vertices.length / Constants.FLOATS_FOR_SURFEL;
         int[] renderSurfelIndices = new int[numSourceSurfels];
-
-        int vertexDestIndex = 0;
-        int vertexSourceIndex = 0;
         int numRenderSurfels = 0;
 
-        // Each 'object' occupies 2 verts for normal + 6 verts for tangents
-        // each vert occupies 3 floats.
+        // We only write items to output that have normals visible to camera
         for (int i = 0; i < numSourceSurfels; i++) {
-            // We only write items to output that have normals visible to camera
-            Vector3f normStart = new Vector3f(vertices[vertexSourceIndex], vertices[vertexSourceIndex + 1], vertices[vertexSourceIndex + 2]);
-            Vector3f normEnd = new Vector3f(vertices[vertexSourceIndex + 3], vertices[vertexSourceIndex + 4], vertices[vertexSourceIndex + 5]);
+            int sourceVertexIndex = i * Constants.FLOATS_FOR_SURFEL;
+
+            Vector3f normStart = new Vector3f(vertices[sourceVertexIndex], vertices[sourceVertexIndex + 1], vertices[sourceVertexIndex + 2]);
+            Vector3f normEnd = new Vector3f(vertices[sourceVertexIndex + 3], vertices[sourceVertexIndex + 4], vertices[sourceVertexIndex + 5]);
             Vector3f norm = normEnd.minus(normStart);
             if (norm.dot(camOrigin) > 0) {
                 renderSurfelIndices[numRenderSurfels++] = i;
-                if (normalsEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, Constants.FLOATS_FOR_NORMAL);
-                    vertexDestIndex += Constants.FLOATS_FOR_NORMAL;
-                }
-                vertexSourceIndex += Constants.FLOATS_FOR_NORMAL;
+            }
+        }
+        return Arrays.copyOfRange(renderSurfelIndices, 0, numRenderSurfels);
+    }
 
-                if (tangentsEnabled) {
-                    System.arraycopy(vertices, vertexSourceIndex, renderVertices, vertexDestIndex, Constants.FLOATS_FOR_TANGENTS);
-                    vertexDestIndex += Constants.FLOATS_FOR_TANGENTS;
-                }
-                vertexSourceIndex += Constants.FLOATS_FOR_TANGENTS;
-            } else {
-                vertexSourceIndex += (Constants.FLOATS_FOR_NORMAL + Constants.FLOATS_FOR_TANGENTS);
+    /**
+     * Return an array of vertices to be rendered and an array of Surfel indices to render
+     */
+    private Pair<float[], int[]> removeHidden() {
+        if (!normalsEnabled && !tangentsEnabled && !principalTangentEnabled) {
+            return new Pair<>(new float[0],new int[0]);
+        }
+
+        int[] surfelsToRender = computeSurfelsToRender();
+
+        // Storage per surfel
+        int floatsPerSurfel = (normalsEnabled ? Constants.FLOATS_FOR_NORMAL : 0) + (tangentsEnabled ? Constants.FLOATS_FOR_TANGENTS : 0);
+        float[] renderVertices = new float[floatsPerSurfel * surfelsToRender.length];
+
+        int targetVertexIndex = 0;
+
+        for (int value : surfelsToRender) {
+            int sourceSurfelVertexIndex = value * Constants.FLOATS_FOR_SURFEL;
+            if (normalsEnabled) {
+                System.arraycopy(vertices, sourceSurfelVertexIndex, renderVertices, targetVertexIndex, Constants.FLOATS_FOR_NORMAL);
+                targetVertexIndex += Constants.FLOATS_FOR_NORMAL;
+            }
+            sourceSurfelVertexIndex += Constants.FLOATS_FOR_NORMAL;
+            if (tangentsEnabled) {
+                System.arraycopy(vertices, sourceSurfelVertexIndex, renderVertices, targetVertexIndex, Constants.FLOATS_FOR_TANGENTS);
+                targetVertexIndex += Constants.FLOATS_FOR_TANGENTS;
             }
         }
 
-        // Copy truncated arrays
-        float[] returnRenderVertices = Arrays.copyOfRange(renderVertices,0,vertexDestIndex);
-        int[] returnRenderSurfelIndices = Arrays.copyOfRange(renderSurfelIndices,0,numRenderSurfels);
-
-        return new Pair(returnRenderVertices, returnRenderSurfelIndices);
+        return new Pair<>(renderVertices, surfelsToRender);
     }
 
     private static void createProjectionMatrix(float fovy, float near, float far, float aspect,
@@ -178,13 +180,12 @@ public class JoglMain implements GLEventListener {
         pm[14] = (2 * far * near) / diffZ;
     }
 
-
     private void reportCapabilities(GLAutoDrawable drawable, GL gl) {
-        System.err.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
-        System.err.println("INIT GL IS: " + gl.getClass().getName());
-        System.err.println("GL_VENDOR: " + gl.glGetString(GL.GL_VENDOR));
-        System.err.println("GL_RENDERER: " + gl.glGetString(GL.GL_RENDERER));
-        System.err.println("GL_VERSION: " + gl.glGetString(GL.GL_VERSION));
+        System.out.println("Chosen GLCapabilities: " + drawable.getChosenGLCapabilities());
+        System.out.println("INIT GL IS: " + gl.getClass().getName());
+        System.out.println("GL_VENDOR: " + gl.glGetString(GL.GL_VENDOR));
+        System.out.println("GL_RENDERER: " + gl.glGetString(GL.GL_RENDERER));
+        System.out.println("GL_VERSION: " + gl.glGetString(GL.GL_VERSION));
     }
 
     /**
@@ -234,19 +235,23 @@ public class JoglMain implements GLEventListener {
     }
 
     private void setVbo(GL4 gl, float[] data, int numItems, int dataSize, int vboIndex, int vaaIndex) {
-        FloatBuffer fbData = Buffers.newDirectFloatBuffer(data, 0, numItems * dataSize);
         gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, vboHandles[vboIndex]);
+
+        FloatBuffer fbData = Buffers.newDirectFloatBuffer(data, 0, numItems * dataSize);
         int numBytes = numItems * dataSize * Constants.BYTES_PER_FLOAT;
         gl.glBufferData(GL.GL_ARRAY_BUFFER, numBytes, fbData, GL.GL_STATIC_DRAW);
 
         // Associate Vertex attribute 0 with the last bound VBO
-        gl.glVertexAttribPointer(vaaIndex /* the vertex attribute */,
-                dataSize,
-                GL4.GL_FLOAT,
-                false /* normalized? */,
-                0 /* stride */,
-                0 /* The bound VBO data offset */);
+        gl.glVertexAttribPointer( //
+                vaaIndex,                   // the vertex attribute
+                dataSize,                   // Components per generic vertex attribute. 1, 2, 3 or 4
+                GL4.GL_FLOAT,               // Type of each attribute
+                false,              // normalized? Applies to fixed point data
+                0,                      // Byte offset between items in the array
+                0);             // Pointer to the first attribute in the array
         gl.glEnableVertexAttribArray(vaaIndex);
+        int err = gl.glGetError();
+        assert( err == GL.GL_NO_ERROR);
     }
 
     /**
@@ -269,14 +274,19 @@ public class JoglMain implements GLEventListener {
 
         // Populate renderVertices with the vertices to be rendered.
         // Return the number of Surfels (some are hidden) and number of vertices per surfel (some are hidden)
-        Pair<float[], int[]> render =removeHidden();
+        Pair<float[], int[]> render = removeHidden();
         float[] renderVertices = render.first;
         int[] renderSurfelIndices = render.second;
 
         float[] renderColour = surfelColour.generateColoursForSurfels(renderSurfelIndices, normalsEnabled, tangentsEnabled, principalTangentEnabled);
-        int numItems = renderVertices.length/3;
-        setVbo(gl, renderVertices, numItems, 3, VERTICES_IDX, 0);
-        setVbo(gl, renderColour, numItems,4, COLOR_IDX, 1);
+        int numSurfels = renderSurfelIndices.length;
+
+        int expectedVertsPerSurfel = (normalsEnabled ? 2 : 0 ) + ( tangentsEnabled ? 6 : 0);
+        assert (renderColour.length == numSurfels * expectedVertsPerSurfel * Constants.NUM_COLOUR_PLANES);
+        assert (renderVertices.length == numSurfels * expectedVertsPerSurfel * Constants.FLOATS_FOR_VERTEX);
+
+        setVbo(gl, renderVertices, numSurfels, 3, VERTICES_IDX, 0);
+        setVbo(gl, renderColour, numSurfels,4, COLOR_IDX, 1);
 
         gl.glDrawArrays(GL4.GL_LINES, 0, renderVertices.length/2); //Draw the vertices as lines
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory

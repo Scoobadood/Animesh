@@ -357,7 +357,14 @@ int main(int argc, char *argv[]) {
         save_surfels_to_file(file_name_from_template_and_level(post_smooth_filename_template,
                                                                current_level_index), current_level_surfels);
 
+        // +-----------------------------------------------------------------------------------------------
+        // | Remap surfels
+        // +-----------------------------------------------------------------------------------------------
         previous_level_surfels = current_level_surfels;
+        Surfel::surfel_by_id.clear();
+        for( auto& s : previous_level_surfels) {
+            Surfel::surfel_by_id.emplace(s.id, ref(s));
+        }
         --current_level_index;
     }
 

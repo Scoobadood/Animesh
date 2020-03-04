@@ -4,7 +4,7 @@ public class DefaultSurfelColourer extends AbstractSurfelColourer {
     // Default colours
     private Colour normalColour = new Colour( 1.0f, 0.0f, 0.0f );
 
-    public DefaultSurfelColourer( ) {
+    DefaultSurfelColourer() {
         super( );
         this.normalColour = new Colour( 1.0f, 0.0f, 0.0f);
     }
@@ -29,16 +29,16 @@ public class DefaultSurfelColourer extends AbstractSurfelColourer {
         for( int i=0; i<numSurfels; i++ ) {
             int lineIndex = i * linesPerSurfel;
             if(normalsEnabled) {
-                setLineColourAtIndex(colours, lineIndex++, normalColour);
+                setLineColourAtIndex(colours, lineIndex, normalColour);
             }
             if( tangentsEnabled) {
-                if( principalTangentEnabled) {
-                    setLineColourAtIndex(colours, lineIndex++, primaryTangentColour);
+                if (principalTangentEnabled) {
+                    setLineColourAtIndex(colours, lineIndex + 1, primaryTangentColour);
                 } else {
-                    setLineColourAtIndex(colours, lineIndex++, secondaryTangentColour);
+                    setLineColourAtIndex(colours, lineIndex + 1, secondaryTangentColour);
                 }
-                setLineColourAtIndex(colours, lineIndex++, secondaryTangentColour);
-                setLineColourAtIndex(colours, lineIndex++, secondaryTangentColour);
+                setLineColourAtIndex(colours, lineIndex + 2, secondaryTangentColour);
+                setLineColourAtIndex(colours, lineIndex + 3, secondaryTangentColour);
             }
         }
         return colours;

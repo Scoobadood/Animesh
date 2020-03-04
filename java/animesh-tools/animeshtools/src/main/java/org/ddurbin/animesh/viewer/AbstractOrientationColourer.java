@@ -32,7 +32,7 @@ public abstract class AbstractOrientationColourer extends AbstractSurfelColourer
      * @param vertices
      */
     private void generateColours(float[] vertices) {
-        int floatsPerSurfel = Constants.VERTICES_FOR_FULL_SURFEL * 3;
+        int floatsPerSurfel = Constants.VERTICES_FOR_SURFEL * 3;
         int numSurfels = vertices.length / floatsPerSurfel;
         colours = new Colour[numSurfels];
         for( int i=0; i<numSurfels; i++ ) {

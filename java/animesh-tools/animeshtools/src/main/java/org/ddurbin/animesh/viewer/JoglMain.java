@@ -166,8 +166,8 @@ public class JoglMain implements GLEventListener {
         return new Pair<>(renderVertices, surfelsToRender);
     }
 
-    private static void createProjectionMatrix(float fovy, float near, float far, float aspect,
-                                               float[] pm) {
+    private static float[] createProjectionMatrix(float fovy, float near, float far, float aspect) {
+        float[] pm = new float[16];
         double d = 1.0f / Math.tan(fovy / 2.0);
         for (int i = 0; i < 16; i++) {
             pm[i] = 0;
@@ -178,6 +178,7 @@ public class JoglMain implements GLEventListener {
         pm[10] = -(near + far) / diffZ;
         pm[11] = 1.0f;
         pm[14] = (2 * far * near) / diffZ;
+        return pm;
     }
 
     private void reportCapabilities(GLAutoDrawable drawable, GL gl) {
@@ -222,7 +223,8 @@ public class JoglMain implements GLEventListener {
 
 
     // Make a transformation matrix based on position of cam.
-    private void setTransform(GL4 gl, float[] pvm) {
+    private float[] setTransform(GL4 gl) {
+        float[] pvm = new float[16];
         identity(pvm);
         float[] newPvm = multiply(rotationMatrix, pvm);
         newPvm  = translate(newPvm, model_tx, model_ty, model_tz);
@@ -231,7 +233,7 @@ public class JoglMain implements GLEventListener {
         // Send the final projection matrix to the vertex shader by
         // using the uniform location id obtained during the init part.
         gl.glUniformMatrix4fv(shadProg.uniformMvpMatrix, 1, false, newPvm , 0);
-        System.arraycopy(newPvm, 0, pvm, 0, pvm.length);
+        return newPvm;
     }
 
     private void setVbo(GL4 gl, float[] data, int numItems, int dataSize, int vboIndex, int vaaIndex) {
@@ -269,8 +271,7 @@ public class JoglMain implements GLEventListener {
         gl.glUseProgram(shadProg.shaderProgramId);
 
         // Set the MVP matrix
-        float[] pvm = new float[16];
-        setTransform(gl, pvm);
+        setTransform(gl);
 
         // Populate renderVertices with the vertices to be rendered.
         // Return the number of Surfels (some are hidden) and number of vertices per surfel (some are hidden)
@@ -285,10 +286,10 @@ public class JoglMain implements GLEventListener {
         assert (renderColour.length == numSurfels * expectedVertsPerSurfel * Constants.NUM_COLOUR_PLANES);
         assert (renderVertices.length == numSurfels * expectedVertsPerSurfel * Constants.FLOATS_FOR_VERTEX);
 
-        setVbo(gl, renderVertices, numSurfels, 3, VERTICES_IDX, 0);
-        setVbo(gl, renderColour, numSurfels,4, COLOR_IDX, 1);
+        setVbo(gl, renderVertices, numSurfels * expectedVertsPerSurfel, 3, VERTICES_IDX, 0);
+        setVbo(gl, renderColour, numSurfels* expectedVertsPerSurfel,4, COLOR_IDX, 1);
 
-        gl.glDrawArrays(GL4.GL_LINES, 0, renderVertices.length/2); //Draw the vertices as lines
+        gl.glDrawArrays(GL4.GL_LINES, 0, renderVertices.length/3); //Draw the vertices as lines
         gl.glDisableVertexAttribArray(0); // Allow release of vertex position memory
         gl.glDisableVertexAttribArray(1); // Allow release of vertex color memory
     }
@@ -388,7 +389,7 @@ public class JoglMain implements GLEventListener {
         State state = StateUtilities.loadState(args[0], args[1]);
         int frameId = 6;
         if( args.length > 2 ) {
-            frameId = Integer.valueOf(args[2]);
+            frameId = Integer.parseInt(args[2]);
         }
         float[] vertices = createWorld(state, frameId);
 
@@ -410,8 +411,7 @@ public class JoglMain implements GLEventListener {
         // Finally we connect the GLEventListener application code to the NEWT GLWindow.
         // GLWindow will call the GLEventListener init, reshape, display and dispose
         // functions when needed.
-        float[] projectionMatrix = new float[16];
-        createProjectionMatrix((float) Math.toRadians(35), 0.005f, 19.0f, (width / (float)height), projectionMatrix);
+        float[] projectionMatrix = createProjectionMatrix((float) Math.toRadians(35), 0.005f, 30.0f, (width / (float)height));
 
         JoglMain jm = new JoglMain(vertices, projectionMatrix);
 

@@ -471,40 +471,21 @@ Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfel
 
 /**
  * Compute the intersection of the two provided vectors and place the results into the third.
+ * Assumes that the vectors are sorted
  */
 std::vector<std::string>
 compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                                    std::vector<std::string> surfels_in_this_frame) {
     using namespace std;
 
-    auto string_sorter = [](const string& s1, const string& s2) {
-             return s1 < s2;
-         };
+    sort(surfels_in_this_frame.begin(), surfels_in_this_frame.end());
 
-    // Sort neighbours of this surfel
-    sort(neighbours_of_this_surfel.begin(),
-         neighbours_of_this_surfel.end(),
-         string_sorter);
-
-    sort(surfels_in_this_frame.begin(),
-         surfels_in_this_frame.end(),
-         string_sorter);
-
-    // Iterate across them both
-    auto it1 = neighbours_of_this_surfel.begin();
-    auto it2 = surfels_in_this_frame.begin();
-
-    std::vector<std::string> neighbours_in_this_frame;
-    while (it1 != neighbours_of_this_surfel.end() && it2 != surfels_in_this_frame.end()) {
-        if (*it1 < *it2) {
-            ++it1;
-        } else if (*it2 < *(it1)) {
-            ++it2;
-        } else {
-            neighbours_in_this_frame.emplace_back(*it1);
-            ++it1;
-            ++it2;
-        }
-    }
+    std::vector<std::string> neighbours_in_this_frame(min(surfels_in_this_frame.size(), neighbours_of_this_surfel.size()));
+    auto it = set_intersection(neighbours_of_this_surfel.begin(),
+                               neighbours_of_this_surfel.end(),
+                               surfels_in_this_frame.begin(),
+                               surfels_in_this_frame.end(),
+                               neighbours_in_this_frame.begin());
+    neighbours_in_this_frame.resize(it - neighbours_in_this_frame.begin());
     return neighbours_in_this_frame;
 }

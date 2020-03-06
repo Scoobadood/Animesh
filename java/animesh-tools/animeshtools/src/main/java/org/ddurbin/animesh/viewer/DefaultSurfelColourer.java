@@ -15,7 +15,7 @@ public class DefaultSurfelColourer extends AbstractSurfelColourer {
     }
 
     /**
-     * 
+     *
      */
     public float[] generateColoursForSurfels(int[] surfelIndices, boolean normalsEnabled, boolean tangentsEnabled, boolean principalTangentEnabled) {
         int numSurfels = surfelIndices.length;

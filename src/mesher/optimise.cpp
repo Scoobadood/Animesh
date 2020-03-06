@@ -46,15 +46,24 @@ Optimiser::user_canceled_optimise() {
  */
 void
 Optimiser::optimise_begin(const std::vector<Surfel> &surfels) {
+    using namespace std;
+
     is_optimising = true;
 
     // First we construct a mapping from frame to surfel
+    cout << "Mapping frames to surfels" << endl;
     populate_frame_to_surfel(surfels);
+
     // Then, project each Surfel's norm and tangent to each frame in which it appears
+    cout << "Mapping surfel-frame to normal/tan" << endl;
     populate_norm_tan_by_surfel_frame(surfels);
+
     // Populate map of neighbours for a surfel in a frame
+    cout << "Computing neighbours for each surfel-frame" << endl;
     populate_neighbours_by_surfel_frame(surfels);
+
     // Compute initial error values
+    cout << "Initialising error value" << endl;
     last_optimising_error = compute_mean_error_per_surfel(surfels);
 }
 
@@ -420,6 +429,8 @@ Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
             surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel.id);
         }
     }
+
+
 }
 
 /**

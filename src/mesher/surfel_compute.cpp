@@ -134,21 +134,24 @@ void
 populate_neighbours(std::vector<Surfel> &surfels, bool eight_connected) {
     using namespace std;
 
-    cout << "Populating neighbour : " << flush;
+//    cout << "Populating neighbour : " << flush;
     assert(!surfels.empty());
 
     for (unsigned int i = 0; i < surfels.size() - 1; ++i) {
         Surfel& surfel = surfels.at(i);
-        cout << "Populating neighbours of surfel : " << surfel.id << endl;
-        cout << "\tAlready found " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
+//        cout << "Populating neighbours of surfel : " << surfel.id << endl;
+//        cout << "\tAlready found " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfel, surfels.at(j), eight_connected)) {
-                cout << "\tFound new neighbour : " << surfels.at(j).id << endl;
+//                cout << "\tFound new neighbour : " << surfels.at(j).id << endl;
                 surfel.neighbouring_surfels.push_back(surfels.at(j).id);
                 surfels.at(j).neighbouring_surfels.push_back(surfel.id);
             }
         }
-        cout << "\tFinal count is " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
+//        cout << "\tFinal count is " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
+    }
+    for( auto & s : surfels) {
+        sort(s.neighbouring_surfels.begin(), s.neighbouring_surfels.end());
     }
 }
 

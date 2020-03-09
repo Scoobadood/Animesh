@@ -198,6 +198,6 @@ private:
 /**
  * Compute the intersection of the two provided vectors and place the results into the third.
  */
-static std::vector<std::string>
+std::vector<std::string>
 compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                         std::vector<std::string> surfels_in_this_frame);

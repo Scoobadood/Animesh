@@ -7,6 +7,8 @@
 #include <iostream>
 #include <fstream>
 #include <FileUtils/PgmFileParser.h>
+#include <DepthMap/DepthMap.h>
+#include <DepthMap/Normals.h>
 
 #include "depth_map_io.h"
 
@@ -90,9 +92,9 @@ save_depth_map_as_pgm(const std::string& file_name, const DepthMap& depth_map) {
 }
 
 std::vector<int>
-normal_to_colour( const DepthMap::NormalWithType& nwt ) {
+normal_to_colour( const NormalWithType& nwt ) {
     std::vector<int> rgb;
-    if( nwt.type == DepthMap::NONE) {
+    if( nwt.type == NONE) {
         rgb.push_back(0);
         rgb.push_back(0);
         rgb.push_back(0);

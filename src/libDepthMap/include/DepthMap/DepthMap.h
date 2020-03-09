@@ -5,6 +5,7 @@
 #include <vector>
 #include <cassert>
 #include <Camera/Camera.h>
+#include <DepthMap/Normals.h>
 
 class DepthMap {
 public:
@@ -20,21 +21,6 @@ public:
 		ALL = 255,
 		FOUR = UP | LEFT | RIGHT | DOWN
 	} tDirection;
-
-    typedef enum {
-        NONE,
-        DERIVED,
-        NATURAL
-    } tNormal;
-
-    // A normal to the depth map
-    struct NormalWithType {
-        tNormal type;
-        float x;
-        float y;
-        float z;
-        NormalWithType(tNormal t, float xx, float yy, float zz) : type{t}, x{xx}, y{yy}, z{zz} {};
-    };
 
     /**
 	 * Load from file.
@@ -73,12 +59,17 @@ public:
     DepthMap resample() const;
 
 	void cull_unreliable_depths(float ts, float tl);
-	const std::vector<std::vector<std::vector<float>>>& get_normals() const;
+    const std::vector<std::vector<NormalWithType>> & get_normals() const;
 	static bool flag_is_set( int flags, DepthMap::tDirection flag );
 	bool is_normal_defined(unsigned int x, unsigned int y) const;
 
     NormalWithType normal_at(unsigned int x, unsigned int y) const;
     void compute_normals(const Camera& camera);
+
+//	inline bool is_edge(unsigned int row, unsigned int col) const {
+//		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
+//	}
+	int get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[], bool eightConnected = false) const;
 
 protected:
 
@@ -100,13 +91,10 @@ private:
 	unsigned int m_height;
 
 	// row, col
-	std::vector<std::vector<std::vector<float>>> normals;
-	// row, col
-	std::vector<std::vector<tNormal>> normal_types;
+	std::vector<std::vector<NormalWithType>> normals;
 
     void compute_natural_normals(const Camera& camera);
 	void compute_derived_normals();
-    void compute_normals_with_pcl(const Camera& camera);
 
 	/**
 	 * Compute the index into depth_map data for a given (x,y) coordinate.
@@ -118,8 +106,4 @@ private:
         return y * m_width + x;
     }
 
-//	inline bool is_edge(unsigned int row, unsigned int col) const {
-//		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
-//	}
-	int get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[], bool eightConnected = false) const;
 };

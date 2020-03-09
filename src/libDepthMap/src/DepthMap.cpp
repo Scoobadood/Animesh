@@ -1,5 +1,8 @@
 #include <DepthMap/DepthMap.h>
+#include <DepthMap/Normals.h>
+#include <DepthMap/PclNormals.h>
 #include <FileUtils/FileUtils.h>
+#include <Camera/Camera.h>
 
 #include <vector>
 #include <cmath>
@@ -8,9 +11,6 @@
 #include <algorithm>
 #include <fstream>
 #include <Eigen/Dense> // For cross product
-#include <pcl/point_types.h>
-#include <pcl/features/normal_3d.h>
-#include "../../libCamera/include/Camera/Camera.h"
 
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
@@ -282,133 +282,11 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 }
 
 
-/**
- * Compute normals that have all adjacent data set in the depth map,
- * that is, those normals which can be computed fully from depth data alone.
- * // TODO: An alternative approach is here: https://cromwell-intl.com/3d/normals.html
- * // Currently using this: https://stackoverflow.com/questions/34644101/calculate-surface-normals-from-depth-image-using-neighboring-pixels-cross-produc
- *
- *
- */
-void
-DepthMap::compute_natural_normals(const Camera &camera) {
-    using namespace std;
-
-
-    // For each row
-    for (int y = 0; y < height(); ++y) {
-
-        // Temp storage for the y's type and normals
-        vector<vector<float>> current_row_normals;
-        vector<tNormal> current_row_normal_types;
-
-        // Compute the scale factor from depths to pixels
-
-
-        // For each column
-        for (int x = 0; x < width(); ++x) {
-            float d = depth_at(x, y);
-
-            // If depth is 0 then there's no normal to be had here.
-            if (d == 0.0f) {
-                current_row_normal_types.push_back(NONE);
-                current_row_normals.push_back(vector<float>{0, 0, 0});
-                continue;
-            }
-
-            float neighbour_depths[4];
-            int neighbours_present = get_neighbour_depths(x, y, neighbour_depths, false);
-
-            // If there are not four neighbours then I have a derived normal
-            if (neighbours_present != FOUR) {
-                current_row_normal_types.push_back(DERIVED);
-                current_row_normals.push_back(vector<float>{0, 0, 0});
-                continue;
-            }
-
-            // Backproject the depths
-            // TODO: This is super slow and we sill be calculating the same points over and over
-            // We should avoid this if possible by back projecting all points once
-
-            // Otherwise I have a natural normal
-            Eigen::Vector3f a = camera.to_world_coordinates(x + 1, y, neighbour_depths[3]);
-            Eigen::Vector3f b = camera.to_world_coordinates(x - 1, y, neighbour_depths[2]);
-            Eigen::Vector3f c1 = a - b;
-//            float dzdx = (c[2] / c[0]);
-//            float dzdx = (neighbour_depths[3] - neighbour_depths[2]) / 2.0f;
-            a = camera.to_world_coordinates(x, y + 1, neighbour_depths[1]);
-            b = camera.to_world_coordinates(x, y - 1, neighbour_depths[0]);
-            Eigen::Vector3f c2 = a - b;
-//            float dzdy = (c[2] / c[0]);
-//            float dzdy = (neighbour_depths[1] - neighbour_depths[0]) / 2.0f;
-//            float scale = sqrt(dzdx * dzdx + dzdy * dzdy + 1.0f);
-//            dzdx /= scale;
-//            dzdy /= scale;
-            auto n = c1.cross(c2);
-            n.normalize();
-            vector<float> norm{n(0), n(1), n(2)};
-            current_row_normals.push_back(norm);
-            current_row_normal_types.push_back(NATURAL);
-        }
-        normals.push_back(current_row_normals);
-        normal_types.push_back(current_row_normal_types);
-    }
-}
-
-void
-DepthMap::compute_derived_normals() {
-    using namespace std;
-
-    for (size_t row = 0; row < height(); ++row) {
-        for (size_t col = 0; col < width(); ++col) {
-            // Skip existing normals
-            if (normal_types.at(row).at(col) == NONE
-                || normal_types.at(row).at(col) == NATURAL) {
-                continue;
-            }
-
-            vector<float> sum{0.0f, 0.0f, 0.0f};
-            int count = 0;
-            for (int ri = row - 1; ri <= row + 1; ri++) {
-                for (int ci = col - 1; ci <= col + 1; ci++) {
-                    if (ri < 0 || ri >= width() || ci < 0 || ci >= width()) {
-                        continue;
-                    }
-                    if (normal_types.at(ri).at(ci) == NONE) {
-                        continue;
-                    }
-                    if (normal_types.at(ri).at(ci) == NATURAL) {
-                        float nx = normals.at(ri).at(ci)[0];
-                        float ny = normals.at(ri).at(ci)[1];
-                        float nz = normals.at(ri).at(ci)[2];
-                        sum[0] += nx;
-                        sum[1] += ny;
-                        sum[2] += nz;
-                        count++;
-                    }
-                }
-            }
-            // If count == 0; kill this one
-            if (count == 0) {
-                normal_types.at(row).at(col) = NONE;
-            } else {
-                float mean_nx = sum[0] / count;
-                float mean_ny = sum[1] / count;
-                float mean_nz = sum[2] / count;
-                float l = sqrt(mean_nx * mean_nx + mean_ny * mean_ny + mean_nz * mean_nz);
-                normals.at(row).at(col)[0] = mean_nx / l;
-                normals.at(row).at(col)[1] = mean_ny / l;
-                normals.at(row).at(col)[2] = mean_nz / l;
-            }
-        }
-    }
-}
-
 
 /**
  * Return the normals. Compute them if needed.
  */
-const std::vector<std::vector<std::vector<float>>> &
+const std::vector<std::vector<NormalWithType>> &
 DepthMap::get_normals() const {
     using namespace std;
     if (normals.size() == 0) {
@@ -425,9 +303,7 @@ DepthMap::get_normals() const {
  */
 bool
 DepthMap::is_normal_defined(unsigned int x, unsigned int y) const {
-    using namespace std;
-    vector<float> n = get_normals().at(y).at(x);
-    return ((n.at(0) + n.at(0) + n.at(2)) != 0.0f);
+    return (get_normals().at(y).at(x).type != NONE);
 }
 
 /**
@@ -482,10 +358,8 @@ DepthMap::resample() const {
     return DepthMap{new_width, new_height, new_data};
 }
 
-DepthMap::NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
-    NormalWithType n{normal_types.at(y).at(x), normals.at(y).at(x).at(0), normals.at(y).at(x).at(1),
-                     normals.at(y).at(x).at(2)};
-    return n;
+NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
+    return normals.at(y).at(x);
 }
 
 /**
@@ -496,7 +370,7 @@ void
 DepthMap::compute_normals(const Camera &camera) {
     using namespace std;
 
-    compute_normals_with_pcl(camera);
+    normals = compute_normals_with_pcl(this, camera);
 
     // Validation
     int natural_norm_count = 0;
@@ -504,7 +378,7 @@ DepthMap::compute_normals(const Camera &camera) {
     int zero_norms = 0;
     for (int y = 0; y < height(); ++y) {
         for (int x = 0; x < width(); ++x) {
-            auto norm_type = normal_types.at(y).at(x);
+            auto norm_type = normals.at(y).at(x).type;
             if (norm_type == NONE) {
                 zero_norms++;
                 continue;
@@ -516,7 +390,7 @@ DepthMap::compute_normals(const Camera &camera) {
             }
             // Check that norm is legal
             const auto &normal = normals.at(y).at(x);
-            float norm_length = sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+            float norm_length = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
             if (isnan(norm_length)) {
                 cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:"
                      << x << endl;
@@ -534,102 +408,10 @@ DepthMap::compute_normals(const Camera &camera) {
         cout << "Suspiciously low normal counts derived: " << derived_norm_count << ", natural:" << natural_norm_count
              << endl;
     }
-    int num_norms = normal_types.size() * normal_types.at(0).size();
+
+    int num_norms = normals.size() * normals.at(0).size();
     if (((zero_norms * 100) / num_norms) > 95) {
         cout << "Suspiciously high zero norms : " << zero_norms << " out of  " << num_norms << endl;
     }
 }
 
-/**
- * Compute normal using estinate of normal to plane tangent to surface
- */
-void
-DepthMap::compute_normals_with_pcl(const Camera& camera) {
-    using namespace pcl;
-    using namespace std;
-
-    struct Pixel {
-        unsigned int x;
-        unsigned int y;
-        Pixel(unsigned int x, unsigned int y) : x{x}, y{y}{
-            // Empty
-        };
-        bool operator< (const Pixel &other) const {
-            if( y != other.y)
-                return y < other.y;
-
-            return x < other.x;
-        }
-    };
-
-
-    // Count number of legitimate normals
-    vector<Pixel> valid_pixels;
-    unsigned int num_points = 0;
-    for (int y = 0; y < height(); ++y) {
-        for (int x = 0; x < width(); ++x) {
-            if( depth_at(x, y) != 0.0f) {
-                num_points++;
-                valid_pixels.emplace_back(x,y);
-            }
-        }
-    }
-
-    PointCloud<PointXYZ>::Ptr cloud(new pcl::PointCloud <pcl::PointXYZ>);
-    cloud->points.resize( num_points );
-
-    // Populate the point cloud
-    int i = 0;
-    for (const auto& pixel : valid_pixels) {
-        float d = depth_at(pixel.x, pixel.y);
-        // Backproject the depths to get world coord
-        Eigen::Vector3f a = camera.to_world_coordinates(pixel.x, pixel.y, d);
-        cloud->points[i].getVector3fMap() = a;
-        ++i;
-    }
-
-    // Create the normal estimation class, and pass the input dataset to it
-    NormalEstimation <PointXYZ, Normal> ne;
-    ne.setInputCloud(cloud);
-
-    // Create an empty kdtree representation, and pass it to the normal estimation object.
-    // Its content will be filled inside the object, based on the given input dataset (as no other search surface is given).
-    search::KdTree<PointXYZ>::Ptr tree(new search::KdTree<PointXYZ>());
-    ne.setSearchMethod(tree);
-
-    // Output datasets
-    PointCloud<Normal>::Ptr cloud_normals(new pcl::PointCloud <pcl::Normal>);
-
-    // Use all neighbors in a sphere of radius 3cm
-//    ne.setRadiusSearch(0.03);
-    // Use nearest 5 neighbours regardless
-    ne.setKSearch(15);
-
-    // Set the view point to disambiguate normal direction
-    ne.setViewPoint(camera.origin().x(), camera.origin().y(), camera.origin().z() );
-
-    // Compute the features
-    ne.compute(*cloud_normals);
-
-    // cloud_normals->points.size () should have the same size as the input cloud->points.size ()*
-
-    // Now populate the normal_types and normals
-    for( int y=0; y<height(); ++y ) {
-        vector<vector<float>> normal_row;
-        vector<tNormal> normal_type_row;
-        for( int x=0; x<width(); ++x ) {
-            normal_row.push_back(vector<float>{0, 0, 0});
-            normal_type_row.push_back(NONE);
-        }
-        normals.push_back(normal_row);
-        normal_types.push_back(normal_type_row);
-    }
-
-    // Go back and put in the actual details
-    i = 0;
-    for( const auto& pixel : valid_pixels ) {
-        normal_types.at(pixel.y).at(pixel.x) = NATURAL;
-        normals.at(pixel.y).at(pixel.x) = vector<float>{cloud_normals->points[i].normal_x, cloud_normals->points[i].normal_y, cloud_normals->points[i].normal_z};
-        ++i;
-    }
-}

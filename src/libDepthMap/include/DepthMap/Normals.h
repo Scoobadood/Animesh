@@ -5,11 +5,20 @@
 #ifndef ANIMESH_NORMALS_H
 #define ANIMESH_NORMALS_H
 
+#include "DepthMap.h"
+
+class DepthMap;
+
 typedef enum {
     NONE,
     DERIVED,
     NATURAL
 } tNormal;
+
+typedef enum {
+    CROSS,
+    PCL,
+} tNormalMethod;
 
 // A normal to the depth map
 struct NormalWithType {
@@ -20,6 +29,7 @@ struct NormalWithType {
     NormalWithType(tNormal t, float xx, float yy, float zz) : type{t}, x{xx}, y{yy}, z{zz} {};
 };
 
-
+void
+validate_normals(const DepthMap* depth_map);
 
 #endif //ANIMESH_NORMALS_H

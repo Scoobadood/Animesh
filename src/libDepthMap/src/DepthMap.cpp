@@ -1,6 +1,7 @@
 #include <DepthMap/DepthMap.h>
 #include <DepthMap/Normals.h>
 #include <DepthMap/PclNormals.h>
+#include <DepthMap/CrossProductNormals.h>
 #include <FileUtils/FileUtils.h>
 #include <Camera/Camera.h>
 
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <fstream>
 #include <Eigen/Dense> // For cross product
+#include "../../libProperties/include/Properties/Properties.h"
 
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
@@ -367,51 +369,20 @@ NormalWithType DepthMap::normal_at(unsigned int x, unsigned int y) const {
  * depth map.
  */
 void
-DepthMap::compute_normals(const Camera &camera) {
-    using namespace std;
+DepthMap::compute_normals(const Camera &camera, tNormalMethod method) {
 
-    normals = compute_normals_with_pcl(this, camera);
-
-    // Validation
-    int natural_norm_count = 0;
-    int derived_norm_count = 0;
-    int zero_norms = 0;
-    for (int y = 0; y < height(); ++y) {
-        for (int x = 0; x < width(); ++x) {
-            auto norm_type = normals.at(y).at(x).type;
-            if (norm_type == NONE) {
-                zero_norms++;
-                continue;
-            }
-            if (norm_type == DERIVED) {
-                derived_norm_count++;
-            } else {
-                natural_norm_count++;
-            }
-            // Check that norm is legal
-            const auto &normal = normals.at(y).at(x);
-            float norm_length = sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-            if (isnan(norm_length)) {
-                cout << "Nan " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:"
-                     << x << endl;
-            } else if (norm_length == 0.0) {
-                cout << "Zero " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal at y:" << y << ", x:"
-                     << x << endl;
-            } else if (abs(norm_length - 1.0) > 1e-3) {
-                cout << "Non unit " << ((norm_type == DERIVED) ? "derived" : "natural") << " normal (" << norm_length
-                     << ") at y:" << y << ", x:" << x << endl;
-            }
-            if (norm_length == 0.0) zero_norms++;
-        }
-    }
-    if (derived_norm_count + natural_norm_count < 5) {
-        cout << "Suspiciously low normal counts derived: " << derived_norm_count << ", natural:" << natural_norm_count
-             << endl;
+    switch(method) {
+        case CROSS:
+            normals = compute_natural_normals(this, camera);
+            compute_derived_normals(this, normals);
+            break;
+        case PCL:
+            normals = compute_normals_with_pcl(this, camera);
+            break;
+        default:
+            throw std::runtime_error("Unrecognised normal method");
     }
 
-    int num_norms = normals.size() * normals.at(0).size();
-    if (((zero_norms * 100) / num_norms) > 95) {
-        cout << "Suspiciously high zero norms : " << zero_norms << " out of  " << num_norms << endl;
-    }
+    validate_normals(this);
 }
 

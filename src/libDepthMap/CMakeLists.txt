@@ -1,7 +1,11 @@
 file(GLOB SOURCES "src/*.cpp")
 
-add_library(DepthMap STATIC ${SOURCES}
-        include/DepthMap/DepthMap.h)
+add_library(DepthMap STATIC
+        src/Normals.cpp  include/DepthMap/Normals.h
+        src/CrossProductNormals.cpp  include/DepthMap/CrossProductNormals.h
+        src/PclNormals.cpp  include/DepthMap/PclNormals.h
+        src/DepthMap.cpp  include/DepthMap/DepthMap.h
+)
 
 # Need PCL
 find_package(PCL 1.8 REQUIRED)

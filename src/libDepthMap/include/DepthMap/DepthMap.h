@@ -64,7 +64,7 @@ public:
 	bool is_normal_defined(unsigned int x, unsigned int y) const;
 
     NormalWithType normal_at(unsigned int x, unsigned int y) const;
-    void compute_normals(const Camera& camera);
+    void compute_normals(const Camera& camera, tNormalMethod method);
 
 //	inline bool is_edge(unsigned int row, unsigned int col) const {
 //		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
@@ -92,9 +92,6 @@ private:
 
 	// row, col
 	std::vector<std::vector<NormalWithType>> normals;
-
-    void compute_natural_normals(const Camera& camera);
-	void compute_derived_normals();
 
 	/**
 	 * Compute the index into depth_map data for a given (x,y) coordinate.

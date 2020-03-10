@@ -99,6 +99,19 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
 }
 
 
+tNormalMethod normal_computation_method(const Properties& properties ) {
+    tNormalMethod method;
+    std::string normal_method_name = properties.getProperty("normal_computation-method");
+    if( normal_method_name == "pcl") {
+        method = PCL;
+    } else if ( normal_method_name == "cross-product") {
+        method = CROSS;
+    } else {
+        throw std::runtime_error("Unrecognised normal computation method ["+normal_method_name+"]");
+    }
+    return method;
+}
+
 /**
  * Construct depth map hierarch given a vector of sourcde depth maps
  */
@@ -121,13 +134,15 @@ create_depth_map_hierarchy(const Properties &properties,
     }
     cout << endl;
 
+    tNormalMethod method = normal_computation_method(properties);
+
     //
     // Compute normals for each level
     for (auto & level_depth_maps : depth_map_hierarchy) {
         for (int f = 0; f < depth_maps.size(); ++f) {
             Camera camera = cameras.at(f);
             camera.set_image_size(level_depth_maps.at(0).width(), level_depth_maps.at(0).height());
-            level_depth_maps.at(f).compute_normals(camera);
+            level_depth_maps.at(f).compute_normals(camera, method);
         }
     }
     return depth_map_hierarchy;

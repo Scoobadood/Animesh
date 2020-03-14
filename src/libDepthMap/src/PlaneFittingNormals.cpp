@@ -88,14 +88,7 @@ fit_plane_to_points(const std::vector<Eigen::Vector3f>& points, Eigen::Vector3f&
     auto centroid = allPoints.rowwise().mean();
     const Matrix3Xf pointsCentered = allPoints.colwise() - centroid;
     int setting = Eigen::ComputeFullU | Eigen::ComputeThinV;
-    JacobiSVD<Matrix3Xf> svd = pointsCentered.jacobiSvd(setting);
-
-    // Grab the smallest Eigen Vector
-    std:: cout << " U " << svd.matrixU() << std::endl;
-    std:: cout << " S " << svd.singularValues() << std::endl;
-    std:: cout << " V " << svd.matrixV() << std::endl;
-
-
+    BDCSVD<Matrix3Xf> svd = pointsCentered.bdcSvd(setting);
     Vector3f n = svd.matrixU().col( 2);
     planar_normal = n;
 

@@ -106,6 +106,8 @@ tNormalMethod normal_computation_method(const Properties& properties ) {
         method = PCL;
     } else if ( normal_method_name == "cross-product") {
         method = CROSS;
+    } else if ( normal_method_name == "planar") {
+        method = PLANAR;
     } else {
         throw std::runtime_error("Unrecognised normal computation method ["+normal_method_name+"]");
     }

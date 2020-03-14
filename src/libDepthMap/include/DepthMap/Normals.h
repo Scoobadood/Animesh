@@ -16,6 +16,7 @@ typedef enum {
 typedef enum {
     CROSS,
     PCL,
+    PLANAR
 } tNormalMethod;
 
 // A normal to the depth map

@@ -2,6 +2,7 @@
 #include <DepthMap/Normals.h>
 #include <DepthMap/PclNormals.h>
 #include <DepthMap/CrossProductNormals.h>
+#include <DepthMap/PlaneFittingNormals.h>
 #include <FileUtils/FileUtils.h>
 #include <Camera/Camera.h>
 
@@ -378,6 +379,9 @@ DepthMap::compute_normals(const Camera &camera, tNormalMethod method) {
             break;
         case PCL:
             normals = compute_normals_with_pcl(this, camera);
+            break;
+        case PLANAR:
+            normals = compute_normals_from_neighbours(this, camera);
             break;
         default:
             throw std::runtime_error("Unrecognised normal method");

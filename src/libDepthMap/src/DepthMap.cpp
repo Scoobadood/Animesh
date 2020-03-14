@@ -169,12 +169,12 @@ DepthMap::get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_d
             neighbour_depths[4] = d;
         }
         if (flag_is_set(flags, UP_RIGHT)) {
-            d = depth_at(x - 1, y + 1);
+            d = depth_at(x + 1, y - 1);
             flags = clear_flag_if_zero(d, flags, UP_RIGHT);
             neighbour_depths[5] = d;
         }
         if (flag_is_set(flags, DOWN_LEFT)) {
-            d = depth_at(x + 1, y - 1);
+            d = depth_at(x - 1, y + 1);
             flags = clear_flag_if_zero(d, flags, DOWN_LEFT);
             neighbour_depths[6] = d;
         }

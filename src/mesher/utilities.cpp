@@ -101,7 +101,7 @@ resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
 
 tNormalMethod normal_computation_method(const Properties& properties ) {
     tNormalMethod method;
-    std::string normal_method_name = properties.getProperty("normal_computation-method");
+    std::string normal_method_name = properties.getProperty("normal-computation-method");
     if( normal_method_name == "pcl") {
         method = PCL;
     } else if ( normal_method_name == "cross-product") {

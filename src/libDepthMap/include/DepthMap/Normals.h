@@ -5,8 +5,6 @@
 #ifndef ANIMESH_NORMALS_H
 #define ANIMESH_NORMALS_H
 
-#include "DepthMap.h"
-
 class DepthMap;
 
 typedef enum {

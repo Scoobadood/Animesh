@@ -3,10 +3,12 @@
 //
 
 #include <vector>
+#include <Camera/Camera.h>
 #include <DepthMap/Normals.h>
 #include <DepthMap/PlaneFittingNormals.h>
 #include <DepthMap/DepthMap.h>
-#include <Camera/Camera.h>
+#include <Geom/geom.h>
+
 #include <Eigen/SVD>
 
 struct PixelWithDepth {
@@ -41,7 +43,7 @@ std::vector<PixelWithDepth> get_neighbours_for_pixel(const DepthMap *depth_map, 
         neighbours.emplace_back(x + 1, y, neighbour_depths[3]);
     }
     if (DepthMap::flag_is_set(available_neighbours, DepthMap::UP_LEFT)) {
-        neighbours.emplace_back(x - , y - 1, neighbour_depths[4]);
+        neighbours.emplace_back(x - 1, y - 1, neighbour_depths[4]);
     }
     if (DepthMap::flag_is_set(available_neighbours, DepthMap::UP_RIGHT)) {
         neighbours.emplace_back(x + 1, y - 1, neighbour_depths[5]);
@@ -55,16 +57,6 @@ std::vector<PixelWithDepth> get_neighbours_for_pixel(const DepthMap *depth_map, 
     return neighbours;
 }
 
-Eigen::Vector3f compute_centroid(const std::vector<Eigen::Vector3f>& points) {
-    Eigen::Vector3f centroid;
-
-    assert( !points.empty() );
-
-    for( const auto& point : points ) {
-        centroid += point;
-    }
-    return (centroid / points.size());
-}
 
 /**
  * Find the plane that best fits the given set of points.
@@ -83,24 +75,35 @@ fit_plane_to_points(const std::vector<Eigen::Vector3f>& points, Eigen::Vector3f&
         return false;
     }
 
-    // Normalise points by subtracting out centroid
-    Vector3f centroid = compute_centroid( points );
-    Eigen::Matrix3Xf x;
-    int r = 0;
+    // Construct 3xN matrix of points
+    Matrix3Xf allPoints{3, points.size()};
+    int colIdx = 0;
     for( const auto& point : points ) {
-        x.row(r) = point - centroid;
-        ++r;
+        allPoints.col(colIdx++) = point;
     }
 
-    // Perform SVD U.S.VT = x
-    BDCSVD<MatrixXf> svd(x, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    std:: cout << " AP " << allPoints << std::endl << std::endl;
 
-    // Grasb the smallest Eigen Vector
-    planar_normal << svd.matrixU().col(2);
+
+    auto centroid = allPoints.rowwise().mean();
+    const Matrix3Xf pointsCentered = allPoints.colwise() - centroid;
+    int setting = Eigen::ComputeFullU | Eigen::ComputeThinV;
+    JacobiSVD<Matrix3Xf> svd = pointsCentered.jacobiSvd(setting);
+
+    // Grab the smallest Eigen Vector
+    std:: cout << " U " << svd.matrixU() << std::endl;
+    std:: cout << " S " << svd.singularValues() << std::endl;
+    std:: cout << " V " << svd.matrixV() << std::endl;
+
+
+    Vector3f n = svd.matrixU().col( 2);
+    planar_normal = n;
+
+    return true;
 }
 
 /**
- * Compute normal using estinate of normal to plane tangent to surface
+ * Compute normal using estimate of normal to plane tangent to surface
  * using neighbours in depth map
  */
 std::vector<std::vector<NormalWithType>>
@@ -130,14 +133,21 @@ compute_normals_from_neighbours(DepthMap *depth_map, const Camera &camera) {
             }
 
             // Fit Plane
-            Vector4f planar_equation;
-            if (!fit_plane_to_points(neighbours_in_world_coords, planar_equation)) {
+            Vector3f planar_normal;
+            if (!fit_plane_to_points(neighbours_in_world_coords, planar_normal)) {
                 normals_for_row.emplace_back(NONE, 0.0, 0.0, 0.0);
                 continue;
             }
 
+            // Force correct orientation
+            Vector3f cam2point = camera.to_world_coordinates(x, y, depth);
+            float dp = cam2point.dot(planar_normal);
+            if( dp < 0 ) {
+                planar_normal = - planar_normal;
+            }
+
             // Store normal to plane
-            normals_for_row.emplace_back(NATURAL,);
+            normals_for_row.emplace_back(NATURAL, planar_normal.x(), planar_normal.y(), planar_normal.z());
         }
         normals.emplace_back(normals_for_row);
     }

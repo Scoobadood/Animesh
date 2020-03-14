@@ -87,3 +87,10 @@ Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eige
  * @retrun A vector perpendicular to it
  */
 Eigen::Vector3f vector_perpendicular_to_vector( const Eigen::Vector3f& v1 );
+
+/**
+ * Return a 3D vector representing the centroid of the given vector of points
+ * @param points A vector containing at least one point (asserted)
+ * @retrun The centroid of those points.
+ */
+Eigen::Vector3f compute_centroid(const std::vector<Eigen::Vector3f>& points);

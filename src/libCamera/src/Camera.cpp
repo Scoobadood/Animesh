@@ -38,16 +38,39 @@ Camera::compute_camera_parms() {
     n = N.normalized();
 
     // u is a vector that is perpendicular to the plane spanned by
-    // N and view up vector (cam->up)
-    Vector3f U = Vector3f{up.x(), up.y(), up.z()}.cross(n);
+    // N and view up vector (cam->up), ie in the image plane and horizontal
+    Vector3f U = up.cross(n);
     u = U.normalized();
 
-    // v is a vector perpendicular to N and U
+    // v is a vector perpendicular to N and U, i.e vertical in image palne
     v = n.cross(u);
 
     // Compute dimensions of image plane in world units
-    double image_plane_height = tan(field_of_view.y() * 0.5f ) * 2.0f * focal_length;
-    double image_plane_width = tan(field_of_view.x() * 0.5f ) * 2.0f * focal_length;
+    /*
+     * We have
+     *
+     * +          ^
+     * |\         |
+     * |a\        |
+     * |  \       f = F*pixels per world unit
+     * |   \      |
+     * +----+     v
+     * pix width /w
+     * tan(a) = opp/adj = (image_width_pixels * 0.5) / focal_length_pixels
+     * 2tan(a) = image_width_pixels / focal_length_pixels
+     * => focal_length_pixels = image_width_pixels / (2tan(a))
+     *
+     * pixels_per_world_unit = focal_length_pixels / focal_length_world_units
+     *  focal_length_pixels = pixels_per_world_unit / focal_length_world_units
+     *
+     *  image_width_pixels / (2tan(a)) = pixels_per_world_unit / focal_length_world_units
+     *  => pixels_per_world_unit = (image_width_pixels / (2tan(a))) *  focal_length_world_units
+     */
+    double pixels_per_wux = (resolution.x() / (2 * tan(field_of_view.x() * 0.5f))) * focal_length;
+    double pixels_per_wuy = (resolution.y() / (2 * tan(field_of_view.y() * 0.5f))) * focal_length;
+
+    double image_plane_height = pixels_per_wuy / resolution.y();
+    double image_plane_width = pixels_per_wux / resolution.x();
 
     Vector3f image_plane_centre = camera_origin - (n * focal_length);
     image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);

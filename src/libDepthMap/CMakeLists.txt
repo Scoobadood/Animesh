@@ -4,6 +4,7 @@ add_library(DepthMap STATIC
         src/Normals.cpp  include/DepthMap/Normals.h
         src/CrossProductNormals.cpp  include/DepthMap/CrossProductNormals.h
         src/PclNormals.cpp  include/DepthMap/PclNormals.h
+        src/PlaneFittingNormals.cpp  include/DepthMap/PlaneFittingNormals.h
         src/DepthMap.cpp  include/DepthMap/DepthMap.h
 )
 
@@ -27,8 +28,9 @@ target_include_directories(DepthMap
         src)
 
 target_link_libraries(DepthMap
-        FileUtils
         Camera
+        FileUtils
+        Geom
         ${PCL_LIBRARIES}
         )
 
@@ -45,10 +47,13 @@ export(TARGETS DepthMap
 # include_directories("${GTEST_INCLUDE_DIRS}")
 
 add_executable(testDepthMap
-        tests/TestDepthMap.cpp tests/TestDepthMap.h)
+        tests/main.cpp
+        tests/TestDepthMap.cpp
+        tests/TestDepthMap.h)
 
 target_link_libraries(testDepthMap
         DepthMap
+        Geom
         ${PCL_LIBRARIES}
         gtest
         gmock)
@@ -62,7 +67,9 @@ add_custom_command(
 )
 
 add_executable(testPlanarNormals
-        tests/TestPlanarNormals.cpp tests/TestPlanarNormals.h)
+        tests/main.cpp
+        tests/TestPlanarNormals.cpp
+        tests/TestPlanarNormals.h)
 
 target_link_libraries(testPlanarNormals
         DepthMap

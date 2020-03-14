@@ -211,3 +211,14 @@ Eigen::Matrix3f rotation_between(	const Eigen::Vector3f& point1,
 	}
 	return result;
 }
+
+Eigen::Vector3f compute_centroid(const std::vector<Eigen::Vector3f>& points) {
+    Eigen::Vector3f centroid;
+
+    assert( !points.empty() );
+
+    for( const auto& point : points ) {
+        centroid += point;
+    }
+    return (centroid / points.size());
+}

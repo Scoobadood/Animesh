@@ -60,7 +60,7 @@ public:
 
 	void cull_unreliable_depths(float ts, float tl);
     const std::vector<std::vector<NormalWithType>> & get_normals() const;
-	static bool flag_is_set( int flags, DepthMap::tDirection flag );
+	static bool flag_is_set( unsigned int flags, DepthMap::tDirection flag );
 	bool is_normal_defined(unsigned int x, unsigned int y) const;
 
     NormalWithType normal_at(unsigned int x, unsigned int y) const;
@@ -69,7 +69,16 @@ public:
 //	inline bool is_edge(unsigned int row, unsigned int col) const {
 //		return (row == 0 || row == rows() - 1 || col == 0 || col == cols() - 1);
 //	}
-	int get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[], bool eightConnected = false) const;
+
+/**
+ * Given a row and column, get the depths of adjacent pixels in the depth map.
+ * If eightConnected is true, consider diagonal neighbours, otherwise only left irght up and down.
+ * Populates neighbour_depths with depth values (or 0.0) and returns a flag in indicating
+ * which values are valid.
+ * Values in neighbour depths are ordered:
+ * UP, DOWN, LEFT, RIGHT, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT
+ */
+	unsigned int get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[], bool eightConnected = false) const;
 
 protected:
 

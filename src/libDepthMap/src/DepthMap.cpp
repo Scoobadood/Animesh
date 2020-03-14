@@ -121,11 +121,11 @@ DepthMap::get_valid_directions(unsigned int x, unsigned int y, bool eightConnect
     return flags;
 }
 
-inline bool DepthMap::flag_is_set(int flags, DepthMap::tDirection flag) {
+inline bool DepthMap::flag_is_set(unsigned int flags, DepthMap::tDirection flag) {
     return ((flags & flag) == flag);
 }
 
-inline int clear_flag_if_zero(float value, int flags, DepthMap::tDirection flag) {
+inline unsigned int clear_flag_if_zero(float value, unsigned int flags, DepthMap::tDirection flag) {
     if (value != 0.0f) return flags;
     return flags & (~flag);
 }
@@ -136,10 +136,10 @@ inline int clear_flag_if_zero(float value, int flags, DepthMap::tDirection flag)
  * Populates neighbour_depths with depth values (or 0.0) and returns a flag in indicating
  * which values are valid.
  */
-int
+unsigned int
 DepthMap::get_neighbour_depths(unsigned int x, unsigned int y, float neighbour_depths[],
                                bool eightConnected) const {
-    int flags = get_valid_directions(x, y, eightConnected);
+    unsigned int flags = get_valid_directions(x, y, eightConnected);
     float d;
     if (flag_is_set(flags, UP)) {
         d = depth_at(x, y - 1);

@@ -44,10 +44,8 @@ export(TARGETS DepthMap
 # Include specific tests
 # include_directories("${GTEST_INCLUDE_DIRS}")
 
-file(GLOB TEST_SOURCES "tests/*.cpp")
-
 add_executable(testDepthMap
-        ${TEST_SOURCES} tests/testDepthMap.h)
+        tests/TestDepthMap.cpp tests/TestDepthMap.h)
 
 target_link_libraries(testDepthMap
         DepthMap
@@ -63,12 +61,17 @@ add_custom_command(
         DEPENDS testDepthMap
 )
 
-# add_custom_target(copy-runtime-files ALL
-#     COMMAND cmake -E copy_directory ${CMAKE_SOURCE_DIR}/runtime-files-dir ${CMAKE_BINARY_DIR}/runtime-files-dir
-#     )
+add_executable(testPlanarNormals
+        tests/TestPlanarNormals.cpp tests/TestPlanarNormals.h)
 
+target_link_libraries(testPlanarNormals
+        DepthMap
+        ${PCL_LIBRARIES}
+        gtest
+        gmock)
 
 add_test(NAME FileMissingShouldThrow COMMAND testDepthMap --gtest_filter=FileMissingShouldThrow)
 
 # Stash it
 install(TARGETS testDepthMap DESTINATION bin)
+install(TARGETS testPlanarNormals DESTINATION bin)

@@ -64,7 +64,10 @@ Properties::Properties(const std::string &file_name) {
 const std::string &Properties::getProperty(const std::string &key) const {
     using namespace std;
 
-    return property_map.at(key);
+    auto it = property_map.find(key);
+    if (it != property_map.end())
+        return it->second;
+    throw std::out_of_range("Property not found: " + key);
 }
 
 int Properties::getIntProperty(const std::string &key) const {

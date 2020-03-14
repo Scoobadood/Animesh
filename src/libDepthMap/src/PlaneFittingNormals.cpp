@@ -81,10 +81,7 @@ fit_plane_to_points(const std::vector<Eigen::Vector3f>& points, Eigen::Vector3f&
     for( const auto& point : points ) {
         allPoints.col(colIdx++) = point;
     }
-
-    std:: cout << " AP " << allPoints << std::endl << std::endl;
-
-
+    
     auto centroid = allPoints.rowwise().mean();
     const Matrix3Xf pointsCentered = allPoints.colwise() - centroid;
     int setting = Eigen::ComputeFullU | Eigen::ComputeThinV;

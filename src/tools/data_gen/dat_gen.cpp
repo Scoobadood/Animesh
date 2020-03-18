@@ -13,8 +13,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
-#include <sstream>
-#include <math.h>
+#include <cmath>
 #include <Camera/Camera.h>
 
 #include <FileUtils/ObjFileParser.h>

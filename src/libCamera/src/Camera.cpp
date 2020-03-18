@@ -66,13 +66,13 @@ Camera::compute_camera_parms() {
      *  image_width_pixels / (2tan(a)) = pixels_per_world_unit / focal_length_world_units
      *  => pixels_per_world_unit = (image_width_pixels / (2tan(a))) *  focal_length_world_units
      */
-    double pixels_per_wux = (m_resolution.x() / (2 * tan(m_field_of_view.x() * 0.5f))) * focal_length;
-    double pixels_per_wuy = (m_resolution.y() / (2 * tan(m_field_of_view.y() * 0.5f))) * focal_length;
+    double pixels_per_wux = (m_resolution.x() / (2 * tan(m_field_of_view.x() * 0.5f))) * m_focal_length;
+    double pixels_per_wuy = (m_resolution.y() / (2 * tan(m_field_of_view.y() * 0.5f))) * m_focal_length;
 
     double image_plane_height = pixels_per_wuy / m_resolution.y();
     double image_plane_width = pixels_per_wux / m_resolution.x();
 
-    Vector3f image_plane_centre = m_origin - (n * focal_length);
+    Vector3f image_plane_centre = m_origin - (n * m_focal_length);
     image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
 
     // Compute pixel dimensions in world units
@@ -234,7 +234,7 @@ std::ostream
     os << " up : " << camera.v.x() << ", " << camera.v.y() << ", " << camera.v.z() << endl;
     os << "res : " << camera.m_resolution.x() << ", " << camera.m_resolution.y() << endl;
     os << "fov : " << camera.m_field_of_view.x() << ", " << camera.m_field_of_view.y() << endl;
-    os << "foc : " << camera.focal_length << endl;
+    os << "foc : " << camera.m_focal_length << endl;
     return os;
 }
 

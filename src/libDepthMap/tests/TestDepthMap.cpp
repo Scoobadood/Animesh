@@ -297,42 +297,42 @@ TEST_F( TestDepthMap, CentralNormalIsZ ) {
     };
 	// 7x7 map with 5x5 set in centre.
     DepthMap d{7, 7, data};
-    d.compute_normals(get_camera());
-	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
-	std::vector<float> norm = normals.at(3).at(3);
+    d.compute_normals(get_camera(), PLANAR);
+	std::vector<std::vector<NormalWithType>> normals = d.get_normals();
+	NormalWithType norm = normals.at(3).at(3);
 
-	EXPECT_EQ( norm.at(0), 0.0f);
-	EXPECT_EQ( norm.at(1), 0.0f);
-	EXPECT_EQ( norm.at(2), 1.0f);
+	EXPECT_EQ( norm.x, 0.0f);
+	EXPECT_EQ( norm.y, 0.0f);
+	EXPECT_EQ( norm.z, 1.0f);
 }
 
 TEST_F( TestDepthMap, TopLeftNormalIsNotThere ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
-	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+	std::vector<std::vector<NormalWithType>> normals = d.get_normals();
 
 	//-0, 0.948683, 0.316228
-	EXPECT_EQ( normals[0][0][0], 0.0f);
-	EXPECT_EQ( normals[0][0][1], 0.0f);
-	EXPECT_EQ( normals[0][0][2], 0.0f);
+	EXPECT_EQ( normals[0][0].x, 0.0f);
+	EXPECT_EQ( normals[0][0].y, 0.0f);
+	EXPECT_EQ( normals[0][0].z, 0.0f);
 }
 
 TEST_F( TestDepthMap, TopCentralNormalIsZ ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
-	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+	std::vector<std::vector<NormalWithType>> normals = d.get_normals();
 
-    EXPECT_EQ( normals[1][3][0], 0.0f);
-	EXPECT_EQ( normals[1][3][1], 0.0f);
-	EXPECT_EQ( normals[1][3][2], 1.0f);
+    EXPECT_EQ( normals[1][3].x, 0.0f);
+	EXPECT_EQ( normals[1][3].y, 0.0f);
+	EXPECT_EQ( normals[1][3].z, 1.0f);
 }
 
 TEST_F( TestDepthMap, LeftCentralNormalIsZ ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
-	std::vector<std::vector<std::vector<float>>> normals = d.get_normals();
+	std::vector<std::vector<NormalWithType>> normals = d.get_normals();
 
-	EXPECT_EQ( normals[1][3][0], 0.0f);
-	EXPECT_EQ( normals[1][3][1], 0.0f);
-	EXPECT_EQ( normals[1][3][2], 1.0f);
+	EXPECT_EQ( normals[1][3].x, 0.0f);
+	EXPECT_EQ( normals[1][3].y, 0.0f);
+	EXPECT_EQ( normals[1][3].z, 1.0f);
 }

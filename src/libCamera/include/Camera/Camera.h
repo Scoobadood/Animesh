@@ -34,19 +34,36 @@ public:
     decompose(Eigen::Matrix3f &K, Eigen::Matrix3f &R, Eigen::Vector3f &t);
 
     inline Eigen::Vector3f
-    origin() const {return camera_origin;}
+    origin() const {return m_origin;}
+
+
+    inline Eigen::Vector3f
+    look_at() const { return m_look_at;}
+
+    inline Eigen::Vector2f
+    field_of_view() const { return m_field_of_view;}
+
+    inline Eigen::Vector2f
+    resolution() const { return m_resolution;}
+
+    inline Eigen::Vector3f
+    up() const { return m_up;}
+
+    inline float
+    focal_length() const { return m_focal_length;}
+
 
 private:
-    Eigen::Vector3f camera_origin;          // World Coordinates
-    Eigen::Vector3f looking_at;             // World Coordinates
-    Eigen::Vector2f field_of_view;          // Radians
+    Eigen::Vector3f m_origin;               // World Coordinates
+    Eigen::Vector3f m_look_at;              // World Coordinates
+    Eigen::Vector2f m_field_of_view;        // Radians
+    Eigen::Vector2f m_resolution;           // Pixel size of image
+    Eigen::Vector3f m_up;
     Eigen::Vector3f image_plane_origin;     // World Coordinates
     Eigen::Vector2f image_plane_dimensions; // World units
-    Eigen::Vector2f resolution;             // Pixel size of image
-    float focal_length;                     // World units
-    double pixel_width;                      // World units
-    double pixel_height;                     // World units
-    Eigen::Vector3f up;
+    float m_focal_length{};                   // World units
+    double pixel_width{};                     // World units
+    double pixel_height{};                    // World units
     Eigen::Vector3f n;
     Eigen::Vector3f u;
     Eigen::Vector3f v;
@@ -70,25 +87,19 @@ private:
      *          |/
      *
      */
-    void construct_camera_coordinate_system();
-    void construct_image_plane_origin();
     void compute_camera_parms();
 
     friend std::ostream &operator<<(std::ostream &os, const Camera &camera);
 
     friend Camera scale_camera( const Camera& source_camera, float scale_x, float scale_y ) {
-        const float *position = source_camera.camera_origin.data();
-        const float *up = source_camera.up.data();
-        const float *resolution = source_camera.resolution.data();
-        const float *fov = source_camera.field_of_view.data();
-        Camera lc{position,
-                  source_camera.looking_at.data(),
-                  up,
-                  resolution,
-                  fov,
-                  source_camera.focal_length};
-        lc.resolution[0] /= scale_x;
-        lc.resolution[1] /= scale_y;
+        Camera lc{source_camera.m_origin.data(),
+                  source_camera.m_look_at.data(),
+                  source_camera.m_up.data(),
+                  source_camera.m_resolution.data(),
+                  source_camera.m_field_of_view.data(),
+                  source_camera.m_focal_length};
+        lc.m_resolution[0] /= scale_x;
+        lc.m_resolution[1] /= scale_y;
         return lc;
     }
 };

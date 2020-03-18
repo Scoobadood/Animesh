@@ -444,14 +444,7 @@ int main(int argc, char *argv[]) {
     vector<Camera> cameras = load_cameras(num_frames);
 
     // Construct the hierarchy: number of levels as specified in properties.
-    vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps);
-
-    // Compute normals for the hierarchy
-    for (auto & depth_maps_for_level : depth_map_hierarchy) {
-        for (unsigned int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
-            depth_maps_for_level.at(frame_idx).compute_normals(cameras.at(frame_idx));
-        }
-    }
+    vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps, cameras);
 
     // Vector of level, frame, pixel index
     vector<vector<vector<Pixel>>> valid_pixels_for_levels = get_valid_pixels_for_all_levels(depth_map_hierarchy);

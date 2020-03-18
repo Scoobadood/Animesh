@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <math.h>
+#include <cmath>
 #include <Eigen/Geometry>
 #include <Camera/Camera.h>
 
@@ -9,22 +9,22 @@ const double DEG_TO_RAD = M_PI / 180.0;
 
 Camera::Camera(const float position[3],
                const float view[3], const float up[3], const float res[2],
-               const float fov[2], float f) : camera_origin{position[0], position[1], position[2]},
-                                              looking_at{view[0], view[1], view[2]},
-                                              up{up[0], up[1], up[2]},
-                                              resolution{res[0], res[1]},
-                                              field_of_view{fov[0] * DEG_TO_RAD, fov[1] * DEG_TO_RAD},
-                                              focal_length{f} {
+               const float fov[2], float f) : m_origin{position[0], position[1], position[2]},
+                                              m_look_at{view[0], view[1], view[2]},
+                                              m_up{up[0], up[1], up[2]},
+                                              m_resolution{res[0], res[1]},
+                                              m_field_of_view{fov[0] * DEG_TO_RAD, fov[1] * DEG_TO_RAD},
+                                              m_focal_length{f} {
     compute_camera_parms();
 }
 
 void
 Camera::set_image_size( unsigned int width, unsigned int height ) {
     // Compute pixel dimensions in world units
-    resolution.x() = width;
-    resolution.y() = height;
-    pixel_width = image_plane_dimensions.x() / resolution.x();
-    pixel_height = image_plane_dimensions.y() / resolution.y();
+    m_resolution.x() = width;
+    m_resolution.y() = height;
+    pixel_width = image_plane_dimensions.x() / m_resolution.x();
+    pixel_height = image_plane_dimensions.y() / m_resolution.y();
 }
 
 void
@@ -32,14 +32,14 @@ Camera::compute_camera_parms() {
     using namespace Eigen;
 
     // n is normal to image plane, points in opposite direction of view point
-    Vector3f N{camera_origin.x() - looking_at.x(),
-               camera_origin.y() - looking_at.y(),
-               camera_origin.z() - looking_at.z()};
+    Vector3f N{m_origin.x() - m_look_at.x(),
+               m_origin.y() - m_look_at.y(),
+               m_origin.z() - m_look_at.z()};
     n = N.normalized();
 
     // u is a vector that is perpendicular to the plane spanned by
     // N and view up vector (cam->up), ie in the image plane and horizontal
-    Vector3f U = up.cross(n);
+    Vector3f U = m_up.cross(n);
     u = U.normalized();
 
     // v is a vector perpendicular to N and U, i.e vertical in image palne
@@ -66,18 +66,18 @@ Camera::compute_camera_parms() {
      *  image_width_pixels / (2tan(a)) = pixels_per_world_unit / focal_length_world_units
      *  => pixels_per_world_unit = (image_width_pixels / (2tan(a))) *  focal_length_world_units
      */
-    double pixels_per_wux = (resolution.x() / (2 * tan(field_of_view.x() * 0.5f))) * focal_length;
-    double pixels_per_wuy = (resolution.y() / (2 * tan(field_of_view.y() * 0.5f))) * focal_length;
+    double pixels_per_wux = (m_resolution.x() / (2 * tan(m_field_of_view.x() * 0.5f))) * focal_length;
+    double pixels_per_wuy = (m_resolution.y() / (2 * tan(m_field_of_view.y() * 0.5f))) * focal_length;
 
-    double image_plane_height = pixels_per_wuy / resolution.y();
-    double image_plane_width = pixels_per_wux / resolution.x();
+    double image_plane_height = pixels_per_wuy / m_resolution.y();
+    double image_plane_width = pixels_per_wux / m_resolution.x();
 
-    Vector3f image_plane_centre = camera_origin - (n * focal_length);
+    Vector3f image_plane_centre = m_origin - (n * focal_length);
     image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
 
     // Compute pixel dimensions in world units
-    pixel_width = image_plane_width / resolution.x();
-    pixel_height = image_plane_height / resolution.y();
+    pixel_width = image_plane_width / m_resolution.x();
+    pixel_height = image_plane_height / m_resolution.y();
 
     image_plane_dimensions.x() = image_plane_width;
     image_plane_dimensions.y() = image_plane_height;
@@ -188,10 +188,10 @@ Camera loadCameraFromFile(const std::string &filename) {
  * Get the camera matrix.
  */
 void Camera::camera_intrinsics(Eigen::Matrix3f &K) {
-    double cx = resolution.x() * 0.5;
-    double cy = resolution.y() * 0.5;
-    double fx = resolution.x() / tan(field_of_view.x() * 0.5);
-    double fy = resolution.y() / tan(field_of_view.y() * 0.5);
+    double cx = m_resolution.x() * 0.5;
+    double cy = m_resolution.y() * 0.5;
+    double fx = m_resolution.x() / tan(m_field_of_view.x() * 0.5);
+    double fy = m_resolution.y() / tan(m_field_of_view.y() * 0.5);
     float skew = 0.0f;
     K << fx, skew, cx,
             0.0f, fy, cy,
@@ -209,7 +209,7 @@ Camera::camera_extrinsics(Eigen::Matrix3f &R, Eigen::Vector3f &t) {
             v.y(), u.y(), n.y(),
             v.z(), u.z(), n.z();
 
-    t = -R * camera_origin;
+    t = -R * m_origin;
 }
 
 /**
@@ -229,11 +229,11 @@ Camera::decompose(Eigen::Matrix3f &K, Eigen::Matrix3f &R, Eigen::Vector3f &t) {
 std::ostream
 &operator<<(std::ostream &os, const Camera &camera) {
     using namespace std;
-    os << "pos : " << camera.camera_origin.x() << ", " << camera.camera_origin.y() << ", " << camera.camera_origin.z() << endl;
+    os << "pos : " << camera.m_origin.x() << ", " << camera.m_origin.y() << ", " << camera.m_origin.z() << endl;
     os << "vew : " << camera.n.x() << ", " << camera.n.y() << ", " << camera.n.z() << endl;
     os << " up : " << camera.v.x() << ", " << camera.v.y() << ", " << camera.v.z() << endl;
-    os << "res : " << camera.resolution.x() << ", " << camera.resolution.y() << endl;
-    os << "fov : " << camera.field_of_view.x() << ", " << camera.field_of_view.y() << endl;
+    os << "res : " << camera.m_resolution.x() << ", " << camera.m_resolution.y() << endl;
+    os << "fov : " << camera.m_field_of_view.x() << ", " << camera.m_field_of_view.y() << endl;
     os << "foc : " << camera.focal_length << endl;
     return os;
 }
@@ -251,8 +251,8 @@ Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float d
                                + ((pixel_y /*+ 0.5*/) * pixel_height * v);
 
    // Now project the ray to the depth expected to give the final world coordinate of the projected point
-    Vector3f rayDirection = (pixelCoordinate - camera_origin).normalized();
-    return camera_origin + (rayDirection * depth);
+    Vector3f rayDirection = (pixelCoordinate - m_origin).normalized();
+    return m_origin + (rayDirection * depth);
 }
 
 /*
@@ -274,9 +274,9 @@ Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float d
  */
 void
 Camera::move_to( float world_x, float world_y, float world_z, bool keep_facing ) {
-    camera_origin << world_x, world_y, world_z;
+    m_origin << world_x, world_y, world_z;
     if( keep_facing) {
-        looking_at << world_x - n.x(), world_y - n.y(), world_z - n.z();
+        m_look_at << world_x - n.x(), world_y - n.y(), world_z - n.z();
     }
     compute_camera_parms();
 }
@@ -286,7 +286,7 @@ Camera::move_to( float world_x, float world_y, float world_z, bool keep_facing )
  */
 void
 Camera::look_at( float view_x, float view_y, float view_z ) {
-    looking_at << view_x, view_y, view_z;
+    m_look_at << view_x, view_y, view_z;
     compute_camera_parms();
 }
 

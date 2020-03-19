@@ -218,11 +218,12 @@ int main(int argc, char *argv[]) {
         cl_float2 fov;
         cl_float focalDistance;
     } gpu_cam;
-    memcpy((void *) &(gpu_cam.position), cpuCamera.origin().data(), sizeof(float) * 3);
-    memcpy((void *) &(gpu_cam.view), cpuCamera.look_at().data(), sizeof(float) * 3);
-    memcpy((void *) &(gpu_cam.up), cpuCamera.up().data(), sizeof(float) * 3);
-    memcpy((void *) &(gpu_cam.resolution), cpuCamera.resolution().data(), sizeof(float) * 2);
-    memcpy((void *) &(gpu_cam.fov), cpuCamera.field_of_view().data(), sizeof(float) * 2);
+
+    memcpy((void *) &(gpu_cam.position), cpuCamera.origin().data(), 3 * sizeof(float));
+    memcpy((void *) &(gpu_cam.view), cpuCamera.look_at().data(), 3 * sizeof(float));
+    memcpy((void *) &(gpu_cam.up), cpuCamera.up().data(), 3 * sizeof(float));
+    memcpy((void *) &(gpu_cam.resolution), cpuCamera.resolution().data(), 2 * sizeof(float));
+    memcpy((void *) &(gpu_cam.fov), cpuCamera.field_of_view().data(), 2 * sizeof(float));
     gpu_cam.focalDistance = cpuCamera.focal_length();
     Buffer gpuCamera{context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(gpu_cam), (void *) &gpu_cam};
 

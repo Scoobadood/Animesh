@@ -3,8 +3,6 @@
  * before and after deformation
  */
 
-__constant float PI = 3.14159265359f;
-
 // A ray in 3D space
 typedef struct Ray {
 	float3 origin;
@@ -92,8 +90,8 @@ void construct_image_plane_origin(const float2 fov,
 								  const float3 v, 
 								  float3 * image_plane_origin,
 								  float2 * image_plane_dimensions) {
-	float image_plane_height = tan(fov.y * 0.5f * (PI / 180)) * 2.0f * focal_length;
-	float image_plane_width  = tan(fov.x * 0.5f * (PI / 180)) * 2.0f * focal_length;
+	float image_plane_height = tan(fov.y * 0.5f) * 2.0f * focal_length;
+	float image_plane_width  = tan(fov.x * 0.5f) * 2.0f * focal_length;
 
 	float3 image_plane_centre = camera_origin - ( n * focal_length );
 	*image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);

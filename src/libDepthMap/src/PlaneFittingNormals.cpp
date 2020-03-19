@@ -115,6 +115,7 @@ compute_normals_from_neighbours(DepthMap *depth_map, const Camera &camera) {
 
             // Backproject points
             vector<Vector3f> neighbours_in_world_coords;
+            neighbours_in_world_coords.reserve(neighbours.size());
             for (const auto &n : neighbours) {
                 neighbours_in_world_coords.emplace_back(camera.to_world_coordinates(n.x, n.y, n.depth));
             }

@@ -38,7 +38,12 @@ if (assimp_FOUND)
 endif(assimp_FOUND)
 
 # Data Generator
-add_executable(dat_gen ${SOURCES} ray_trace.cl)
+add_executable(dat_gen
+        dat_gen.cpp
+        mesh_cl.cpp  mesh_cl.hpp
+        model_cl.cpp model_cl.hpp
+        utility.cpp utility.hpp
+        ray_trace.cl)
 
 target_include_directories(
   dat_gen PUBLIC 

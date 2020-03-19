@@ -1,3 +1,7 @@
+#if __CIDR_clang__has_attribute_noreturn
+    #define whatever
+#endif
+
 /*
  * Construct correspondences between pixels in different images of the same mesh
  * before and after deformation
@@ -14,7 +18,7 @@ typedef struct Camera{
 	float3 view;			
 	float3 up;			
 	float2 resolution;	
-	float2 fov;		
+	float2 fov;		            // In radians
 	float focalDistance;
 } Camera;
 
@@ -57,16 +61,21 @@ void construct_image_plane_origin(const float2 fov,
  *            /   |
  *           / ^  |
  *          / v|  |
- *          |  |-----> n
+ *          |  |-----> n             O>
  *          | /  /
  *          |Lu /
  *          |  /
  *          | /
  *          |/
  *
+ * Example:
+ * O = [ 0, 8, 10], view = [0, 0, 0]
+ * N = [ 0, 8, 10]
+ * u = [10, 0, 0]
+ * v = [0, -10, -8]
  */
 void construct_camera_coordinate_system(__global Camera * cam, float3 * origin, float3 * n, float3 * u, float3 * v) {
-	// n is normal to image plane, points in opposite direction of view point
+	// n is normal to image plane, pointing at cam origin (assuming image plane in front of origin)
 	float3 N = cam->position - cam->view;
 	*n = normalize(N);
 
@@ -90,13 +99,9 @@ void construct_image_plane_origin(const float2 fov,
 								  const float3 v, 
 								  float3 * image_plane_origin,
 								  float2 * image_plane_dimensions) {
-	float image_plane_height = tan(fov.y * 0.5f) * 2.0f * focal_length;
-	float image_plane_width  = tan(fov.x * 0.5f) * 2.0f * focal_length;
-
+	*image_plane_dimensions = tan(fov * 0.5f) * 2.0f * focal_length;
 	float3 image_plane_centre = camera_origin - ( n * focal_length );
-	*image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
-	image_plane_dimensions->x = image_plane_width;
-	image_plane_dimensions->y = image_plane_height;
+	*image_plane_origin = image_plane_centre - (u * image_plane_dimensions->x * 0.5f) - (v * image_plane_dimensions->y * 0.5f);
 }
 
 /**
@@ -282,6 +287,8 @@ __kernel void ray_trace(
 	if( intersect_ray_with_mesh(ray, num_vertices, vertices, num_faces, faces, face_normals, &range, &intersected_face)) {
 		// Compute the depth at this point
 		depth[work_item_id] = range;
+
+		printf("%d, %d, %f\n", x, y, range);
 
 		// Compute _nearest_ vertex index
 		float3 intersection = ray.origin + (range * ray.direction);

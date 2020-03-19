@@ -237,8 +237,8 @@ int main(int argc, char *argv[]) {
     kernel.setArg(5, gpuCamera);            // Camera
     kernel.setArg(6, gpuDepthBuffer);        // Depth image rendered to here
     kernel.setArg(7, gpuVertexBuffer);        // Vertex image rendered to here
-    kernel.setArg(8, cpuCamera.resolution().x());                // Width of output images
-    kernel.setArg(9, cpuCamera.resolution().y());                // Height of output images
+    kernel.setArg(8, (int)cpuCamera.resolution().x());                // Width of output images
+    kernel.setArg(9, (int)cpuCamera.resolution().y());                // Height of output images
 
     // Create a command queue for the OpenCL device
     // the command queue allows kernel execution commands to be sent to the device

@@ -127,7 +127,8 @@ public class JoglMain implements GLEventListener {
             Vector3f normStart = new Vector3f(vertices[sourceVertexIndex], vertices[sourceVertexIndex + 1], vertices[sourceVertexIndex + 2]);
             Vector3f normEnd = new Vector3f(vertices[sourceVertexIndex + 3], vertices[sourceVertexIndex + 4], vertices[sourceVertexIndex + 5]);
             Vector3f norm = normEnd.minus(normStart);
-            if (norm.dot(camOrigin) > 0) {
+            Vector3f camToPoint = normStart.minus(camOrigin);
+            if (norm.dot(camToPoint) < 0) {
                 renderSurfelIndices[numRenderSurfels++] = i;
             }
         }

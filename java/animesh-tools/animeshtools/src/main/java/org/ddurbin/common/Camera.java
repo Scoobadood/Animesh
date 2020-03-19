@@ -177,14 +177,16 @@ public class Camera {
 
         Vector3f imagePlaneCentre = position.minus((ccs.n.times(focalDistance)));
 
-        ccs.imagePlaneOrigin = imagePlaneCentre.minus((ccs.u.times(imagePlaneWidth * 0.5f)).minus(ccs.v.times(imagePlaneHeight * 0.5f)));
+        ccs.imagePlaneOrigin = imagePlaneCentre
+                .minus(ccs.u.times(imagePlaneWidth * 0.5f))
+                .minus(ccs.v.times(imagePlaneHeight * 0.5f));
         ccs.imagePlaneDimensions = new Vector2f(imagePlaneWidth, imagePlaneHeight);
     }
 
     /*
      * Compute the backprojection of a point from X,Y and depth plus camera
      */
-    public Vector3f to_world_coordinates(int pixelX, int pixelY, float depth) {
+    public Vector3f toWorldCoordinates(int pixelX, int pixelY, float depth) {
         if( camCoordinateSystem == null ) {
             camCoordinateSystem  = constructCameraCoordinateSystem();
             constructImagePlaneOrigin(camCoordinateSystem);

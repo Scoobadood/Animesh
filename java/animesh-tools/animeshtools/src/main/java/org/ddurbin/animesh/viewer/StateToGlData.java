@@ -29,10 +29,8 @@ public class StateToGlData {
         if (fd.pixelInFrame.frameIndex == frame) {
           // Get tangent and normal
           Pair<Vector3f, Vector3f> p = StateUtilities.projectSurfelToFrame(s, fd);
-          Vector3f pointInSpace = camera.to_world_coordinates((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
+          Vector3f pointInSpace = camera.toWorldCoordinates((int)fd.pixelInFrame.x, (int)fd.pixelInFrame.y, fd.depth);
 
-//          System.out.println(String.format("P: %d %d, %d          3D: %4.4f %4.4f %4.4f", fd.pixelInFrame.frameIndex, fd.pixelInFrame.x, fd.pixelInFrame.y, pointInSpace.x, pointInSpace.y, pointInSpace.z));
-//          System.out.println(String.format("N: %4.4f %4.4f %4.4f  Tan: %4.4f %4.4f %4.4f", p.second.x, p.second.y, p.second.z, p.first.x, p.first.y, p.first.z));
             Vector3f normend = pointInSpace.plus(p.second);
             System.out.println(String.format("%4.4f, %4.4f, %4.4f, %4.4f, %4.4f, %4.4f;", pointInSpace.x, pointInSpace.y, pointInSpace.z, normend.x, normend.y, normend.z));
 
@@ -91,28 +89,19 @@ public class StateToGlData {
     float maxZ = -Float.MAX_VALUE;
     for (int i = 0; i < lf.size(); i++) {
       f[i] = lf.get(i);
-      if (i % 3 == 0) {
-        if (f[i] < minX) {
-          minX = f[i];
-        }
-        if (f[i] > maxX) {
-          maxX = f[i];
-        }
-      } else if (i % 3 == 1) {
-        if (f[i] < minY) {
-          minY = f[i];
-        }
-        if (f[i] > maxY) {
-          maxY = f[i];
-        }
-
-      } else /* i % 3 == 2 */ {
-        if (f[i] < minZ) {
-          minZ = f[i];
-        }
-        if (f[i] > maxZ) {
-          maxZ = f[i];
-        }
+      switch( i%3) {
+        case 0:
+          minX = Math.min(minX, f[i]);
+          maxX = Math.max(maxX, f[i]);
+          break;
+        case 1:
+          minY = Math.min(minY, f[i]);
+          maxY = Math.max(maxY, f[i]);
+          break;
+        case 2:
+          minZ = Math.min(minZ, f[i]);
+          maxZ = Math.max(maxZ, f[i]);
+          break;
       }
     }
     System.out.println( String.format("X [%.3f -> %.3f]", minX, maxX));
@@ -121,7 +110,7 @@ public class StateToGlData {
     float scale = Math.max( Math.abs(minX), Math.abs(maxX));
     scale = Math.max( scale, Math.max( Math.abs(minY), Math.abs(maxY)));
     scale = Math.max( scale, Math.max( Math.abs(minZ), Math.abs(maxZ)));
-    for (int i = 0; i < lf.size(); i++) {
+    for (int i = 0; i < f.length; i++) {
       f[i] /= scale;
     }
     return f;

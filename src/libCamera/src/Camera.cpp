@@ -66,11 +66,8 @@ Camera::compute_camera_parms() {
      *  image_width_pixels / (2tan(a)) = pixels_per_world_unit / focal_length_world_units
      *  => pixels_per_world_unit = (image_width_pixels / (2tan(a))) *  focal_length_world_units
      */
-    double pixels_per_wux = (m_resolution.x() / (2 * tan(m_field_of_view.x() * 0.5f))) * m_focal_length;
-    double pixels_per_wuy = (m_resolution.y() / (2 * tan(m_field_of_view.y() * 0.5f))) * m_focal_length;
-
-    double image_plane_height = pixels_per_wuy / m_resolution.y();
-    double image_plane_width = pixels_per_wux / m_resolution.x();
+    double image_plane_height = (2 * tan(m_field_of_view.y() * 0.5f)) * m_focal_length;
+    double image_plane_width = (2 * tan(m_field_of_view.x() * 0.5f)) * m_focal_length;
 
     Vector3f image_plane_centre = m_origin - (n * m_focal_length);
     image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
@@ -247,8 +244,8 @@ Camera::to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float d
 
     // Get world coordinates of pixel through which the ray passes
    Vector3f pixelCoordinate = image_plane_origin
-                               + ((pixel_x /*+ 0.5*/) * pixel_width * u)
-                               + ((pixel_y /*+ 0.5*/) * pixel_height * v);
+                               + ((pixel_x + 0.5) * pixel_width * u)
+                               + ((pixel_y + 0.5) * pixel_height * v);
 
    // Now project the ray to the depth expected to give the final world coordinate of the projected point
     Vector3f rayDirection = (pixelCoordinate - m_origin).normalized();

@@ -288,8 +288,6 @@ __kernel void ray_trace(
 		// Compute the depth at this point
 		depth[work_item_id] = range;
 
-		printf("%d, %d, %f\n", x, y, range);
-
 		// Compute _nearest_ vertex index
 		float3 intersection = ray.origin + (range * ray.direction);
 		int idx = closest_vertex(intersected_face, vertices, intersection);

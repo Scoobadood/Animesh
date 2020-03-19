@@ -128,8 +128,8 @@ compute_normals_from_neighbours(DepthMap *depth_map, const Camera &camera) {
             }
 
             // Force correct orientation
-            Vector3f cam2point = camera.to_world_coordinates(x, y, depth);
-            float dp = cam2point.dot(planar_normal);
+            Vector3f cam_to_pixel = camera.to_world_coordinates(x, y, depth) - camera.origin();
+            float dp = cam_to_pixel.dot(planar_normal);
             if( dp < 0 ) {
                 planar_normal = - planar_normal;
             }

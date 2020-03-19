@@ -11,7 +11,7 @@
 #include <DepthMap/Normals.h>
 
 
-static const char *DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth_f[0-9]+[0-9]+\.mat)";
+static const char *DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth_f[0-9]{2}\.mat)";
 
 std::vector<std::string>
 get_depth_files_in_directory(const std::string &directory_name) {

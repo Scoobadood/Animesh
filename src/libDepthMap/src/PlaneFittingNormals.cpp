@@ -52,7 +52,7 @@ std::vector<PixelWithDepth> get_neighbours_for_pixel(const DepthMap *depth_map, 
         neighbours.emplace_back(x - 1, y + 1, neighbour_depths[6]);
     }
     if (DepthMap::flag_is_set(available_neighbours, DepthMap::DOWN_RIGHT)) {
-        neighbours.emplace_back(x + 12, y + 1, neighbour_depths[7]);
+        neighbours.emplace_back(x + 1, y + 1, neighbour_depths[7]);
     }
     return neighbours;
 }

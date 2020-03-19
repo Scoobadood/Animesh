@@ -5,17 +5,14 @@
 #include <vector>
 #include <Camera/Camera.h>
 #include <DepthMap/Normals.h>
-#include <DepthMap/PlaneFittingNormals.h>
 #include <DepthMap/DepthMap.h>
-#include <Geom/geom.h>
 
 #include <Eigen/SVD>
 
 struct PixelWithDepth {
-    unsigned int x;
-    unsigned int y;
-    float depth;
-
+    const unsigned int x;
+    const unsigned int y;
+    const float depth;
     PixelWithDepth(unsigned int x, unsigned int y, float depth) : x{x}, y{y}, depth{depth} {};
 };
 

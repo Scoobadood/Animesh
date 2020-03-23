@@ -12,6 +12,9 @@
 #include "surfel_io.h"
 #include "utilities.h"
 #include "depth_map_io.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
 
 const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
 const char post_smooth_filename_template[] = "smoothed_%02d.bin";
@@ -61,8 +64,8 @@ namespace std {
  * Children with no parents are stored as IDs in unmapped
  */
 std::multimap<std::string, std::string>
-compute_child_to_parent_surfel_id_map(std::vector<Surfel> &child_surfels, //
-                                      std::vector<Surfel> &parent_surfels, //
+compute_child_to_parent_surfel_id_map(const std::vector<Surfel> &child_surfels, //
+                                      const std::vector<Surfel> &parent_surfels, //
                                       std::vector<std::string> &orphans) {
     using namespace std;
 
@@ -108,7 +111,7 @@ down_propagate_tangents(const std::multimap<std::string, std::string> &child_to_
 
     // for each surfel in the lower level
     auto child_iterator = child_to_parents.begin();
-    while ( child_iterator != child_to_parents.end()) {
+    while (child_iterator != child_to_parents.end()) {
         auto child_id = child_iterator->first;
         int num_parents = 0;
         Vector3f mean_tangent{0.0f, 0.0f, 0.0};
@@ -176,7 +179,8 @@ maybe_save_depth_and_normal_maps(const Properties &properties,
  * Remove any surfels which cannot be found from the neighbours of remaining surfels
  */
 void
-prune_surfel_neighbours(std::vector<Surfel> &surfels, std::vector<std::string> &ids_to_remove, const Properties &properties) {
+prune_surfel_neighbours(std::vector<Surfel> &surfels, std::vector<std::string> &ids_to_remove,
+                        const Properties &properties) {
     using namespace std;
 
     // Now update lists of neighbours to remove ones that have gone
@@ -208,10 +212,10 @@ prune_surfel_neighbours(std::vector<Surfel> &surfels, std::vector<std::string> &
  * Remove the previous level surfels from the Surfel::map
  */
 void
-unmap_surfels(const std::vector<std::string>& surfel_ids ) {
+unmap_surfels(const std::vector<std::string> &surfel_ids) {
     using namespace std;
 
-    for( const auto & k : surfel_ids) {
+    for (const auto &k : surfel_ids) {
         Surfel::surfel_by_id.erase(k);
     }
 }
@@ -220,7 +224,7 @@ unmap_surfels(const std::vector<std::string>& surfel_ids ) {
  * Remove the previous level surfels from the Surfel::map
  */
 void
-unmap_surfels(const std::vector<Surfel>& surfels ) {
+unmap_surfels(const std::vector<Surfel> &surfels) {
     using namespace std;
 
     vector<string> ids_to_remove;
@@ -235,7 +239,8 @@ unmap_surfels(const std::vector<Surfel>& surfels ) {
  * The properties object is consulted to check whether to log this removal or not.
  */
 void
-remove_surfels_by_id(std::vector<Surfel> &surfels, std::vector<std::string> &ids_to_remove, const Properties &properties) {
+remove_surfels_by_id(std::vector<Surfel> &surfels, std::vector<std::string> &ids_to_remove,
+                     const Properties &properties) {
     using namespace std;
 
     size_t initial_surfel_count = surfels.size();
@@ -250,12 +255,44 @@ remove_surfels_by_id(std::vector<Surfel> &surfels, std::vector<std::string> &ids
 
         // optionally log
         if (properties.getBooleanProperty("log-dropped-surfels")) {
-            cout << "Removed " << ids_to_remove.size() << " of " << initial_surfel_count << " surfels. Surfels remaining: " << surfels.size() << endl;
-            for( const auto& id : ids_to_remove) {
+            cout << "Removed " << ids_to_remove.size() << " of " << initial_surfel_count
+                 << " surfels. Surfels remaining: " << surfels.size() << endl;
+            for (const auto &id : ids_to_remove) {
                 cout << "  " << id << endl;
             }
         }
     }
+}
+
+/**
+ * For each Surfel in the current layer, find parent(s) and initialise this surfels
+ * tangent with a combination of the parents tangents.
+ * Surfels with no parents are pruned.
+ * @param current_level_surfels
+ * @param previous_level_surfels
+ * @param properties
+ */
+void initialise_tangents_from_previous_level(std::vector<Surfel> &current_level_surfels,
+                                             const std::vector<Surfel> &previous_level_surfels,
+                                             const Properties &properties) {
+    using namespace std;
+
+    vector<string> orphans;
+    multimap<string, string> child_to_parent_surfel_id_map = compute_child_to_parent_surfel_id_map(
+            current_level_surfels,
+            previous_level_surfels,
+            orphans);
+    // Remove orphan surfels from this level
+    remove_surfels_by_id(current_level_surfels, orphans, properties);
+
+    // Prune neighbours to handle removed surfels
+    prune_surfel_neighbours(current_level_surfels, orphans, properties);
+
+    // Seed the current level surfels with tangents from their parents.
+    down_propagate_tangents(child_to_parent_surfel_id_map);
+
+    // Remove previous level surfels
+    unmap_surfels(previous_level_surfels);
 }
 
 /**
@@ -268,27 +305,20 @@ remove_surfels_by_id(std::vector<Surfel> &surfels, std::vector<std::string> &ids
  */
 int main(int argc, char *argv[]) {
     using namespace std;
+    using namespace spdlog;
 
-    // +-----------------------------------------------------------------------------------------------
-    // | Load properties
-    // +-----------------------------------------------------------------------------------------------
+    info("Loading properties");
     string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
     Properties properties{property_file_name};
 
-    // +-----------------------------------------------------------------------------------------------
-    // | Load depth maps
-    // +-----------------------------------------------------------------------------------------------
+    info("Loading depth maps");
     vector<DepthMap> depth_maps = load_depth_maps(properties);
     size_t num_frames = depth_maps.size();
 
-    // +-----------------------------------------------------------------------------------------------
-    // | Load cameras
-    // +-----------------------------------------------------------------------------------------------
+    info("Loading cameras");
     vector<Camera> cameras = load_cameras(num_frames);
 
-    // +-----------------------------------------------------------------------------------------------
-    // | Construct the depth map hierarchy: number of levels as specified in properties.
-    // +-----------------------------------------------------------------------------------------------
+    info("Generating depth map hierarchy");
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps, cameras);
     maybe_save_depth_and_normal_maps(properties, depth_map_hierarchy);
     int num_levels = depth_map_hierarchy.size();
@@ -301,59 +331,30 @@ int main(int argc, char *argv[]) {
     int current_level_index = num_levels - 1;
     vector<Surfel> previous_level_surfels;
     while (current_level_index >= 0) {
-        cout << "Generating surfels for level : " << current_level_index << endl;
+        info( "Generating surfels for level : {:d}", current_level_index);
 
-        // +-----------------------------------------------------------------------------------------------
-        // | Generate or load correspondences
-        // +-----------------------------------------------------------------------------------------------
-        // TODO: Seed correspondences for next level Propagate changes down
-        cout << " Getting correspondences" << endl;
+        info( "   Getting correspondences");
         vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, current_level_index,
                                                                            depth_map_hierarchy.at(current_level_index),
                                                                            cameras);
 
-        // +-----------------------------------------------------------------------------------------------
-        // | Generate Surfels for this level from correspondences
-        // +-----------------------------------------------------------------------------------------------
-        vector<Surfel> current_level_surfels = generate_surfels(depth_map_hierarchy.at(current_level_index), correspondences, properties);
+        info( "   Generating Surfels");
+        vector<Surfel> current_level_surfels = generate_surfels(depth_map_hierarchy.at(current_level_index),
+                                                                correspondences, properties);
 
-        // +-----------------------------------------------------------------------------------------------
-        // | Propagate tangents down
-        // +-----------------------------------------------------------------------------------------------
         if (!previous_level_surfels.empty()) {
-            vector<string> orphans;
-            multimap<string, string> child_to_parent_surfel_id_map = compute_child_to_parent_surfel_id_map(
-                    current_level_surfels,
-                    previous_level_surfels,
-                    orphans);
-            // Remove orphan surfels from this level
-            remove_surfels_by_id(current_level_surfels, orphans, properties);
-
-            // Prune neighbours to handle removed surfels
-            prune_surfel_neighbours(current_level_surfels, orphans, properties);
-
-            // Seed the current level surfels with tangents from their parents.
-            down_propagate_tangents(child_to_parent_surfel_id_map);
-
-            // Remove previous level surfels
-            unmap_surfels(previous_level_surfels);
+            initialise_tangents_from_previous_level(current_level_surfels, previous_level_surfels, properties);
         }
 
-        // +-----------------------------------------------------------------------------------------------
-        // | Save the pre-smoothing surfels in a renderable way
-        // +-----------------------------------------------------------------------------------------------
+        info( "   Saving presmoothed Surfels");
         save_surfels_to_file(file_name_from_template_and_level(pre_smooth_filename_template,
                                                                current_level_index), current_level_surfels);
 
-        // +-----------------------------------------------------------------------------------------------
-        // | Smooth this level
-        // +-----------------------------------------------------------------------------------------------
+        info( "   Optimising");
         Optimiser o{convergence_threshold, num_frames, surfels_per_step};
         o.optimise(current_level_surfels);
 
-        // +-----------------------------------------------------------------------------------------------
-        // | Save the smoothed surfels in a renderable way
-        // +-----------------------------------------------------------------------------------------------
+        info( "   Saving smoothed Surfels");
         save_surfels_to_file(file_name_from_template_and_level(post_smooth_filename_template,
                                                                current_level_index), current_level_surfels);
 
@@ -362,7 +363,7 @@ int main(int argc, char *argv[]) {
         // +-----------------------------------------------------------------------------------------------
         previous_level_surfels = current_level_surfels;
         Surfel::surfel_by_id.clear();
-        for( auto& s : previous_level_surfels) {
+        for (auto &s : previous_level_surfels) {
             Surfel::surfel_by_id.emplace(s.id, ref(s));
         }
         --current_level_index;

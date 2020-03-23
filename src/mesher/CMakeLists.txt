@@ -19,6 +19,12 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 set(Cpd_DIR "/usr/local/lib/cmake/cpd")
 find_package(Cpd REQUIRED)
 
+# Need spdlog
+set(Fgt_DIR "${PROJECT_SOURCE_DIR}/third_party/build/fgt/lib/cmake/fgt")
+set(SPDLOG_ROOT "/usr/local/include/spdlog")
+find_package(spdlog REQUIRED)
+
+
 # Need OMP
 find_package(OpenMP )
 if(NOT TARGET OpenMP::OpenMP_CXX)

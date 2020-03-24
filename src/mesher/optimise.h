@@ -11,7 +11,7 @@ public:
      * Perform orientation field optimisation.
      * Continuously step until done.
      */
-    void
+    int
     optimise(std::vector<Surfel> &surfels);
 
     Optimiser(float convergence_threshold, size_t num_frames, size_t surfels_per_step) {

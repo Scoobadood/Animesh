@@ -352,7 +352,8 @@ int main(int argc, char *argv[]) {
 
         info( "   Optimising");
         Optimiser o{convergence_threshold, num_frames, surfels_per_step};
-        o.optimise(current_level_surfels);
+        int cycles = o.optimise(current_level_surfels);
+        info("Optimisation completed in {:d} cycles", cycles);
 
         info( "   Saving smoothed Surfels");
         save_surfels_to_file(file_name_from_template_and_level(post_smooth_filename_template,

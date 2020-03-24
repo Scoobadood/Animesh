@@ -11,9 +11,11 @@ static std::default_random_engine r_engine(r_device());
 /**
  * Optimise the vector of surfels
  */
-void
+int
 Optimiser::optimise(std::vector<Surfel> &surfels) {
     using namespace std;
+
+    int optimisation_cycles = 0;
 
     if (is_optimising) {
         throw runtime_error("Already optimising");
@@ -25,8 +27,10 @@ Optimiser::optimise(std::vector<Surfel> &surfels) {
         // Then, project each Surfel's norm and tangent to each frame in which it appears
         populate_norm_tan_by_surfel_frame(surfels);
         optimising_converged = check_convergence(surfels);
+        ++optimisation_cycles;
     }
     optimise_end();
+    return optimisation_cycles;
 }
 
 

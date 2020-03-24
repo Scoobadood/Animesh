@@ -10,6 +10,7 @@
 #include "surfel_compute.h"
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
+#include "spdlog/spdlog.h"
 
 std::map<std::string,std::reference_wrapper<Surfel>> Surfel::surfel_by_id;
 
@@ -133,13 +134,14 @@ are_neighbours(const Surfel &surfel1, const Surfel &surfel2, bool eight_connecte
 void
 populate_neighbours(std::vector<Surfel> &surfels, bool eight_connected) {
     using namespace std;
+    using namespace spdlog;
 
 //    cout << "Populating neighbour : " << flush;
     assert(!surfels.empty());
 
     for (unsigned int i = 0; i < surfels.size() - 1; ++i) {
         Surfel& surfel = surfels.at(i);
-//        cout << "Populating neighbours of surfel : " << surfel.id << endl;
+        info ("Populating neighbours of surfel : {:d}", i);
 //        cout << "\tAlready found " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfel, surfels.at(j), eight_connected)) {

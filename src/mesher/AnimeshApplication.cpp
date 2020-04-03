@@ -186,6 +186,18 @@ AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Scree
         mCanvas ->drawGL();
     });
 
+    auto inclination_panel = new Widget(tools);
+    inclination_panel->setLayout(new BoxLayout(Orientation::Vertical,
+                                           Alignment::Middle, 0, 5));
+    new Label(inclination_panel, "Inclination");
+    auto *inclination_slider = new Slider(inclination_panel);
+    inclination_slider->setRange(std::make_pair(0, 3.14159265f));
+    inclination_slider->setValue(0.0f);
+    inclination_slider->setCallback([this](float value) {
+        mCanvas->setInclination(value);
+        mCanvas ->drawGL();
+    });
+
     auto radius_panel = new Widget(tools);
     radius_panel->setLayout(new BoxLayout(Orientation::Vertical,
                                           Alignment::Middle, 0, 5));

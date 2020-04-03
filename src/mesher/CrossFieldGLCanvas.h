@@ -22,6 +22,10 @@ public:
         m_azimuth = azimuth;
         update_mvp();
     }
+    void setInclination(float inclination ) {
+        m_inclination = inclination;
+        update_mvp();
+    }
     void setFrame(int frame ) {
         m_frame_idx = frame;
         load_gl_data();
@@ -39,6 +43,7 @@ private:
     int m_num_surfels;
     nanogui::GLShader m_shader;
     float m_azimuth = 0.0f;
+    float m_inclination = 0.0f;
     float m_radius = 0.0f;
 
     std::vector<std::vector<nanogui::Vector3f>> m_points;

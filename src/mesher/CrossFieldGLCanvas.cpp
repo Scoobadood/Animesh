@@ -167,7 +167,11 @@ void CrossFieldGLCanvas::set_data(const std::vector<std::vector<nanogui::Vector3
 
 void CrossFieldGLCanvas::update_mvp( ) {
     using namespace nanogui;
-    Vector3f origin{m_radius * cos( m_azimuth), 2, m_radius * sin( m_azimuth)};
+    Vector3f origin{
+        m_radius * sin(m_inclination) * cos( m_azimuth),
+        m_radius * sin(m_inclination) * sin( m_azimuth),
+        m_radius * cos( m_inclination)
+    };
     Vector3f up{0,1,0};
     const auto forward = -origin;
     const auto right = forward.cross(up);

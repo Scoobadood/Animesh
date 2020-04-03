@@ -18,6 +18,8 @@ public:
 
     void to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate) const;
 
+    void to_pixel_and_depth(const Eigen::Vector3f& world_coordinate, unsigned int& pixel_x, unsigned int& pixel_y, float& depth) const;
+
     Eigen::Vector3f to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth) const;
 
     /**
@@ -52,6 +54,7 @@ public:
     inline float
     focal_length() const { return m_focal_length;}
 
+    Eigen::Matrix3f intrinsic_matrix( ) const;
 
 private:
     Eigen::Vector3f m_origin;               // World Coordinates

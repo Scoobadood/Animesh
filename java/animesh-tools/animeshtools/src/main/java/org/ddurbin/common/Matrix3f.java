@@ -54,4 +54,13 @@ public class Matrix3f {
     public int hashCode() {
         return Objects.hash(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
     }
+
+    public String toString( ) {
+        StringBuilder sb = new StringBuilder();
+        for( int i=0; i<m.length; i++ )  {
+            sb.append(m[i]).append("  ");
+        }
+        return sb.toString();
+    }
+
 }

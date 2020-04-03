@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/googletest-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/googletest-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/cmake-build-debug/googletest-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/mesher/ext/nanogui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/mesher/ext/nanogui/ext/eigen" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/mesher/ext/nanogui/ext/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/mesher/ext/nanogui/ext/nanovg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/mesher/ext/nanogui/ext/pybind11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/mesher/ext/nanogui/ext/pybind11/tools/clang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/Anttweakbar_1.16" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/fgt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/eigen" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/nanovg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/pybind11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/pybind11/tools/clang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/spdlog" vcs="Git" />
+  </component>
+</project>

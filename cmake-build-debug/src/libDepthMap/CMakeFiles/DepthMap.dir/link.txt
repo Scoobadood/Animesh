@@ -1,0 +1,2 @@
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc ../../../lib/libDepthMap.a  CMakeFiles/DepthMap.dir/src/Normals.cpp.o CMakeFiles/DepthMap.dir/src/CrossProductNormals.cpp.o CMakeFiles/DepthMap.dir/src/PclNormals.cpp.o CMakeFiles/DepthMap.dir/src/PlaneFittingNormals.cpp.o CMakeFiles/DepthMap.dir/src/DepthMap.cpp.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib ../../../lib/libDepthMap.a

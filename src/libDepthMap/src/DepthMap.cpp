@@ -8,12 +8,8 @@
 
 #include <vector>
 #include <cmath>
-#include <iostream>
 #include <cstring>
 #include <algorithm>
-#include <fstream>
-#include <Eigen/Dense> // For cross product
-#include "../../libProperties/include/Properties/Properties.h"
 
 DepthMap::DepthMap(const std::string &filename) {
     using namespace std;
@@ -35,7 +31,7 @@ DepthMap::DepthMap(const std::string &filename) {
                                       throw std::domain_error(message);
                                   }
                               }
-                              for (auto token : tokens) {
+                              for (const auto token : tokens) {
                                   float f = stof(token);
                                   depth_image_row.push_back(f);
                               }
@@ -231,8 +227,8 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
             // First case: hp > ts && vp > ts ==> p is near discontinuity
             // p is reliable if |Dpi - Dp| <= Tl for *any* i
             if (hp > ts && vp > ts) {
-                for (int i = 0; i < 4; i++) {
-                    if (fabsf(dp[i] - p) <= tl) {
+                for (float i : dp) {
+                    if (fabsf(i - p) <= tl) {
                         rel = true;
                         break;
                     }
@@ -263,8 +259,8 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 
                 // Fourth case: Generally all points in homogeneous region but p may be an outlier check for this.
             else {
-                for (int i = 0; i < 4; i++) {
-                    if (fabsf(dp[i] - p) <= tl) {
+                for (float i : dp) {
+                    if (fabsf(i - p) <= tl) {
                         rel = true;
                         break;
                     }
@@ -292,7 +288,7 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
 const std::vector<std::vector<NormalWithType>> &
 DepthMap::get_normals() const {
     using namespace std;
-    if (normals.size() == 0) {
+    if (normals.empty()) {
         throw runtime_error("Normals not calculated. Call compute_normalsd() first");
     }
     return normals;
@@ -337,13 +333,6 @@ DepthMap::resample() const {
     unsigned int new_height = height() / 2;
     unsigned int new_width = width() / 2;
     auto new_data = new float[new_height * new_width];
-
-    struct PixelCoord {
-        unsigned int x;
-        unsigned int y;
-
-        PixelCoord(unsigned int x, unsigned int y) : x{x}, y{y} {}
-    };
 
     for (unsigned int y = 0; y < new_height; ++y) {
         for (unsigned int x = 0; x < new_width; ++x) {

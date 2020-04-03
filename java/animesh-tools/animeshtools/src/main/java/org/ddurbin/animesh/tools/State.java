@@ -55,6 +55,11 @@ public class State {
         public int hashCode() {
             return Objects.hash(frameIndex, x, y);
         }
+
+        public String toString( ) {
+            return String.format( "%d: (%d, %d)", frameIndex, x, y);
+        }
+
     }
 
     public static class FrameData {
@@ -62,7 +67,6 @@ public class State {
         final Vector3f normal;
         public final PixelInFrame pixelInFrame;    // x, y, frame
         public final float depth;
-
 
         FrameData(PixelInFrame pixelInFrame, Matrix3f transform, Vector3f normal, float depth) {
             this.pixelInFrame = pixelInFrame;
@@ -92,6 +96,15 @@ public class State {
 
         public int hashCode() {
             return Objects.hash(pixelInFrame, transform, normal);
+        }
+
+        public String toString( ) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(transform).append("  ")
+                    .append(normal).append("  ")
+                    .append(pixelInFrame).append("  ")
+                    .append(depth).append("\n");
+            return sb.toString();
         }
     }
 
@@ -127,6 +140,14 @@ public class State {
 
         public int hashCode() {
             return Objects.hashCode(id);
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(id).append(" ")
+                    .append(tangent).append("\n")
+                    .append(frameData).append("\n");
+            return sb.toString();
         }
 
     }
@@ -296,6 +317,7 @@ public class State {
             Surfel surfel = readSurfel(in);
             surfels.add(surfel);
             numSurfels--;
+            System.out.println( surfel);
         }
         System.out.println();
 

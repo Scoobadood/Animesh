@@ -1,0 +1,14 @@
+# Target labels
+ googletest
+# Source files and their labels
+/Users/dave/Animesh/cmake-build-debug/googletest-download/CMakeFiles/googletest
+/Users/dave/Animesh/cmake-build-debug/googletest-download/CMakeFiles/googletest.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/CMakeFiles/googletest-complete.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-install.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-mkdir.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-download.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-update.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-patch.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-configure.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-build.rule
+/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-test.rule

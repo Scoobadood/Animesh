@@ -23,8 +23,7 @@ Camera::set_image_size( unsigned int width, unsigned int height ) {
     // Compute pixel dimensions in world units
     m_resolution.x() = width;
     m_resolution.y() = height;
-    pixel_width = image_plane_dimensions.x() / m_resolution.x();
-    pixel_height = image_plane_dimensions.y() / m_resolution.y();
+    compute_camera_parms();
 }
 
 void
@@ -287,3 +286,36 @@ Camera::look_at( float view_x, float view_y, float view_z ) {
     compute_camera_parms();
 }
 
+Eigen::Matrix3f
+Camera::intrinsic_matrix( ) const {
+    float cx = m_resolution.x() / 2.0f;
+    float cy = m_resolution.y() / 2.0f;
+    auto fx = (float) (m_resolution.x() / tan(m_field_of_view.x() / 2.0f));
+    auto fy = (float) (m_resolution.y() / tan(m_field_of_view.y() / 2.0f));
+    float skew = 0.0f;
+    Eigen::Matrix3f k;
+    k << fx, skew, cx, 0.0f, fy, cy, 0.0f, 0.0f, 1.0f;
+    return k;
+}
+
+void Camera::to_pixel_and_depth(const Eigen::Vector3f& world_coordinate, unsigned int& pixel_x, unsigned int& pixel_y, float& depth) const {
+    using namespace Eigen;
+
+
+    // Construct a ray from the camera origin to the world coordinate
+    Vector3f rayVector = world_coordinate - m_origin;
+    Vector3f rayPoint = m_origin;
+    Vector3f planeNormal = n;
+    Vector3f planePoint = m_origin - ( n * m_focal_length);
+    const auto diff = rayPoint - planePoint;
+    double prod1 = diff.dot(planeNormal);
+    double prod2 = rayVector.dot(planeNormal);
+    double prod3 = prod1 / prod2;
+    const auto intersection = rayPoint - rayVector * prod3;
+
+    // Compute the pixel and depth
+    depth = (world_coordinate - m_origin).norm();
+    const auto pixel = (intersection - image_plane_origin);
+    pixel_x = (int) round((pixel.x() / pixel_width));
+    pixel_y = (int) round((pixel.y() / pixel_height));
+}

@@ -1,0 +1,105 @@
+{
+	"BUILD_DIR" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain/QtAnimesh_autogen",
+	"CMAKE_BINARY_DIR" : "/Users/dave/Animesh/cmake-build-debug",
+	"CMAKE_CURRENT_BINARY_DIR" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/Users/dave/Animesh/src/QtMain",
+	"CMAKE_EXECUTABLE" : "/usr/local/Cellar/cmake/3.16.5/bin/cmake",
+	"CMAKE_SOURCE_DIR" : "/Users/dave/Animesh",
+	"HEADERS" : 
+	[
+		[
+			"/Users/dave/Animesh/src/QtMain/AnimeshMainWindow.h",
+			"MU",
+			"EWIEGA46WW/moc_AnimeshMainWindow.cpp"
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain/QtAnimesh_autogen/include",
+	"MOC_COMPILATION_FILE" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain/QtAnimesh_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_SQL_LIB",
+		"QT_WIDGETS_LIB",
+		"vtkDomainsChemistry_AUTOINIT=1(vtkDomainsChemistryOpenGL2)",
+		"vtkIOExport_AUTOINIT=2(vtkIOExportOpenGL2,vtkIOExportPDF)",
+		"vtkRenderingContext2D_AUTOINIT=1(vtkRenderingContextOpenGL2)",
+		"vtkRenderingCore_AUTOINIT=3(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingOpenGL2)",
+		"vtkRenderingFreeType_AUTOINIT=1(vtkRenderingFreeTypeFontConfig)",
+		"vtkRenderingOpenGL2_AUTOINIT=1(vtkRenderingGL2PSOpenGL2)",
+		"vtkRenderingVolume_AUTOINIT=1(vtkRenderingVolumeOpenGL2)"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/Users/dave/Animesh/cmake-build-debug/src/QtMain",
+		"/Users/dave/Animesh/src/QtMain",
+		"/usr/local/include/eigen3",
+		"/usr/local/Cellar/vtk/8.2.0_8/lib/cmake/vtk-8.2/UseVTK.cmake",
+		"/usr/local/opt/python/Frameworks/Python.framework/Versions/3.7/include/python3.7m",
+		"/usr/local/include",
+		"/usr/local/opt/hdf5/include",
+		"/usr/local/opt/szip/include",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include/libxml2",
+		"/Users/dave/Animesh/src/libArgs/include",
+		"/Users/dave/Animesh/src/libField/include",
+		"/Users/dave/Animesh/src/libFileUtils/include",
+		"/Users/dave/Animesh/src/libGeom/include",
+		"/Users/dave/Animesh/src/libRoSy/include",
+		"/Users/dave/Animesh/src/libGraph/include",
+		"/usr/local/Cellar/vtk/8.2.0_8/include/vtk-8.2",
+		"/usr/local/opt/qt/lib/QtWidgets.framework",
+		"/usr/local/opt/qt/lib/QtWidgets.framework/Headers",
+		"/usr/local/opt/qt/lib/QtGui.framework",
+		"/usr/local/opt/qt/lib/QtGui.framework/Headers",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/System/Library/Frameworks/OpenGL.framework/Headers",
+		"/usr/local/opt/qt/lib/QtCore.framework",
+		"/usr/local/opt/qt/lib/QtCore.framework/Headers",
+		"/usr/local/opt/qt/mkspecs/macx-clang",
+		"/usr/local/opt/qt/lib/QtSql.framework",
+		"/usr/local/opt/qt/lib/QtSql.framework/Headers",
+		"/usr/local/Cellar/vtk/8.2.0_8/include/vtk-8.2/vtkogg/include",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk/usr/include",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/11.0.0/include",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : true,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++",
+		"-dM",
+		"-E",
+		"-c",
+		"/usr/local/Cellar/cmake/3.16.5/share/cmake/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain/QtAnimesh_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 4,
+	"PARSE_CACHE_FILE" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain/CMakeFiles/QtAnimesh_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/local/opt/qt/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/local/opt/qt/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"SETTINGS_FILE" : "/Users/dave/Animesh/cmake-build-debug/src/QtMain/CMakeFiles/QtAnimesh_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[ "/Users/dave/Animesh/src/QtMain/AnimeshMainWindow.cpp", "MU" ],
+		[ "/Users/dave/Animesh/src/QtMain/main.cpp", "MU" ]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

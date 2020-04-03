@@ -127,4 +127,8 @@ public class Vector3f implements Cloneable {
         return Objects.hash(x, y, z);
     }
 
+    public String toString( ) {
+        return String.format( "(%.4f, %.4f, %.4f)", x, y, z);
+    }
+
 }

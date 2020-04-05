@@ -18,12 +18,16 @@ public:
     virtual void drawGL() override;
 
     void update_mvp();
-    void setAzimuth(float azimuth ) {
-        m_azimuth = azimuth;
+    void setRotX(float rotX) {
+        m_rotx = rotX;
         update_mvp();
     }
-    void setInclination(float inclination ) {
-        m_inclination = inclination;
+    void setRotY(float rotY) {
+        m_roty = rotY;
+        update_mvp();
+    }
+    void setRotZ(float rotZ) {
+        m_rotz = rotZ;
         update_mvp();
     }
     void setFrame(int frame ) {
@@ -42,8 +46,9 @@ public:
 private:
     int m_num_surfels;
     nanogui::GLShader m_shader;
-    float m_azimuth = 0.0f;
-    float m_inclination = 0.0f;
+    float m_rotx;
+    float m_roty;
+    float m_rotz;
     float m_radius = 0.0f;
 
     std::vector<std::vector<nanogui::Vector3f>> m_points;

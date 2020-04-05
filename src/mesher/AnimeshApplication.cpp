@@ -174,27 +174,39 @@ AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Scree
         mCanvas ->drawGL();
     });
 
-    auto azimuth_panel = new Widget(tools);
-    azimuth_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                           Alignment::Middle, 0, 5));
-    new Label(azimuth_panel, "Azimuth");
-    auto *azimuth_slider = new Slider(azimuth_panel);
-    azimuth_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
-    azimuth_slider->setValue(0.0f);
-    azimuth_slider->setCallback([this](float value) {
-        mCanvas->setAzimuth(value);
+    auto rotx_panel = new Widget(tools);
+    rotx_panel->setLayout(new BoxLayout(Orientation::Vertical,
+                                        Alignment::Middle, 0, 5));
+    new Label(rotx_panel, "Rot X");
+    auto *rotx_slider = new Slider(rotx_panel);
+    rotx_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
+    rotx_slider->setValue(0.0f);
+    rotx_slider->setCallback([this](float value) {
+        mCanvas->setRotX(value);
         mCanvas ->drawGL();
     });
 
-    auto inclination_panel = new Widget(tools);
-    inclination_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                           Alignment::Middle, 0, 5));
-    new Label(inclination_panel, "Inclination");
-    auto *inclination_slider = new Slider(inclination_panel);
-    inclination_slider->setRange(std::make_pair(0, 3.14159265f));
-    inclination_slider->setValue(0.0f);
-    inclination_slider->setCallback([this](float value) {
-        mCanvas->setInclination(value);
+    auto roty_panel = new Widget(tools);
+    roty_panel->setLayout(new BoxLayout(Orientation::Vertical,
+                                        Alignment::Middle, 0, 5));
+    new Label(roty_panel, "Rot Y");
+    auto *roty_slider = new Slider(roty_panel);
+    roty_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
+    roty_slider->setValue(0.0f);
+    roty_slider->setCallback([this](float value) {
+        mCanvas->setRotY(value);
+        mCanvas ->drawGL();
+    });
+
+    auto rotz_panel = new Widget(tools);
+    rotz_panel->setLayout(new BoxLayout(Orientation::Vertical,
+                                        Alignment::Middle, 0, 5));
+    new Label(rotz_panel, "Rot Z");
+    auto *rotz_slider = new Slider(rotz_panel);
+    rotz_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
+    rotz_slider->setValue(0.0f);
+    rotz_slider->setCallback([this](float value) {
+        mCanvas->setRotZ(value);
         mCanvas ->drawGL();
     });
 

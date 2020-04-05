@@ -167,11 +167,7 @@ void CrossFieldGLCanvas::set_data(const std::vector<std::vector<nanogui::Vector3
 
 void CrossFieldGLCanvas::update_mvp( ) {
     using namespace nanogui;
-    Vector3f origin{
-        m_radius * sin(m_inclination) * cos( m_azimuth),
-        m_radius * sin(m_inclination) * sin( m_azimuth),
-        m_radius * cos( m_inclination)
-    };
+    Vector3f origin = (m_radius / sqrt(3.0)) * Vector3f{1, 1, 1};
     Vector3f up{0,1,0};
     const auto forward = -origin;
     const auto right = forward.cross(up);
@@ -188,7 +184,25 @@ void CrossFieldGLCanvas::drawGL() {
     using namespace nanogui;
     m_shader.bind();
 
-    m_shader.setUniform("modelViewProj", m_mvp);
+    Matrix4f rx;
+    rx << 1, 0, 0, 0,
+            0, cos(m_rotx), -sin(m_rotx), 0,
+            0, sin(m_rotx), cos(m_rotx), 0,
+            0, 0, 0, 1;
+    Matrix4f ry;
+    ry << cos(m_roty), 0, sin(m_roty), 0,
+            0, 1, 0, 0,
+            -sin(m_roty), 0, cos(m_roty), 0,
+            0, 0, 0, 1;
+    Matrix4f rz;
+    rz << cos(m_rotz), -sin(m_rotz), 0, 0,
+            sin(m_rotz), cos(m_rotz), 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1;
+
+    auto rot = rx * ry * rz;
+    Matrix4f transform = m_mvp * rot;
+    m_shader.setUniform("modelViewProj", transform);
 
     glEnable(GL_DEPTH_TEST);
     m_shader.drawIndexed(GL_LINES, 0, m_num_surfels * 4);

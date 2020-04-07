@@ -12,16 +12,15 @@ public:
      * Continuously step until done.
      */
     int
-    optimise(std::vector<Surfel> &surfels);
+    optimise();
 
     /**
      * Perform a single step of optimisation. Return true if converged or halted.
      */
-    bool optimise_do_one_step(std::vector<Surfel> &surfels);
+    bool optimise_do_one_step();
 
 
-
-    Optimiser(float convergence_threshold, size_t num_frames, size_t surfels_per_step) {
+    Optimiser(std::vector<Surfel>& surfels, float convergence_threshold, size_t num_frames, size_t surfels_per_step) : surfels{surfels} {
         is_optimising = false;
         last_optimising_error = 0.0;
         optimising_converged = false;
@@ -32,6 +31,9 @@ public:
     }
 
 private:
+    // Only reference surfels for now so we don';'t create a copy.
+    std::vector<Surfel>& surfels;
+
     /**
      * Flag indicating that smoothing is in progress
      */
@@ -95,7 +97,7 @@ private:
      * Start optimisation
      */
     void
-    optimise_begin(const std::vector<Surfel> &surfels);
+    optimise_begin();
 
     /**
      * Perform post-optimisation tidy up.
@@ -119,17 +121,17 @@ private:
     /**
      * Select one random surfel and smooth with neighbours
      */
-    void optimise_one_surfel_frame(std::vector<Surfel> &surfels);
+    void optimise_one_surfel_frame();
 
     /**
      * Optimise a single Surfel
      */
-    void optimise_surfel(std::vector<Surfel> &surfels, size_t surfel_idx);
+    void optimise_surfel(size_t surfel_idx);
 
     /**
      * Measure the change in error. If it's below some threshold, consider this level converged.
      */
-    bool check_convergence(std::vector<Surfel> &surfels);
+    bool check_convergence();
 
     /**
      * Tidy up at end of level and propagate values down to next level or else flag smoothing as converged
@@ -138,7 +140,7 @@ private:
     void optimise_end_level();
 
     std::vector<NormalTangent>
-    get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels, std::size_t surfel_idx) const;
+    get_eligible_normals_and_tangents(std::size_t surfel_idx) const;
 
     /**
      * Calculate error between two normal/tangent pairs.
@@ -154,7 +156,7 @@ private:
     compute_surfel_error(const Surfel &surfel);
 
     float
-    compute_mean_error_per_surfel(const std::vector<Surfel> &surfels);
+    compute_mean_error_per_surfel();
 
     /**
      * Check whether optimising should stop either because user asked for that to happen or else
@@ -172,7 +174,7 @@ private:
      * surfel hierarchy.
      */
     void
-    populate_norm_tan_by_surfel_frame(const std::vector<Surfel> &surfels);
+    populate_norm_tan_by_surfel_frame();
 
     /**
      * Build the neighbours_by_surfel_frame data structure for this level of the
@@ -180,13 +182,13 @@ private:
      * once during surfel hierarchy extraction.
      */
     void
-    populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfels);
+    populate_neighbours_by_surfel_frame();
 
     /**
      * Populate the surfels per fram map.
      */
     void
-    populate_frame_to_surfel(const std::vector<Surfel> &surfels);
+    populate_frame_to_surfel();
 
     /**
      * Perform smoothing for a single surfel in a single frame
@@ -194,7 +196,7 @@ private:
      * @param frame_idx The index of the frame WITHIN the surfel's frame_data
      */
     void
-    smooth_surfel_in_frame(std::vector<Surfel> &surfels, size_t surfel_idx, size_t frame_idx);
+    smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx);
 };
 
 

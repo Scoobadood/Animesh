@@ -12,7 +12,7 @@ static std::default_random_engine r_engine(r_device());
  * Optimise the vector of surfels
  */
 int
-Optimiser::optimise(std::vector<Surfel> &surfels) {
+Optimiser::optimise() {
     using namespace std;
 
     int optimisation_cycles = 0;
@@ -21,12 +21,12 @@ Optimiser::optimise(std::vector<Surfel> &surfels) {
         throw runtime_error("Already optimising");
     }
 
-    optimise_begin(surfels);
+    optimise_begin();
     while (optimising_should_continue()) {
-        optimise_do_one_step(surfels);
+        optimise_do_one_step();
         // Then, project each Surfel's norm and tangent to each frame in which it appears
-        populate_norm_tan_by_surfel_frame(surfels);
-        optimising_converged = check_convergence(surfels);
+        populate_norm_tan_by_surfel_frame();
+        optimising_converged = check_convergence();
         ++optimisation_cycles;
     }
     optimise_end();
@@ -49,26 +49,26 @@ Optimiser::user_canceled_optimise() {
  * Start global smoothing.
  */
 void
-Optimiser::optimise_begin(const std::vector<Surfel> &surfels) {
+Optimiser::optimise_begin() {
     using namespace std;
 
     is_optimising = true;
 
     // First we construct a mapping from frame to surfel
     cout << "Mapping frames to surfels" << endl;
-    populate_frame_to_surfel(surfels);
+    populate_frame_to_surfel();
 
     // Then, project each Surfel's norm and tangent to each frame in which it appears
     cout << "Mapping surfel-frame to normal/tan" << endl;
-    populate_norm_tan_by_surfel_frame(surfels);
+    populate_norm_tan_by_surfel_frame();
 
     // Populate map of neighbours for a surfel in a frame
     cout << "Computing neighbours for each surfel-frame" << endl;
-    populate_neighbours_by_surfel_frame(surfels);
+    populate_neighbours_by_surfel_frame();
 
     // Compute initial error values
     cout << "Initialising error value" << endl;
-    last_optimising_error = compute_mean_error_per_surfel(surfels);
+    last_optimising_error = compute_mean_error_per_surfel();
 }
 
 
@@ -84,8 +84,8 @@ Optimiser::optimise_end() {
  * Measure the change in error. If it's below some threshold, consider this level converged.
  */
 bool
-Optimiser::check_convergence(std::vector<Surfel> &surfels) {
-    float latest_error = compute_mean_error_per_surfel(surfels);
+Optimiser::check_convergence() {
+    float latest_error = compute_mean_error_per_surfel();
     float improvement = last_optimising_error - latest_error;
     last_optimising_error = latest_error;
     float pct = (100.0f * improvement) / last_optimising_error;
@@ -150,7 +150,7 @@ Optimiser::compute_surfel_error(const Surfel &surfel) {
     err = surfel_error / num surfels
     */
 float
-Optimiser::compute_mean_error_per_surfel(const std::vector<Surfel> &surfels) {
+Optimiser::compute_mean_error_per_surfel() {
 
     float total_error = 0.0f;
     for (const auto &surfel : surfels) {
@@ -195,7 +195,7 @@ Optimiser::optimising_should_continue() {
  * Perform a single step of optimisation.
  */
 bool
-Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
+Optimiser::optimise_do_one_step() {
     using namespace std;
 
     for (int i = 0; i < surfels_per_step; ++i) {
@@ -203,7 +203,7 @@ Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
         size_t surfel_idx = random_index(surfels.size());
 
         // Smooth the selected surfel frame
-        optimise_surfel(surfels, surfel_idx);
+        optimise_surfel(surfel_idx);
     }
     // TODO: Replace this with a valid test
     return false;
@@ -236,7 +236,7 @@ compute_smoothed_tangent(const NormalTangent &source,
  * @param frame_idx The index of the frame WITHIN the surfel's frame_data
  */
 void
-Optimiser::smooth_surfel_in_frame(std::vector<Surfel> &surfels, size_t surfel_idx, size_t frame_idx) {
+Optimiser::smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx) {
     using namespace std;
     using namespace Eigen;
 
@@ -301,7 +301,7 @@ find_common_frames_for_surfels( const Surfel& surfel1, const Surfel& surfel2 ) {
  * tan/norm are converted to the orignating surfel's frame of reference.
  */
 std::vector<NormalTangent>
-Optimiser::get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels, std::size_t surfel_idx) const {
+Optimiser::get_eligible_normals_and_tangents(std::size_t surfel_idx) const {
     using namespace std;
     using namespace Eigen;
 
@@ -349,14 +349,14 @@ Optimiser::get_eligible_normals_and_tangents(const std::vector<Surfel> &surfels,
   end
  */
 void
-Optimiser::optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx) {
+Optimiser::optimise_surfel(size_t surfel_idx) {
     using namespace std;
     using namespace Eigen;
 
     Surfel& surfel = surfels.at(surfel_idx);
 
     // Get vector of eligible normal/tangent pairs
-    vector<NormalTangent> neighbouring_normals_and_tangents=get_eligible_normals_and_tangents(surfels, surfel_idx);
+    vector<NormalTangent> neighbouring_normals_and_tangents=get_eligible_normals_and_tangents(surfel_idx);
 
     // Merge all neighbours; implicitly using optiminsing tier tangents
     Vector3f new_tangent = surfel.tangent;
@@ -390,7 +390,7 @@ Optimiser::random_index(unsigned int max_index) {
  * We should calculate this once per level and then update each time we change a tan.
  */
 void
-Optimiser::populate_norm_tan_by_surfel_frame(const std::vector<Surfel> &surfels) {
+Optimiser::populate_norm_tan_by_surfel_frame() {
     using namespace std;
     using namespace Eigen;
 
@@ -419,7 +419,7 @@ Optimiser::populate_norm_tan_by_surfel_frame(const std::vector<Surfel> &surfels)
  * surfels_by_frame is a member variable.
  */
 void
-Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
+Optimiser::populate_frame_to_surfel() {
     using namespace std;
     assert(num_frames > 0);
 
@@ -447,7 +447,7 @@ Optimiser::populate_frame_to_surfel(const std::vector<Surfel> &surfels) {
  * But num_frames and num_surfels are both known.
  */
 void
-Optimiser::populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfels) {
+Optimiser::populate_neighbours_by_surfel_frame() {
     using namespace std;
 
     assert(!surfels_by_frame.empty());

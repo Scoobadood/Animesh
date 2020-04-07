@@ -14,9 +14,8 @@ public:
 
 
     Optimiser(std::vector<Surfel>& surfels, float convergence_threshold, size_t num_frames, size_t surfels_per_step) : surfels{surfels} {
-        is_optimising = false;
+        m_state = UNINITIALISED;
         last_optimising_error = 0.0;
-        optimising_converged = false;
         this->convergence_threshold = convergence_threshold;
         this->num_frames = num_frames;
         if (surfels_per_step == 0) throw std::runtime_error("surfels per step must be at least 1");
@@ -31,24 +30,9 @@ private:
     unsigned int m_optimisation_cycles;
 
     /**
-     * Flag indicating that smoothing is in progress
-     */
-    bool is_optimising;
-
-    /**
-     * True is smoothing and it has converged otherwise false.
-     */
-    bool optimising_converged;
-
-    /**
      * Index of cutrent level being smoothed.
      */
-    unsigned int optimising_level;
-
-    /**
-     * If true, smoothing has just begun a new level.
-     */
-    bool is_starting_new_level;
+    unsigned int m_optimising_level;
 
     /**
      * The last computed error for the given layer of the surfel network.
@@ -116,13 +100,6 @@ private:
     optimise_end();
 
     /**
-     * Check whether optimising should stop either because user asked for that to happen or else
-     * because convergence has happened.
-     */
-    bool
-    optimising_should_continue();
-
-    /**
      * Do start of level set up. Mostly computing current residual error in this level.
      */
     void optimise_begin_level();
@@ -140,7 +117,12 @@ private:
     /**
      * Measure the change in error. If it's below some threshold, consider this level converged.
      */
-    bool check_convergence();
+    void check_convergence();
+
+    /**
+     * Check whether the user has cancelled this optimisation
+     */
+    void check_cancellation();
 
     /**
      * Tidy up at end of level and propagate values down to next level or else flag smoothing as converged

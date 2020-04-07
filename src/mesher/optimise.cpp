@@ -27,7 +27,7 @@ void
 Optimiser::optimise_begin() {
     using namespace std;
 
-    is_optimising = true;
+    assert( m_state == INITIALISED);
 
     // First we construct a mapping from frame to surfel
     cout << "Mapping frames to surfels" << endl;
@@ -46,40 +46,58 @@ Optimiser::optimise_begin() {
     last_optimising_error = compute_mean_error_per_surfel();
 
     m_optimisation_cycles = 0;
-
+    m_state = STARTING_LEVEL;
 }
 
 /**
  * Start level smoothing.
  */
 void
-Optimiser::optimise_begin_level() {}
+Optimiser::optimise_begin_level() {
+    assert(m_state == STARTING_LEVEL);
+    m_state = OPTIMISING;
+}
 
 /**
  * End level smoothing.
  */
 void
-Optimiser::optimise_end_level() {}
+Optimiser::optimise_end_level() {
+    assert( m_state == ENDING_LEVEL);
+
+    if(m_optimising_level == 0 ) {
+        m_state = ENDING_OPTIMISATION;
+    } else {
+        --m_optimising_level;
+        m_state = STARTING_LEVEL;
+    }
+}
 
 /**
  * Perform post-smoothing tidy up.
  */
 void
 Optimiser::optimise_end() {
-    is_optimising = false;
+    assert( m_state == ENDING_OPTIMISATION);
+
+    // TODO: Consider a final state here that can transition back to INITAILISED or make both READY
+    m_state = INITIALISED;
 }
 
 /**
  * Measure the change in error. If it's below some threshold, consider this level converged.
  */
-bool
+void
 Optimiser::check_convergence() {
     float latest_error = compute_mean_error_per_surfel();
     float improvement = last_optimising_error - latest_error;
     last_optimising_error = latest_error;
     float pct = (100.0f * improvement) / last_optimising_error;
     std::cout << "Mean error per surfel: " << latest_error << " (" << pct << "%)" << std::endl;
-    return ((pct >= 0) && (std::abs(pct) < convergence_threshold));
+    if ((pct >= 0) && (std::abs(pct) < convergence_threshold)) {
+        m_state = ENDING_LEVEL;
+        m_result = CONVERGED;
+    }
 }
 
 
@@ -171,13 +189,12 @@ Optimiser::compute_error(const NormalTangent& first,
     return (theta * theta);
 }
 
-/**
- * Check whether optimising should stop either because user asked for that to happen or else
- * because convergence has happened.
- */
-bool
-Optimiser::optimising_should_continue() {
-    return (!user_canceled_optimise() && !optimising_converged);
+void
+Optimiser::check_cancellation( ) {
+    if( user_canceled_optimise() ) {
+        m_state = ENDING_LEVEL;
+        m_result = CANCELLED;
+    }
 }
 
 /**
@@ -208,9 +225,9 @@ Optimiser::optimise_do_one_step() {
 
         // Then, project each Surfel's norm and tangent to each frame in which it appears
         populate_norm_tan_by_surfel_frame();
-        optimising_converged = check_convergence();
+        check_cancellation();
+        check_convergence();
         ++m_optimisation_cycles;
-//        while (optimising_should_continue()) {
     }
 
     if( m_state == ENDING_LEVEL ) {

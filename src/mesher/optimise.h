@@ -14,36 +14,24 @@ public:
     int
     optimise(std::vector<Surfel> &surfels);
 
+    /**
+     * Perform a single step of optimisation. Return true if converged or halted.
+     */
+    bool optimise_do_one_step(std::vector<Surfel> &surfels);
+
+
+
     Optimiser(float convergence_threshold, size_t num_frames, size_t surfels_per_step) {
         is_optimising = false;
         last_optimising_error = 0.0;
         optimising_converged = false;
         this->convergence_threshold = convergence_threshold;
         this->num_frames = num_frames;
-        if( surfels_per_step == 0 ) throw std::runtime_error("surfels per step must be at least 1");
+        if (surfels_per_step == 0) throw std::runtime_error("surfels per step must be at least 1");
         this->surfels_per_step = surfels_per_step;
     }
 
 private:
-    /**
-     * Start optimisation
-     */
-    void
-    optimise_begin(const std::vector<Surfel>& surfels);
-
-    /**
-     * Perform post-optimisation tidy up.
-     */
-    void
-    optimise_end();
-
-    /**
-     * Check whether optimising should stop either because user asked for that to happen or else
-     * because convergence has happened.
-     */
-    bool
-    optimising_should_continue();
-
     /**
      * Flag indicating that smoothing is in progress
      */
@@ -101,12 +89,27 @@ private:
     /**
      * NUmber of Surfels to adjust each step of optimisation
      */
-     size_t surfels_per_step;
+    size_t surfels_per_step;
 
     /**
-     * Perform a single step of optimisation.
+     * Start optimisation
      */
-    void optimise_do_one_step(std::vector<Surfel>& surfels);
+    void
+    optimise_begin(const std::vector<Surfel> &surfels);
+
+    /**
+     * Perform post-optimisation tidy up.
+     */
+    void
+    optimise_end();
+
+    /**
+     * Check whether optimising should stop either because user asked for that to happen or else
+     * because convergence has happened.
+     */
+    bool
+    optimising_should_continue();
+
 
     /**
      * Do start of level set up. Mostly computing current residual error in this level.
@@ -116,17 +119,17 @@ private:
     /**
      * Select one random surfel and smooth with neighbours
      */
-    void optimise_one_surfel_frame(std::vector<Surfel>& surfels);
+    void optimise_one_surfel_frame(std::vector<Surfel> &surfels);
 
     /**
      * Optimise a single Surfel
      */
-    void optimise_surfel(std::vector<Surfel>& surfels, size_t surfel_idx);
+    void optimise_surfel(std::vector<Surfel> &surfels, size_t surfel_idx);
 
     /**
      * Measure the change in error. If it's below some threshold, consider this level converged.
      */
-    bool check_convergence(std::vector<Surfel>& surfels);
+    bool check_convergence(std::vector<Surfel> &surfels);
 
     /**
      * Tidy up at end of level and propagate values down to next level or else flag smoothing as converged
@@ -141,17 +144,17 @@ private:
      * Calculate error between two normal/tangent pairs.
      */
     static float
-    compute_error(const NormalTangent& first,
-                  const NormalTangent& second);
+    compute_error(const NormalTangent &first,
+                  const NormalTangent &second);
 
     float
-    compute_surfel_error_for_frame(const std::string& surfel_id, size_t frame_id);
+    compute_surfel_error_for_frame(const std::string &surfel_id, size_t frame_id);
 
     float
-    compute_surfel_error(const Surfel& surfel);
+    compute_surfel_error(const Surfel &surfel);
 
     float
-    compute_mean_error_per_surfel(const std::vector<Surfel>& surfels);
+    compute_mean_error_per_surfel(const std::vector<Surfel> &surfels);
 
     /**
      * Check whether optimising should stop either because user asked for that to happen or else
@@ -169,7 +172,7 @@ private:
      * surfel hierarchy.
      */
     void
-    populate_norm_tan_by_surfel_frame(const std::vector<Surfel>& surfels);
+    populate_norm_tan_by_surfel_frame(const std::vector<Surfel> &surfels);
 
     /**
      * Build the neighbours_by_surfel_frame data structure for this level of the
@@ -177,13 +180,13 @@ private:
      * once during surfel hierarchy extraction.
      */
     void
-    populate_neighbours_by_surfel_frame(const std::vector<Surfel>& surfels);
+    populate_neighbours_by_surfel_frame(const std::vector<Surfel> &surfels);
 
     /**
      * Populate the surfels per fram map.
      */
     void
-    populate_frame_to_surfel(const std::vector<Surfel>& surfels);
+    populate_frame_to_surfel(const std::vector<Surfel> &surfels);
 
     /**
      * Perform smoothing for a single surfel in a single frame
@@ -191,7 +194,7 @@ private:
      * @param frame_idx The index of the frame WITHIN the surfel's frame_data
      */
     void
-    smooth_surfel_in_frame(std::vector<Surfel>& surfels, size_t surfel_idx, size_t frame_idx );
+    smooth_surfel_in_frame(std::vector<Surfel> &surfels, size_t surfel_idx, size_t frame_idx);
 };
 
 

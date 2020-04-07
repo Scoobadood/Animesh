@@ -194,7 +194,7 @@ Optimiser::optimising_should_continue() {
 /**
  * Perform a single step of optimisation.
  */
-void
+bool
 Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
     using namespace std;
 
@@ -205,6 +205,8 @@ Optimiser::optimise_do_one_step(std::vector<Surfel> &surfels) {
         // Smooth the selected surfel frame
         optimise_surfel(surfels, surfel_idx);
     }
+    // TODO: Replace this with a valid test
+    return false;
 }
 
 /**

@@ -57,7 +57,7 @@ int main(int argc, char ** argv) {
 //    // | Construct Surfels for each level
 //    // +-----------------------------------------------------------------------------------------------
 //    size_t surfels_per_step = properties.getIntProperty("surfels-per-step");
-//    float convergence_threshold = properties.getFloatProperty("convergence-threshold");
+//    float m_convergence_threshold = properties.getFloatProperty("convergence-threshold");
 //    int current_level_index = num_levels - 1;
 //    vector<Surfel> previous_level_surfels;
 //    while (current_level_index >= 0) {
@@ -81,7 +81,7 @@ int main(int argc, char ** argv) {
 //                                                               current_level_index), current_level_surfels);
 //
 //        info( "   Optimising");
-//        Optimiser o{convergence_threshold, num_frames, surfels_per_step};
+//        Optimiser o{m_convergence_threshold, num_frames, surfels_per_step};
 //        int cycles = o.optimise(current_level_surfels);
 //        info("Optimisation completed in {:d} cycles", cycles);
 //

@@ -128,7 +128,7 @@ void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
 //                                                               current_level_index), current_level_surfels);
 //
 //        info( "   Optimising");
-//        m_optimiser = new Optimiser(convergence_threshold, num_frames, surfels_per_step);
+//        m_optimiser = new Optimiser(m_convergence_threshold, num_frames, surfels_per_step);
 //        int cycles = o.optimise(current_level_surfels);
 //        info("Optimisation completed in {:d} cycles", cycles);
 //

@@ -43,7 +43,7 @@ Optimiser::optimise_begin() {
 
     // Compute initial error values
     cout << "Initialising error value" << endl;
-    last_optimising_error = compute_mean_error_per_surfel();
+    m_last_optimising_error = compute_mean_error_per_surfel();
 
     m_optimisation_cycles = 0;
     m_state = STARTING_LEVEL;
@@ -90,11 +90,11 @@ Optimiser::optimise_end() {
 void
 Optimiser::check_convergence() {
     float latest_error = compute_mean_error_per_surfel();
-    float improvement = last_optimising_error - latest_error;
-    last_optimising_error = latest_error;
-    float pct = (100.0f * improvement) / last_optimising_error;
+    float improvement = m_last_optimising_error - latest_error;
+    m_last_optimising_error = latest_error;
+    float pct = (100.0f * improvement) / m_last_optimising_error;
     std::cout << "Mean error per surfel: " << latest_error << " (" << pct << "%)" << std::endl;
-    if ((pct >= 0) && (std::abs(pct) < convergence_threshold)) {
+    if ((pct >= 0) && (std::abs(pct) < m_convergence_threshold)) {
         m_state = ENDING_LEVEL;
         m_result = CONVERGED;
     }
@@ -115,10 +115,10 @@ Optimiser::compute_surfel_error_for_frame(const std::string & surfel_id, size_t 
     // Get all neighbours in frame
     const SurfelInFrame surfel_in_frame{surfel_id, frame_id};
 
-    const auto& this_surfel_in_this_frame = norm_tan_by_surfel_frame.at(surfel_in_frame);
-    const auto& neighbours_of_this_surfel = neighbours_by_surfel_frame.at(surfel_in_frame);
+    const auto& this_surfel_in_this_frame = m_norm_tan_by_surfel_frame.at(surfel_in_frame);
+    const auto& neighbours_of_this_surfel = m_neighbours_by_surfel_frame.at(surfel_in_frame);
     for (const auto &n : neighbours_of_this_surfel) {
-        const auto& this_neighbour_in_this_frame = norm_tan_by_surfel_frame.at(SurfelInFrame{n, frame_id});
+        const auto& this_neighbour_in_this_frame = m_norm_tan_by_surfel_frame.at(SurfelInFrame{n, frame_id});
 
         // Compute the error between this surfel in this frame and the neighbour in this frame.
         total_neighbour_error += compute_error(this_surfel_in_this_frame, this_neighbour_in_this_frame);
@@ -160,10 +160,10 @@ float
 Optimiser::compute_mean_error_per_surfel() {
 
     float total_error = 0.0f;
-    for (const auto &surfel : surfels) {
+    for (const auto &surfel : m_surfels) {
         total_error += compute_surfel_error(surfel);
     }
-    return total_error / surfels.size();
+    return total_error / m_surfels.size();
 }
 
 
@@ -215,9 +215,9 @@ Optimiser::optimise_do_one_step() {
     }
 
     if( m_state == OPTIMISING ) {
-        for (int i = 0; i < surfels_per_step; ++i) {
+        for (int i = 0; i < m_surfels_per_step; ++i) {
             // Select random surfel
-            size_t surfel_idx = random_index(surfels.size());
+            size_t surfel_idx = random_index(m_surfels.size());
 
             // Smooth the selected surfel frame
             optimise_surfel(surfel_idx);
@@ -272,7 +272,7 @@ Optimiser::smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx) {
     using namespace std;
     using namespace Eigen;
 
-    Surfel &surfel = surfels.at(surfel_idx);
+    Surfel &surfel = m_surfels.at(surfel_idx);
     const FrameData &frame_data = surfel.frame_data.at(frame_idx);
     const Matrix3f &transformation_matrix = frame_data.transform;
     size_t frame_id = frame_data.pixel_in_frame.frame;
@@ -281,15 +281,15 @@ Optimiser::smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx) {
     NormalTangent source{frame_data.normal, transformation_matrix * surfel.tangent};
     SurfelInFrame sif{surfel.id, frame_id};
 
-    const auto &neighbours_of_this_surfel = neighbours_by_surfel_frame.at(sif);
+    const auto &neighbours_of_this_surfel = m_neighbours_by_surfel_frame.at(sif);
     vector<NormalTangent> neighbour_norm_tans;
     for (const auto &neighbour : neighbours_of_this_surfel) {
-        const auto &nt = norm_tan_by_surfel_frame.at(SurfelInFrame{neighbour, frame_id});
+        const auto &nt = m_norm_tan_by_surfel_frame.at(SurfelInFrame{neighbour, frame_id});
         neighbour_norm_tans.push_back(nt);
     }
 
     Vector3f new_tangent = compute_smoothed_tangent(source, neighbour_norm_tans);
-    surfels.at(surfel_idx).tangent = new_tangent;
+    m_surfels.at(surfel_idx).tangent = new_tangent;
 }
 
 /**
@@ -339,7 +339,7 @@ Optimiser::get_eligible_normals_and_tangents(std::size_t surfel_idx) const {
 
     std::vector<NormalTangent> eligible_normals_and_tangents;
 
-    const Surfel& this_surfel = surfels.at(surfel_idx);
+    const Surfel& this_surfel = m_surfels.at(surfel_idx);
 
     // For each neighbour
     int total_common_frames = 0;
@@ -385,7 +385,7 @@ Optimiser::optimise_surfel(size_t surfel_idx) {
     using namespace std;
     using namespace Eigen;
 
-    Surfel& surfel = surfels.at(surfel_idx);
+    Surfel& surfel = m_surfels.at(surfel_idx);
 
     // Get vector of eligible normal/tangent pairs
     vector<NormalTangent> neighbouring_normals_and_tangents=get_eligible_normals_and_tangents(surfel_idx);
@@ -426,7 +426,7 @@ Optimiser::populate_norm_tan_by_surfel_frame() {
     using namespace std;
     using namespace Eigen;
 
-    norm_tan_by_surfel_frame.clear();
+    m_norm_tan_by_surfel_frame.clear();
 
     /*
        For each surfel
@@ -435,12 +435,12 @@ Optimiser::populate_norm_tan_by_surfel_frame() {
        transform the norm and tan
        put it in the map.
      */
-    for (const auto &surfel : surfels) {
+    for (const auto &surfel : m_surfels) {
         for (const auto &fd : surfel.frame_data) {
             SurfelInFrame surfel_in_frame{surfel.id, fd.pixel_in_frame.frame};
             Vector3f new_norm = fd.normal;
             Vector3f new_tan = fd.transform * surfel.tangent;
-            norm_tan_by_surfel_frame.emplace(surfel_in_frame, NormalTangent{new_norm, new_tan});
+            m_norm_tan_by_surfel_frame.emplace(surfel_in_frame, NormalTangent{new_norm, new_tan});
         }
     }
 }
@@ -453,18 +453,18 @@ Optimiser::populate_norm_tan_by_surfel_frame() {
 void
 Optimiser::populate_frame_to_surfel() {
     using namespace std;
-    assert(num_frames > 0);
+    assert(m_num_frames > 0);
 
     // Push an empty vector of Surfel references for each frame
-    surfels_by_frame.clear();
-    for (int frame_index = 0; frame_index < num_frames; ++frame_index) {
-        surfels_by_frame.emplace_back();
+    m_surfels_by_frame.clear();
+    for (int frame_index = 0; frame_index < m_num_frames; ++frame_index) {
+        m_surfels_by_frame.emplace_back();
     }
 
     // For each Surfel add it to each frame in which it appears.
-    for (const auto &surfel : surfels) {
+    for (const auto &surfel : m_surfels) {
         for (const auto &fd : surfel.frame_data) {
-            surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel.id);
+            m_surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel.id);
         }
     }
 
@@ -482,8 +482,8 @@ void
 Optimiser::populate_neighbours_by_surfel_frame() {
     using namespace std;
 
-    assert(!surfels_by_frame.empty());
-    neighbours_by_surfel_frame.clear();
+    assert(!m_surfels_by_frame.empty());
+    m_neighbours_by_surfel_frame.clear();
 
     /*
       Build a map from frame to surfel const ref
@@ -495,14 +495,14 @@ Optimiser::populate_neighbours_by_surfel_frame() {
       iterate across both finding common elements
       For each common element, add an entry to the map.
      */
-    for (const auto &surfel : surfels) {
+    for (const auto &surfel : m_surfels) {
         const auto & neighbours_of_this_surfel = surfel.neighbouring_surfels;
         for (const auto &fd : surfel.frame_data) {
             size_t frame = fd.pixel_in_frame.frame;
 
-            const auto & surfels_in_this_frame = surfels_by_frame.at(frame);
+            const auto & surfels_in_this_frame = m_surfels_by_frame.at(frame);
             auto neighbours_in_this_frame = compute_intersection_of(neighbours_of_this_surfel, surfels_in_this_frame);
-            neighbours_by_surfel_frame.emplace(SurfelInFrame{surfel.id, frame}, neighbours_in_this_frame);
+            m_neighbours_by_surfel_frame.emplace(SurfelInFrame{surfel.id, frame}, neighbours_in_this_frame);
         }
     }
 }

@@ -13,18 +13,20 @@ public:
     bool optimise_do_one_step();
 
 
-    Optimiser(std::vector<Surfel>& surfels, float convergence_threshold, size_t num_frames, size_t surfels_per_step) : surfels{surfels} {
+    Optimiser(std::vector<Surfel>& surfels, float convergence_threshold, size_t num_frames, size_t surfels_per_step) : m_surfels{surfels} {
+        assert( num_frames > 0 );
+        assert( surfels_per_step > 0 );
+
         m_state = UNINITIALISED;
-        last_optimising_error = 0.0;
-        this->convergence_threshold = convergence_threshold;
-        this->num_frames = num_frames;
-        if (surfels_per_step == 0) throw std::runtime_error("surfels per step must be at least 1");
-        this->surfels_per_step = surfels_per_step;
+        m_last_optimising_error = 0.0;
+        m_convergence_threshold = convergence_threshold;
+        m_num_frames = num_frames;
+        m_surfels_per_step = surfels_per_step;
     }
 
 private:
     // Only reference surfels for now so we don';'t create a copy.
-    std::vector<Surfel>& surfels;
+    std::vector<Surfel>& m_surfels;
 
     /** Number of cycles of optimisation total */
     unsigned int m_optimisation_cycles;
@@ -37,41 +39,41 @@ private:
     /**
      * The last computed error for the given layer of the surfel network.
      */
-    float last_optimising_error;
+    float m_last_optimising_error;
 
     /**
      * %age change in error between iterations below which we consider convergence to have occurred
      * Expressed as value [0.0 .. 1.0]
      */
-    float convergence_threshold;
+    float m_convergence_threshold;
 
     /**
      * Useful cache for error computation. Recalculated per level.
      * A map from a surfel/frame pair to that surfel's transformed normal and tangent in that frame.
      */
-    std::map<SurfelInFrame, NormalTangent> norm_tan_by_surfel_frame;
+    std::map<SurfelInFrame, NormalTangent> m_norm_tan_by_surfel_frame;
 
     /**
      * Useful cache for error computation. Stores a list of surfels which are neighbours of the given surfels in frame
      * Key is surfel, frame
      * Value is a vector of const surfel&
      */
-    std::map<SurfelInFrame, std::vector<std::string>> neighbours_by_surfel_frame;
+    std::map<SurfelInFrame, std::vector<std::string>> m_neighbours_by_surfel_frame;
 
     /**
      * Map from frame to the surfels in it. Populated once per level.
      */
-    std::vector<std::vector<std::string>> surfels_by_frame;
+    std::vector<std::vector<std::string>> m_surfels_by_frame;
 
     /**
      * The number of frames in the sequence.
      */
-    size_t num_frames;
+    size_t m_num_frames;
 
     /**
      * NUmber of Surfels to adjust each step of optimisation
      */
-    size_t surfels_per_step;
+    size_t m_surfels_per_step;
 
     enum OptimisationState {
         UNINITIALISED,

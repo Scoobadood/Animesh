@@ -8,31 +8,6 @@
 static std::random_device r_device;
 static std::default_random_engine r_engine(r_device());
 
-/**
- * Optimise the vector of surfels
- */
-int
-Optimiser::optimise() {
-    using namespace std;
-
-    int optimisation_cycles = 0;
-
-    if (is_optimising) {
-        throw runtime_error("Already optimising");
-    }
-
-    optimise_begin();
-    while (optimising_should_continue()) {
-        optimise_do_one_step();
-        // Then, project each Surfel's norm and tangent to each frame in which it appears
-        populate_norm_tan_by_surfel_frame();
-        optimising_converged = check_convergence();
-        ++optimisation_cycles;
-    }
-    optimise_end();
-    return optimisation_cycles;
-}
-
 
 /**
  * Check whether user asked for optimiseng to halt.
@@ -69,8 +44,22 @@ Optimiser::optimise_begin() {
     // Compute initial error values
     cout << "Initialising error value" << endl;
     last_optimising_error = compute_mean_error_per_surfel();
+
+    m_optimisation_cycles = 0;
+
 }
 
+/**
+ * Start level smoothing.
+ */
+void
+Optimiser::optimise_begin_level() {}
+
+/**
+ * End level smoothing.
+ */
+void
+Optimiser::optimise_end_level() {}
 
 /**
  * Perform post-smoothing tidy up.
@@ -198,14 +187,40 @@ bool
 Optimiser::optimise_do_one_step() {
     using namespace std;
 
-    for (int i = 0; i < surfels_per_step; ++i) {
-        // Select random surfel
-        size_t surfel_idx = random_index(surfels.size());
+    assert( m_state != UNINITIALISED);
 
-        // Smooth the selected surfel frame
-        optimise_surfel(surfel_idx);
+    if( m_state == INITIALISED ) {
+        optimise_begin();
     }
-    // TODO: Replace this with a valid test
+
+    if( m_state == STARTING_LEVEL) {
+        optimise_begin_level();
+    }
+
+    if( m_state == OPTIMISING ) {
+        for (int i = 0; i < surfels_per_step; ++i) {
+            // Select random surfel
+            size_t surfel_idx = random_index(surfels.size());
+
+            // Smooth the selected surfel frame
+            optimise_surfel(surfel_idx);
+        }
+
+        // Then, project each Surfel's norm and tangent to each frame in which it appears
+        populate_norm_tan_by_surfel_frame();
+        optimising_converged = check_convergence();
+        ++m_optimisation_cycles;
+//        while (optimising_should_continue()) {
+    }
+
+    if( m_state == ENDING_LEVEL ) {
+        optimise_end_level();
+    }
+
+    if( m_state == ENDING_OPTIMISATION) {
+        optimise_end();
+        return true;
+    }
     return false;
 }
 

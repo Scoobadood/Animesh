@@ -8,13 +8,6 @@
 class Optimiser {
 public:
     /**
-     * Perform orientation field optimisation.
-     * Continuously step until done.
-     */
-    int
-    optimise();
-
-    /**
      * Perform a single step of optimisation. Return true if converged or halted.
      */
     bool optimise_do_one_step();
@@ -33,6 +26,9 @@ public:
 private:
     // Only reference surfels for now so we don';'t create a copy.
     std::vector<Surfel>& surfels;
+
+    /** Number of cycles of optimisation total */
+    unsigned int m_optimisation_cycles;
 
     /**
      * Flag indicating that smoothing is in progress
@@ -93,6 +89,20 @@ private:
      */
     size_t surfels_per_step;
 
+    enum OptimisationState {
+        UNINITIALISED,
+        INITIALISED,
+        STARTING_LEVEL,
+        OPTIMISING,
+        ENDING_LEVEL,
+        ENDING_OPTIMISATION
+    } m_state;
+
+    enum OptimisationResult {
+        CONVERGED,
+        CANCELLED,
+    } m_result;
+
     /**
      * Start optimisation
      */
@@ -111,7 +121,6 @@ private:
      */
     bool
     optimising_should_continue();
-
 
     /**
      * Do start of level set up. Mostly computing current residual error in this level.

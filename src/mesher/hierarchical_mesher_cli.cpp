@@ -76,7 +76,8 @@ int main(int argc, char *argv[]) {
 
         info( "   Optimising");
         Optimiser o{current_level_surfels, convergence_threshold, num_frames, surfels_per_step};
-        int cycles = o.optimise();
+        unsigned int cycles = 0;
+        while( ! o.optimise_do_one_step()) ++cycles;
         info("Optimisation completed in {:d} cycles", cycles);
 
         info( "   Saving smoothed Surfels");

@@ -261,7 +261,6 @@ remove_surfels_by_id(std::vector<Surfel> &surfels, std::vector<std::string> &ids
         }
     }
 }
-
 /**
  * For each Surfel in the current layer, find parent(s) and initialise this surfels
  * tangent with a combination of the parents tangents.

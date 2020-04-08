@@ -22,9 +22,6 @@
 
 #include "AnimeshApplication.h"
 
-const char pre_smooth_filename_template[] = "presmooth_%02d.bin";
-const char post_smooth_filename_template[] = "smoothed_%02d.bin";
-
 void extract_coordinates(const std::vector<Surfel> &surfels,
                          const std::vector<Camera> &cameras,
                          const nanogui::Vector2i& depth_map_coordinates,
@@ -59,47 +56,30 @@ void extract_coordinates(const std::vector<Surfel> &surfels,
 void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
     using namespace std;
     using namespace spdlog;
+    using namespace nanogui;
 
     info("Loading properties");
     string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
     m_properties = new Properties(property_file_name);
 
+    m_optimiser = new Optimiser(*m_properties);
+
     info("Loading depth maps");
-    m_depth_maps = load_depth_maps(*m_properties);
-    m_num_frames = m_depth_maps.size();
+    const auto depth_maps = load_depth_maps(*m_properties);
+    const auto num_frames = depth_maps.size();
 
     info("Loading cameras");
-    m_cameras = load_cameras(m_num_frames);
+    const auto cameras = load_cameras(num_frames);
 
-    info("Generating depth map hierarchy");
-    m_depth_map_hierarchy = create_depth_map_hierarchy(*m_properties, m_depth_maps, m_cameras);
-    maybe_save_depth_and_normal_maps(*m_properties, m_depth_map_hierarchy);
-    m_num_levels = m_depth_map_hierarchy.size();
+    m_optimiser->set_data( depth_maps, cameras);
 
-    // +-----------------------------------------------------------------------------------------------
-    // | Construct Surfels for each level
-    // +-----------------------------------------------------------------------------------------------
-    m_surfels_per_step = m_properties->getIntProperty("surfels-per-step");
-    m_convergence_threshold = m_properties->getFloatProperty("convergence-threshold");
-    int current_level_index = m_num_levels - 1;
-    info( "Generating surfels for level : {:d}", current_level_index);
-    info( "   Getting correspondences");
-    vector<vector<PixelInFrame>> correspondences = get_correspondences(*m_properties, current_level_index,
-                                                                       m_depth_map_hierarchy.at(current_level_index),
-                                                                       m_cameras);
+    // TODO: Give nanogui something to render
+    Vector2i depth_map_dimensions{ 20,  15 };
+    vector<vector<Vector3f>> points;
+    vector<vector<Vector3f>> normals;
+    vector<vector<Vector3f>> tangents;
 
-    info( "   Generating Surfels");
-    m_current_level_surfels = generate_surfels(m_depth_map_hierarchy.at(current_level_index),
-                                                            correspondences, *m_properties);
-    nanogui::Vector2i depth_map_dimensions{
-            m_depth_map_hierarchy.at(current_level_index).at(0).width(),
-            m_depth_map_hierarchy.at(current_level_index).at(0).height()
-    };
-    vector<vector<nanogui::Vector3f>> points;
-    vector<vector<nanogui::Vector3f>> normals;
-    vector<vector<nanogui::Vector3f>> tangents;
-
-    extract_coordinates(m_current_level_surfels, m_cameras, depth_map_dimensions, points, normals, tangents);
+    extract_coordinates(m_optimiser->get_surfel_data(), cameras, depth_map_dimensions, points, normals, tangents);
 
     mCanvas->set_data(points, normals, tangents );
 }

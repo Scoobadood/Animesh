@@ -12,21 +12,43 @@ public:
      */
     bool optimise_do_one_step();
 
+    Optimiser(const Properties &properties);
 
-    Optimiser(std::vector<Surfel>& surfels, float convergence_threshold, size_t num_frames, size_t surfels_per_step) : m_surfels{surfels} {
-        assert( num_frames > 0 );
-        assert( surfels_per_step > 0 );
+    /**
+     * Set the depth maps and cameras to be used by this optimiser
+     * @param depth_maps
+     * @param cameras
+     */
+    void
+    set_data(const std::vector<DepthMap>& depth_maps, const std::vector<Camera>& cameras);
 
-        m_state = UNINITIALISED;
-        m_last_optimising_error = 0.0;
-        m_convergence_threshold = convergence_threshold;
-        m_num_frames = num_frames;
-        m_surfels_per_step = surfels_per_step;
-    }
+    /**
+     * Return a const reference to the surfels being transformed so externals can play with it
+     */
+    const std::vector<Surfel>& get_surfel_data() { return m_current_level_surfels;}
+
 
 private:
-    // Only reference surfels for now so we don';'t create a copy.
-    std::vector<Surfel>& m_surfels;
+    /** Cameras. One per frame */
+    std::vector<Camera> m_cameras;
+
+    /** Surfels in the current level */
+    std::vector<Surfel> m_current_level_surfels;
+
+    /** Surfels in the previous level of smoothing if there's more than one. */
+    std::vector<Surfel> m_previous_level_surfels;
+
+    /** Properties to use for the optimiser */
+    const Properties m_properties;
+
+    /** Number of levels in hierarchy to create */
+    size_t m_num_levels = 0;
+
+    /** Index of the level currently being optimised */
+    unsigned int m_current_level_index = 0;
+
+    /** Depth maps by level and then frame */
+    std::vector<std::vector<DepthMap>> m_depth_map_hierarchy;
 
     /** Number of cycles of optimisation total */
     unsigned int m_optimisation_cycles;
@@ -71,7 +93,7 @@ private:
     size_t m_num_frames;
 
     /**
-     * NUmber of Surfels to adjust each step of optimisation
+     * Number of Surfels to adjust each step of optimisation
      */
     size_t m_surfels_per_step;
 
@@ -85,6 +107,7 @@ private:
     } m_state;
 
     enum OptimisationResult {
+        NOT_COMPLETE,
         CONVERGED,
         CANCELLED,
     } m_result;
@@ -190,12 +213,31 @@ private:
      */
     void
     smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx);
+
+    /**
+     * Generate surfels for the current optimisation level using
+     * correspondences.
+     */
+    void
+    generate_surfels_for_current_level();
+
+    /**
+     * Save presmoothed surfels to file if option is set.
+     */
+    void
+    maybe_save_presmooth_surfels_to_file(const Properties &properties);
+
+    /**
+     * Save post-smoothed surfels to file if option is set.
+     */
+    void
+    maybe_save_smoothed_surfels_to_file(const Properties &properties);
+
+    /**
+     * Compute the intersection of the two provided vectors and place the results into the third.
+     */
+    static std::vector<std::string>
+    compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
+                            std::vector<std::string> surfels_in_this_frame);
+
 };
-
-
-/**
- * Compute the intersection of the two provided vectors and place the results into the third.
- */
-std::vector<std::string>
-compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
-                        std::vector<std::string> surfels_in_this_frame);

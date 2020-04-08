@@ -25,14 +25,6 @@ private:
 
     CrossFieldGLCanvas *mCanvas;
     Properties *m_properties;
-    std::vector<DepthMap> m_depth_maps;
-    size_t m_num_frames;
-    std::vector<Camera> m_cameras;
-    std::vector<std::vector<DepthMap>> m_depth_map_hierarchy;
-    int m_num_levels;
-    size_t m_surfels_per_step;
-    float m_convergence_threshold;
-    std::vector<Surfel> m_current_level_surfels;
     Optimiser *m_optimiser;
 
 };

@@ -8,6 +8,7 @@
 #include <Properties/Properties.h>
 #include <Camera/Camera.h>
 #include "../mesher/depth_map_io.h"
+#include "../mesher/hierarchical_mesher_utilities.h"
 
 const std::string CAMERA_TEMPLATE = "camera_F%02d.txt";
 
@@ -147,6 +148,9 @@ create_depth_map_hierarchy(const Properties &properties,
             level_depth_maps.at(f).compute_normals(camera, method);
         }
     }
+
+    maybe_save_depth_and_normal_maps(properties, depth_map_hierarchy);
+
     return depth_map_hierarchy;
 }
 

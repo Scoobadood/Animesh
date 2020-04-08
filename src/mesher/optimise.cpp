@@ -1,13 +1,44 @@
 #include "optimise.h"
+
+#include <RoSy/RoSy.h>
+#include <Properties/Properties.h>
+#include <DepthMap/DepthMap.h>
+//#include <omp.h>
+//#include "correspondences_io.h"
+//#include "surfel_compute.h"
+//#include "optimise.h"
+//#include "types.h"
+//#include "surfel_io.h"
+#include "utilities.h"
+#include "hierarchical_mesher_utilities.h"
+//#include "depth_map_io.h"
+
 #include <Eigen/Core>
 #include <random>
 #include <iostream>
-#include <RoSy/RoSy.h>
 #include <sys/stat.h>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
+
 
 static std::random_device r_device;
 static std::default_random_engine r_engine(r_device());
 
+
+Optimiser::Optimiser(const Properties& properties ) : m_properties{properties} {
+    m_surfels_per_step = m_properties.getIntProperty("surfels-per-step");
+    assert( m_surfels_per_step > 0 );
+
+    m_convergence_threshold = m_properties.getFloatProperty("convergence-threshold");
+
+    m_state = UNINITIALISED;
+    m_last_optimising_error = 0.0;
+    m_optimising_level = 0;
+    m_num_frames = 0;
+    m_optimisation_cycles = 0;
+    m_result = NOT_COMPLETE;
+    m_num_frames = 0;
+}
 
 /**
  * Check whether user asked for optimiseng to halt.
@@ -19,6 +50,71 @@ Optimiser::user_canceled_optimise() {
     return (rv == 0);
 }
 
+
+/**
+ * Save presmoothed surfels to file if option is set.
+ */
+void
+Optimiser::maybe_save_presmooth_surfels_to_file(const Properties &properties) {
+    if (properties.getBooleanProperty("save-presmooth-surfels")) {
+        spdlog::info("   Saving presmooth Surfels");
+        save_surfels_to_file(file_name_from_template_and_level(properties.getProperty("presmooth-surfel-template"),
+                                                               m_current_level_index), m_current_level_surfels);
+    }
+}
+
+/**
+ * Save post-smoothed surfels to file if option is set.
+ */
+void
+Optimiser::maybe_save_smoothed_surfels_to_file(const Properties &properties) {
+    if (properties.getBooleanProperty("save-smoothed-surfels")) {
+        spdlog::info("   Saving smoothed Surfels");
+        save_surfels_to_file(file_name_from_template_and_level(properties.getProperty("smoothed-surfel-template"),
+                                                               m_current_level_index), m_current_level_surfels);
+    }
+}
+
+
+void
+Optimiser::generate_surfels_for_current_level() {
+    using namespace spdlog;
+    using namespace std;
+
+    m_current_level_index = m_num_levels - 1;
+    info( "Generating surfels for level : {:d}", m_current_level_index);
+    info( "   Getting correspondences");
+    vector<vector<PixelInFrame>> correspondences = get_correspondences(m_properties, m_current_level_index,
+                                                                       m_depth_map_hierarchy.at(m_current_level_index),
+                                                                       m_cameras);
+
+    info( "   Generating Surfels");
+    m_current_level_surfels = generate_surfels(m_depth_map_hierarchy.at(m_current_level_index),
+                                               correspondences, m_properties);
+
+    if (!m_previous_level_surfels.empty()) {
+        initialise_tangents_from_previous_level(m_current_level_surfels, m_previous_level_surfels, m_properties);
+    }
+}
+
+void
+Optimiser::set_data(const std::vector<DepthMap>& depth_maps, const std::vector<Camera>& cameras) {
+    using namespace spdlog;
+    using namespace std;
+
+    assert(depth_maps.size() == cameras.size());
+
+    m_cameras = cameras;
+    m_num_frames = cameras.size();
+
+    // initialise depth map hierarchy
+    info("Generating depth map hierarchy");
+    m_depth_map_hierarchy = create_depth_map_hierarchy(m_properties, depth_maps, m_cameras);
+    m_num_levels = m_depth_map_hierarchy.size();
+    assert( m_num_levels > 0 );
+    generate_surfels_for_current_level();
+    m_state = INITIALISED;
+}
 
 /**
  * Start global smoothing.
@@ -160,10 +256,10 @@ float
 Optimiser::compute_mean_error_per_surfel() {
 
     float total_error = 0.0f;
-    for (const auto &surfel : m_surfels) {
+    for (const auto &surfel : m_current_level_surfels) {
         total_error += compute_surfel_error(surfel);
     }
-    return total_error / m_surfels.size();
+    return total_error / m_current_level_surfels.size();
 }
 
 
@@ -217,7 +313,7 @@ Optimiser::optimise_do_one_step() {
     if( m_state == OPTIMISING ) {
         for (int i = 0; i < m_surfels_per_step; ++i) {
             // Select random surfel
-            size_t surfel_idx = random_index(m_surfels.size());
+            size_t surfel_idx = random_index(m_current_level_surfels.size());
 
             // Smooth the selected surfel frame
             optimise_surfel(surfel_idx);
@@ -272,7 +368,7 @@ Optimiser::smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx) {
     using namespace std;
     using namespace Eigen;
 
-    Surfel &surfel = m_surfels.at(surfel_idx);
+    Surfel &surfel = m_current_level_surfels.at(surfel_idx);
     const FrameData &frame_data = surfel.frame_data.at(frame_idx);
     const Matrix3f &transformation_matrix = frame_data.transform;
     size_t frame_id = frame_data.pixel_in_frame.frame;
@@ -289,7 +385,7 @@ Optimiser::smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx) {
     }
 
     Vector3f new_tangent = compute_smoothed_tangent(source, neighbour_norm_tans);
-    m_surfels.at(surfel_idx).tangent = new_tangent;
+    m_current_level_surfels.at(surfel_idx).tangent = new_tangent;
 }
 
 /**
@@ -339,7 +435,7 @@ Optimiser::get_eligible_normals_and_tangents(std::size_t surfel_idx) const {
 
     std::vector<NormalTangent> eligible_normals_and_tangents;
 
-    const Surfel& this_surfel = m_surfels.at(surfel_idx);
+    const Surfel& this_surfel = m_current_level_surfels.at(surfel_idx);
 
     // For each neighbour
     int total_common_frames = 0;
@@ -385,7 +481,7 @@ Optimiser::optimise_surfel(size_t surfel_idx) {
     using namespace std;
     using namespace Eigen;
 
-    Surfel& surfel = m_surfels.at(surfel_idx);
+    Surfel& surfel = m_current_level_surfels.at(surfel_idx);
 
     // Get vector of eligible normal/tangent pairs
     vector<NormalTangent> neighbouring_normals_and_tangents=get_eligible_normals_and_tangents(surfel_idx);
@@ -435,7 +531,7 @@ Optimiser::populate_norm_tan_by_surfel_frame() {
        transform the norm and tan
        put it in the map.
      */
-    for (const auto &surfel : m_surfels) {
+    for (const auto &surfel : m_current_level_surfels) {
         for (const auto &fd : surfel.frame_data) {
             SurfelInFrame surfel_in_frame{surfel.id, fd.pixel_in_frame.frame};
             Vector3f new_norm = fd.normal;
@@ -462,7 +558,7 @@ Optimiser::populate_frame_to_surfel() {
     }
 
     // For each Surfel add it to each frame in which it appears.
-    for (const auto &surfel : m_surfels) {
+    for (const auto &surfel : m_current_level_surfels) {
         for (const auto &fd : surfel.frame_data) {
             m_surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel.id);
         }
@@ -495,7 +591,7 @@ Optimiser::populate_neighbours_by_surfel_frame() {
       iterate across both finding common elements
       For each common element, add an entry to the map.
      */
-    for (const auto &surfel : m_surfels) {
+    for (const auto &surfel : m_current_level_surfels) {
         const auto & neighbours_of_this_surfel = surfel.neighbouring_surfels;
         for (const auto &fd : surfel.frame_data) {
             size_t frame = fd.pixel_in_frame.frame;
@@ -512,7 +608,7 @@ Optimiser::populate_neighbours_by_surfel_frame() {
  * Assumes that the vectors are sorted
  */
 std::vector<std::string>
-compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
+Optimiser::compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                                    std::vector<std::string> surfels_in_this_frame) {
     using namespace std;
 

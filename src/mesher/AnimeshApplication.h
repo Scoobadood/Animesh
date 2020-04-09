@@ -20,12 +20,13 @@ public:
 
 private:
 
-
+    void update_canvas_data();
     void load_all_the_things(int argc, char * argv[]);
 
     CrossFieldGLCanvas *mCanvas;
     Properties *m_properties;
     Optimiser *m_optimiser;
+    std::vector<Camera> m_cameras;
 
 };
 

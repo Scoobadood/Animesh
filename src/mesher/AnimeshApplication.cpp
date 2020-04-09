@@ -3,21 +3,13 @@
 //
 
 #include <vector>
-#include <map>
 #include <memory>
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
-#include <omp.h>
-#include "correspondences_io.h"
-#include "surfel_compute.h"
 #include "optimise.h"
 #include "types.h"
-#include "surfel_io.h"
 #include "utilities.h"
-#include "depth_map_io.h"
 #include "spdlog/spdlog.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "hierarchical_mesher_utilities.h"
 #include <nanogui/nanogui.h>
 
 #include "AnimeshApplication.h"
@@ -52,11 +44,22 @@ void extract_coordinates(const std::vector<Surfel> &surfels,
         }
     }
 }
+void AnimeshApplication::update_canvas_data( ) {
+    using namespace nanogui;
+    using namespace std;
+    // TODO: Give nanogui something to render
+    Vector2i depth_map_dimensions{ 20,  15 };
+    vector<vector<Vector3f>> points;
+    vector<vector<Vector3f>> normals;
+    vector<vector<Vector3f>> tangents;
+
+    extract_coordinates(m_optimiser->get_surfel_data(), m_cameras, depth_map_dimensions, points, normals, tangents);
+    mCanvas->set_data(points, normals, tangents );
+}
 
 void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
     using namespace std;
     using namespace spdlog;
-    using namespace nanogui;
 
     info("Loading properties");
     string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
@@ -69,18 +72,10 @@ void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
     const auto num_frames = depth_maps.size();
 
     info("Loading cameras");
-    const auto cameras = load_cameras(num_frames);
+    m_cameras = load_cameras(num_frames);
 
-    m_optimiser->set_data( depth_maps, cameras);
-
-    // TODO: Give nanogui something to render
-    Vector2i depth_map_dimensions{ 20,  15 };
-    vector<vector<Vector3f>> points;
-    vector<vector<Vector3f>> normals;
-    vector<vector<Vector3f>> tangents;
-
-    extract_coordinates(m_optimiser->get_surfel_data(), cameras, depth_map_dimensions, points, normals, tangents);
-    mCanvas->set_data(points, normals, tangents );
+    m_optimiser->set_data( depth_maps, m_cameras);
+    update_canvas_data();
 }
 
 AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Screen(Eigen::Vector2i(800, 600), "NanoGUI Test", false) {
@@ -155,6 +150,16 @@ AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Scree
     radius_slider->setValue(1.0f);
     radius_slider->setCallback([this](float value) {
         mCanvas->setRadius(value);
+        mCanvas ->drawGL();
+    });
+
+    auto step_panel = new Widget(tools);
+    step_panel->setLayout(new BoxLayout(Orientation::Vertical,
+                                          Alignment::Middle, 0, 5));
+    auto *step_button = new Button(step_panel, "Step");
+    step_button->setCallback([this]() {
+        m_optimiser->optimise_do_one_step();
+        update_canvas_data();
         mCanvas ->drawGL();
     });
 

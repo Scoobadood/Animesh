@@ -80,52 +80,8 @@ void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
     vector<vector<Vector3f>> tangents;
 
     extract_coordinates(m_optimiser->get_surfel_data(), cameras, depth_map_dimensions, points, normals, tangents);
-
     mCanvas->set_data(points, normals, tangents );
 }
-
-
-
-
-//    while (current_level_index >= 0) {
-//        info( "Generating surfels for level : {:d}", current_level_index);
-//
-//        info( "   Getting correspondences");
-//        vector<vector<PixelInFrame>> correspondences = get_correspondences(properties, current_level_index,
-//                                                                           depth_map_hierarchy.at(current_level_index),
-//                                                                           cameras);
-//
-//        info( "   Generating Surfels");
-//        vector<Surfel> current_level_surfels = generate_surfels(depth_map_hierarchy.at(current_level_index),
-//                                                                correspondences, properties);
-//
-//        if (!previous_level_surfels.empty()) {
-//            initialise_tangents_from_previous_level(current_level_surfels, previous_level_surfels, properties);
-//        }
-//
-//        info( "   Saving presmoothed Surfels");
-//        save_surfels_to_file(file_name_from_template_and_level(pre_smooth_filename_template,
-//                                                               current_level_index), current_level_surfels);
-//
-//        info( "   Optimising");
-//        m_optimiser = new Optimiser(m_convergence_threshold, num_frames, surfels_per_step);
-//        int cycles = o.optimise(current_level_surfels);
-//        info("Optimisation completed in {:d} cycles", cycles);
-//
-//        info( "   Saving smoothed Surfels");
-//        save_surfels_to_file(file_name_from_template_and_level(post_smooth_filename_template,
-//                                                               current_level_index), current_level_surfels);
-//
-//        // +-----------------------------------------------------------------------------------------------
-//        // | Remap surfels
-//        // +-----------------------------------------------------------------------------------------------
-//        previous_level_surfels = current_level_surfels;
-//        Surfel::surfel_by_id.clear();
-//        for (auto &s : previous_level_surfels) {
-//            Surfel::surfel_by_id.emplace(s.id, ref(s));
-//        }
-//        --current_level_index;
-//    }
 
 AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Screen(Eigen::Vector2i(800, 600), "NanoGUI Test", false) {
     using namespace nanogui;

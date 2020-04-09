@@ -12,7 +12,7 @@ public:
      */
     bool optimise_do_one_step();
 
-    Optimiser(const Properties &properties);
+    Optimiser(Properties properties);
 
     /**
      * Set the depth maps and cameras to be used by this optimiser
@@ -52,11 +52,6 @@ private:
 
     /** Number of cycles of optimisation total */
     unsigned int m_optimisation_cycles;
-
-    /**
-     * Index of cutrent level being smoothed.
-     */
-    unsigned int m_optimising_level;
 
     /**
      * The last computed error for the given layer of the surfel network.

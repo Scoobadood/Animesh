@@ -48,7 +48,8 @@ void AnimeshApplication::update_canvas_data( ) {
     using namespace nanogui;
     using namespace std;
     // TODO: Give nanogui something to render
-    Vector2i depth_map_dimensions{ 20,  15 };
+    auto dims = m_optimiser->get_dimensions();
+    Vector2i depth_map_dimensions{ dims.first,  dims.second };
     vector<vector<Vector3f>> points;
     vector<vector<Vector3f>> normals;
     vector<vector<Vector3f>> tangents;

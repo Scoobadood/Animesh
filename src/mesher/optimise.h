@@ -14,6 +14,13 @@ public:
 
     Optimiser(Properties properties);
 
+    std::pair<int, int> get_dimensions( ) const {
+        return std::make_pair(
+                m_depth_map_hierarchy.at(m_current_level_index).at(0).width(),
+                m_depth_map_hierarchy.at(m_current_level_index).at(0).height()
+        );
+    };
+
     /**
      * Set the depth maps and cameras to be used by this optimiser
      * @param depth_maps

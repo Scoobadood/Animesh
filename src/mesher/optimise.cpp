@@ -169,12 +169,12 @@ Optimiser::optimise_end_level() {
     if (m_current_level_index == 0) {
         m_state = ENDING_OPTIMISATION;
     } else {
+        --m_current_level_index;
         m_previous_level_surfels = m_current_level_surfels;
         Surfel::surfel_by_id.clear();
         for (auto &s : m_previous_level_surfels) {
             Surfel::surfel_by_id.emplace(s.id, std::ref(s));
         }
-        --m_current_level_index;
         m_state = STARTING_LEVEL;
     }
 }
@@ -332,9 +332,9 @@ Optimiser::optimise_do_one_step() {
 
         // Then, project each Surfel's norm and tangent to each frame in which it appears
         populate_norm_tan_by_surfel_frame();
+        ++m_optimisation_cycles;
         check_cancellation();
         check_convergence();
-        ++m_optimisation_cycles;
     }
 
     if (m_state == ENDING_LEVEL) {

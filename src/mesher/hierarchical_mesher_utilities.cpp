@@ -15,6 +15,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "hierarchical_mesher_utilities.h"
+#include "spdlog/spdlog.h"
 
 const char dm_template[] = "depth_map_genned_L%02d_F%02d.pgm";
 const char norm_template[] = "normal_map_genned_L%02d_F%02d.ppm";
@@ -22,13 +23,13 @@ const char norm_template[] = "normal_map_genned_L%02d_F%02d.ppm";
 void
 dump_pifs_in_surfel(const std::string &message, const std::vector<Surfel> &surfels) {
     using namespace std;
-    cout << message << " surfels" << endl;
+    stringstream msg;
     for (const auto &surfel : surfels) {
-        cout << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
+        msg << "Surfel id : " << surfel.id << " present in " << surfel.frame_data.size() << " frames ";
         for (const auto &frame : surfel.frame_data) {
-            cout << frame.pixel_in_frame << " ";
+            msg << frame.pixel_in_frame << " ";
         }
-        cout << endl;
+        spdlog::debug( msg.str() );
     }
 }
 
@@ -68,9 +69,9 @@ compute_child_to_parent_surfel_id_map(const std::vector<Surfel> &child_surfels, 
     using namespace std;
 
     // Dump the previous level surfels into a human readable format.
-    dump_pifs_in_surfel("Parent level", parent_surfels);
-    // Dump the current level surfels into human readable form.
-    dump_pifs_in_surfel("Child level", child_surfels);
+//    dump_pifs_in_surfel("Parent level", parent_surfels);
+//    // Dump the current level surfels into human readable form.
+//    dump_pifs_in_surfel("Child level", child_surfels);
 
     // Construct a map from parent level PIF to Surfel id
     map<PixelInFrame, string> pif_to_parent_id = map_pifs_to_surfel_id(parent_surfels);

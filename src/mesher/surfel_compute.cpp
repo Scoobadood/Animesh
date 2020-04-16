@@ -91,18 +91,11 @@ bool
 are_neighbours(const Surfel &surfel1, const Surfel &surfel2, bool eight_connected) {
     using namespace std;
 
-    // Sort framedata for each surfel by frame index
-    // TODO: This is an expensive shallow copy operation. We should probably avoid it.
-    vector<FrameData> fd1 = surfel1.frame_data;
-    sort(fd1.begin(), fd1.end());
-    vector<FrameData> fd2 = surfel2.frame_data;
-    sort(fd2.begin(), fd2.end());
-
-    auto it1 = fd1.begin();
-    auto it2 = fd2.begin();
-    while ((it1 != fd1.end()) && (it2 != fd2.end())) {
-        PixelInFrame& pif1 = it1->pixel_in_frame;
-        PixelInFrame& pif2 = it2->pixel_in_frame;
+    auto it1 = surfel1.frame_data.begin();
+    auto it2 = surfel2.frame_data.begin();
+    while ((it1 != surfel1.frame_data.end()) && (it2 != surfel2.frame_data.end())) {
+        const PixelInFrame& pif1 = it1->pixel_in_frame;
+        const PixelInFrame& pif2 = it2->pixel_in_frame;
         if (pif1.frame == pif2.frame) {
             if (are_neighbours(pif1, pif2, eight_connected)) {
                 return true;
@@ -136,21 +129,17 @@ populate_neighbours(std::vector<Surfel> &surfels, bool eight_connected) {
     using namespace std;
     using namespace spdlog;
 
-//    cout << "Populating neighbour : " << flush;
     assert(!surfels.empty());
 
     for (unsigned int i = 0; i < surfels.size() - 1; ++i) {
         Surfel& surfel = surfels.at(i);
-        info ("Populating neighbours of surfel : {:d}", i);
-//        cout << "\tAlready found " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
+        debug ("Populating neighbours of surfel : {:d}", i);
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfel, surfels.at(j), eight_connected)) {
-//                cout << "\tFound new neighbour : " << surfels.at(j).id << endl;
                 surfel.neighbouring_surfels.push_back(surfels.at(j).id);
                 surfels.at(j).neighbouring_surfels.push_back(surfel.id);
             }
         }
-//        cout << "\tFinal count is " << surfel.neighbouring_surfels.size() << " neighbours" << endl;
     }
     for( auto & s : surfels) {
         sort(s.neighbouring_surfels.begin(), s.neighbouring_surfels.end());
@@ -196,16 +185,18 @@ filter_pifs_with_normals(const std::vector<PixelInFrame> &corresponding_pifs,
     // each of them has a valid normal (it may have insufficient neighbours, be on an edge or
     // whatever. Filter those out.
     vector<PixelInFrame> pifs_with_normals;
+    stringstream msg;
     for (const auto &pif : corresponding_pifs) {
         if (depth_maps.at(pif.frame).is_normal_defined(pif.pixel.x, pif.pixel.y)) {
             pifs_with_normals.push_back(pif);
 
             const auto & nn = depth_maps.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
-            cout << pif << " --> Normal: {"
+            msg << pif << " --> Normal: {"
                  << nn.type << " " << nn.x << " " << nn.y << " " << nn.z << "}" << endl;
         } else {
-            cout << "  skipping " << pif << " --> No normal" << endl;
+            msg << "  skipping " << pif << " --> No normal" << endl;
         }
+        spdlog::debug(msg.str());
     }
     return pifs_with_normals;
 }
@@ -274,14 +265,14 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
     int target = correspondences.size();
     // Iterate over each correspondence and generate a surfel.
     for (auto const &corresponding_pifs : correspondences) {
-        cout << "Considering possible surfel : " << ++count << " of " << target << " candidates" << endl;
+        spdlog::debug("Considering possible surfel : {:d} of {:d} candidates", ++count, target);
 
         // Although the pixels in frames may be in correspondence, it's not necessarily true that
         // each of them has a valid normal (it may have insufficient neighbours, be on an edge or
         // whatever. Filter them.
         const auto pifs_with_normals = filter_pifs_with_normals(corresponding_pifs, depth_maps);
         if( pifs_with_normals.empty()) {
-            cout << "\t rejected - no normals defined for any of  " << corresponding_pifs.size() << " pifs " << endl;
+            spdlog::debug("\t rejected - no normals defined for any of {:d} pifs", corresponding_pifs.size());
             continue;
         }
 
@@ -289,6 +280,8 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
         surfels.push_back(surfel);
     }
     for( auto& s : surfels) {
+        sort(s.frame_data.begin(), s.frame_data.end());
+        sort(s.neighbouring_surfels.begin(), s.neighbouring_surfels.end());
         Surfel::surfel_by_id.emplace(s.id, s);
     }
 

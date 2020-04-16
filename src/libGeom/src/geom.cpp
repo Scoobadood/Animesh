@@ -2,6 +2,7 @@
 #include <Geom/Checks.h>
 #include <Eigen/Geometry>
 #include <Eigen/Core>
+#include <utility>
 #include <vector>
 #include <iostream>
 
@@ -10,17 +11,16 @@ const float EPSILON = 1e-4;
 
 using animesh::PointNormal;
 
-PointNormal::PointNormal( Eigen::Vector3f point, Eigen::Vector3f normal) {
+PointNormal::PointNormal( const Eigen::Vector3f& point, const Eigen::Vector3f& normal) {
 	checkNotZeroVector("Normal", normal);
 	m_point = point;
-
 	m_normal = normal.normalized();
 }
 
 /**
  * Compute the angle between two vectors
  */
-float angle_between_vectors( Eigen::Vector3f v1, Eigen::Vector3f v2 ) {
+float degrees_angle_between_vectors(const Eigen::Vector3f& v1, const Eigen::Vector3f& v2 ) {
 	using namespace Eigen;
 
 	return std::acos(std::min(1.0f, v1.dot(v2))) * 180 / M_PI;

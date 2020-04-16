@@ -14,7 +14,7 @@ public:
 
     Optimiser(Properties properties);
 
-    std::pair<int, int> get_dimensions( ) const {
+    std::pair<int, int> get_dimensions() const {
         return std::make_pair(
                 m_depth_map_hierarchy.at(m_current_level_index).at(0).width(),
                 m_depth_map_hierarchy.at(m_current_level_index).at(0).height()
@@ -27,12 +27,12 @@ public:
      * @param cameras
      */
     void
-    set_data(const std::vector<DepthMap>& depth_maps, const std::vector<Camera>& cameras);
+    set_data(const std::vector<DepthMap> &depth_maps, const std::vector<Camera> &cameras);
 
     /**
      * Return a const reference to the surfels being transformed so externals can play with it
      */
-    const std::vector<Surfel>& get_surfel_data() { return m_current_level_surfels;}
+    const std::vector<Surfel> &get_surfel_data() { return m_current_level_surfels; }
 
 
 private:
@@ -82,12 +82,14 @@ private:
      * Key is surfel, frame
      * Value is a vector of const surfel&
      */
-    std::map<SurfelInFrame, std::vector<std::string>> m_neighbours_by_surfel_frame;
+    std::multimap<SurfelInFrame, std::string> m_neighbours_by_surfel_frame;
 
     /**
      * Map from frame to the surfels in it. Populated once per level.
      */
     std::vector<std::vector<std::string>> m_surfels_by_frame;
+
+    std::map<SurfelInFrame, bool> m_surfel_frame_map;
 
     /**
      * The number of frames in the sequence.
@@ -171,7 +173,7 @@ private:
     compute_surfel_error_for_frame(const std::string &surfel_id, size_t frame_id);
 
     float
-    compute_surfel_error(const Surfel &surfel);
+    compute_surfel_error(Surfel &surfel);
 
     float
     compute_mean_error_per_surfel();
@@ -209,14 +211,6 @@ private:
     populate_frame_to_surfel();
 
     /**
-     * Perform smoothing for a single surfel in a single frame
-     * @param surfel_idx The index of the surfel WITHIN the vector
-     * @param frame_idx The index of the frame WITHIN the surfel's frame_data
-     */
-    void
-    smooth_surfel_in_frame(size_t surfel_idx, size_t frame_idx);
-
-    /**
      * Generate surfels for the current optimisation level using
      * correspondences.
      */
@@ -242,4 +236,9 @@ private:
     compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                             std::vector<std::string> surfels_in_this_frame);
 
+    std::vector<size_t>
+    select_surfels_to_optimise();
+
+    bool
+    surfel_is_in_frame(const std::string &surfel_id, size_t index);
 };

@@ -9,7 +9,7 @@ namespace animesh {
 
 class PointNormal {
 public:
-	PointNormal( Eigen::Vector3f point, Eigen::Vector3f normal);
+	PointNormal( const Eigen::Vector3f& point, const Eigen::Vector3f& normal);
 
 	using Ptr=std::shared_ptr<PointNormal>;
 
@@ -33,7 +33,7 @@ private:
 /**
  * Compute the angle between two vectors
  */
-float angle_between_vectors( Eigen::Vector3f v1, Eigen::Vector3f v2 );
+float degrees_angle_between_vectors(const Eigen::Vector3f& v1, const Eigen::Vector3f& v2 );
 
 /**
  * Given an arbitrary vector v, project it into the plane whose normal is given as n

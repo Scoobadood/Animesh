@@ -19,7 +19,9 @@ void extract_coordinates(const std::vector<Surfel> &surfels,
                          const nanogui::Vector2i& depth_map_coordinates,
                          std::vector<std::vector<nanogui::Vector3f>> &points,
                          std::vector<std::vector<nanogui::Vector3f>> &normals,
-                         std::vector<std::vector<nanogui::Vector3f>> &tangents
+                         std::vector<std::vector<nanogui::Vector3f>> &tangents,
+                         std::vector<float> &adjustments,
+                         std::vector<float> &errors
                          ) {
     using namespace std;
     using namespace nanogui;
@@ -42,6 +44,8 @@ void extract_coordinates(const std::vector<Surfel> &surfels,
             normals.at(pif.frame).push_back(fd.normal);
             tangents.at(pif.frame).push_back(fd.transform * surfel.tangent);
         }
+        adjustments.push_back(surfel.last_correction);
+        errors.push_back(surfel.error);
     }
 }
 void AnimeshApplication::update_canvas_data( ) {
@@ -53,9 +57,11 @@ void AnimeshApplication::update_canvas_data( ) {
     vector<vector<Vector3f>> points;
     vector<vector<Vector3f>> normals;
     vector<vector<Vector3f>> tangents;
+    vector<float> adjustments;
+    vector<float> errors;
 
-    extract_coordinates(m_optimiser->get_surfel_data(), m_cameras, depth_map_dimensions, points, normals, tangents);
-    mCanvas->set_data(points, normals, tangents );
+    extract_coordinates(m_optimiser->get_surfel_data(), m_cameras, depth_map_dimensions, points, normals, tangents, adjustments, errors);
+    mCanvas->set_data(points, normals, tangents, adjustments, errors);
 }
 
 void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
@@ -106,53 +112,29 @@ AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Scree
         mCanvas ->drawGL();
     });
 
-    auto rotx_panel = new Widget(tools);
-    rotx_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                        Alignment::Middle, 0, 5));
-    new Label(rotx_panel, "Rot X");
-    auto *rotx_slider = new Slider(rotx_panel);
-    rotx_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
-    rotx_slider->setValue(0.0f);
-    rotx_slider->setCallback([this](float value) {
-        mCanvas->setRotX(value);
-        mCanvas ->drawGL();
-    });
-
-    auto roty_panel = new Widget(tools);
-    roty_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                        Alignment::Middle, 0, 5));
-    new Label(roty_panel, "Rot Y");
-    auto *roty_slider = new Slider(roty_panel);
-    roty_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
-    roty_slider->setValue(0.0f);
-    roty_slider->setCallback([this](float value) {
-        mCanvas->setRotY(value);
-        mCanvas ->drawGL();
-    });
-
-    auto rotz_panel = new Widget(tools);
-    rotz_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                        Alignment::Middle, 0, 5));
-    new Label(rotz_panel, "Rot Z");
-    auto *rotz_slider = new Slider(rotz_panel);
-    rotz_slider->setRange(std::make_pair(-3.14159265f, 3.14159265f));
-    rotz_slider->setValue(0.0f);
-    rotz_slider->setCallback([this](float value) {
-        mCanvas->setRotZ(value);
-        mCanvas ->drawGL();
-    });
-
-    auto radius_panel = new Widget(tools);
-    radius_panel->setLayout(new BoxLayout(Orientation::Vertical,
+    auto colouring_panel = new Widget(tools);
+    colouring_panel->setLayout(new BoxLayout(Orientation::Vertical,
                                           Alignment::Middle, 0, 5));
-    new Label(radius_panel, "Radius");
-    auto *radius_slider = new Slider(radius_panel);
-    radius_slider->setRange(std::make_pair(0.0, 10));
-    radius_slider->setValue(1.0f);
-    radius_slider->setCallback([this](float value) {
-        mCanvas->setRadius(value);
-        mCanvas ->drawGL();
+    new Label(colouring_panel, "Colouring");
+    auto * normal_colouring_button = new Button(colouring_panel, "Normal");
+    normal_colouring_button->setFlags(Button::Flags::RadioButton);
+    normal_colouring_button->setCallback([this](){
+        mCanvas->set_colouring_mode(CrossFieldGLCanvas::NATURAL);
     });
+    auto * adj_colouring_button = new Button(colouring_panel, "Adjustment");
+    adj_colouring_button->setFlags(Button::Flags::RadioButton);
+    adj_colouring_button->setCallback([this](){
+        mCanvas->set_colouring_mode(CrossFieldGLCanvas::ADJUSTMENT);
+    });
+    auto * error_colouring_button = new Button(colouring_panel, "Error");
+    error_colouring_button->setFlags(Button::Flags::RadioButton);
+    error_colouring_button->setCallback([this](){
+        mCanvas->set_colouring_mode(CrossFieldGLCanvas::ERROR);
+    });
+    std::vector<Button *> button_group{adj_colouring_button, normal_colouring_button, error_colouring_button};
+    normal_colouring_button->setButtonGroup(button_group);
+    adj_colouring_button->setButtonGroup(button_group);
+    error_colouring_button->setButtonGroup(button_group);
 
     auto step_panel = new Widget(tools);
     step_panel->setLayout(new BoxLayout(Orientation::Vertical,

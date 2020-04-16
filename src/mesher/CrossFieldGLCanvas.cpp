@@ -41,6 +41,8 @@ CrossFieldGLCanvas::CrossFieldGLCanvas(Widget *parent) : nanogui::GLCanvas(paren
             "}"
     );
 
+    m_arcball.setSize(size());// Note 1
+
     make_projection( );
     update_mvp();
 }
@@ -79,18 +81,47 @@ nanogui::MatrixXu make_indices(int num_surfels) {
     return indices;
 }
 
-nanogui::MatrixXf make_colours(int num_surfels) {
+nanogui::MatrixXf make_colours(CrossFieldGLCanvas::SurfelColouring surfel_colouring,
+                               int num_surfels,
+                               const std::vector<float> &adjustments,
+                               const std::vector<float> &errors
+        ) {
     nanogui::MatrixXf colours(3, 8 * num_surfels);
+    float tan_r, tan_g, tan_b = 0.0f;
     for (int surfel_idx = 0; surfel_idx < num_surfels; ++surfel_idx) {
         int col_idx = surfel_idx * 8;
-        colours.col(col_idx + 0) << 1, 0, 0; // Red normal
-        colours.col(col_idx + 1) << 1, 1, 1; // White principal tangent
-        colours.col(col_idx + 2) << 0, 1, 0; // Green other tangents
-        colours.col(col_idx + 3) << 1, 0, 0; // Red normal
-        colours.col(col_idx + 4) << 0, 1, 1; // White principal tangent
-        colours.col(col_idx + 5) << 0, 1, 0; // Green other tangents
-        colours.col(col_idx + 6) << 0, 1, 0; // Green other tangents
-        colours.col(col_idx + 7) << 0, 1, 0; // Green other tangents
+        switch( surfel_colouring) {
+            case CrossFieldGLCanvas::ADJUSTMENT:
+                // Set tan colour based on adjustment
+                // adj is -45 to 45
+                tan_r = fabs(adjustments.at(surfel_idx) / 45.0f);
+                tan_g = 1.0f - tan_r;
+                for( int j=0; j<8; ++j) {
+                    colours.col(col_idx + j) << tan_r, tan_g, 0.0;
+                }
+                break;
+
+            case CrossFieldGLCanvas::NATURAL:
+                colours.col(col_idx + 0) << 1, 0, 0; // Red normal
+                colours.col(col_idx + 1) << 0, 1, 0; // Green principal tangent
+                colours.col(col_idx + 2) << 1, 1, 1; // White other tangents
+                colours.col(col_idx + 3) << 1, 0, 0; // Red normal
+                colours.col(col_idx + 4) << 0, 1, 0; // Green principal tangent
+                colours.col(col_idx + 5) << 1, 1, 1; // White other tangents
+                colours.col(col_idx + 6) << 1, 1, 1; // White other tangents
+                colours.col(col_idx + 7) << 1, 1, 1; // White other tangents
+                break;
+
+            case CrossFieldGLCanvas::ERROR:
+                // Set tan colour based on error
+                // adj is -45 to 45
+                tan_r = fabs(errors.at(surfel_idx) / (45.0f * 45.0f));
+                tan_g = 1.0f - tan_r;
+                for( int j=0; j<8; ++j) {
+                    colours.col(col_idx + j) << tan_r, tan_g, 0.0;
+                }
+                break;
+        }
     }
     return colours;
 }
@@ -103,7 +134,7 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_vertices(
     auto num_surfels = points.at(m_frame_idx).size();
     nanogui::MatrixXf vertices(3, 8 * num_surfels);
 
-    m_centroid.Zero();
+    m_centroid.setZero();
     for (unsigned int surfel_idx = 0; surfel_idx < num_surfels; ++surfel_idx) {
         unsigned int vertex_idx = surfel_idx * 8;
         const auto &point = points.at(m_frame_idx).at(surfel_idx);
@@ -138,6 +169,12 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_vertices(
     return vertices;
 }
 
+void CrossFieldGLCanvas::set_colours( ) {
+    nanogui::MatrixXf colours = make_colours(m_surfel_colouring, m_num_surfels, m_adjustments, m_errors);
+    m_shader.bind();
+    m_shader.uploadAttrib("color", colours);
+}
+
 void CrossFieldGLCanvas::load_gl_data( ) {
     using namespace nanogui;
     using namespace std;
@@ -146,7 +183,7 @@ void CrossFieldGLCanvas::load_gl_data( ) {
 
     MatrixXu indices = make_indices(m_num_surfels);
     MatrixXf positions = make_vertices(m_points, m_normals, m_tangents);
-    MatrixXf colours = make_colours(m_num_surfels);
+    MatrixXf colours = make_colours(m_surfel_colouring, m_num_surfels, m_adjustments, m_errors);
 
     m_shader.bind();
     m_shader.uploadIndices(indices);
@@ -157,7 +194,11 @@ void CrossFieldGLCanvas::load_gl_data( ) {
 
 void CrossFieldGLCanvas::set_data(const std::vector<std::vector<nanogui::Vector3f>> &points,
                                   const std::vector<std::vector<nanogui::Vector3f>> &normals,
-                                  const std::vector<std::vector<nanogui::Vector3f>> &tangents) {
+                                  const std::vector<std::vector<nanogui::Vector3f>> &tangents,
+                                  const std::vector<float> &adjustments,
+                                  const std::vector<float> &errors) {
+    m_adjustments = adjustments;
+    m_errors = errors;
     m_points = points;
     m_tangents = tangents;
     m_normals = normals;
@@ -167,7 +208,7 @@ void CrossFieldGLCanvas::set_data(const std::vector<std::vector<nanogui::Vector3
 
 void CrossFieldGLCanvas::update_mvp( ) {
     using namespace nanogui;
-    Vector3f origin = (m_radius / sqrt(3.0)) * Vector3f{1, 1, 1};
+    Vector3f origin = (m_zoom / sqrt(3.0)) * Vector3f{1, 1, 1};
     Vector3f up{0,1,0};
     const auto forward = -origin;
     const auto right = forward.cross(up);
@@ -200,7 +241,7 @@ void CrossFieldGLCanvas::drawGL() {
             0, 0, 1, 0,
             0, 0, 0, 1;
 
-    auto rot = rx * ry * rz;
+    auto rot = m_arcball.matrix();
     Matrix4f transform = m_mvp * rot;
     m_shader.setUniform("modelViewProj", transform);
 

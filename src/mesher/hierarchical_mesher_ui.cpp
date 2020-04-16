@@ -6,9 +6,11 @@
 
 #include <nanogui/nanogui.h>
 #include "AnimeshApplication.h"
+#include "spdlog/cfg/env.h"
 
 int main(int argc, char ** argv) {
     using namespace std;
+    spdlog::cfg::load_env_levels();
     try {
         nanogui::init();
         /* scoped variables */

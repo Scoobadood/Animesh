@@ -3,6 +3,7 @@
 #include "hierarchical_mesher_utilities.h"
 #include <Properties/Properties.h>
 #include "spdlog/spdlog.h"
+#include "spdlog/cfg/env.h"
 
 /**
  * Entry point
@@ -15,6 +16,8 @@
 int main(int argc, char *argv[]) {
     using namespace std;
     using namespace spdlog;
+
+    spdlog::cfg::load_env_levels();
 
     info("Loading properties");
     string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";

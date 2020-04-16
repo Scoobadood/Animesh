@@ -58,7 +58,7 @@ compute_error_for_vertex(
             other_tangent,
             other_normal);
 
-        float theta = angle_between_vectors(result.first, result.second);
+        float theta = degrees_angle_between_vectors(result.first, result.second);
         error += (theta * theta);
     }
     return error;

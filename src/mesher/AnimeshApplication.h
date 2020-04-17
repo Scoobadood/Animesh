@@ -21,9 +21,10 @@ public:
 private:
 
     void update_canvas_data();
-    void load_all_the_things(int argc, char * argv[]);
+    void load_all_the_things();
+    void build_ui();
 
-    CrossFieldGLCanvas *mCanvas;
+    CrossFieldGLCanvas *m_canvas;
     Properties *m_properties;
     Optimiser *m_optimiser;
     std::vector<Camera> m_cameras;

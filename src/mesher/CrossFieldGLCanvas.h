@@ -41,7 +41,8 @@ public:
     enum SurfelColouring {
         NATURAL,
         ADJUSTMENT,
-        ERROR
+        ERROR,
+        ERROR_REL
     };
 
     void set_colouring_mode(SurfelColouring colouring) {
@@ -59,6 +60,9 @@ private:
     float m_rotz;
     float m_zoom = MIN_ZOOM;
     bool m_zooming = false;
+    bool m_dragging = false;
+    nanogui::Vector2i m_mouse_down;
+    int m_button;
 
     SurfelColouring m_surfel_colouring;
 
@@ -88,42 +92,9 @@ private:
 
     nanogui::Arcball m_arcball;
 
-    bool mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers) override {
-        // In this example, we are using the left mouse button
-        // to control the arcball motion
-        std::cout << "mouseButtonEvent. Btn: " << button << (down ? " down" : " up")
-                  << (modifiers != 0 ? " with " : "")
-                  << ((modifiers & GLFW_MOD_ALT) != 0 ? " alt" : "")
-                  << ((modifiers & GLFW_MOD_CONTROL) != 0 ? " ctl" : "")
-                  << ((modifiers & GLFW_MOD_SHIFT) != 0 ? " sh" : "")
-                  << ((modifiers & GLFW_MOD_SUPER) != 0 ? " sup" : "")
-                  << std::endl;
-        if( button == 0) {
-            m_arcball.button(p, down);// Note 2
-            return true;
-        } else if ( button == 1 ) {
-            m_zooming = down;
-            return true;
-        }
-        return false;
-    }
+    bool mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers) override;
 
-    bool mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button, int modifiers) override {
-        std::cout << "mouseDragEvent. Btn: " << button
-                  << (modifiers != 0 ? " with " : "")
-                  << ((modifiers & GLFW_MOD_ALT) != 0 ? " alt" : "")
-                  << ((modifiers & GLFW_MOD_CONTROL) != 0 ? " ctl" : "")
-                  << ((modifiers & GLFW_MOD_SHIFT) != 0 ? " sh" : "")
-                  << ((modifiers & GLFW_MOD_SUPER) != 0 ? " sup" : "")
-                  << std::endl;
-        if( m_zooming ) {
-            float delta = (float)rel.y() / m_arcball.size().y();
-            setZoom( m_zoom + ((MAX_ZOOM - MIN_ZOOM) * delta));
-        } else {
-            m_arcball.motion(p);// Note 2
-        }
-        return true;
-    }
+    bool mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button, int modifiers) override;
 };
 
 

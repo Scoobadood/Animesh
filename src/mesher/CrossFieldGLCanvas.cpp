@@ -7,6 +7,8 @@
 #include <nanogui/nanogui.h>
 #include <Camera/Camera.h>
 #include "types.h"
+#include "spdlog/spdlog.h"
+
 
 const float VECTOR_SCALE_FACTOR = .1f;
 
@@ -86,8 +88,31 @@ nanogui::MatrixXf make_colours(CrossFieldGLCanvas::SurfelColouring surfel_colour
                                const std::vector<float> &adjustments,
                                const std::vector<float> &errors
         ) {
+    assert( !errors.empty());
+    assert( !adjustments.empty());
+
     nanogui::MatrixXf colours(3, 8 * num_surfels);
     float tan_r, tan_g, tan_b = 0.0f;
+    float error_scale_factor = 1.0f / (45.0f * 45.0f);
+    float error_offset = 0.0f;
+    if(surfel_colouring == CrossFieldGLCanvas::ERROR_REL) {
+        auto min_error = fabs(*errors.begin());
+        auto max_error = min_error;
+        for( auto err : errors ) {
+            if(fabs(err) < min_error) {
+                min_error = fabs(err);
+            }
+            if(fabs(err) > max_error) {
+                max_error = fabs(err);
+            }
+        }
+        auto error_range = max_error - min_error;
+        error_scale_factor = (error_range > 0.0 ) ? (1.0f /error_range) : 0.0f;
+        error_offset = min_error;
+    }
+
+
+
     for (int surfel_idx = 0; surfel_idx < num_surfels; ++surfel_idx) {
         int col_idx = surfel_idx * 8;
         switch( surfel_colouring) {
@@ -113,9 +138,10 @@ nanogui::MatrixXf make_colours(CrossFieldGLCanvas::SurfelColouring surfel_colour
                 break;
 
             case CrossFieldGLCanvas::ERROR:
+            case CrossFieldGLCanvas::ERROR_REL:
                 // Set tan colour based on error
                 // adj is -45 to 45
-                tan_r = fabs(errors.at(surfel_idx) / (45.0f * 45.0f));
+                tan_r = (fabs(errors.at(surfel_idx)) - error_offset) * error_scale_factor;
                 tan_g = 1.0f - tan_r;
                 for( int j=0; j<8; ++j) {
                     colours.col(col_idx + j) << tan_r, tan_g, 0.0;
@@ -162,7 +188,6 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_vertices(
         vertices.col(vertex_idx + 7) << t4.x(), t4.y(), t4.z(); // Point
     }
     m_centroid /= num_surfels;
-    std::cout << "centroid " << m_centroid << std::endl;
 
     // Adjust vertices to be centred ato origin
     vertices = vertices.colwise() - m_centroid;
@@ -219,6 +244,61 @@ void CrossFieldGLCanvas::update_mvp( ) {
             Vector3f{0, 0, 0},
             up
     );
+}
+
+
+/*
+ * State
+ * Mouse up -> Mouse down
+ * Mouse down -> drag or up or zoom
+ * Drag -> up
+ * Zoom -> up
+ */
+bool
+CrossFieldGLCanvas::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers) {
+    // If button up without drag or zoom it's a click
+    if( down ) {
+        m_mouse_down = p;
+        m_zooming = false;
+        m_dragging = false;
+        m_button = button;
+    } else {
+        if( m_dragging )  {
+            m_dragging = false;
+            m_arcball.button(p, false);
+        } else if ( m_zooming) {
+            m_zooming = false;
+        }
+        else {
+            // Click!
+            spdlog::info("Click at {:d}, {:d}", m_mouse_down.x(), m_mouse_down.y());
+        }
+    }
+    return true;
+}
+
+bool
+CrossFieldGLCanvas::mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button,
+                                   int modifiers) {
+    if( !m_zooming && !m_dragging) {
+         // Start zoom/drag
+        if (m_button == 0) {
+            m_arcball.button(m_mouse_down, true);
+            m_dragging = true;
+        } else if (m_button == 1) {
+            m_zooming = true;
+        }
+    }
+
+    if (m_zooming) {
+        float delta = (float) rel.y() / m_arcball.size().y();
+        setZoom(m_zoom
+                + ((MAX_ZOOM - MIN_ZOOM) * delta));
+    } else {
+        m_arcball.
+                motion(p);// Note 2
+    }
+    return true;
 }
 
 void CrossFieldGLCanvas::drawGL() {

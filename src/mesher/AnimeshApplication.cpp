@@ -61,16 +61,12 @@ void AnimeshApplication::update_canvas_data( ) {
     vector<float> errors;
 
     extract_coordinates(m_optimiser->get_surfel_data(), m_cameras, depth_map_dimensions, points, normals, tangents, adjustments, errors);
-    mCanvas->set_data(points, normals, tangents, adjustments, errors);
+    m_canvas->set_data(points, normals, tangents, adjustments, errors);
 }
 
-void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
+void AnimeshApplication::load_all_the_things() {
     using namespace std;
     using namespace spdlog;
-
-    info("Loading properties");
-    string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
-    m_properties = new Properties(property_file_name);
 
     m_optimiser = new Optimiser(*m_properties);
 
@@ -85,22 +81,29 @@ void AnimeshApplication::load_all_the_things(int argc, char * argv[]) {
     update_canvas_data();
 }
 
-AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Screen(Eigen::Vector2i(800, 600), "NanoGUI Test", false) {
+
+void AnimeshApplication::build_ui() {
     using namespace nanogui;
 
-    auto *window = new Window(this, "GLCanvas Demo");
-    window->setPosition(Vector2i(15, 15));
-    window->setLayout(new GroupLayout());
+    auto layout =new AdvancedGridLayout({200,800}, {1000});
+    layout->setColStretch(0, 0.0f);
+    layout->setColStretch(1, 1.0f);
+    layout->setRowStretch(0, 1.0f);
+    setLayout(layout);
 
-    mCanvas = new CrossFieldGLCanvas(window);
-    mCanvas->setBackgroundColor({100, 100, 100, 255});
-    mCanvas->setSize({400, 400});
 
-    auto *tools = new Widget(window);
-    tools->setLayout(new BoxLayout(Orientation::Horizontal,
-                                   Alignment::Middle, 0, 20));
+    auto tool_window = new Window(this, "Tools");
+    tool_window->setPosition(Vector2i(15, 15));
+    tool_window->setLayout(new GroupLayout());
+    layout->setAnchor(tool_window, AdvancedGridLayout::Anchor{0,0});
 
-    auto frame_panel = new Widget(tools);
+    m_canvas = new CrossFieldGLCanvas(this);
+    m_canvas->setBackgroundColor({100, 100, 100, 255});
+//    m_canvas->setSize({400, 400});
+    layout->setAnchor(m_canvas, AdvancedGridLayout::Anchor{1,0});
+
+
+    auto frame_panel = new Widget(tool_window);
     frame_panel->setLayout(new BoxLayout(Orientation::Vertical,
                                          Alignment::Middle, 0, 5));
     new Label(frame_panel, "Frame");
@@ -108,48 +111,64 @@ AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Scree
     frame_slider->setRange(std::make_pair(0, 8));
     frame_slider->setValue(0.0f);
     frame_slider->setCallback([this](float value) {
-        mCanvas->setFrame((int)(floor(value)));
-        mCanvas ->drawGL();
+        m_canvas->setFrame((int)(floor(value)));
+        m_canvas ->drawGL();
     });
 
-    auto colouring_panel = new Widget(tools);
+    auto colouring_panel = new Widget(tool_window);
     colouring_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                          Alignment::Middle, 0, 5));
+                                             Alignment::Middle, 0, 5));
     new Label(colouring_panel, "Colouring");
     auto * normal_colouring_button = new Button(colouring_panel, "Normal");
     normal_colouring_button->setFlags(Button::Flags::RadioButton);
     normal_colouring_button->setCallback([this](){
-        mCanvas->set_colouring_mode(CrossFieldGLCanvas::NATURAL);
+        m_canvas->set_colouring_mode(CrossFieldGLCanvas::NATURAL);
     });
     auto * adj_colouring_button = new Button(colouring_panel, "Adjustment");
     adj_colouring_button->setFlags(Button::Flags::RadioButton);
     adj_colouring_button->setCallback([this](){
-        mCanvas->set_colouring_mode(CrossFieldGLCanvas::ADJUSTMENT);
+        m_canvas->set_colouring_mode(CrossFieldGLCanvas::ADJUSTMENT);
     });
     auto * error_colouring_button = new Button(colouring_panel, "Error");
     error_colouring_button->setFlags(Button::Flags::RadioButton);
     error_colouring_button->setCallback([this](){
-        mCanvas->set_colouring_mode(CrossFieldGLCanvas::ERROR);
+        m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR);
     });
-    std::vector<Button *> button_group{adj_colouring_button, normal_colouring_button, error_colouring_button};
+    auto * error_rel_colouring_button = new Button(colouring_panel, "Error Rel");
+    error_rel_colouring_button->setFlags(Button::Flags::RadioButton);
+    error_rel_colouring_button->setCallback([this](){
+        m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR_REL);
+    });
+    std::vector<Button *> button_group{adj_colouring_button, normal_colouring_button, error_colouring_button, error_rel_colouring_button};
     normal_colouring_button->setButtonGroup(button_group);
     adj_colouring_button->setButtonGroup(button_group);
     error_colouring_button->setButtonGroup(button_group);
-
-    auto step_panel = new Widget(tools);
+    error_rel_colouring_button->setButtonGroup(button_group);
+    auto step_panel = new Widget(tool_window);
     step_panel->setLayout(new BoxLayout(Orientation::Vertical,
-                                          Alignment::Middle, 0, 5));
+                                        Alignment::Middle, 0, 5));
     auto *step_button = new Button(step_panel, "Step");
     step_button->setCallback([this]() {
         m_optimiser->optimise_do_one_step();
         update_canvas_data();
-        mCanvas ->drawGL();
+        m_canvas ->drawGL();
     });
 
-
     performLayout();
+}
 
-    load_all_the_things(argc, argv);
+
+AnimeshApplication::AnimeshApplication(int argc, char * argv[]) : nanogui::Screen(Eigen::Vector2i(800, 600), "Animesh", true) {
+    using namespace spdlog;
+    using namespace std;
+
+    info("Loading properties");
+    string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
+    m_properties = new Properties(property_file_name);
+
+    build_ui();
+
+    load_all_the_things();
 }
 
 bool AnimeshApplication::keyboardEvent(int key, int scancode, int action, int modifiers) {

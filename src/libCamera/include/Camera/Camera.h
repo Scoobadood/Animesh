@@ -15,6 +15,9 @@ public:
     void look_at( float world_x, float world_y, float world_z );
 
     void set_image_size( unsigned int width, unsigned int height );
+    void set_image_size( const Eigen::Vector2i& dims ) {
+        set_image_size(dims.x(), dims.y());
+    }
 
     void to_world_coordinates(unsigned int pixel_x, unsigned int pixel_y, float depth, float *world_coordinate) const;
 

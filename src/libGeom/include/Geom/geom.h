@@ -94,3 +94,24 @@ Eigen::Vector3f vector_perpendicular_to_vector( const Eigen::Vector3f& v1 );
  * @retrun The centroid of those points.
  */
 Eigen::Vector3f compute_centroid(const std::vector<Eigen::Vector3f>& points);
+
+/**
+ * Compute the perpendicular distance between a point and a line given.
+ * @param point The point in 3D space.
+ * @param anchor A point on the line.
+ * @param direction A vector indicating the direction of the line.
+ * @return The perpendicular distance between the point and the line.
+ */
+float distance_from_point_to_line(const Eigen::Vector3f &point, const Eigen::Vector3f &anchor,
+                                  const Eigen::Vector3f &direction);
+
+/**
+ * Find the closest pair of points in a given cloud.
+ * Return the indices of the points in the input vector.
+ * Based on https://www.researchgate.net/publication/300206787_Time-Optimal_Heuristic_Algorithms_for_Finding_Closest-Pair_of_Points_in_2D_and_3D/fulltext/571400c908aeff315ba35895/Time-Optimal-Heuristic-Algorithms-for-Finding-Closest-Pair-of-Points-in-2D-and-3D.pdf
+ * Should run in O(nlogn)
+ * @parap points
+ * @return tuple of indices and distance between points
+ */
+std::tuple<unsigned int, unsigned int, float> closest_points(const std::vector<Eigen::Vector3f>& points);
+

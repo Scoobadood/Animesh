@@ -107,6 +107,21 @@ Optimiser::set_data(const std::vector<DepthMap> &depth_maps, const std::vector<C
     assert(m_num_levels > 0);
     m_current_level_index = m_num_levels - 1;
     generate_surfels_for_current_level();
+    // First we construct a mapping from frame to surfel
+    info("Mapping frames to surfels");
+    populate_frame_to_surfel();
+
+    // Then, project each Surfel's norm and tangent to each frame in which it appears
+    info("Mapping surfel-frame to normal/tan");
+    populate_norm_tan_by_surfel_frame();
+
+    // Populate map of neighbours for a surfel in a frame
+    info("Computing neighbours for each surfel-frame");
+    populate_neighbours_by_surfel_frame();
+
+    // Compute initial error values
+    info("Initialising error value");
+    m_last_optimising_error = compute_mean_error_per_surfel();
     m_state = INITIALISED;
 }
 
@@ -135,23 +150,22 @@ Optimiser::optimise_begin_level() {
 
     if (m_current_level_index != (m_num_levels - 1)) {
         generate_surfels_for_current_level();
+        // First we construct a mapping from frame to surfel
+        info("Mapping frames to surfels");
+        populate_frame_to_surfel();
+
+        // Then, project each Surfel's norm and tangent to each frame in which it appears
+        info("Mapping surfel-frame to normal/tan");
+        populate_norm_tan_by_surfel_frame();
+
+        // Populate map of neighbours for a surfel in a frame
+        info("Computing neighbours for each surfel-frame");
+        populate_neighbours_by_surfel_frame();
+
+        // Compute initial error values
+        info("Initialising error value");
+        m_last_optimising_error = compute_mean_error_per_surfel();
     }
-
-    // First we construct a mapping from frame to surfel
-    info("Mapping frames to surfels");
-    populate_frame_to_surfel();
-
-    // Then, project each Surfel's norm and tangent to each frame in which it appears
-    info("Mapping surfel-frame to normal/tan");
-    populate_norm_tan_by_surfel_frame();
-
-    // Populate map of neighbours for a surfel in a frame
-    info("Computing neighbours for each surfel-frame");
-    populate_neighbours_by_surfel_frame();
-
-    // Compute initial error values
-    info("Initialising error value");
-    m_last_optimising_error = compute_mean_error_per_surfel();
 
     m_state = OPTIMISING;
 }
@@ -562,11 +576,13 @@ Optimiser::populate_frame_to_surfel() {
     }
 
     // For each Surfel add it to each frame in which it appears.
+    unsigned int surfel_idx = 0;
     for (const auto &surfel : m_current_level_surfels) {
         for (const auto &fd : surfel.frame_data) {
             m_surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel.id);
-            m_surfel_frame_map.emplace(SurfelInFrame{surfel.id, fd.pixel_in_frame.frame}, true);
+            m_surfel_frame_map.emplace(SurfelInFrame{surfel.id, fd.pixel_in_frame.frame}, m_surfels_by_frame.at(fd.pixel_in_frame.frame).size() - 1);
         }
+        ++surfel_idx;
     }
 
 
@@ -575,6 +591,34 @@ Optimiser::populate_frame_to_surfel() {
 bool
 Optimiser::surfel_is_in_frame(const std::string& surfel_id, size_t index ) {
     return (m_surfel_frame_map.find(SurfelInFrame{surfel_id, index}) != m_surfel_frame_map.end());
+}
+
+unsigned int
+Optimiser::index_for_surfel_in_frame(const std::string& surfel_id, unsigned int frame_idx ) {
+
+    const auto s = m_surfel_frame_map.find(SurfelInFrame{surfel_id, frame_idx});
+    if( s != m_surfel_frame_map.end() ) {
+        return s->second;
+    }
+    throw std::runtime_error( "surfel " + surfel_id + " is not in frame " + std::to_string(frame_idx));
+}
+
+std::vector<std::string>
+Optimiser::get_neighbours_of_surfel_in_frame(const std::string &surfel, unsigned int frame_idx) {
+    const auto its = m_neighbours_by_surfel_frame.equal_range(SurfelInFrame{surfel, frame_idx});
+    std::vector<std::string> results;
+    for (auto it = its.first; it != its.second; ++it) {
+        results.emplace_back(it->second);
+    }
+    return results;
+}
+
+const Surfel
+Optimiser::surfel_at_index_in_frame(unsigned int surfel_idx, unsigned int frame_idx ) {
+    assert( frame_idx < m_surfels_by_frame.size());
+    assert( surfel_idx < m_surfels_by_frame.at(frame_idx).size());
+    const auto& sid = m_surfels_by_frame.at(frame_idx).at(surfel_idx);
+    return Surfel::surfel_for_id(sid);
 }
 
 /**

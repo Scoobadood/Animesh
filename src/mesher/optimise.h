@@ -14,11 +14,10 @@ public:
 
     Optimiser(Properties properties);
 
-    std::pair<int, int> get_dimensions() const {
-        return std::make_pair(
-                m_depth_map_hierarchy.at(m_current_level_index).at(0).width(),
-                m_depth_map_hierarchy.at(m_current_level_index).at(0).height()
-        );
+    Eigen::Vector2i get_dimensions() const {
+        return Eigen::Vector2i{m_depth_map_hierarchy.at(m_current_level_index).at(0).width(),
+                               m_depth_map_hierarchy.at(m_current_level_index).at(0).height()
+        };
     };
 
     /**
@@ -33,6 +32,23 @@ public:
      * Return a const reference to the surfels being transformed so externals can play with it
      */
     const std::vector<Surfel> &get_surfel_data() { return m_current_level_surfels; }
+
+    bool
+    surfel_is_in_frame(const std::string &surfel_id, size_t index);
+
+    unsigned int
+    index_for_surfel_in_frame(const std::string& surfel_id, unsigned int frame_idx );
+
+    const Surfel
+    surfel_at_index_in_frame(unsigned int surfel_idx, unsigned int frame_idx );
+
+    /**
+     * Return a (possibly empty) vector of neghbours of a surfel in a frame
+     */
+    std::vector<std::string>
+    get_neighbours_of_surfel_in_frame(const std::string &surfel, unsigned int frame_idx);
+
+
 
 
 private:
@@ -89,7 +105,7 @@ private:
      */
     std::vector<std::vector<std::string>> m_surfels_by_frame;
 
-    std::map<SurfelInFrame, bool> m_surfel_frame_map;
+    std::map<SurfelInFrame, unsigned int> m_surfel_frame_map;
 
     /**
      * The number of frames in the sequence.
@@ -205,7 +221,7 @@ private:
     populate_neighbours_by_surfel_frame();
 
     /**
-     * Populate the surfels per fram map.
+     * Populate the surfels per frame map.
      */
     void
     populate_frame_to_surfel();
@@ -238,7 +254,4 @@ private:
 
     std::vector<size_t>
     select_surfels_to_optimise();
-
-    bool
-    surfel_is_in_frame(const std::string &surfel_id, size_t index);
 };

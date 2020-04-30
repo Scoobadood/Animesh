@@ -49,6 +49,12 @@ public:
     get_neighbours_of_surfel_in_frame(const std::string &surfel, unsigned int frame_idx);
 
 
+    /**
+     * Return mean error
+     */
+     inline float get_mean_error() {
+         return m_last_optimising_error;
+     }
 
 
 private:

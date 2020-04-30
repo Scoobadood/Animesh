@@ -14,16 +14,16 @@
 
 #include "AnimeshApplication.h"
 
-const nanogui::Vector3f HIGHLIGHTED_SURFEL_COLOUR{ 0.8f, 0.8f, 0.0f };
-const nanogui::Vector3f HIGHLIGHTED_NEIGHBOUR_COLOUR{ 0.0f, 0.6f, 0.8f };
+const nanogui::Vector3f HIGHLIGHTED_SURFEL_COLOUR{0.8f, 0.8f, 0.0f};
+const nanogui::Vector3f HIGHLIGHTED_NEIGHBOUR_COLOUR{0.0f, 0.6f, 0.8f};
 
 /**
  * Convert from surfel id to index
  */
 unsigned int
-AnimeshApplication::surfel_id_to_index( const std::string& id ) {
-    const auto & it = m_surfel_id_to_index.find(id);
-    assert( it != m_surfel_id_to_index.end());
+AnimeshApplication::surfel_id_to_index(const std::string &id) {
+    const auto &it = m_surfel_id_to_index.find(id);
+    assert(it != m_surfel_id_to_index.end());
     return it->second;
 }
 
@@ -31,8 +31,8 @@ AnimeshApplication::surfel_id_to_index( const std::string& id ) {
  * Convert from surfel index to id
  */
 std::string
-AnimeshApplication::surfel_index_to_id( unsigned int index ) {
-    assert( index < m_surfel_index_to_id.size());
+AnimeshApplication::surfel_index_to_id(unsigned int index) {
+    assert(index < m_surfel_index_to_id.size());
     return m_surfel_index_to_id.at(index);
 }
 
@@ -40,7 +40,7 @@ AnimeshApplication::surfel_index_to_id( unsigned int index ) {
 /**
  * Obtain new frame data and pass to canvas for redraw.
  */
-void AnimeshApplication::update_canvas( ) {
+void AnimeshApplication::update_canvas() {
     using namespace nanogui;
     using namespace std;
 
@@ -49,23 +49,22 @@ void AnimeshApplication::update_canvas( ) {
     temp_camera.set_image_size(dims);
 
 
-
-    const auto & surfel_data = m_optimiser->get_surfel_data();
+    const auto &surfel_data = m_optimiser->get_surfel_data();
 
     m_surfel_data.clear();
-
     m_surfel_id_to_index.clear();
     m_surfel_index_to_id.clear();
-    for( const auto & s : surfel_data ) {
-        for( const auto & fd : s.frame_data) {
-            if( fd.pixel_in_frame.frame == m_frame_idx) {
+
+    for (const auto &s : surfel_data) {
+        for (const auto &fd : s.frame_data) {
+            if (fd.pixel_in_frame.frame == m_frame_idx) {
                 const auto point_in_space = temp_camera.to_world_coordinates(
                         fd.pixel_in_frame.pixel.x, fd.pixel_in_frame.pixel.y, fd.depth);
                 m_surfel_data.emplace_back(point_in_space,
-                                         fd.normal,
-                                         fd.transform * s.tangent,
-                                         s.last_correction,
-                                         s.error
+                                           fd.normal,
+                                           fd.transform * s.tangent,
+                                           s.last_correction,
+                                           s.error
                 );
 
                 m_surfel_index_to_id.push_back(s.id);
@@ -76,6 +75,8 @@ void AnimeshApplication::update_canvas( ) {
 
     m_canvas->set_data(m_surfel_data);
     maybe_highlight_surfel_and_neighbours();
+
+    m_txt_num_surfels->setValue(std::to_string(m_surfel_data.size()));
 }
 
 void AnimeshApplication::load_all_the_things() {
@@ -91,75 +92,100 @@ void AnimeshApplication::load_all_the_things() {
     info("Loading cameras");
     m_cameras = load_cameras(num_frames);
 
-    m_optimiser->set_data( depth_maps, m_cameras);
+    m_optimiser->set_data(depth_maps, m_cameras);
     update_canvas();
 }
 
-void AnimeshApplication::surfel_selected(int surfel_idx ) {
+void AnimeshApplication::surfel_selected(int surfel_idx) {
     // Lookup the ID
     m_selected_surfel_id = surfel_index_to_id(surfel_idx);
+
     spdlog::info("Surfel {:d} {:s} selected", surfel_idx, m_selected_surfel_id);
-
-    m_lbl_selected_surfel_idx->setCaption(std::to_string(surfel_idx));
-    m_lbl_selected_surfel_id->setCaption(m_selected_surfel_id);
-
-    m_lbl_selected_surfel_err->setCaption(std::to_string(m_surfel_data.at(surfel_idx).error));
-    m_lbl_selected_surfel_adj->setCaption(std::to_string(m_surfel_data.at(surfel_idx).adjustment));
 
     maybe_highlight_surfel_and_neighbours();
 }
 
-void AnimeshApplication::make_surfel_data_panel(nanogui::Widget * window) {
-    using namespace nanogui;
+void AnimeshApplication::update_selected_surfel_data(bool clear) {
+    if( m_selected_surfel_id.empty() || clear ) {
+        m_txt_selected_surfel_id->setValue("");
+        m_txt_selected_surfel_idx->setValue("");
+        m_txt_selected_surfel_err->setValue("");
+        m_txt_selected_surfel_adj->setValue("");
+        return;
+    }
 
-    const int LABEL_COL = 0;
-    const int VALUE_COL = 1;
-    int current_row = 0;
-
-    auto stat_panel_layout = new AdvancedGridLayout({0,0}, {0,0,0,0,0}, 5);
-    stat_panel_layout->setColStretch(LABEL_COL, 0.2);
-    stat_panel_layout->setColStretch(VALUE_COL, 0.8);
-    auto stat_panel = new Widget(window);
-    stat_panel->setLayout(stat_panel_layout);
-
-    auto sid_label = new Label(stat_panel, "Surfel ID");
-    m_lbl_selected_surfel_idx = new Label(stat_panel, "- - - -");
-    stat_panel_layout->setAnchor(sid_label, AdvancedGridLayout::Anchor{LABEL_COL,current_row, 1, 1, Alignment::Fill, Alignment::Fill});
-    stat_panel_layout->setAnchor(m_lbl_selected_surfel_idx, AdvancedGridLayout::Anchor{VALUE_COL,current_row, 1, 1, Alignment::Fill,Alignment::Fill});
-
-    ++current_row;
-    auto sidx_label = new Label(stat_panel, "Surfel Idx");
-    m_lbl_selected_surfel_id = new Label(stat_panel, "- - - -");
-    stat_panel_layout->setAnchor(sidx_label, AdvancedGridLayout::Anchor{LABEL_COL,current_row,1, 1, Alignment::Fill, Alignment::Fill});
-    stat_panel_layout->setAnchor(m_lbl_selected_surfel_id, AdvancedGridLayout::Anchor{VALUE_COL,current_row,1, 1, Alignment::Fill, Alignment::Fill});
-
-    ++current_row;
-    auto err_label = new Label(stat_panel, "Error");
-    m_lbl_selected_surfel_err = new Label(stat_panel, "- - - -");
-    stat_panel_layout->setAnchor(err_label, AdvancedGridLayout::Anchor{LABEL_COL,current_row,1, 1, Alignment::Fill, Alignment::Fill});
-    stat_panel_layout->setAnchor(m_lbl_selected_surfel_err, AdvancedGridLayout::Anchor{VALUE_COL,current_row,1, 1, Alignment::Fill, Alignment::Fill});
-
-    ++current_row;
-    auto adj_label = new Label(stat_panel, "Last Adj.");
-    m_lbl_selected_surfel_adj = new Label(stat_panel, "- - - -");
-    stat_panel_layout->setAnchor(adj_label, AdvancedGridLayout::Anchor{LABEL_COL,current_row,1, 1, Alignment::Fill, Alignment::Fill});
-    stat_panel_layout->setAnchor(m_lbl_selected_surfel_adj, AdvancedGridLayout::Anchor{VALUE_COL,current_row,1, 1, Alignment::Fill, Alignment::Fill});
+    m_txt_selected_surfel_id->setValue(m_selected_surfel_id);
+    unsigned int surfel_idx = surfel_id_to_index(m_selected_surfel_id);
+    m_txt_selected_surfel_idx->setValue(std::to_string(surfel_idx));
+    m_txt_selected_surfel_err->setValue(std::to_string(m_surfel_data.at(surfel_idx).error));
+    m_txt_selected_surfel_adj->setValue(std::to_string(m_surfel_data.at(surfel_idx).adjustment));
 }
 
-void AnimeshApplication::maybe_highlight_surfel_and_neighbours( ) {
+nanogui::TextBox *
+make_label_textbox_pair( nanogui::Widget * container, int row, const std::string& label_text, const std::string& default_value = "") {
+    using namespace nanogui;
+
+    auto label = new Label(container, label_text);
+    auto * agl = dynamic_cast<AdvancedGridLayout *>(container->layout());
+    agl->setAnchor(label, AdvancedGridLayout::Anchor{0, row, 1, 1, Alignment::Fill,Alignment::Middle});
+    auto tb = new TextBox(container, default_value);
+    tb->setEditable(false);
+    tb->setAlignment(TextBox::Alignment::Left);
+    agl->setAnchor(tb,AdvancedGridLayout::Anchor{1, row, 1, 1, Alignment::Fill,Alignment::Middle});
+    return tb;
+}
+
+nanogui::Widget *
+make_label_value_panel( nanogui::Widget * container, int rows ) {
+    using namespace nanogui;
+
+    std::vector<int> row_heights;
+    for( int i=0; i<rows;++i) {
+        row_heights.push_back(0);
+    }
+    auto panel_layout = new AdvancedGridLayout({0, 0}, row_heights, 5);
+    panel_layout->setColStretch(0, 0.2);
+    panel_layout->setColStretch(1, 0.8);
+    auto panel = new Widget(container);
+    panel->setLayout(panel_layout);
+    return panel;
+}
+
+void AnimeshApplication::make_global_data_panel(nanogui::Widget *window) {
+    using namespace nanogui;
+
+    auto data_panel = make_label_value_panel(window, 2);
+    m_txt_num_surfels = make_label_textbox_pair(data_panel, 0, "# Surfels");
+    m_txt_mean_error = make_label_textbox_pair(data_panel, 1, "Mean error");
+}
+
+void AnimeshApplication::make_surfel_data_panel(nanogui::Widget *window) {
+    using namespace nanogui;
+
+    auto stat_panel = make_label_value_panel(window, 4);
+    m_txt_selected_surfel_idx = make_label_textbox_pair(stat_panel, 0, "Surfel ID" );
+    m_txt_selected_surfel_id = make_label_textbox_pair(stat_panel,1, "Surfel Idx");
+    m_txt_selected_surfel_err = make_label_textbox_pair(stat_panel,2, "Error");
+    m_txt_selected_surfel_adj = make_label_textbox_pair(stat_panel,3, "Last Adj");
+}
+
+void AnimeshApplication::maybe_highlight_surfel_and_neighbours() {
     m_canvas->remove_highlights();
     if (m_optimiser->surfel_is_in_frame(m_selected_surfel_id, m_frame_idx)) {
         auto surfel_idx = surfel_id_to_index(m_selected_surfel_id);
         m_canvas->highlight_surfel(surfel_idx, HIGHLIGHTED_SURFEL_COLOUR);
-        spdlog::debug( "Highlighting surfel {:s}", m_selected_surfel_id);
+        spdlog::debug("Highlighting surfel {:s}", m_selected_surfel_id);
 
         // And it's neighbours in frame
         const auto neighbours = m_optimiser->get_neighbours_of_surfel_in_frame(m_selected_surfel_id, m_frame_idx);
-        for (const auto & n : neighbours) {
-            spdlog::debug( "Highlighting neighbour {:s}", n);
+        for (const auto &n : neighbours) {
+            spdlog::debug("Highlighting neighbour {:s}", n);
             auto n_idx = surfel_id_to_index(n);
             m_canvas->highlight_surfel(n_idx, HIGHLIGHTED_NEIGHBOUR_COLOUR);
         }
+        update_selected_surfel_data();
+    } else {
+        update_selected_surfel_data(true);
     }
 }
 
@@ -167,14 +193,14 @@ void AnimeshApplication::maybe_highlight_surfel_and_neighbours( ) {
  * Set the frame being rendered.
  * @param frame_idx
  */
-void AnimeshApplication::set_frame(unsigned int frame_idx ) {
-    if(m_frame_idx != frame_idx ) {
+void AnimeshApplication::set_frame(unsigned int frame_idx) {
+    if (m_frame_idx != frame_idx) {
         m_frame_idx = frame_idx;
         update_canvas();
     }
 }
 
-void AnimeshApplication::make_colour_panel( nanogui::Widget * container ) {
+void AnimeshApplication::make_colour_panel(nanogui::Widget *container) {
     using namespace nanogui;
 
     auto colouring_panel = new Widget(container);
@@ -182,34 +208,35 @@ void AnimeshApplication::make_colour_panel( nanogui::Widget * container ) {
                                              Alignment::Fill, 0, 5));
 
     new Label(colouring_panel, "Colouring");
-    auto * normal_colouring_button = new Button(colouring_panel, "Normal");
+    auto *normal_colouring_button = new Button(colouring_panel, "Normal");
     normal_colouring_button->setFlags(Button::Flags::RadioButton);
-    normal_colouring_button->setCallback([this](){
+    normal_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::NATURAL);
     });
-    auto * adj_colouring_button = new Button(colouring_panel, "Adjustment");
+    auto *adj_colouring_button = new Button(colouring_panel, "Adjustment");
     adj_colouring_button->setFlags(Button::Flags::RadioButton);
-    adj_colouring_button->setCallback([this](){
+    adj_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::ADJUSTMENT);
     });
-    auto * error_colouring_button = new Button(colouring_panel, "Error");
+    auto *error_colouring_button = new Button(colouring_panel, "Error");
     error_colouring_button->setFlags(Button::Flags::RadioButton);
-    error_colouring_button->setCallback([this](){
+    error_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR);
     });
-    auto * error_rel_colouring_button = new Button(colouring_panel, "Error Rel");
+    auto *error_rel_colouring_button = new Button(colouring_panel, "Error Rel");
     error_rel_colouring_button->setFlags(Button::Flags::RadioButton);
-    error_rel_colouring_button->setCallback([this](){
+    error_rel_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR_REL);
     });
-    std::vector<Button *> button_group{adj_colouring_button, normal_colouring_button, error_colouring_button, error_rel_colouring_button};
+    std::vector<Button *> button_group{adj_colouring_button, normal_colouring_button, error_colouring_button,
+                                       error_rel_colouring_button};
     normal_colouring_button->setButtonGroup(button_group);
     adj_colouring_button->setButtonGroup(button_group);
     error_colouring_button->setButtonGroup(button_group);
     error_rel_colouring_button->setButtonGroup(button_group);
 }
 
-void AnimeshApplication::make_frame_selector_panel(nanogui::Widget * container, unsigned int num_frames) {
+void AnimeshApplication::make_frame_selector_panel(nanogui::Widget *container, unsigned int num_frames) {
     using namespace nanogui;
 
     auto frame_panel = new Widget(container);
@@ -222,11 +249,11 @@ void AnimeshApplication::make_frame_selector_panel(nanogui::Widget * container, 
     frame_slider->setRange(std::make_pair(0, num_frames - 1));
     frame_slider->setValue(0.0f);
     frame_slider->setCallback([this](float value) {
-        set_frame((unsigned int)(floor(value)));
+        set_frame((unsigned int) (floor(value)));
     });
 }
 
-void AnimeshApplication::make_buttons_panel(nanogui::Widget * container ) {
+void AnimeshApplication::make_buttons_panel(nanogui::Widget *container) {
     using namespace nanogui;
 
     auto step_panel = new Widget(container);
@@ -235,13 +262,14 @@ void AnimeshApplication::make_buttons_panel(nanogui::Widget * container ) {
     auto *step_button = new Button(step_panel, "Step");
     step_button->setCallback([this]() {
         m_optimiser->optimise_do_one_step();
+        m_txt_mean_error->setValue(std::to_string(m_optimiser->get_mean_error()));
         update_canvas();
-        m_canvas ->drawGL();
+        m_canvas->drawGL();
     });
     auto *reset_button = new Button(step_panel, "Reset");
     reset_button->setCallback([this]() {
         m_canvas->centre();
-        m_canvas ->drawGL();
+        m_canvas->drawGL();
     });
 }
 
@@ -252,46 +280,38 @@ void AnimeshApplication::build_ui() {
     layout->setColStretch(0, 0.2f);
     layout->setColStretch(1, 0.8f);
     layout->setRowStretch(0, 1.0f);
+    setLayout(layout);
 
-    auto tool_window = new Window(this, "Tools");
-    tool_window->setPosition(Vector2i(15, 15));
-    tool_window->setLayout(new GridLayout(Orientation::Vertical, 5, Alignment::Fill));
-    layout->setAnchor(tool_window, AdvancedGridLayout::Anchor{0,0});
-
+    auto tool_window = new Widget(this);
+    tool_window->setLayout(new GridLayout(Orientation::Vertical, 8, Alignment::Fill));
+    make_frame_selector_panel(tool_window, 10);
+    make_colour_panel(tool_window);
+    make_buttons_panel(tool_window);
+    make_surfel_data_panel(tool_window);
+    make_global_data_panel(tool_window);
+    layout->setAnchor(tool_window, AdvancedGridLayout::Anchor{0, 0, Alignment::Fill, Alignment::Fill});
 
     m_canvas = new CrossFieldGLCanvas(this);
     m_canvas->setBackgroundColor({100, 100, 100, 255});
     m_canvas->set_click_callback([=](int surfel_idx) {
         this->surfel_selected(surfel_idx);
     });
+    layout->setAnchor(m_canvas, AdvancedGridLayout::Anchor{1, 0, Alignment::Fill, Alignment::Fill});
 
-    make_frame_selector_panel(tool_window, 10);
-
-    make_colour_panel(tool_window);
-
-    make_buttons_panel(tool_window);
-
-    make_surfel_data_panel(tool_window);
-
+    setResizeCallback([=](nanogui::Vector2i size){
+        spdlog::info( "Resize event {:d}, {:d}", size.x(), size.y());
+        performLayout();
+    });
     performLayout();
-}
-
-bool AnimeshApplication::resizeEvent(const nanogui::Vector2i &size) {
-    spdlog::info( "Resize event {:d}, {:d}", size.x(), size.y());
-    Screen::resizeEvent(size);
-    m_canvas->setSize(size);
-    m_canvas->drawGL();
-    return true;
 }
 
 AnimeshApplication::AnimeshApplication(int argc, char *argv[]) :
         nanogui::Screen(Eigen::Vector2i(800, 600), "Animesh", true),
         m_frame_idx{0},
-        m_lbl_selected_surfel_id{nullptr},
-        m_lbl_selected_surfel_idx{nullptr},
-        m_lbl_selected_surfel_err{nullptr},
-        m_lbl_selected_surfel_adj{nullptr}
-{
+        m_txt_selected_surfel_id{nullptr},
+        m_txt_selected_surfel_idx{nullptr},
+        m_txt_selected_surfel_err{nullptr},
+        m_txt_selected_surfel_adj{nullptr} {
     using namespace spdlog;
     using namespace std;
 
@@ -313,6 +333,7 @@ bool AnimeshApplication::keyboardEvent(int key, int scancode, int action, int mo
     }
     return false;
 }
+
 void AnimeshApplication::draw(NVGcontext *ctx) {
     /* Draw the user interface */
     Screen::draw(ctx);

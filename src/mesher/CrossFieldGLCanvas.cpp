@@ -438,7 +438,7 @@ CrossFieldGLCanvas::mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Ve
         }
             break;
         case ROTATING:
-            rotate(-rel.x() / 100.0f, rel.y() / 100.0f);
+            rotate(-rel.x() / 100.0f, -rel.y() / 100.0f);
             break;
         default:
             break;

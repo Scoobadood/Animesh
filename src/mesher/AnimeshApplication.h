@@ -22,11 +22,10 @@ public:
 
     void surfel_selected(int surfel_id);
 
-    bool resizeEvent(const nanogui::Vector2i &size) override;
-
 private:
 
     void update_canvas();
+    void update_selected_surfel_data(bool clear = false);
 
     void load_all_the_things();
 
@@ -45,6 +44,8 @@ private:
 
     void make_colour_panel(nanogui::Widget *container);
 
+    void make_global_data_panel(nanogui::Widget * window);
+
     void set_frame(unsigned int frame);
 
     void maybe_highlight_surfel_and_neighbours();
@@ -55,10 +56,13 @@ private:
 
     unsigned int m_frame_idx;
 
-    nanogui::Label *m_lbl_selected_surfel_id;
-    nanogui::Label *m_lbl_selected_surfel_idx;
-    nanogui::Label *m_lbl_selected_surfel_err;
-    nanogui::Label *m_lbl_selected_surfel_adj;
+    nanogui::TextBox *m_txt_selected_surfel_id;
+    nanogui::TextBox *m_txt_selected_surfel_idx;
+    nanogui::TextBox *m_txt_selected_surfel_err;
+    nanogui::TextBox *m_txt_selected_surfel_adj;
+
+    nanogui::TextBox *m_txt_num_surfels;
+    nanogui::TextBox *m_txt_mean_error;
 
     std::string m_selected_surfel_id;
 

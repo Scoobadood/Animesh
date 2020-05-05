@@ -17,6 +17,16 @@
 const nanogui::Vector3f HIGHLIGHTED_SURFEL_COLOUR{0.8f, 0.8f, 0.0f};
 const nanogui::Vector3f HIGHLIGHTED_NEIGHBOUR_COLOUR{0.0f, 0.6f, 0.8f};
 
+
+template<class T>
+std::string format_with_commas(T value) {
+    std::stringstream ss;
+    ss.imbue(std::locale(""));
+    ss << std::fixed << value;
+    return ss.str();
+}
+
+
 /**
  * Convert from surfel id to index
  */
@@ -76,7 +86,7 @@ void AnimeshApplication::update_canvas() {
     m_canvas->set_data(m_surfel_data);
     maybe_highlight_surfel_and_neighbours();
 
-    m_txt_num_surfels->setValue(std::to_string(m_surfel_data.size()));
+    m_txt_num_surfels->setValue(format_with_commas(m_surfel_data.size()));
 }
 
 void AnimeshApplication::load_all_the_things() {
@@ -117,8 +127,8 @@ void AnimeshApplication::update_selected_surfel_data(bool clear) {
     m_txt_selected_surfel_id->setValue(m_selected_surfel_id);
     unsigned int surfel_idx = surfel_id_to_index(m_selected_surfel_id);
     m_txt_selected_surfel_idx->setValue(std::to_string(surfel_idx));
-    m_txt_selected_surfel_err->setValue(std::to_string(m_surfel_data.at(surfel_idx).error));
-    m_txt_selected_surfel_adj->setValue(std::to_string(m_surfel_data.at(surfel_idx).adjustment));
+    m_txt_selected_surfel_err->setValue(format_with_commas(m_surfel_data.at(surfel_idx).error));
+    m_txt_selected_surfel_adj->setValue(format_with_commas(m_surfel_data.at(surfel_idx).adjustment));
 }
 
 nanogui::TextBox *
@@ -154,18 +164,19 @@ make_label_value_panel( nanogui::Widget * container, int rows ) {
 void AnimeshApplication::make_global_data_panel(nanogui::Widget *window) {
     using namespace nanogui;
 
-    auto data_panel = make_label_value_panel(window, 2);
+    auto data_panel = make_label_value_panel(window, 3);
     m_txt_num_surfels = make_label_textbox_pair(data_panel, 0, "# Surfels");
-    m_txt_mean_error = make_label_textbox_pair(data_panel, 1, "Mean error");
+    m_txt_mean_error = make_label_textbox_pair(data_panel, 1, "Mean Smoothness");
+    m_txt_global_error = make_label_textbox_pair(data_panel, 2, "Global Smoothness");
 }
 
 void AnimeshApplication::make_surfel_data_panel(nanogui::Widget *window) {
     using namespace nanogui;
 
     auto stat_panel = make_label_value_panel(window, 4);
-    m_txt_selected_surfel_idx = make_label_textbox_pair(stat_panel, 0, "Surfel ID" );
-    m_txt_selected_surfel_id = make_label_textbox_pair(stat_panel,1, "Surfel Idx");
-    m_txt_selected_surfel_err = make_label_textbox_pair(stat_panel,2, "Error");
+    m_txt_selected_surfel_idx = make_label_textbox_pair(stat_panel, 0, "Surfel Idx" );
+    m_txt_selected_surfel_id = make_label_textbox_pair(stat_panel,1, "Surfel ID");
+    m_txt_selected_surfel_err = make_label_textbox_pair(stat_panel,2, "Smoothness");
     m_txt_selected_surfel_adj = make_label_textbox_pair(stat_panel,3, "Last Adj");
 }
 
@@ -218,12 +229,12 @@ void AnimeshApplication::make_colour_panel(nanogui::Widget *container) {
     adj_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::ADJUSTMENT);
     });
-    auto *error_colouring_button = new Button(colouring_panel, "Error");
+    auto *error_colouring_button = new Button(colouring_panel, "Abs. Smoothness");
     error_colouring_button->setFlags(Button::Flags::RadioButton);
     error_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR);
     });
-    auto *error_rel_colouring_button = new Button(colouring_panel, "Error Rel");
+    auto *error_rel_colouring_button = new Button(colouring_panel, "Rel. Smoothness");
     error_rel_colouring_button->setFlags(Button::Flags::RadioButton);
     error_rel_colouring_button->setCallback([this]() {
         m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR_REL);
@@ -235,6 +246,7 @@ void AnimeshApplication::make_colour_panel(nanogui::Widget *container) {
     error_colouring_button->setButtonGroup(button_group);
     error_rel_colouring_button->setButtonGroup(button_group);
 }
+
 
 void AnimeshApplication::make_frame_selector_panel(nanogui::Widget *container, unsigned int num_frames) {
     using namespace nanogui;
@@ -262,7 +274,8 @@ void AnimeshApplication::make_buttons_panel(nanogui::Widget *container) {
     auto *step_button = new Button(step_panel, "Step");
     step_button->setCallback([this]() {
         m_optimiser->optimise_do_one_step();
-        m_txt_mean_error->setValue(std::to_string(m_optimiser->get_mean_error()));
+        m_txt_mean_error->setValue(format_with_commas(m_optimiser->get_mean_error()));
+        m_txt_global_error->setValue(format_with_commas(m_optimiser->get_mean_error() * m_optimiser->get_surfel_data().size()));
         update_canvas();
         m_canvas->drawGL();
     });

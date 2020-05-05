@@ -211,7 +211,7 @@ generate_uuid() {
     uniform_int_distribution<int> dist(0, 15);
 
     const char *v = "0123456789abcdef";
-    const bool dash[] = { false, false, false, true, false, false, false, true, false, false, false, true, false, false, false };
+    const bool dash[] = { false, false, false, false, false, false, false, false };
 
     string res;
     for (bool i : dash) {

@@ -48,6 +48,9 @@ public:
     std::vector<std::string>
     get_neighbours_of_surfel_in_frame(const std::string &surfel, unsigned int frame_idx);
 
+    unsigned int get_current_level() {
+        return m_current_level_index;
+    }
 
     /**
      * Return mean error

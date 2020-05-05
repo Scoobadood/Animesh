@@ -34,9 +34,32 @@ int main(int argc, char *argv[]) {
 
     o.set_data(depth_maps, cameras);
 
-    while( ! o.optimise_do_one_step()) {
-        info("Done a step");
+    auto start_time = std::chrono::system_clock::now();
+    unsigned int hierarchy_iterations = 0;
+    while( ( o.get_current_level() != 0 ) && (! o.optimise_do_one_step())) {
+        ++hierarchy_iterations;
     }
+
+    unsigned int last_level_iterations = 0;
+    auto last_level_start_time = std::chrono::system_clock::now();
+    while( ! o.optimise_do_one_step()) {
+        ++last_level_iterations;
+    }
+
+    auto end_time = std::chrono::system_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
+    auto last_level_elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(end_time - last_level_start_time).count();
+
+    auto mins = (int) elapsed_time / 60;
+    auto secs = elapsed_time - (mins * 60);
+    cout << "Total time " << elapsed_time <<"s  (" << mins << ":" << setw(2) << setfill('0') << secs << ")" << endl;
+    cout << "Total iterations : " << (hierarchy_iterations + last_level_iterations) << endl;
+
+    mins = (int) last_level_elapsed_time / 60;
+    secs = last_level_elapsed_time - (mins * 60);
+    cout << "Last level time " << last_level_elapsed_time <<"s  (" << mins << ":" << setw(2) << setfill('0') << secs << ")" << endl;
+    cout << "Last level iterations : " << last_level_iterations << endl;
+    cout << "Smoothness : " << o.get_mean_error() << endl;
 
     return 0;
 }

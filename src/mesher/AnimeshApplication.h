@@ -63,6 +63,7 @@ private:
 
     nanogui::TextBox *m_txt_num_surfels;
     nanogui::TextBox *m_txt_mean_error;
+    nanogui::TextBox *m_txt_global_error;
 
     std::string m_selected_surfel_id;
 

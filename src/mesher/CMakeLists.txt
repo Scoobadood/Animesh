@@ -46,6 +46,7 @@ add_executable(animesh
         surfel_io.h surfel_io.cpp
         utilities.h utilities.cpp
         hierarchical_mesher_cli.cpp
+        types.h types.cpp
         hierarchical_mesher_utilities.h hierarchical_mesher_utilities.cpp)
 
 target_link_libraries(animesh
@@ -89,6 +90,7 @@ add_executable(animesh_ui
         utilities.h utilities.cpp
         hierarchical_mesher_utilities.h hierarchical_mesher_utilities.cpp
         AnimeshApplication.h AnimeshApplication.cpp
+        types.h types.cpp
         CrossFieldGLCanvas.h CrossFieldGLCanvas.cpp
         hierarchical_mesher_ui.cpp
         )
@@ -118,6 +120,7 @@ file( GLOB TEST_SOURCES "tests/*.cpp" )
 add_executable(
         testUtilities
         surfel_compute.cpp surfel_compute.h
+        types.h types.cpp
         ${TEST_SOURCES})
 
 target_link_libraries(testUtilities

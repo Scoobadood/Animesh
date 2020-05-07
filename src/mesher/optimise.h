@@ -141,6 +141,9 @@ private:
         CANCELLED,
     } m_result;
 
+
+    std::function<std::vector<size_t>(Optimiser&)> m_surfel_selection_function;
+
     /**
      * Start optimisation
      */
@@ -263,4 +266,17 @@ private:
 
     std::vector<size_t>
     select_surfels_to_optimise();
+
+    /**
+     * Surfel selection model 1: Select all in random order. The default.
+     */
+    std::vector<size_t>
+    select_all_surfels_in_random_order();
+
+    /**
+     * Surfel selection model 2: Select top 100 error scores
+     */
+    std::vector<size_t>
+    select_top_100_errors();
+
 };

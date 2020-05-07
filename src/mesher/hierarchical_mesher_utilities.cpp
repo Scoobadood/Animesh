@@ -6,15 +6,9 @@
 #include <DepthMap/DepthMap.h>
 #include <omp.h>
 #include "correspondences_io.h"
-#include "surfel_compute.h"
-#include "optimise.h"
 #include "types.h"
-#include "surfel_io.h"
 #include "utilities.h"
 #include "depth_map_io.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "hierarchical_mesher_utilities.h"
 #include "spdlog/spdlog.h"
 
 const char dm_template[] = "depth_map_genned_L%02d_F%02d.pgm";

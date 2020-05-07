@@ -9,6 +9,9 @@
 #include <Eigen/Core>
 #include <utility>
 #include <map>
+#include <string>
+#include <vector>
+#include <functional>
 #include <iostream>
 
 struct Pixel {
@@ -98,15 +101,7 @@ struct FrameData {
 
 struct Surfel {
     static std::map<std::string, std::reference_wrapper<Surfel>> surfel_by_id;
-    static Surfel& surfel_for_id(const std::string& id) {
-        auto it = surfel_by_id.find(id);
-        if( it != surfel_by_id.end() ) {
-            Surfel& ret = it->second;
-            return ret;
-        }
-        std::cerr << "No surfel found for ID " << id << std::endl;
-        throw std::runtime_error("Bad surfel id");
-    }
+    static Surfel& surfel_for_id(const std::string& id);
     std::string id;
     std::vector<FrameData> frame_data;
     std::vector<std::string> neighbouring_surfels;

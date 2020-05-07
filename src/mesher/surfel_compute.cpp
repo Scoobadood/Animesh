@@ -11,8 +11,7 @@
 #include <DepthMap/DepthMap.h>
 #include <Geom/geom.h>
 #include "spdlog/spdlog.h"
-
-std::map<std::string,std::reference_wrapper<Surfel>> Surfel::surfel_by_id;
+#include "types.h"
 
 /**
  * Construct Surfels from correspondences.

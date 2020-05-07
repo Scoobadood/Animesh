@@ -17,12 +17,24 @@
 static std::random_device r_device;
 static std::default_random_engine r_engine(r_device());
 
+static const std::string SSA_SELECT_ALL_IN_RANDOM_ORDER{"select-all-in-random-order"};
+static const std::string SSA_SELECT_TOP_100_ERRORS{"select-top-100-errors"};
+
 
 Optimiser::Optimiser(Properties properties) : m_properties{std::move(properties)} {
     m_surfels_per_step = m_properties.getIntProperty("surfels-per-step");
     assert(m_surfels_per_step > 0);
 
     m_convergence_threshold = m_properties.getFloatProperty("convergence-threshold");
+
+    auto ssa = m_properties.getProperty("surfel-selection-algorithm");
+    if( ssa == SSA_SELECT_ALL_IN_RANDOM_ORDER ) {
+        m_surfel_selection_function = &Optimiser::select_all_surfels_in_random_order;
+    } else if ( ssa == SSA_SELECT_TOP_100_ERRORS ) {
+        m_surfel_selection_function = &Optimiser::select_top_100_errors;
+    } else {
+        throw std::runtime_error("Unknown surfel selection algorithm " + ssa);
+    }
 
     m_state = UNINITIALISED;
     m_last_optimising_error = 0.0;
@@ -324,7 +336,7 @@ Optimiser::check_cancellation() {
 }
 
 std::vector<size_t>
-Optimiser::select_surfels_to_optimise() {
+Optimiser::select_all_surfels_in_random_order() {
     using namespace std;
 
     vector<size_t> indices;
@@ -335,6 +347,25 @@ Optimiser::select_surfels_to_optimise() {
     shuffle(indices.begin(), indices.end(),
             default_random_engine(chrono::system_clock::now().time_since_epoch().count()));
     return indices;
+}
+
+/**
+ * Surfel selection model 2: Select top 100 error scores
+ */
+std::vector<size_t>
+Optimiser::select_top_100_errors() {
+    using namespace std;
+
+    vector<size_t> indices;
+    // TODO: Sort by errors and take the first 100.
+    return indices;
+}
+
+
+
+std::vector<size_t>
+Optimiser::select_surfels_to_optimise() {
+    return m_surfel_selection_function(*this);
 }
 
 /**

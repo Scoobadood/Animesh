@@ -126,6 +126,8 @@ private:
      */
     size_t m_surfels_per_step;
 
+    std::function<std::vector<size_t>(Optimiser& )> m_surfel_selection_algorithm;
+
     enum OptimisationState {
         UNINITIALISED,
         INITIALISED,
@@ -263,6 +265,7 @@ private:
     static std::vector<std::string>
     compute_intersection_of(std::vector<std::string> neighbours_of_this_surfel,
                             std::vector<std::string> surfels_in_this_frame);
+
 
     std::vector<size_t>
     select_surfels_to_optimise();

@@ -335,6 +335,9 @@ Optimiser::check_cancellation() {
     }
 }
 
+/**
+ * Select all surfels in a layer and randomize the order
+ */
 std::vector<size_t>
 Optimiser::select_all_surfels_in_random_order() {
     using namespace std;
@@ -357,15 +360,22 @@ Optimiser::select_top_100_errors() {
     using namespace std;
 
     vector<size_t> indices;
-    // TODO: Sort by errors and take the first 100.
+    indices.reserve(m_current_level_surfels.size());
+    for (int i = 0; i < m_current_level_surfels.size(); ++i) {
+        indices.push_back(i);
+    }
+    sort(indices.begin(), indices.end(), [](size_t a, size_t b) {return b<a;});
+    indices.resize(100);
     return indices;
 }
 
 
-
 std::vector<size_t>
 Optimiser::select_surfels_to_optimise() {
-    return m_surfel_selection_function(*this);
+    using namespace std;
+
+    assert(m_surfel_selection_algorithm);
+    return m_surfel_selection_algorithm(*this);
 }
 
 /**

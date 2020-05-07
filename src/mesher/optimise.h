@@ -126,6 +126,8 @@ private:
      */
     size_t m_surfels_per_step;
 
+    std::function<std::vector<size_t>(Optimiser& )> m_surfel_selection_algorithm;
+
     enum OptimisationState {
         UNINITIALISED,
         INITIALISED,

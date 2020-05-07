@@ -126,8 +126,6 @@ private:
      */
     size_t m_surfels_per_step;
 
-    std::function<std::vector<size_t>(Optimiser& )> m_surfel_selection_algorithm;
-
     enum OptimisationState {
         UNINITIALISED,
         INITIALISED,
@@ -274,12 +272,12 @@ private:
      * Surfel selection model 1: Select all in random order. The default.
      */
     std::vector<size_t>
-    select_all_surfels_in_random_order();
+    ssa_select_all_in_random_order();
 
     /**
      * Surfel selection model 2: Select top 100 error scores
      */
     std::vector<size_t>
-    select_top_100_errors();
+    ssa_select_worst_100();
 
 };

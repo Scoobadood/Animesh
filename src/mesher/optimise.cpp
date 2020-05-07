@@ -18,7 +18,7 @@ static std::random_device r_device;
 static std::default_random_engine r_engine(r_device());
 
 static const std::string SSA_SELECT_ALL_IN_RANDOM_ORDER{"select-all-in-random-order"};
-static const std::string SSA_SELECT_TOP_100_ERRORS{"select-top-100-errors"};
+static const std::string SSA_SELECT_WORST_100{"select-worst-100"};
 
 
 Optimiser::Optimiser(Properties properties) : m_properties{std::move(properties)} {
@@ -29,9 +29,9 @@ Optimiser::Optimiser(Properties properties) : m_properties{std::move(properties)
 
     auto ssa = m_properties.getProperty("surfel-selection-algorithm");
     if( ssa == SSA_SELECT_ALL_IN_RANDOM_ORDER ) {
-        m_surfel_selection_function = &Optimiser::select_all_surfels_in_random_order;
-    } else if ( ssa == SSA_SELECT_TOP_100_ERRORS ) {
-        m_surfel_selection_function = &Optimiser::select_top_100_errors;
+        m_surfel_selection_function = &Optimiser::ssa_select_all_in_random_order;
+    } else if (ssa == SSA_SELECT_WORST_100 ) {
+        m_surfel_selection_function = &Optimiser::ssa_select_worst_100;
     } else {
         throw std::runtime_error("Unknown surfel selection algorithm " + ssa);
     }
@@ -339,7 +339,7 @@ Optimiser::check_cancellation() {
  * Select all surfels in a layer and randomize the order
  */
 std::vector<size_t>
-Optimiser::select_all_surfels_in_random_order() {
+Optimiser::ssa_select_all_in_random_order() {
     using namespace std;
 
     vector<size_t> indices;
@@ -356,26 +356,32 @@ Optimiser::select_all_surfels_in_random_order() {
  * Surfel selection model 2: Select top 100 error scores
  */
 std::vector<size_t>
-Optimiser::select_top_100_errors() {
+Optimiser::ssa_select_worst_100() {
     using namespace std;
 
-    vector<size_t> indices;
-    indices.reserve(m_current_level_surfels.size());
-    for (int i = 0; i < m_current_level_surfels.size(); ++i) {
-        indices.push_back(i);
-    }
-    sort(indices.begin(), indices.end(), [](size_t a, size_t b) {return b<a;});
-    indices.resize(100);
+    // initialize original index locations
+    vector<size_t> indices(m_current_level_surfels.size());
+    iota(indices.begin(), indices.end(), 0);
+
+    // sort indexes based on comparing values in m_current_level_surfels
+    // using std::stable_sort instead of std::sort
+    // to avoid unnecessary index re-orderings
+    // when m_current_level_surfels contains elements of equal values
+    stable_sort(indices.begin(), indices.end(),
+                [this](size_t i1, size_t i2) {
+                    return m_current_level_surfels.at(i1).error > m_current_level_surfels.at(i2).error;
+                });
+
+    indices.resize(300);
     return indices;
 }
-
 
 std::vector<size_t>
 Optimiser::select_surfels_to_optimise() {
     using namespace std;
 
-    assert(m_surfel_selection_algorithm);
-    return m_surfel_selection_algorithm(*this);
+    assert(m_surfel_selection_function);
+    return m_surfel_selection_function(*this);
 }
 
 /**

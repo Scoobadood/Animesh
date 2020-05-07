@@ -456,7 +456,7 @@ void CrossFieldGLCanvas::drawGL() {
     m_shader.setUniform("modelViewProj", transform);
 
     glEnable(GL_DEPTH_TEST);
-    glLineWidth(3);
+//    glLineWidth(3);
     m_shader.drawIndexed(GL_LINES, 0, m_num_surfels * 4);
     glDisable(GL_DEPTH_TEST);
 }

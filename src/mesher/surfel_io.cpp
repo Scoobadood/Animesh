@@ -81,10 +81,11 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
         if( sIdx % pct5 == 0 ) {
             cout << "." << flush;
         }
-        Surfel s;
-        s.id = read_string(file);
+        string surfel_id = read_string(file);
+
 
         unsigned int num_frames = read_unsigned_int( file );
+        vector<FrameData> frames;
         for( int fdIdx = 0; fdIdx < num_frames; ++fdIdx ) {
             FrameData fd;
 
@@ -104,16 +105,17 @@ load_from_file( const std::string& file_name, std::vector<Surfel>& surfels)
 
             // Normal
             fd.normal = read_vector_3f( file );
-            s.frame_data.push_back( fd );
+            frames.push_back( fd );
         }
 
         unsigned int num_neighbours = read_unsigned_int( file );
+        vector<string> neighbours;
         for( int nIdx=0; nIdx<num_neighbours; ++nIdx) {
-            s.neighbouring_surfels.push_back( read_string( file ) );
+            neighbours.push_back( read_string( file ) );
         }
 
-        s.tangent = read_vector_3f( file );
-        surfels.push_back(s);
+        const auto tangent = read_vector_3f( file );
+        surfels.emplace_back(surfel_id, frames, neighbours, tangent);
     }
     file.close();
     cout << endl << " done." << endl;

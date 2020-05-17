@@ -106,14 +106,22 @@ struct Surfel {
     std::vector<FrameData> frame_data;
     std::vector<std::string> neighbouring_surfels;
     Eigen::Vector3f tangent;
+    // Relative position of representation lattice intersection [0,1)
+    Eigen::Vector3f position;
     float last_correction;
     float error;
-    Surfel(std::string  id, const std::vector<FrameData>& frames, const std::vector<std::string>& neighbours, const Eigen::Vector3f& tangent) :
-    id{std::move(id)}, tangent{tangent} {
-        for( auto & fd : frames ) { frame_data.push_back(fd);}
-        for( const auto & nb : neighbours ) { neighbouring_surfels.push_back(nb);}
+
+    Surfel(std::string id, const std::vector<FrameData> &frames, const std::vector<std::string> &neighbours,
+           const Eigen::Vector3f &tangent) :
+            id{std::move(id)},
+            tangent{tangent},
+            position{0.0f, 0.0f, 0.0f},
+            last_correction{0.0f},
+            error{0.0} {
+        for (auto &fd : frames) { frame_data.push_back(fd); }
+        for (const auto &nb : neighbours) { neighbouring_surfels.push_back(nb); }
     }
-    Surfel(){}
+//    Surfel(){}
 };
 
 #endif //ANIMESH_TYPES_H

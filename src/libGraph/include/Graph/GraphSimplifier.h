@@ -2,6 +2,7 @@
 
 #include <tuple>
 #include <map>
+#include <memory>
 #include <Graph/Graph.h>
 
 #define throw_invalid_argument(msg) \
@@ -18,6 +19,7 @@ namespace animesh {
  */
     template<class NodeData, class EdgeData>
     class GraphSimplifier {
+        using GraphNodePtr = std::shared_ptr<typename animesh::Graph<NodeData, EdgeData>::GraphNode>;
         using GraphNode = typename animesh::Graph<NodeData, EdgeData>::GraphNode;
         using Graph = typename animesh::Graph<NodeData, EdgeData>;
 
@@ -30,14 +32,16 @@ namespace animesh {
              * Propagate function takes parent and child nodes and generates new data for the child
              */
             GraphMapping(const std::function<NodeData(const NodeData &, const NodeData &)> &propagate_function,
-                         const std::map<GraphNode *, GraphNode *>& child_to_parent) {
-                m_propagate_function = propagate_function;
-                m_child_to_parent = child_to_parent;
-                
+                         const std::map<GraphNodePtr, GraphNodePtr> &child_to_parent)
+                    : m_propagate_function{propagate_function},
+                      m_child_to_parent{child_to_parent} {
+
+
+
                 // Convert child->parent mapping to the other way around
                 for (auto mapping : child_to_parent) {
                     auto x = m_parents_to_children.insert(std::make_pair(mapping.second, mapping.first));
-                    if( x == m_parents_to_children.end() ) throw std::runtime_error( "Failed to insert" );
+                    if (x == m_parents_to_children.end()) throw std::runtime_error("Failed to insert");
                 }
             }
 
@@ -54,19 +58,20 @@ namespace animesh {
                  */
                 for (auto kvp : m_parents_to_children) {
                     NodeData new_data = m_propagate_function(kvp.first->data(), kvp.second->data());
-                    kvp.second->set_data(new_data);
+//                    auto gn = const_cast<GraphNode*>(kvp.second);
+                    (kvp.second)->set_data(new_data);
                 }
             }
 
             /**
              * Return the childnodes of a node
              */
-            std::vector<GraphNode *> child_nodes(const GraphNode *gn) const {
+            std::vector<const GraphNodePtr> child_nodes(const GraphNodePtr gn) const {
                 using namespace std;
 
-                vector<GraphNode *> children;
+                vector<const GraphNodePtr> children;
 
-                auto ret = m_parents_to_children.equal_range(const_cast<GraphNode *>(gn));
+                auto ret = m_parents_to_children.equal_range(gn);
                 for (auto it = ret.first; it != ret.second; ++it) {
                     children.push_back(it->second);
                 }
@@ -76,10 +81,10 @@ namespace animesh {
             /**
              * Return the children of a node
              */
-            std::vector<NodeData> children(const GraphNode *gn) const {
+            std::vector<NodeData> children(const GraphNodePtr gn) const {
                 using namespace std;
 
-                vector<GraphNode *> nodes = child_nodes(gn);
+                vector<const GraphNodePtr> nodes = child_nodes(gn);
                 vector<NodeData> children;
                 for( auto node : nodes) {
                     children.push_back(node->data());
@@ -90,7 +95,7 @@ namespace animesh {
             /**
              * Return the parent of a node
              */
-            const GraphNode * parent(GraphNode * gn) const {
+            GraphNodePtr parent(const GraphNodePtr gn) const {
                 using namespace std;
 
                 return m_child_to_parent.at(gn);
@@ -99,40 +104,45 @@ namespace animesh {
         private:
             /** function to propagate changes from parents to children */
             std::function<NodeData(const NodeData &, const NodeData &)> m_propagate_function;
+
             /** map from parents to children */
-            std::multimap<GraphNode *, GraphNode *>                     m_parents_to_children;
+            std::multimap<GraphNodePtr, GraphNodePtr>                     m_parents_to_children;
+
             /** map from child to parents */
-            std::map<GraphNode *, GraphNode *>                          m_child_to_parent;
+            std::map<GraphNodePtr, GraphNodePtr>                          m_child_to_parent;
         };
 
 
     private:
-    /**
-     * Construct a GraphNode as the parent of two other nodes
-     */
-        GraphNode *
-        create_parent_node(GraphNode *node_a, GraphNode *node_b, std::map<GraphNode *, GraphNode *> &node_map) const {
-            if (node_a == nullptr) throw_invalid_argument("first node may not be null");
-            if (node_b == nullptr) throw_invalid_argument("second node may not be null");
-
-            NodeData new_data = m_node_merge_function(node_a->data(), node_b->data());
-            GraphNode *gn = new GraphNode(new_data);
-            node_map.insert(std::make_pair(node_a, gn));
-            node_map.insert(std::make_pair(node_b, gn));
-            return gn;
-        }
-
         /**
          * Construct a GraphNode as the parent of two other nodes
          */
-        GraphNode *create_parent_node(GraphNode *node_a, std::map<GraphNode *, GraphNode *> &node_map) const {
-            if (node_a == nullptr) throw std::invalid_argument("first node may not be null");
+        GraphNodePtr
+        create_parent_node(const GraphNodePtr &node_a,
+                           const GraphNodePtr &node_b,
+                           std::map<GraphNodePtr, GraphNodePtr> &node_map) const {
+            if (node_a == nullptr) throw_invalid_argument("first node may not be null");
+            if (node_b == nullptr) throw_invalid_argument("second node may not be null");
 
-            GraphNode *gn = new GraphNode(node_a->data());
-            node_map.insert(std::make_pair(node_a, gn));
-            return gn;
+            auto new_data = m_node_merge_function(node_a->data(), node_b->data());
+            auto new_node = Graph::make_node(new_data);
+            node_map.insert(std::make_pair(node_a, new_node));
+            node_map.insert(std::make_pair(node_b, new_node));
+            return new_node;
         }
 
+        /**
+         * Construct a GraphNode as the parent of one other nodes
+         */
+        GraphNodePtr
+        create_parent_node( const GraphNodePtr node_a,
+                std::map<GraphNodePtr, GraphNodePtr> &node_map) const {
+            if (node_a == nullptr) throw std::invalid_argument("first node may not be null");
+
+            auto new_node = Graph::make_node(node_a->data());
+            node_map.emplace(node_a,new_node);
+            return new_node;
+        }
 
     public:
 
@@ -158,10 +168,10 @@ namespace animesh {
                 throw invalid_argument("Can't simplify Graph with no edges");
 
             // Make the up graph
-            Graph *output_graph = new Graph();
+            auto *output_graph = new Graph();
 
             // Make the mapper
-            map<GraphNode *, GraphNode *> node_map;
+            map<GraphNodePtr, GraphNodePtr> node_map;
 
             /*
                 for each edge in the input graph
@@ -171,10 +181,10 @@ namespace animesh {
                 end
              */
             for (auto edge : input_graph->edges()) {
-                if ((node_map.count(edge->from_node()) == 0)
-                    && (node_map.count(edge->to_node()) == 0)) {
+                if ((node_map.count(edge.from()) == 0)
+                    && (node_map.count(edge.to()) == 0)) {
 
-                    GraphNode *new_node = create_parent_node(edge->from_node(), edge->to_node(), node_map);
+                    auto new_node = create_parent_node(edge.from(), edge.to(), node_map);
                     output_graph->add_node(new_node);
                 }
             }
@@ -189,7 +199,7 @@ namespace animesh {
             */
             for (auto node : input_graph->nodes()) {
                 if (node_map.count(node) == 0) {
-                    GraphNode *new_node = create_parent_node(node, node_map);
+                    auto new_node = create_parent_node(node, node_map);
                     output_graph->add_node(new_node);
                 }
             }
@@ -205,11 +215,11 @@ namespace animesh {
                 end
             */
             for (auto edge : input_graph->edges()) {
-                GraphNode *gn1 = node_map.at(edge->from_node());
-                GraphNode *gn2 = node_map.at(edge->to_node());
+                auto gn1 = node_map.at(edge.from());
+                auto gn2 = node_map.at(edge.to());
 
                 if ((gn1 != gn2) && !output_graph->has_edge(gn1, gn2)) {
-                    output_graph->add_edge(gn1, gn2, 1.0f, nullptr);
+                    output_graph->add_edge(gn1, gn2, 1.0f);
                 } else {
                     // ... increase weight
                 }
@@ -222,6 +232,6 @@ namespace animesh {
 
     private:
         std::function<NodeData(const NodeData &, const NodeData &)> m_node_merge_function;
-        std::function<NodeData(NodeData, NodeData)> m_node_propagate_function;
+        std::function<NodeData(const NodeData& , const NodeData& )> m_node_propagate_function;
     };
 }

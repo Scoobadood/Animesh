@@ -1,4 +1,5 @@
 #include "TestVectorRotation.h"
+#include "GtestUtility.h"
 
 /*
 * Test that rotating a vector around another unit vector gives the correct outptu
@@ -8,19 +9,15 @@ void TestVectorRotation::SetUp(){};
 void TestVectorRotation::TearDown(){};
 
 
+
 TEST_F(TestVectorRotation, ZeroLengthOShouldThrow) { 
     int k = 0;
-    
-    try {
-        vector_by_rotating_around_n(zero, vec_1_0_0, k);
-        FAIL() << "Expected std::invalid_argument";
-   }
-    catch ( std::invalid_argument const & err ){
-        EXPECT_EQ( err.what(), std::string( "Vector may not be zero length") );
-    }
-    catch( ... ) {
-        FAIL( ) <<"Expected std::invalid_argument";
-    }
+
+    EXPECT_THROW_WITH_MESSAGE(
+            vector_by_rotating_around_n(zero, vec_1_0_0, k),
+            std::invalid_argument,
+            "Vector may not be zero length"
+    );
 }
 
 TEST_F(TestVectorRotation, NonUnitNormalShouldThrow) { 

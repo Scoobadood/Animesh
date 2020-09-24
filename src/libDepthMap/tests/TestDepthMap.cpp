@@ -4,10 +4,10 @@
 #include <cmath>
 const float INV_SQRT_2 = 1.0f / std::sqrt(2.0f);
 
-void TestDepthMap::SetUp( ) {}
-void TestDepthMap::TearDown() {}
+void TestCorrespondence::SetUp( ) {}
+void TestCorrespondence::TearDown() {}
 
-unsigned int TestDepthMap::count_non_zero_cells(DepthMap& d) {
+unsigned int TestCorrespondence::count_non_zero_cells(DepthMap& d) {
 	unsigned int count = 0;
 	for( int r = 0; r < d.height(); ++r) {
 		for( int c = 0; c < d.width(); ++c ) {
@@ -51,7 +51,7 @@ Camera get_camera( ) {
 /* ********************************************************************************
  * ** Test DepthMap construction from file
  * ********************************************************************************/
-TEST_F( TestDepthMap, ShouldParseDimensions ) {
+TEST_F(TestCorrespondence, ShouldParseDimensions ) {
 	DepthMap d{"depthmap_test_data/dm.dat"};
 	EXPECT_EQ( d.width(), 640);
 	EXPECT_EQ( d.height(), 480);
@@ -76,7 +76,7 @@ public:
     }
 };
 
-TEST_F( TestDepthMap, AllFlagsShouldBeSetForCentre ) {
+TEST_F(TestCorrespondence, AllFlagsShouldBeSetForCentre ) {
     TestDM d{4, 4, true};
     d.testFlags(1, 1, true, DepthMap::UP);
     d.testFlags(1, 1, true, DepthMap::UP_LEFT);
@@ -88,7 +88,7 @@ TEST_F( TestDepthMap, AllFlagsShouldBeSetForCentre ) {
     d.testFlags(1, 1, true, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, FourFlagsShouldBeSetForCentreWithFour ) {
+TEST_F(TestCorrespondence, FourFlagsShouldBeSetForCentreWithFour ) {
     TestDM d{4, 4, false};
     d.testFlags(1, 1, true, DepthMap::UP);
     d.testFlags(1, 1, false, DepthMap::UP_LEFT);
@@ -100,7 +100,7 @@ TEST_F( TestDepthMap, FourFlagsShouldBeSetForCentreWithFour ) {
     d.testFlags(1, 1, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForTopLeftCorner ) {
+TEST_F(TestCorrespondence, ThreeFlagsShouldBeSetForTopLeftCorner ) {
     TestDM d{4, 4, true};
     d.testFlags(0, 0, false, DepthMap::UP);
     d.testFlags(0, 0, false, DepthMap::UP_LEFT);
@@ -112,7 +112,7 @@ TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForTopLeftCorner ) {
     d.testFlags(0, 0, true, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForTopRightCorner ) {
+TEST_F(TestCorrespondence, ThreeFlagsShouldBeSetForTopRightCorner ) {
     TestDM d{4, 4, true};
     d.testFlags(3, 0, false, DepthMap::UP);
     d.testFlags(3, 0, false, DepthMap::UP_LEFT);
@@ -124,7 +124,7 @@ TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForTopRightCorner ) {
     d.testFlags(3, 0, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForBottomLeftCorner ) {
+TEST_F(TestCorrespondence, ThreeFlagsShouldBeSetForBottomLeftCorner ) {
     TestDM d{4, 4, true};
     d.testFlags(0, 3, true, DepthMap::UP);
     d.testFlags(0, 3, false, DepthMap::UP_LEFT);
@@ -136,7 +136,7 @@ TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForBottomLeftCorner ) {
     d.testFlags(0, 3, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForBottomRightCorner ) {
+TEST_F(TestCorrespondence, ThreeFlagsShouldBeSetForBottomRightCorner ) {
     TestDM d{4, 4, true};
     d.testFlags(3, 3, true, DepthMap::UP);
     d.testFlags(3, 3, true, DepthMap::UP_LEFT);
@@ -148,7 +148,7 @@ TEST_F( TestDepthMap, ThreeFlagsShouldBeSetForBottomRightCorner ) {
     d.testFlags(3, 3, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, TwoFlagsShouldBeSetForTopLeftCornerWithFour ) {
+TEST_F(TestCorrespondence, TwoFlagsShouldBeSetForTopLeftCornerWithFour ) {
     TestDM d{4, 4, false};
     d.testFlags(0, 0, false, DepthMap::UP);
     d.testFlags(0, 0, false, DepthMap::UP_LEFT);
@@ -160,7 +160,7 @@ TEST_F( TestDepthMap, TwoFlagsShouldBeSetForTopLeftCornerWithFour ) {
     d.testFlags(0, 0, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, TwoFlagsShouldBeSetForTopRightCornerWithFour ) {
+TEST_F(TestCorrespondence, TwoFlagsShouldBeSetForTopRightCornerWithFour ) {
     TestDM d{4, 4, false};
     d.testFlags(3, 0, false, DepthMap::UP);
     d.testFlags(3, 0, false, DepthMap::UP_LEFT);
@@ -172,7 +172,7 @@ TEST_F( TestDepthMap, TwoFlagsShouldBeSetForTopRightCornerWithFour ) {
     d.testFlags(3, 0, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, TwoFlagsShouldBeSetForBottomLeftCornerWithFour ) {
+TEST_F(TestCorrespondence, TwoFlagsShouldBeSetForBottomLeftCornerWithFour ) {
     TestDM d{4, 4, false};
     d.testFlags(0, 3, true, DepthMap::UP);
     d.testFlags(0, 3, false, DepthMap::UP_LEFT);
@@ -184,7 +184,7 @@ TEST_F( TestDepthMap, TwoFlagsShouldBeSetForBottomLeftCornerWithFour ) {
     d.testFlags(0, 3, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, TwoFlagsShouldBeSetForBottomRightCornerWithFour ) {
+TEST_F(TestCorrespondence, TwoFlagsShouldBeSetForBottomRightCornerWithFour ) {
     TestDM d{4, 4, false};
     d.testFlags(3, 3, true, DepthMap::UP);
     d.testFlags(3, 3, false, DepthMap::UP_LEFT);
@@ -196,7 +196,7 @@ TEST_F( TestDepthMap, TwoFlagsShouldBeSetForBottomRightCornerWithFour ) {
     d.testFlags(3, 3, false, DepthMap::DOWN_RIGHT);
 }
 
-TEST_F( TestDepthMap, HorizontalEdgeTest ) {
+TEST_F(TestCorrespondence, HorizontalEdgeTest ) {
 	DepthMap d{"depthmap_test_data/horizontal_edge_test.dat"};
 	unsigned int count = count_non_zero_cells(d);
 	EXPECT_EQ( count, 25);
@@ -209,7 +209,7 @@ TEST_F( TestDepthMap, HorizontalEdgeTest ) {
 	EXPECT_EQ( count, 22);
 }
 
-TEST_F( TestDepthMap, VerticalEdgeTest ) {
+TEST_F(TestCorrespondence, VerticalEdgeTest ) {
 	DepthMap d{"depthmap_test_data/vertical_edge_test.dat"};
 	unsigned int count = count_non_zero_cells(d);
 	EXPECT_EQ( count, 25);
@@ -222,7 +222,7 @@ TEST_F( TestDepthMap, VerticalEdgeTest ) {
 	EXPECT_EQ( count, 22);
 }
 
-TEST_F( TestDepthMap, SolidBlockTest ) {
+TEST_F(TestCorrespondence, SolidBlockTest ) {
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	unsigned int count = count_non_zero_cells(d);
 	EXPECT_EQ( count, 25);
@@ -235,7 +235,7 @@ TEST_F( TestDepthMap, SolidBlockTest ) {
 	EXPECT_EQ( count, 25);
 }
 
-TEST_F( TestDepthMap, StepEdgeTest ) {
+TEST_F(TestCorrespondence, StepEdgeTest ) {
 	DepthMap d{"depthmap_test_data/step_test.dat"};
 	unsigned int count = count_non_zero_cells(d);
 	EXPECT_EQ( count, 25);
@@ -248,7 +248,7 @@ TEST_F( TestDepthMap, StepEdgeTest ) {
 	EXPECT_EQ( count, 25);
 }
 
-TEST_F( TestDepthMap, NoisyCentreTest ) {
+TEST_F(TestCorrespondence, NoisyCentreTest ) {
 	DepthMap d{"depthmap_test_data/noisy_centre_test.dat"};
 	unsigned int count = count_non_zero_cells(d);
 	EXPECT_EQ( count, 25);
@@ -261,7 +261,7 @@ TEST_F( TestDepthMap, NoisyCentreTest ) {
 	EXPECT_EQ( count, 24);
 }
 
-TEST_F( TestDepthMap, DiagonalEdgeTest ) {
+TEST_F(TestCorrespondence, DiagonalEdgeTest ) {
 	DepthMap d{"depthmap_test_data/diagonal_edge_test.dat"};
 	unsigned int count = count_non_zero_cells(d);
 	EXPECT_EQ( count, 25);
@@ -285,7 +285,7 @@ void dump_normals (const std::vector<std::vector<std::vector<float>>>& normals) 
 	}
 }
 
-TEST_F( TestDepthMap, CentralNormalIsZ ) {
+TEST_F(TestCorrespondence, CentralNormalIsZ ) {
     float data[] {
         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
         0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0,
@@ -306,7 +306,7 @@ TEST_F( TestDepthMap, CentralNormalIsZ ) {
 	EXPECT_EQ( norm.z, 1.0f);
 }
 
-TEST_F( TestDepthMap, TopLeftNormalIsNotThere ) {
+TEST_F(TestCorrespondence, TopLeftNormalIsNotThere ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<NormalWithType>> normals = d.get_normals();
@@ -317,7 +317,7 @@ TEST_F( TestDepthMap, TopLeftNormalIsNotThere ) {
 	EXPECT_EQ( normals[0][0].z, 0.0f);
 }
 
-TEST_F( TestDepthMap, TopCentralNormalIsZ ) {
+TEST_F(TestCorrespondence, TopCentralNormalIsZ ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<NormalWithType>> normals = d.get_normals();
@@ -327,7 +327,7 @@ TEST_F( TestDepthMap, TopCentralNormalIsZ ) {
 	EXPECT_EQ( normals[1][3].z, 1.0f);
 }
 
-TEST_F( TestDepthMap, LeftCentralNormalIsZ ) {
+TEST_F(TestCorrespondence, LeftCentralNormalIsZ ) {
 	// 7x7 map with 5x5 set in centre.
 	DepthMap d{"depthmap_test_data/solid_block_test.dat"};
 	std::vector<std::vector<NormalWithType>> normals = d.get_normals();

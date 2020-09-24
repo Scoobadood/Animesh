@@ -6,17 +6,23 @@
 #include <memory>
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
-#include "optimise.h"
+#include "RoSy/RoSyOptimiser.h"
 #include "types.h"
-#include "utilities.h"
+#include "../libUtilities/include/Utilities/utilities.h"
 #include "spdlog/spdlog.h"
 #include <nanogui/nanogui.h>
 
 #include "AnimeshApplication.h"
 
-const nanogui::Vector3f HIGHLIGHTED_SURFEL_COLOUR{0.8f, 0.8f, 0.0f};
-const nanogui::Vector3f HIGHLIGHTED_NEIGHBOUR_COLOUR{0.0f, 0.6f, 0.8f};
+const nanogui::Vector3f& default_highlighted_surfel_colour( ) {
+    const static nanogui::Vector3f HIGHLIGHTED_SURFEL_COLOUR{0.8f, 0.8f, 0.0f};
+    return HIGHLIGHTED_SURFEL_COLOUR;
+}
 
+const nanogui::Vector3f& default_highlighted_neighbour_colour( ) {
+    const static nanogui::Vector3f HIGHLIGHTED_NEIGHBOUR_COLOUR{0.0f, 0.6f, 0.8f};
+    return HIGHLIGHTED_NEIGHBOUR_COLOUR;
+}
 
 template<class T>
 std::string format_with_commas(T value) {
@@ -66,19 +72,19 @@ void AnimeshApplication::update_canvas() {
     m_surfel_index_to_id.clear();
 
     for (const auto &s : surfel_data) {
-        for (const auto &fd : s.frame_data) {
+        for (const auto &fd : s->frame_data) {
             if (fd.pixel_in_frame.frame == m_frame_idx) {
                 const auto point_in_space = temp_camera.to_world_coordinates(
                         fd.pixel_in_frame.pixel.x, fd.pixel_in_frame.pixel.y, fd.depth);
                 m_surfel_data.emplace_back(point_in_space,
                                            fd.normal,
-                                           fd.transform * s.tangent,
-                                           s.last_correction,
-                                           s.error
+                                           fd.transform * s->tangent,
+                                           s->last_correction,
+                                           s->error
                 );
 
-                m_surfel_index_to_id.push_back(s.id);
-                m_surfel_id_to_index.emplace(s.id, m_surfel_data.size() - 1);
+                m_surfel_index_to_id.push_back(s->id);
+                m_surfel_id_to_index.emplace(s->id, m_surfel_data.size() - 1);
             }
         }
     }
@@ -93,7 +99,7 @@ void AnimeshApplication::load_all_the_things() {
     using namespace std;
     using namespace spdlog;
 
-    m_optimiser = new Optimiser(*m_properties);
+    m_optimiser = new RoSyOptimiser(*m_properties);
 
     info("Loading depth maps");
     const auto depth_maps = load_depth_maps(*m_properties);
@@ -150,6 +156,7 @@ make_label_value_panel( nanogui::Widget * container, int rows ) {
     using namespace nanogui;
 
     std::vector<int> row_heights;
+    row_heights.reserve(rows);
     for( int i=0; i<rows;++i) {
         row_heights.push_back(0);
     }
@@ -184,15 +191,15 @@ void AnimeshApplication::maybe_highlight_surfel_and_neighbours() {
     m_canvas->remove_highlights();
     if (m_optimiser->surfel_is_in_frame(m_selected_surfel_id, m_frame_idx)) {
         auto surfel_idx = surfel_id_to_index(m_selected_surfel_id);
-        m_canvas->highlight_surfel(surfel_idx, HIGHLIGHTED_SURFEL_COLOUR);
+        m_canvas->highlight_surfel(surfel_idx, default_highlighted_surfel_colour());
         spdlog::debug("Highlighting surfel {:s}", m_selected_surfel_id);
 
         // And it's neighbours in frame
         const auto neighbours = m_optimiser->get_neighbours_of_surfel_in_frame(m_selected_surfel_id, m_frame_idx);
         for (const auto &n : neighbours) {
-            spdlog::debug("Highlighting neighbour {:s}", n);
-            auto n_idx = surfel_id_to_index(n);
-            m_canvas->highlight_surfel(n_idx, HIGHLIGHTED_NEIGHBOUR_COLOUR);
+            spdlog::debug("Highlighting neighbour {:s}", n->id);
+            auto n_idx = surfel_id_to_index(n->id);
+            m_canvas->highlight_surfel(n_idx, default_highlighted_neighbour_colour());
         }
         update_selected_surfel_data();
     } else {
@@ -320,11 +327,17 @@ void AnimeshApplication::build_ui() {
 
 AnimeshApplication::AnimeshApplication(int argc, char *argv[]) :
         nanogui::Screen(Eigen::Vector2i(800, 600), "Animesh", true),
+        m_canvas{nullptr},
+        m_optimiser{nullptr},
         m_frame_idx{0},
         m_txt_selected_surfel_id{nullptr},
         m_txt_selected_surfel_idx{nullptr},
         m_txt_selected_surfel_err{nullptr},
-        m_txt_selected_surfel_adj{nullptr} {
+        m_txt_selected_surfel_adj{nullptr},
+        m_txt_num_surfels{nullptr},
+        m_txt_mean_error{nullptr},
+        m_txt_global_error{nullptr}
+        {
     using namespace spdlog;
     using namespace std;
 

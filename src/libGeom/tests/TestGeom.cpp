@@ -1,5 +1,5 @@
 #include "TestGeom.h"
-#include <Geom/geom.h>
+#include <Geom/Geom.h>
 #include <Eigen/Geometry>
 #include <iostream>
 
@@ -137,34 +137,18 @@ TEST_F( TestGeom, VectorPerpendicularToManyIsActuallyPerpendicular ) {
 /* ********************************************************************************
  * ** Test V2V Rotation Works
  * ********************************************************************************/
-TEST_F( TestGeom, Vector2VectorShouldThrowIfFirstVector0 ) {
+TEST_F( TestGeom, Vector2VectorShouldFailAssertIfFirstVector0 ) {
     using namespace Eigen;
 
-    try {
-        vector_to_vector_rotation( Vector3f::Zero(), vec_0_1_0 );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "Vector may not be zero length") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    ASSERT_DEATH(vector_to_vector_rotation( Vector3f::Zero(), vec_0_1_0 ),
+            "(v1\\.norm\\( \\) >= EPSILON && v2\\.norm\\( \\) >= EPSILON)");
 }
 
-TEST_F( TestGeom, Vector2VectorShouldThrowIfSecondVector0 ) {
+TEST_F( TestGeom, Vector2VectorShouldFailAssertIfSecondVector0 ) {
     using namespace Eigen;
 
-    try {
-        vector_to_vector_rotation( vec_0_1_0, Vector3f::Zero() );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "Vector may not be zero length") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    ASSERT_DEATH(vector_to_vector_rotation( vec_0_1_0, Vector3f::Zero() ),
+            "(v1\\.norm\\( \\) >= EPSILON && v2\\.norm\\( \\) >= EPSILON)");
 }
 
 TEST_F( TestGeom, RotateVectorsAlignXToY ) {
@@ -520,4 +504,52 @@ TEST_F( TestGeom, Align_P_3D_N_Z_R_40) {
 
 TEST_F( TestGeom, Align_P_3D_N_Z_R_20_30_40) {
     run_test( PT_3D, NRM_Z_AXIS, ROT_20_30_40 );
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_0) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_0_1);
+    float expected = 0.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_45) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_1_1);
+    float expected = 45.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_90) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_1_0);
+    float expected = 90.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_135) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_1_m1);
+    float expected = 135.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_180) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_0_m1);
+    float expected = 180.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_135_2) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_m1_m1);
+    float expected = 135.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_90_2) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_m1_0);
+    float expected = 90.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Vectors_45_2) {
+    auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_m1_1);
+    float expected = 45.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
 }

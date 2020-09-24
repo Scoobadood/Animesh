@@ -1,13 +1,27 @@
+#include <string>
+#include <vector>
+
 #include <Graph/Graph.h>
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "TestGraph.h"
+#include <spdlog/spdlog.h>
+
+#define EXPECT_THROW_WITH_MESSAGE(stmt, etype, whatstring) EXPECT_THROW( \
+        try { \
+            stmt; \
+        } catch (const etype& ex) { \
+            EXPECT_EQ(std::string(ex.what()), whatstring); \
+            throw; \
+        } \
+    , etype)
+
 void TestGraph::SetUp( ){
     using namespace animesh;
 
-    gn1 = new Graph<std::string, std::string>::GraphNode( "a" );
-    gn2 = new Graph<std::string, std::string>::GraphNode( "b" );
+    gn1 = new Graph<std::string, float>::GraphNode( "a" );
+    gn2 = new Graph<std::string, float>::GraphNode( "b" );
 }
 
 void TestGraph::TearDown( ) {}
@@ -25,147 +39,147 @@ TEST_F(TestGraph, AddNodeByDataShouldAddNode) {
     EXPECT_EQ( graph.num_nodes(), 1 );
 }
 
-TEST_F(TestGraph, AddNodeDirectShouldAddNode) {
-    graph.add_node( gn1 );
-
-    EXPECT_EQ( graph.num_nodes(), 1 );
-}
-
-TEST_F(TestGraph, AddNodeTwiceShouldAddTwoNodes) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-
+TEST_F(TestGraph, AddNodeByDataTwiceShouldIncreaseNodeCount) {
+    graph.add_node( "a" );
+    graph.add_node( "a" );
     EXPECT_EQ( graph.num_nodes(), 2 );
 }
 
-TEST_F(TestGraph, AddEdgeWithNullFirstNodeShouldThrow) {
-  EXPECT_DEATH(
-        graph.add_edge( nullptr, gn1, 1.0, "edge data" ),
-        "from_node != nullptr");
+TEST_F(TestGraph, AddDifferentNodesByDataShouldIncreaseNodeCount) {
+    graph.add_node( "a" );
+    graph.add_node( "b" );
+    EXPECT_EQ( graph.num_nodes(), 2 );
 }
 
-TEST_F(TestGraph, AddEdgeWithNullSecondNodeShouldThrow) {
-  EXPECT_DEATH(
-        graph.add_edge( gn1, nullptr, 1.0, "edge data" ),
-        "to_node != nullptr");
+TEST_F(TestGraph, AddNodesShouldIncreaseNodeCount) {
+    auto n = animesh::Graph<std::string, float>::make_node("a");
+    graph.add_node( n );
+    EXPECT_EQ( graph.num_nodes(), 1 );
 }
 
-TEST_F(TestGraph, AddEdgeWithNegativeWeightShouldThrow) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-
-    EXPECT_DEATH(
-        graph.add_edge( gn1, gn2, -1.0, "edge data" ),
-        "weight >= 0");
+TEST_F(TestGraph, AddDuplicateNodesShouldNotIncreaseNodeCount) {
+    auto n = animesh::Graph<std::string, float>::make_node("a");
+    graph.add_node( n );
+    graph.add_node( n );
+    EXPECT_EQ( graph.num_nodes(), 1 );
 }
 
-TEST_F(TestGraph, AddEdgeWithUnknownFirstNodeShouldThrow) {
-    using namespace animesh;
-
-    graph.add_node( gn2 );
-
-    Graph<std::string, std::string>::GraphNode * gn_unknown = new animesh::Graph<std::string, std::string>::GraphNode( "x" );
-
-    EXPECT_DEATH(
-        graph.add_edge( gn_unknown, gn2, 1.0, "edge data" ),
-        "Assertion failed: .*add_edge.*");
+TEST_F(TestGraph, AddShouldIncreaseEdgeCount) {
+    auto n1 = graph.add_node( "a" );
+    auto n2 = graph.add_node( "b" );
+    graph.add_edge(n1, n2, 1.0f);
+    EXPECT_EQ( graph.num_edges(), 1 );
 }
 
-TEST_F(TestGraph, AddEdgeWithUnknownSecondNodeShouldThrow) {
-    using namespace animesh;
+TEST_F(TestGraph, AddDuplicateEdgeShouldNotIncreaseEdgeCount) {
 
-    graph.add_node( gn1 );
-
-    Graph<std::string, std::string>::GraphNode * gn_unknown = new animesh::Graph<std::string, std::string>::GraphNode( "x" );
-
-    EXPECT_DEATH(
-        graph.add_edge( gn1, gn_unknown, 1.0, "edge data" ),
-        "Assertion failed: .*function add_edge.*");
-}
-
-TEST_F(TestGraph, AddEdgeIncreasesEdgeCount) {
-    using namespace animesh;
-
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-
+    auto n1 = graph.add_node( "a" );
+    auto n2 = graph.add_node( "b" );
+    graph.add_edge( n1, n2, 1.0 );
     size_t before_count = graph.num_edges( );
 
-    graph.add_edge( gn1, gn2, 1.0, "edge data" );
-
+    graph.add_edge( n1, n2, 1.0 );
     size_t after_count = graph.num_edges( );
+
+    EXPECT_EQ( before_count, after_count );
+}
+
+TEST_F(TestGraph, AddReverseEdgeShouldIncreaseCountInDirectedGraph) {
+
+    auto n1 = graph.add_node( "a" );
+    auto n2 = graph.add_node( "b" );
+    graph.add_edge( n1, n2, 1.0 );
+    size_t before_count = graph.num_edges( );
+
+    graph.add_edge( n2, n1, 1.0 );
+    size_t after_count = graph.num_edges( );
+
     EXPECT_EQ( before_count + 1, after_count );
 }
 
+TEST_F(TestGraph, AddReverseEdgeShouldNotIncreaseCountInUndirectedGraph) {
 
+    auto n1 = undirected_graph.add_node( "a" );
+    auto n2 = undirected_graph.add_node( "b" );
+    undirected_graph.add_edge( n1, n2, 1.0 );
+    size_t before_count = graph.num_edges( );
 
-TEST_F(TestGraph, AddGraphNodeIncreasesNodeCount) {
-    size_t before_count = graph.num_nodes( );
+    undirected_graph.add_edge( n2, n1, 1.0 );
+    size_t after_count = graph.num_edges( );
 
-    graph.add_node( gn1 );
-
-    size_t after_count = graph.num_nodes( );
-    EXPECT_EQ( before_count + 1, after_count );
-}
-
-TEST_F(TestGraph, AddDuplicateGraphNodeShouldThrow) {
-    graph.add_node( gn1 );
-
-    EXPECT_DEATH(
-        graph.add_node( gn1 ),
-        "Assertion failed: .*add_node.*");
-}
-
-TEST_F(TestGraph, AddDuplicateEdgeShouldThrow) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-
-    graph.add_edge( gn1, gn2, 1.0, "edge data" );
-
-    EXPECT_DEATH(
-        graph.add_edge( gn1, gn2, 1.0, "edge data" ),
-        "");
-}
-
-TEST_F(TestGraph, AddReverseEdgeShouldNotThrowInDirected) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-    graph.add_edge( gn1, gn2, 1.0, "edge data" );
-    graph.add_edge( gn2, gn1, 1.0, "edge data" );
-    EXPECT_EQ( 2, graph.num_edges() );
-}
-
-TEST_F(TestGraph, AddReverseEdgeShouldThrowInUndirected) {
-    undirected_graph.add_node( gn1 );
-    undirected_graph.add_node( gn2 );
-    undirected_graph.add_edge( gn1, gn2, 1.0, "edge data" );
-    EXPECT_DEATH(
-        undirected_graph.add_edge( gn2, gn1, 1.0, "edge data" ),
-        "");
+    EXPECT_EQ( before_count, after_count );
 }
 
 TEST_F(TestGraph, UnlinkedNodesHaveNoNeighbours ) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
+    auto n1 = graph.add_node( "a" );
+    auto n2 = graph.add_node( "b" );
 
-    EXPECT_EQ( 0, graph.neighbours( gn1 ).size() );
-    EXPECT_EQ( 0, graph.neighbours( gn2 ).size() );
+    EXPECT_EQ( 0, graph.neighbours( n1 ).size());
+    EXPECT_EQ( 0, graph.neighbours( n2 ).size() );
 }
 
 TEST_F(TestGraph, ToNodeOfEdgeIsNeighbourOfFromNode ) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-    graph.add_edge( gn1, gn2, 1.0, "edge data" );
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0 );
 
-    EXPECT_EQ( 1, graph.neighbours( gn1 ).size() );
-    EXPECT_EQ( gn2, graph.neighbours( gn1 )[0] );
+    auto nbr = graph.neighbours( from );
+    EXPECT_EQ( 1, nbr.size() );
+    EXPECT_EQ( to, nbr[0] );
 }
 
 TEST_F(TestGraph, FromNodeOfEdgeIsNotNeighbourOfToNode ) {
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0 );
 
-    graph.add_edge( gn1, gn2, 1.0, "edge data" );
+    auto nbr = graph.neighbours( to );
+    EXPECT_EQ( 0, nbr.size() );
+}
 
-    EXPECT_EQ( 0, graph.neighbours( gn2 ).size() );
+TEST_F(TestGraph, FromNodeOfEdgeIsNeighbourOfToNodeInUndirectedGraph ) {
+    auto from = undirected_graph.add_node( "a" );
+    auto to = undirected_graph.add_node( "b" );
+    undirected_graph.add_edge( from, to, 1.0 );
+
+    auto nbr = undirected_graph.neighbours( to );
+    EXPECT_EQ( 1, nbr.size() );
+    EXPECT_EQ( from, nbr[0] );
+}
+
+TEST_F(TestGraph, RemoveNodeAlsoRemovesEdges ) {
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0 );
+    EXPECT_EQ(1, graph.num_edges());
+    EXPECT_TRUE(graph.has_edge(from, to));
+
+    graph.remove_node(from);
+    EXPECT_EQ(0, graph.num_edges());
+}
+
+TEST_F(TestGraph, RemoveNodeOnlyRemovesIncidentEdges ) {
+    auto a = undirected_graph.add_node( "a" );
+    auto b = undirected_graph.add_node( "b" );
+    auto c = undirected_graph.add_node( "c" );
+    undirected_graph.add_edge( a, b, 1.0 );
+    undirected_graph.add_edge( a, c, 1.0 );
+    undirected_graph.add_edge( b, c, 1.0 );
+
+    EXPECT_EQ(3, undirected_graph.num_edges());
+    EXPECT_TRUE(undirected_graph.has_edge(a, b));
+    EXPECT_TRUE(undirected_graph.has_edge(b, a));
+    EXPECT_TRUE(undirected_graph.has_edge(a, c));
+    EXPECT_TRUE(undirected_graph.has_edge(c, a));
+    EXPECT_TRUE(undirected_graph.has_edge(b, c));
+    EXPECT_TRUE(undirected_graph.has_edge(c, b));
+
+    undirected_graph.remove_node(b);
+    EXPECT_EQ(1, undirected_graph.num_edges());
+    EXPECT_TRUE(undirected_graph.has_edge(a, c));
+    EXPECT_TRUE(undirected_graph.has_edge(c, a));
+}
+
+TEST_F(TestGraph, GraphAssignmentWorks ) {
+    auto g2 = undirected_graph;
 }

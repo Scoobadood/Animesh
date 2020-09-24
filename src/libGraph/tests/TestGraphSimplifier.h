@@ -9,10 +9,7 @@ std::string propagate_strings( const std::string& s1, const std::string& s2 );
 class TestGraphSimplifier : public ::testing::Test {
 public:
 
-    animesh::Graph<std::string, std::string>::GraphNode * gn1;
-    animesh::Graph<std::string, std::string>::GraphNode * gn2;
-	animesh::Graph<std::string, std::string> graph;
-
+	animesh::Graph<std::string, float> graph;
 
 	void SetUp( );
 	void TearDown( );

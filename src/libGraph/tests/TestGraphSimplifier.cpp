@@ -2,10 +2,10 @@
 #include "Graph/GraphSimplifier.h"
 #include "Graph/Graph.h"
 
-using GraphSimplifier = animesh::GraphSimplifier<std::string, std::string>;
-using GraphMapping = animesh::GraphSimplifier<std::string, std::string>::GraphMapping;
-using GraphNode = animesh::Graph<std::string, std::string>::GraphNode;
-using Graph = animesh::Graph<std::string, std::string>;
+using GraphSimplifier = animesh::GraphSimplifier<std::string, float>;
+using GraphMapping = animesh::GraphSimplifier<std::string, float>::GraphMapping;
+using GraphNode = animesh::Graph<std::string, float>::GraphNode;
+using Graph = animesh::Graph<std::string, float>;
 
 std::string merge_strings( const std::string& s1, const std::string& s2 ) {
     return s1+s2;
@@ -17,17 +17,14 @@ std::string propagate_strings( const std::string& parent_data, const std::string
 
 void TestGraphSimplifier::SetUp( ){
     using namespace animesh;
-
-    gn1 = new GraphNode( "a" );
-    gn2 = new GraphNode( "b" );
 }
 
 void TestGraphSimplifier::TearDown( ) {}
 
 TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphIsNotNull ) { 
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-    graph.add_edge( gn1, gn2, 1., "" );
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0f );
 
     GraphSimplifier s{ merge_strings, propagate_strings };
     std::pair<Graph *, GraphMapping> pair = s.simplify( &graph );
@@ -35,53 +32,58 @@ TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphIsNotNull ) {
     EXPECT_NE( nullptr, pair.first );
 }
 
-TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphNodeHasOneNode ) { 
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-    graph.add_edge( gn1, gn2, 1., "" );
+TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphNodeHasOneNode ) {
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0f );
 
     GraphSimplifier s{ merge_strings, propagate_strings };
-    std::pair<Graph *, GraphMapping> pair = s.simplify( &graph );
-    Graph * new_graph = pair.first;
+    auto pair = s.simplify( &graph );
+    auto new_graph = pair.first;
 
     EXPECT_EQ( 1, new_graph->num_nodes());
 }
 
-TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphNodeIsMergedCorrectly ) { 
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-    graph.add_edge( gn1, gn2, 1., "" );
+TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphNodeIsMergedCorrectly ) {
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0f );
 
     GraphSimplifier s{ merge_strings, propagate_strings };
-    std::pair<Graph *, GraphMapping> pair = s.simplify( &graph );
-    Graph * new_graph = pair.first;
+    auto pair = s.simplify( &graph );
+    auto new_graph = pair.first;
 
-    EXPECT_EQ( "ab", new_graph->nodes()[0]->data());
+    const auto new_node_data = new_graph->node_data()[0];
+    EXPECT_TRUE( (new_node_data == "ab" ) || (new_node_data == "ba") );
 }
 
-TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphMappingPropagatesCorrectly ) { 
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
-    graph.add_edge( gn1, gn2, 1., "" );
+TEST_F(TestGraphSimplifier, SimplifyTwoNodeGraphMappingPropagatesCorrectly ) {
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
+    graph.add_edge( from, to, 1.0f );
 
     GraphSimplifier s{ merge_strings, propagate_strings };
     std::pair<Graph *, GraphMapping> pair = s.simplify( &graph );
-    Graph * new_graph = pair.first;
     GraphMapping gm = pair.second;
 
-    EXPECT_EQ( "a", graph.nodes()[0]->data());
-    EXPECT_EQ( "b", graph.nodes()[1]->data());
+    auto new_node_data = pair.first->node_data();
+    auto new_nodes = pair.first->nodes();
+    EXPECT_EQ(1, new_nodes.size());
+
+    EXPECT_EQ( new_nodes.at(0), gm.parent(from));
+    EXPECT_EQ( new_nodes.at(0), gm.parent(to));
+    EXPECT_TRUE( new_node_data.at(0) == "ab" || new_node_data.at(0) == "ba");
 
     gm.propagate( );
 
-    EXPECT_EQ( "ab", graph.nodes()[0]->data());
-    EXPECT_EQ( "ab", graph.nodes()[1]->data());
+    EXPECT_TRUE( from->data() == "ab" || from->data() == "ba");
+    EXPECT_TRUE( to->data() == "ab" || to->data() == "ba");
 }
 
 
-TEST_F(TestGraphSimplifier, SimplifyGraphWithNoEdgesShouldThrow) { 
-    graph.add_node( gn1 );
-    graph.add_node( gn2 );
+TEST_F(TestGraphSimplifier, SimplifyGraphWithNoEdgesShouldThrow) {
+    auto from = graph.add_node( "a" );
+    auto to = graph.add_node( "b" );
 
     GraphSimplifier s{ merge_strings, propagate_strings };
 

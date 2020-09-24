@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Eigen/Geometry>
 #include <RoSy/RoSy.h>
+#include <Geom/Geom.h>
 
 const float EPSILON = 1e-4;
 
@@ -31,6 +32,19 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f>
 best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3f &target_normal, int &target_k,
                       const Eigen::Vector3f &source_vector, const Eigen::Vector3f &source_normal, int &source_k) {
     using namespace Eigen;
+
+    if (!is_unit_vector(source_normal)) {
+        throw std::invalid_argument("Normal must be unit vector");
+    }
+    if (!is_unit_vector(target_normal)) {
+        throw std::invalid_argument("Normal must be unit vector");
+    }
+    if (is_zero_vector(source_vector)) {
+        throw std::invalid_argument("Vector may not be zero length");
+    }
+    if (is_zero_vector(target_vector)) {
+        throw std::invalid_argument("Vector may not be zero length");
+    }
 
     // We'll compare 0 and 90 degree rotations of each vector
     const Vector3f target_candidates[2] = {target_vector, target_normal.cross(target_vector)};
@@ -80,6 +94,34 @@ Eigen::Vector3f average_rosy_vectors(const Eigen::Vector3f &v1,
     // Find best matching rotation
     std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair(v1, n1, v2, n2);
     Eigen::Vector3f v = (result.first * w1) + (result.second * w2);
-    v = reproject_to_tangent_space(v, n1);
+    v = project_vector_to_plane(v, n1);
+    return v;
+}
+
+/**
+ * Combine two tangent vectors with weighting
+ * @param v1 The first vector
+ * @param v2 The second vector
+ * @param n1 The first normal
+ * @param n2 The second normal
+ * @param w1 Weighting for the first vector
+ * @param w2 Weighting for the second vector
+ * @param target_k The number of quarter turns of v1 required for the match (output).
+ * @param source_k The number of quarter turns of v2 required for the match (output).
+*/
+Eigen::Vector3f average_rosy_vectors(const Eigen::Vector3f &v1,
+                                     const Eigen::Vector3f &n1,
+                                     float w1,
+                                     const Eigen::Vector3f &v2,
+                                     const Eigen::Vector3f &n2,
+                                     float w2,
+                                     int &target_k,
+                                     int &source_k) {
+    using namespace Eigen;
+
+    // Find best matching rotation
+    std::pair<Vector3f, Vector3f> result = best_rosy_vector_pair(v1, n1, target_k, v2, n2, source_k);
+    Eigen::Vector3f v = (result.first * w1) + (result.second * w2);
+    v = project_vector_to_plane(v, n1);
     return v;
 }

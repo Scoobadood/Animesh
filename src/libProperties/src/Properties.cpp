@@ -2,7 +2,7 @@
 // Created by Dave Durbin on 2019-08-11.
 //
 
-#include "../include/Properties/Properties.h"
+#include "Properties.h"
 
 #include <fstream>
 #include <sstream>
@@ -60,6 +60,12 @@ Properties::Properties(const std::string &file_name) {
         property_map.insert(make_pair(trim(key), trim(value)));
     }
 }
+
+Properties::Properties(const std::map<std::string, std::string>& values) {
+    property_map = values;
+}
+
+
 
 const std::string &Properties::getProperty(const std::string &key) const {
     using namespace std;

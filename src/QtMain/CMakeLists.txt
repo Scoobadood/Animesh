@@ -35,7 +35,7 @@ add_executable(QtAnimesh
 target_link_libraries(QtAnimesh
 	Args
 	Field
-	FileUtils
+	GeomFileUtils
 	Graph
 	RoSy
 	Qt5::Widgets

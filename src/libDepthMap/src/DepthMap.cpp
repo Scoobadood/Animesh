@@ -1,8 +1,8 @@
-#include <DepthMap/DepthMap.h>
-#include <DepthMap/Normals.h>
-#include <DepthMap/PclNormals.h>
-#include <DepthMap/CrossProductNormals.h>
-#include <DepthMap/PlaneFittingNormals.h>
+#include "DepthMap.h"
+#include "Normals.h"
+#include "PclNormals.h"
+#include "CrossProductNormals.h"
+#include "PlaneFittingNormals.h"
 #include <FileUtils/FileUtils.h>
 #include <Camera/Camera.h>
 
@@ -116,10 +116,6 @@ DepthMap::get_valid_directions(unsigned int x, unsigned int y, bool eightConnect
         flags |= RIGHT;
     }
     return flags;
-}
-
-inline bool DepthMap::flag_is_set(unsigned int flags, DepthMap::tDirection flag) {
-    return ((flags & flag) == flag);
 }
 
 inline unsigned int clear_flag_if_zero(float value, unsigned int flags, DepthMap::tDirection flag) {

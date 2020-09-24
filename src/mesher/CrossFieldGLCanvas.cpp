@@ -8,7 +8,7 @@
 #include <Camera/Camera.h>
 #include "types.h"
 #include "spdlog/spdlog.h"
-#include <Geom/geom.h>
+#include <Geom/Geom.h>
 #include <algorithm>
 
 const float PI = 3.141592654f;

@@ -1,9 +1,9 @@
 #include "TestMinimiseKL.h"
 #include <RoSy/RoSy.h>
+#include "GtestUtility.h"
 
 void TestMinimiseKL::SetUp( ) {}
 void TestMinimiseKL::TearDown() {}
-
 
 /*
  * Test the function to return k,l that minimise the inter vectr angle
@@ -20,20 +20,11 @@ TEST_F( TestMinimiseKL, ShouldThrowIfN1IsNotUnitVector ) {
     Vector3f o2{ 0.0f, 2.0f, 3.0f };
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
-    
-
-    try {
-        best_rosy_vector_pair( o1, n1, o2, n2 );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "Normal must be unit vector") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Normal must be unit vector"
+    );
 }
 
 TEST_F( TestMinimiseKL, ShouldThrowIfO1IsZero ) {
@@ -44,20 +35,11 @@ TEST_F( TestMinimiseKL, ShouldThrowIfO1IsZero ) {
     Vector3f o2{ 0.0f, 2.0f, 3.0f };
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
-    
-
-    try {
-        best_rosy_vector_pair( o1, n1, o2, n2 );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "Vector may not be zero length") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Vector may not be zero length"
+    );
 }
 
 TEST_F( TestMinimiseKL, ShouldThrowIfN2IsNotUnitVector ) {
@@ -68,20 +50,11 @@ TEST_F( TestMinimiseKL, ShouldThrowIfN2IsNotUnitVector ) {
     Vector3f o2{ 0.0f, 2.0f, 3.0f };
     Vector3f n2{ 1.0f, 1.0f, 0.0f };
 
-    int actualK;
-    int actualL;
-    
-
-    try {
-        best_rosy_vector_pair( o1, n1, o2, n2 );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "Normal must be unit vector") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Normal must be unit vector"
+    );
 }
 
 TEST_F( TestMinimiseKL, ShouldThrowIfO2IsZero ) {
@@ -92,20 +65,11 @@ TEST_F( TestMinimiseKL, ShouldThrowIfO2IsZero ) {
     Vector3f o2{ 0.0f, 0.0f, 0.0f };
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
-    
-
-    try {
-        best_rosy_vector_pair( o1, n1, o2, n2 );
-        FAIL() << "Expected std::invalid_argument";
-    }
-    catch ( std::invalid_argument const & err ) {
-        EXPECT_EQ( err.what(), std::string( "Vector may not be zero length") );
-    }
-    catch ( ... ) {
-        FAIL( ) << "Expected std::invalid_argument";
-    }
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Vector may not be zero length"
+    );
 }
 
 
@@ -122,12 +86,11 @@ TEST_F( TestMinimiseKL, ShouldBe_0_0_For_0_DegreesCoplanar ) {
 
     int actualK;
     int actualL;
-    
 
     int expectedK = 0;
     int expectedL = 0;
 
-    best_rosy_vector_pair( o1, n1, o2, n2 );
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
     EXPECT_EQ( expectedK, actualK );
     EXPECT_EQ( expectedL, actualL );
@@ -147,9 +110,8 @@ TEST_F( TestMinimiseKL, ShouldBe_0_0_For_30_DegreesCoplanar ) {
 
     int expectedK = 0;
     int expectedL = 0;
-    float expectedTheta = M_PI / 6.0f;
 
-    best_rosy_vector_pair( o1, n1, o2, n2 );
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
     EXPECT_EQ( expectedK, actualK );
     EXPECT_EQ( expectedL, actualL );
@@ -169,9 +131,8 @@ TEST_F( TestMinimiseKL, ShouldBe_0_0_For_45_DegreesCoplanar ) {
 
     int expectedK = 0;
     int expectedL = 0;
-    float expectedTheta = M_PI / 4.0f;
 
-    best_rosy_vector_pair( o1, n1, o2, n2 );
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
     EXPECT_EQ( expectedK, actualK );
     EXPECT_EQ( expectedL, actualL );
@@ -192,10 +153,8 @@ TEST_F( TestMinimiseKL, ShouldBe_0_1_For_60_DegreesCoplanar ) {
 
     int expectedK = 0;
     int expectedL = 1;
-    float expectedTheta = M_PI / 6.0f;
 
-    
-    best_rosy_vector_pair( o1, n1, o2, n2 );
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
     EXPECT_EQ( expectedK, actualK );
     EXPECT_EQ( expectedL, actualL );
@@ -212,7 +171,7 @@ TEST_F( TestMinimiseKL, SPROG ) {
 
     int actualK;
     int actualL;
-    
 
     best_rosy_vector_pair( o1, n1, o2, n2 );
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 }

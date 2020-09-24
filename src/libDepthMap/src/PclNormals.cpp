@@ -2,9 +2,9 @@
 // Compute normals using PCL
 //
 
-#include <DepthMap/DepthMap.h>
+#include "DepthMap.h"
+#include "Normals.h"
 #include <Camera/Camera.h>
-#include <DepthMap/Normals.h>
 
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>

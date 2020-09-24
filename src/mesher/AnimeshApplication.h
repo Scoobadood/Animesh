@@ -7,7 +7,7 @@
 
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
-#include "optimise.h"
+#include "RoSy/RoSyOptimiser.h"
 
 #include "CrossFieldGLCanvas.h"
 #include <nanogui/nanogui.h>
@@ -33,7 +33,7 @@ private:
 
     CrossFieldGLCanvas *m_canvas;
     Properties *m_properties;
-    Optimiser *m_optimiser;
+    RoSyOptimiser *m_optimiser;
     std::vector<Camera> m_cameras;
 
     void make_buttons_panel(nanogui::Widget *container);

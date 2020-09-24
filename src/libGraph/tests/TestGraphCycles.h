@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gtest/gtest.h"
-#include "Geom/geom.h"
+#include "Geom/Geom.h"
 #include <Graph/Graph.h>
 
 class TestGraphCycles : public ::testing::Test {

@@ -1,33 +1,38 @@
-file(GLOB SOURCES "src/*.cpp")
-
-add_library(Args STATIC ${SOURCES})
+add_library(
+		Args SHARED
+		src/Args.cpp include/Args/Args.h
+)
 
 target_include_directories(
-	Args PUBLIC 
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	PRIVATE src)
+		Args PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		PRIVATE
+		include/Args
+		include/tclap
+)
 
-# This makes the project importable from the build directory
-export(
-	TARGETS Args
-	FILE ArgsLibraryConfig.cmake)
-
-
-# Every library has unit tests, of course
-
-file( GLOB TEST_SOURCES "tests/*.cpp" )
 add_executable(
-	testArgs
-    ${TEST_SOURCES})
+		testArgs
+		tests/main.cpp
+		tests/TestArgs.cpp
+)
 
 target_link_libraries(
-	testArgs 
-	Args gtest gmock)
+		testArgs
+		Args
+		gtest
+		gmock
+)
 
 
 # Stash it
-install(TARGETS testArgs 
-	DESTINATION bin)
+install(
+		TARGETS testArgs
+		DESTINATION bin
+)
 
-add_test( NAME TestElementZeroLengthVectorsShouldThrow COMMAND testArgs --gtest_filter=TestElement.ZeroLengthVectorsShouldThrow)
+add_test(
+		NAME TestElementZeroLengthVectorsShouldThrow
+		COMMAND testArgs --gtest_filter=TestElement.ZeroLengthVectorsShouldThrow
+)
 

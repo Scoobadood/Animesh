@@ -2,8 +2,8 @@
 // Created by Dave Durbin on 9/3/20.
 //
 
-#include <DepthMap/DepthMap.h>
-#include <DepthMap/Normals.h>
+#include "DepthMap.h"
+#include "Normals.h"
 
 void
 validate_normals(const DepthMap* depth_map) {

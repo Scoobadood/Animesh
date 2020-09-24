@@ -11,7 +11,7 @@ target_include_directories(
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
         ${EIGEN3_INCLUDE_DIR}
-        PRIVATE src)
+        PRIVATE include/properties)
 
 
 # This makes the project importable from the build directory
@@ -48,6 +48,42 @@ add_test( NAME TestProperties.IntegerValueShouldReadWithSpaces
 add_test( NAME TestProperties.IntegerValueShouldReadWithNoSpaces
         COMMAND  testProperties --gtest_filter=TestProperties.IntegerValueShouldReadWithNoSpaces
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.FloatValueShouldReadWithSpaces
+		COMMAND testProperties --gtest_filter=TestProperties.FloatValueShouldReadWithSpaces
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.FloatValueShouldReadWithNoSpaces
+		COMMAND testProperties --gtest_filter=TestProperties.FloatValueShouldReadWithNoSpaces
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.MissingValueShouldThrow
+		COMMAND testProperties --gtest_filter=TestProperties.MissingValueShouldThrow
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.FileWithCommentsShouldParse
+		COMMAND testProperties --gtest_filter=TestProperties.FileWithCommentsShouldParse
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.BooleanPropertyWithYesShouldBeTrue
+		COMMAND testProperties --gtest_filter=TestProperties.BooleanPropertyWithYesShouldBeTrue
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.BooleanPropertyWithTrueShouldBeTrue
+		COMMAND testProperties --gtest_filter=TestProperties.BooleanPropertyWithTrueShouldBeTrue
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.BooleanPropertyWithNoShouldBeFalse
+		COMMAND testProperties --gtest_filter=TestProperties.BooleanPropertyWithNoShouldBeFalse
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.BooleanPropertyWithFalseShouldBeFalse
+		COMMAND testProperties --gtest_filter=TestProperties.BooleanPropertyWithFalseShouldBeFalse
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
+
+add_test( NAME TestProperties.InvalidBooleanPropertyShouldThrow
+		COMMAND testProperties --gtest_filter=TestProperties.InvalidBooleanPropertyShouldThrow
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/properties_test_data)
 
 # Stash it
 install(TARGETS testProperties DESTINATION bin)

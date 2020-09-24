@@ -16,7 +16,7 @@
 #include <cmath>
 #include <Camera/Camera.h>
 
-#include <FileUtils/ObjFileParser.h>
+#include <GeomFileUtils/ObjFileParser.h>
 
 const std::string CAMERA_FILE = "camera.txt";
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Geom/geom.h>
+#include <Geom/Geom.h>
 
 #include <Eigen/Core>
 
@@ -48,3 +48,23 @@ Eigen::Vector3f average_rosy_vectors(const Eigen::Vector3f &v1,
                                      const Eigen::Vector3f &v2,
                                      const Eigen::Vector3f &n2,
                                      float w2);
+
+/**
+ * Combine two tangent vectors with weighting
+ * @param v1 The first vector
+ * @param v2 The second vector
+ * @param n1 The first normal
+ * @param n2 The second normal
+ * @param w1 Weighting for the first vector
+ * @param w2 Weighting for the second vector
+ * @param target_k The number of quarter turns of v1 required for the match (output).
+ * @param source_k The number of quarter turns of v2 required for the match (output).
+*/
+Eigen::Vector3f average_rosy_vectors(const Eigen::Vector3f &v1,
+                                     const Eigen::Vector3f &n1,
+                                     float w1,
+                                     const Eigen::Vector3f &v2,
+                                     const Eigen::Vector3f &n2,
+                                     float w2,
+                                     int &target_k,
+                                     int &source_k);

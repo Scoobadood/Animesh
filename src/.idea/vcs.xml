@@ -11,6 +11,13 @@
     <mapping directory="$PROJECT_DIR$/mesher/ext/nanogui/ext/pybind11/tools/clang" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/cpd" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/fgt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/glm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/eigen" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/nanovg" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/pybind11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/nanogui/ext/pybind11/tools/clang" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/spdlog" vcs="Git" />
   </component>
 </project>

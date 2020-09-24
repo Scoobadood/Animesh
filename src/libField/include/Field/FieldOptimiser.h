@@ -1,4 +1,4 @@
-#include <Geom/geom.h>
+#include <Geom/Geom.h>
 #include <Graph/GraphSimplifier.h>
 
 namespace animesh {

@@ -1,6 +1,6 @@
 #include <Field/FieldOptimiser.h>
 #include <Geom/Checks.h>
-#include <Geom/geom.h>
+#include <Geom/Geom.h>
 
 #include <RoSy/RoSy.h>
 #include <Eigen/Geometry>
@@ -466,8 +466,8 @@ float
 FieldOptimiser::mean_edge_length_for_tier(std::size_t tier_idx ) const {
     float sum = 0.0f;
     for ( auto edge : m_graphs[tier_idx]->edges()) {
-        Eigen::Vector3f v1 = edge->from_node( )->data()->point();
-        Eigen::Vector3f v2 = edge->to_node( )->data()->point();
+        Eigen::Vector3f v1 = edge.from_node( )->data()->point();
+        Eigen::Vector3f v2 = edge.to_node( )->data()->point();
         Eigen::Vector3f diff = v2 - v1;
         sum = sum + diff.norm();
     }
@@ -588,7 +588,8 @@ FieldOptimiser::propagate_tangents_up( const std::vector<Eigen::Vector3f>& tange
         vertex_idx++;
     }
     for( size_t tan_idx = 0; tan_idx < num_tangents_at_next_tier; ++tan_idx ) {
-        new_tangents[tan_idx] = reproject_to_tangent_space(new_tangents[tan_idx], m_point_normals[tier_idx+1][0][tan_idx]->normal());
+        new_tangents[tan_idx] = project_vector_to_plane(new_tangents[tan_idx],
+                                                        m_point_normals[tier_idx + 1][0][tan_idx]->normal());
         new_tangents[tan_idx] = new_tangents[tan_idx].normalized();
     }
 
@@ -711,7 +712,7 @@ FieldOptimiser::recompute_tangents_for_tier_and_frame(size_t tier_idx, size_t fr
           Matrix3f m = forward_transform_to( tier_idx, frame_idx, vertex_idx);
           Vector3f t = source_tangents[vertex_idx];
           Vector3f new_tan = m * t;
-          new_tan = reproject_to_tangent_space( new_tan, m_point_normals[tier_idx][frame_idx][vertex_idx]->normal());
+          new_tan = project_vector_to_plane(new_tan, m_point_normals[tier_idx][frame_idx][vertex_idx]->normal());
           new_tan.normalize();
           target_tangents.push_back(new_tan);
       }
@@ -841,7 +842,7 @@ FieldOptimiser::copy_all_neighbours_for(
 
             Matrix3f back_transform = m_point_transforms[tier_idx][frame_idx][vertex_idx].second;
             Vector3f back_transformed_tangent = back_transform * tangents_in_frame[nbr_idx];
-            back_transformed_tangent = reproject_to_tangent_space(back_transformed_tangent, this_vertex_normal);
+            back_transformed_tangent = project_vector_to_plane(back_transformed_tangent, this_vertex_normal);
             back_transformed_tangent.normalize();
             nbr_tangents.push_back(back_transformed_tangent);
         }

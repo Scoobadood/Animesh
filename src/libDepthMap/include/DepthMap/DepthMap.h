@@ -60,7 +60,9 @@ public:
 
 	void cull_unreliable_depths(float ts, float tl);
     const std::vector<std::vector<NormalWithType>> & get_normals() const;
-	static bool flag_is_set( unsigned int flags, DepthMap::tDirection flag );
+	static inline bool flag_is_set( unsigned int flags, DepthMap::tDirection flag ){
+        return ((flags & flag) == flag);
+    }
 	bool is_normal_defined(unsigned int x, unsigned int y) const;
 
     NormalWithType normal_at(unsigned int x, unsigned int y) const;

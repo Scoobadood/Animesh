@@ -4,6 +4,15 @@
 void TestProperties::SetUp( ) {}
 void TestProperties::TearDown( ) {}
 
+#define EXPECT_THROW_WITH_MESSAGE(stmt, etype, whatstring) EXPECT_THROW( \
+        try { \
+            stmt; \
+        } catch (const etype& ex) { \
+            EXPECT_EQ(std::string(ex.what()), whatstring); \
+            throw; \
+        } \
+    , etype)
+
 
 /* ********************************************************************************
  * *
@@ -46,14 +55,12 @@ TEST_F( TestProperties, FloatValueShouldReadWithNoSpaces) {
 
 TEST_F( TestProperties, MissingValueShouldThrow) {
     Properties p{"values.properties"};
-    try {
-        p.getProperty("Missing");
-        FAIL() << "Expected std:: out_of_range";
-    } catch( std::out_of_range const & err ) {
-        EXPECT_EQ( err.what(), std::string( "map::at:  key not found") );
-    } catch ( ... ) {
-        FAIL( ) << "Expected std::out_of_range";
-    }
+
+    EXPECT_THROW_WITH_MESSAGE(
+            p.getProperty("Missing"),
+            std::out_of_range,
+            "map::at:  key not found"
+    );
 }
 
 TEST_F( TestProperties, FileWithCommentsShouldParse) {
@@ -150,4 +157,16 @@ TEST_F( TestProperties, InvalidBooleanPropertyShouldThrow) {
     } catch ( ... ) {
         FAIL( ) << "Expected std::runtime_error";
     }
+}
+
+TEST_F( TestProperties, InitialiseWithMapShouldWork) {
+    std::map<std::string, std::string> props = {
+            {"rho", "1.0"},
+            {"text", "a string"},
+            {"flag", "true"}
+    };
+    Properties p{props};
+    EXPECT_EQ( p.getFloatProperty("rho"),1.0);
+    EXPECT_EQ( p.getProperty("text"),"a string");
+    EXPECT_EQ( p.getBooleanProperty("flag"),true);
 }

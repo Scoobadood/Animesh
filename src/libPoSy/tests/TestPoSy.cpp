@@ -31,8 +31,8 @@ TEST_F(TestPoSy, ComputeLatticeXZ) {
 
     const auto vertices = compute_local_lattice_vertices(
             Vector3f{0.0, 0.0, 0.0},
-            Vector3f{0.0, 1.0, 0.0},
             Vector3f{1.0, 0.0, 0.0},
+            Vector3f{0.0, 0.0, -1.0},
             1.5f);
 
     expect_vector_equality(vertices.at(0), Vector3f{0.0, 0.0, 0.0});
@@ -51,8 +51,8 @@ TEST_F(TestPoSy, ComputeLatticeYZ) {
 
     const auto vertices = compute_local_lattice_vertices(
             Vector3f{0.0, 1.0, 1.0},
-            Vector3f{1.0, 0.0, 0.0},
             Vector3f{0.0, 0.0, 1.0},
+            Vector3f{0.0, -1.0, 0.0},
             2.0f);
 
     expect_vector_equality(vertices.at(0), Vector3f{0.0, 1.0, 1.0});
@@ -71,8 +71,8 @@ TEST_F(TestPoSy, ComputeLatticeXY) {
 
     const auto vertices = compute_local_lattice_vertices(
             Vector3f{-1.0, -2.0, 0.0},
-            Vector3f{0.0, 0.0, 1.0},
             Vector3f{1.0, 0.0, 0.0},
+            Vector3f{0.0, 1.0, 0.0},
             2.5f);
 
     expect_vector_equality(vertices.at(0), Vector3f{-1.0, -2.0, 0.0});
@@ -87,6 +87,8 @@ TEST_F(TestPoSy, ComputeLatticeXY) {
 }
 
 
+// Given two points in the plane, offset by rho/2, both claiming to be at their mesh vertex
+// We expect that the negotiated coordinate will be the midpoint of the line between their respective estimates.
 TEST_F(TestPoSy, SmoothInXZPlane) {
     using namespace Eigen;
 
@@ -98,16 +100,42 @@ TEST_F(TestPoSy, SmoothInXZPlane) {
     const auto n1 = Vector3f{0.0, 1.0, 0.0};
 
     // v2 representatiove vector assumes it's at origin and is actually at 1,0,1
-    const auto v2 = Vector3f{1.0, 0.0, 1.0};
+    const auto v2 = Vector3f{0.5, 0.0, 0.0};
     const auto p2 = v2 + Vector3f{0.0, 0.0, 0.0};
     const auto o2 = Vector3f{1.0, 0.0, 0.0};
     const auto n2 = Vector3f{0.0, 1.0, 0.0};
 
-    // TODO Actually test something.
-//    smooth(p1, o1, n1, p2, o2, n2);
-//
-//    const auto Nv1 = compute_local_lattice_vertices(p1, n1, o1, rho);
-//    const auto Nv2 = compute_local_lattice_vertices(p2, n2, o2, rho);
-//    const auto tuple = closest_points(Nv1, Nv2);
+    auto expected = ( p1 + p2 ) / 2.0f;
 
+    auto actual = average_posy_vectors(
+            p1, o1, n1, 1.0f,
+            p2, o2, n2, 1.0f, rho );
+    expect_vector_equality(expected, actual);
+}
+
+// Given two points in perpendicular planes, offset by rho/2, both claiming to be at their mesh vertex
+// We expect that the negotiated coordinate will be the midpoint of the line between their respective estimates
+// as projected onto pone of them
+TEST_F(TestPoSy, SmoothAcrossPlanes) {
+    using namespace Eigen;
+
+    const float rho = 1.0f;
+    // v1 representative vector assumes it's at origin and is
+    const auto v1 = Vector3f{0.0, 0.0, 0.0};
+    const auto p1 = v1 + Vector3f{0.0, 0.0, 0.0};
+    const auto o1 = Vector3f{1.0, 0.0, 0.0};
+    const auto n1 = Vector3f{0.0, 1.0, 0.0};
+
+    // v2 representatiove vector assumes it's at origin and is actually at 1,0,1
+    const auto v2 = Vector3f{0.5, 0.5, 0.0};
+    const auto p2 = v2 + Vector3f{0.0, 0.0, 0.0};
+    const auto o2 = Vector3f{0.0, 0.0, 1.0};
+    const auto n2 = Vector3f{-1.0, 0.0, 0.0};
+
+    Vector3f expected{ 0.25f, 0.0f, 0.0f};
+
+    auto actual = average_posy_vectors(
+            p1, o1, n1, 1.0f,
+            p2, o2, n2, 1.0f, rho );
+    expect_vector_equality(expected, actual);
 }

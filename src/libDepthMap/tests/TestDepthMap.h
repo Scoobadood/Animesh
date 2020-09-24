@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 #include <DepthMap/DepthMap.h>
 
-class TestDepthMap : public ::testing::Test {
+class TestCorrespondence : public ::testing::Test {
 public:
 	void SetUp( );
 	void TearDown();

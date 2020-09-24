@@ -1,9 +1,18 @@
 //#include <memory>
-#include "optimise.h"
-#include "hierarchical_mesher_utilities.h"
+#include <RoSy/RoSyOptimiser.h>
+#include <PoSy/PoSyOptimiser.h>
 #include <Properties/Properties.h>
+#include <Camera/Camera.h>
+#include <DepthMap/DepthMap.h>
+#include <DepthMap/DepthMapIO.h>
+#include <Utilities/utilities.h>
 #include "spdlog/spdlog.h"
 #include "spdlog/cfg/env.h"
+#include <string>
+#include <vector>
+#include <chrono>
+#include <iostream>
+
 
 /**
  * Entry point
@@ -23,7 +32,7 @@ int main(int argc, char *argv[]) {
     string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
     Properties properties{property_file_name};
 
-    Optimiser o{properties};
+    RoSyOptimiser o{properties};
 
     info("Loading depth maps");
     vector<DepthMap> depth_maps = load_depth_maps(properties);

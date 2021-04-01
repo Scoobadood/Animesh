@@ -2,8 +2,8 @@
 // Created by Dave Durbin on 19/5/20.
 //
 
-#include "../include/Surfel/PixelInFrame.h"
-#include "../include/Surfel/Pixel.h"
+#include "PixelInFrame.h"
+#include "Pixel.h"
 
 PixelInFrame::PixelInFrame(unsigned int x, unsigned int y, unsigned int frame) : pixel{x, y}, frame{frame} {};
 

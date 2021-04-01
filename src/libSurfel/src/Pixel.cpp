@@ -2,7 +2,7 @@
 // Created by Dave Durbin on 19/5/20.
 //
 
-#include "../include/Surfel/Pixel.h"
+#include "Pixel.h"
 
 Pixel::Pixel(unsigned int x, unsigned int y) : x{x}, y{y} {}
 

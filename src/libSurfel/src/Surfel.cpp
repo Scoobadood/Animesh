@@ -8,7 +8,6 @@
 #include <Eigen/Core>
 #include <utility>
 #include <vector>
-#include <string>
 #include <memory>
 
 std::map<std::string, std::shared_ptr<Surfel>> Surfel::surfel_by_id = []{

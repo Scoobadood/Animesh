@@ -1,4 +1,5 @@
 # Need CPD
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/lib/cmake/cpd")
 find_package(Cpd REQUIRED)
 
 # Need OMP

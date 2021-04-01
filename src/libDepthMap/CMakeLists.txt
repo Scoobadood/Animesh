@@ -1,3 +1,10 @@
+# Need PCL
+set(Boost_NO_BOOST_CMAKE)
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/share/pcl-1.11")
+find_package(PCL 1.11 REQUIRED COMPONENTS common features search)
+include_directories(${PCL_INCLUDE_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 add_library(
 		DepthMap SHARED
 		src/Normals.cpp include/DepthMap/Normals.h
@@ -22,6 +29,10 @@ target_include_directories(
 		include/DepthMap
 )
 
+target_link_directories( DepthMap
+		BEFORE
+		PUBLIC ${PCL_LIBRARY_DIRS})
+
 target_link_libraries(
 		DepthMap
 		Camera
@@ -44,7 +55,6 @@ target_link_libraries(
 		testDepthMap
 		DepthMap
 		Geom
-		flann
 		${PCL_LIBRARIES}
 		gtest
 		gmock

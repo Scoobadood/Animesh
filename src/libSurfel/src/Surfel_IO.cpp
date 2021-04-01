@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 #include "SurfelGraph.h"
 /*

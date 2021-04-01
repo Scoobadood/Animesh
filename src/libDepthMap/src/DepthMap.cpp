@@ -31,7 +31,7 @@ DepthMap::DepthMap(const std::string &filename) {
                                       throw std::domain_error(message);
                                   }
                               }
-                              for (const auto token : tokens) {
+                              for (const auto& token : tokens) {
                                   float f = stof(token);
                                   depth_image_row.push_back(f);
                               }

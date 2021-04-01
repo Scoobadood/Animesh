@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <DepthMap/DepthMap.h>
-#include "../../../mesher/mesher_args.h"
 
 std::vector<DepthMap>
 load_depth_maps(const std::string& source_directory, float ts, float tl);

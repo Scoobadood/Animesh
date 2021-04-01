@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
-#include "Shader.hpp"
+#include "shader.hpp"
 
 #include "glutils.hpp"
 

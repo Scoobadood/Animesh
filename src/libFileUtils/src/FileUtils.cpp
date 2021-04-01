@@ -204,7 +204,6 @@ void files_in_directory( const std::string& directory, std::vector<std::string>&
 bool read_last_line( std::string file_name, std::string& text ) {
 
     bool read_ok = false;
-    bool at_first_line = false;
 
     std::ifstream fin;
     fin.open(file_name);

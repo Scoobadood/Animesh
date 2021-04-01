@@ -2,7 +2,7 @@
 // Created by Dave Durbin on 28/3/20.
 //
 
-#include "CrossFieldGLCanvas.h"
+#include "cross_field_GL_canvas.h"
 
 #include <nanogui/nanogui.h>
 #include <Camera/Camera.h>
@@ -20,25 +20,25 @@ const int VERTICES_PER_SURFEL = 8;
 const float ZOOM_SCALE_FACTOR = 0.05;
 const float PAN_SCALE_FACTOR = 0.25;
 
-CrossFieldGLCanvas::~CrossFieldGLCanvas() {
+cross_field_GL_canvas::~cross_field_GL_canvas() {
     m_shader.free();
 }
 
-CrossFieldGLCanvas::CrossFieldGLCanvas(Widget *parent) : nanogui::GLCanvas(parent),
-                                                         m_field_of_view{60.0, 60.0},
-                                                         m_focal_length{5},
-                                                         m_last_mouse_position{0, 0},
-                                                         m_button{-1},
-                                                         m_mouse_state{NONE},
-                                                         m_theta{0.0f},
-                                                         m_phi{PI / 2.0f},
-                                                         m_radius{30.0f},
-                                                         m_camera_target{0, 0, 0},
-                                                         mup{1.0f},
-                                                         m_num_surfels{0},
-                                                         m_surfel_colouring{NATURAL},
-                                                         m_model_matrix(nanogui::Matrix4f::Identity()),
-                                                         m_view_matrix(nanogui::Matrix4f::Identity()) {
+cross_field_GL_canvas::cross_field_GL_canvas(Widget *parent) : nanogui::GLCanvas(parent),
+                                                               m_field_of_view{60.0, 60.0},
+                                                               m_focal_length{5},
+                                                               m_last_mouse_position{0, 0},
+                                                               m_button{-1},
+                                                               m_mouse_state{NONE},
+                                                               m_theta{0.0f},
+                                                               m_phi{PI / 2.0f},
+                                                               m_radius{30.0f},
+                                                               m_camera_target{0, 0, 0},
+                                                               mup{1.0f},
+                                                               m_num_surfels{0},
+                                                               m_surfel_colouring{NATURAL},
+                                                               m_model_matrix(nanogui::Matrix4f::Identity()),
+                                                               m_view_matrix(nanogui::Matrix4f::Identity()) {
     using namespace nanogui;
 
     m_shader.init(
@@ -76,7 +76,7 @@ CrossFieldGLCanvas::CrossFieldGLCanvas(Widget *parent) : nanogui::GLCanvas(paren
  * @param colouring
  */
 void
-CrossFieldGLCanvas::set_colouring_mode(SurfelColouring colouring) {
+cross_field_GL_canvas::set_colouring_mode(SurfelColouring colouring) {
     if (m_surfel_colouring != colouring) {
         m_surfel_colouring = colouring;
         set_colours();
@@ -85,13 +85,13 @@ CrossFieldGLCanvas::set_colouring_mode(SurfelColouring colouring) {
 
 
 
-void CrossFieldGLCanvas::make_model_matrix( ) {
+void cross_field_GL_canvas::make_model_matrix( ) {
     using namespace nanogui;
     m_model_matrix.setIdentity();
 }
 
 
-void CrossFieldGLCanvas::make_projection( ) {
+void cross_field_GL_canvas::make_projection( ) {
     const auto fov_rad = m_field_of_view * DEG_TO_RAD;
 
     const float top = NEAR * tanf(fov_rad.y() * 0.5f);
@@ -116,10 +116,10 @@ nanogui::MatrixXu make_indices(int num_surfels) {
     return indices;
 }
 
-nanogui::MatrixXf CrossFieldGLCanvas::make_colours(CrossFieldGLCanvas::SurfelColouring surfel_colouring,
-                               int num_surfels,
-                               const std::vector<float> &adjustments,
-                               const std::vector<float> &errors
+nanogui::MatrixXf cross_field_GL_canvas::make_colours(cross_field_GL_canvas::SurfelColouring surfel_colouring,
+                                                      int num_surfels,
+                                                      const std::vector<float> &adjustments,
+                                                      const std::vector<float> &errors
         ) {
     assert( !errors.empty());
     assert( !adjustments.empty());
@@ -128,7 +128,7 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_colours(CrossFieldGLCanvas::SurfelCol
     float tan_r, tan_g, tan_b = 0.0f;
     float error_scale_factor = 1.0f / (45.0f * 45.0f);
     float error_offset = 0.0f;
-    if(surfel_colouring == CrossFieldGLCanvas::ERROR_REL) {
+    if(surfel_colouring == cross_field_GL_canvas::ERROR_REL) {
         auto min_error = fabs(*errors.begin());
         auto max_error = min_error;
         for( auto err : errors ) {
@@ -159,7 +159,7 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_colours(CrossFieldGLCanvas::SurfelCol
         }
 
         switch( surfel_colouring) {
-            case CrossFieldGLCanvas::ADJUSTMENT:
+            case cross_field_GL_canvas::ADJUSTMENT:
                 // Set tan colour based on adjustment
                 // adj is -45 to 45
                 tan_r = fabs(adjustments.at(surfel_idx) / 45.0f);
@@ -169,7 +169,7 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_colours(CrossFieldGLCanvas::SurfelCol
                 }
                 break;
 
-            case CrossFieldGLCanvas::NATURAL:
+            case cross_field_GL_canvas::NATURAL:
                 colours.col(col_idx + 0) << 1, 0, 0; // Red normal
                 colours.col(col_idx + 1) << 0, 1, 0; // Green principal tangent
                 colours.col(col_idx + 2) << 1, 1, 1; // White other tangents
@@ -180,8 +180,8 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_colours(CrossFieldGLCanvas::SurfelCol
                 colours.col(col_idx + 7) << 1, 1, 1; // White other tangents
                 break;
 
-            case CrossFieldGLCanvas::ERROR:
-            case CrossFieldGLCanvas::ERROR_REL:
+            case cross_field_GL_canvas::ERROR:
+            case cross_field_GL_canvas::ERROR_REL:
                 // Set tan colour based on error
                 // adj is -45 to 45
                 tan_r = (fabs(errors.at(surfel_idx)) - error_offset) * error_scale_factor;
@@ -196,7 +196,7 @@ nanogui::MatrixXf CrossFieldGLCanvas::make_colours(CrossFieldGLCanvas::SurfelCol
 }
 
 float
-compute_scale_factor(const std::vector<CrossFieldGLCanvas::SurfelData> &surfel_data) {
+compute_scale_factor(const std::vector<cross_field_GL_canvas::SurfelData> &surfel_data) {
     std::vector<Eigen::Vector3f> points;
     for( const auto & s : surfel_data) {
         points.push_back(s.point);
@@ -211,7 +211,7 @@ compute_scale_factor(const std::vector<CrossFieldGLCanvas::SurfelData> &surfel_d
  * and drawn as lines. Return same as a 3 x (num_surfels *8) matrix
  */
 nanogui::MatrixXf
-make_vertices(const std::vector<CrossFieldGLCanvas::SurfelData>& surfel_data) {
+make_vertices(const std::vector<cross_field_GL_canvas::SurfelData>& surfel_data) {
 
     auto vector_scale_factor = compute_scale_factor( surfel_data );
     auto num_surfels = surfel_data.size();
@@ -254,7 +254,7 @@ make_vertices(const std::vector<CrossFieldGLCanvas::SurfelData>& surfel_data) {
     return vertices;
 }
 
-void CrossFieldGLCanvas::set_colours( ) {
+void cross_field_GL_canvas::set_colours( ) {
     nanogui::MatrixXf colours = make_colours(m_surfel_colouring, m_num_surfels, m_adjustments, m_errors);
 
     m_shader.bind();
@@ -270,7 +270,7 @@ void CrossFieldGLCanvas::set_colours( ) {
  * @param adjustments
  * @param errors
  */
-void CrossFieldGLCanvas::set_data( const std::vector<SurfelData>& surfel_data) {
+void cross_field_GL_canvas::set_data(const std::vector<SurfelData>& surfel_data) {
     // Store for colours
     m_adjustments.clear();
     m_errors.clear();
@@ -295,7 +295,7 @@ void CrossFieldGLCanvas::set_data( const std::vector<SurfelData>& surfel_data) {
     drawGL();
 }
 
-void CrossFieldGLCanvas::update_view_matrix( ) {
+void cross_field_GL_canvas::update_view_matrix( ) {
     using namespace nanogui;
 
     const auto camera_origin = to_cartesian();
@@ -315,7 +315,7 @@ void CrossFieldGLCanvas::update_view_matrix( ) {
  * @param pixel_coord The pixel
  * @return The unit vector
  */
-nanogui::Vector3f CrossFieldGLCanvas::compute_ray_through_pixel(const nanogui::Vector2i& pixel_coord ) {
+nanogui::Vector3f cross_field_GL_canvas::compute_ray_through_pixel(const nanogui::Vector2i& pixel_coord ) {
     using namespace nanogui;
 
     const auto camera_origin = to_cartesian();
@@ -352,7 +352,7 @@ nanogui::Vector3f CrossFieldGLCanvas::compute_ray_through_pixel(const nanogui::V
 
 
 void
-CrossFieldGLCanvas::select_surfel(unsigned int surfel_idx) {
+cross_field_GL_canvas::select_surfel(unsigned int surfel_idx) {
     if(m_click_callback) {
         m_click_callback(surfel_idx);
     } else {
@@ -361,7 +361,7 @@ CrossFieldGLCanvas::select_surfel(unsigned int surfel_idx) {
 }
 
 void
-CrossFieldGLCanvas::handle_mouse_click(const nanogui::Vector2i& window_coords) {
+cross_field_GL_canvas::handle_mouse_click(const nanogui::Vector2i& window_coords) {
     using namespace nanogui;
 
     // Convert coords to canvas
@@ -396,7 +396,7 @@ CrossFieldGLCanvas::handle_mouse_click(const nanogui::Vector2i& window_coords) {
  * Zoom -> up
  */
 bool
-CrossFieldGLCanvas::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers) {
+cross_field_GL_canvas::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers) {
     // If button up without drag or zoom it's a click
     m_last_mouse_position = p;
     if( down ) {
@@ -412,8 +412,8 @@ CrossFieldGLCanvas::mouseButtonEvent(const nanogui::Vector2i &p, int button, boo
 }
 
 bool
-CrossFieldGLCanvas::mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button,
-                                   int modifiers) {
+cross_field_GL_canvas::mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button,
+                                      int modifiers) {
     if ( m_mouse_state == DOWN ) {
         if (m_button == 0) {
             if ((modifiers & GLFW_MOD_SUPER) != 0) {
@@ -448,7 +448,7 @@ CrossFieldGLCanvas::mouseDragEvent(const nanogui::Vector2i &p, const nanogui::Ve
 
 
 
-void CrossFieldGLCanvas::drawGL() {
+void cross_field_GL_canvas::drawGL() {
     using namespace nanogui;
     m_shader.bind();
 
@@ -461,7 +461,7 @@ void CrossFieldGLCanvas::drawGL() {
     glDisable(GL_DEPTH_TEST);
 }
 
-void CrossFieldGLCanvas::pan(float d_x, float d_y){
+void cross_field_GL_canvas::pan(float d_x, float d_y){
     using namespace nanogui;
     const auto look = (m_camera_target - to_cartesian()).normalized();
     const auto right = look.cross(Vector3f{0, mup, 0});
@@ -471,7 +471,7 @@ void CrossFieldGLCanvas::pan(float d_x, float d_y){
 }
 
 // Cam handling
-void CrossFieldGLCanvas::rotate(float d_theta, float d_phi){
+void cross_field_GL_canvas::rotate(float d_theta, float d_phi){
     if (mup > 0.0f) {
         m_theta += d_theta;
     } else {
@@ -497,7 +497,7 @@ void CrossFieldGLCanvas::rotate(float d_theta, float d_phi){
 
 }
 
-void CrossFieldGLCanvas::centre(){
+void cross_field_GL_canvas::centre(){
     m_radius = 30;
     m_camera_target << 0.0, 0.0, 0.0;
     m_theta = 0.0f;
@@ -506,7 +506,7 @@ void CrossFieldGLCanvas::centre(){
 }
 
 
-void CrossFieldGLCanvas::zoom(float distance){
+void cross_field_GL_canvas::zoom(float distance){
     m_radius -= distance;
     // Don't let the radius go negative
     // If it does, re-project our target down the look vector

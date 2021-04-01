@@ -1,5 +1,6 @@
 # Need CPD
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/lib/cmake/cpd")
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/lib/cmake/fgt")
 find_package(Cpd REQUIRED)
 
 # Need OMP
@@ -61,10 +62,11 @@ target_compile_features(
 
 add_executable(
 		animesh_ui
-		AnimeshApplication.h AnimeshApplication.cpp
+		animesh_screen.h animesh_screen.cpp
 		types.h
-		CrossFieldGLCanvas.h CrossFieldGLCanvas.cpp
+		cross_field_GL_canvas.h cross_field_GL_canvas.cpp
 		hierarchical_mesher_ui.cpp
+		surfel_graph_geometry_extractor.h surfel_graph_geometry_extractor.cpp
 )
 
 target_link_libraries(

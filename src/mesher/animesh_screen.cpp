@@ -3,16 +3,16 @@
 //
 
 #include <vector>
-#include <memory>
+//#include <memory>
 #include <Properties/Properties.h>
 #include <DepthMap/DepthMap.h>
-#include "RoSy/RoSyOptimiser.h"
-#include "types.h"
-#include "../libUtilities/include/Utilities/utilities.h"
-#include "spdlog/spdlog.h"
+#include <Utilities/utilities.h>
+//#include <RoSy/RoSyOptimiser.h>
+//#include "types.h"
+#include <spdlog/spdlog.h>
 #include <nanogui/nanogui.h>
-
-#include "AnimeshApplication.h"
+//
+#include "animesh_screen.h"
 
 const nanogui::Vector3f& default_highlighted_surfel_colour( ) {
     const static nanogui::Vector3f HIGHLIGHTED_SURFEL_COLOUR{0.8f, 0.8f, 0.0f};
@@ -37,7 +37,7 @@ std::string format_with_commas(T value) {
  * Convert from surfel id to index
  */
 unsigned int
-AnimeshApplication::surfel_id_to_index(const std::string &id) {
+animesh_screen::surfel_id_to_index(const std::string &id) {
     const auto &it = m_surfel_id_to_index.find(id);
     assert(it != m_surfel_id_to_index.end());
     return it->second;
@@ -47,7 +47,7 @@ AnimeshApplication::surfel_id_to_index(const std::string &id) {
  * Convert from surfel index to id
  */
 std::string
-AnimeshApplication::surfel_index_to_id(unsigned int index) {
+animesh_screen::surfel_index_to_id(unsigned int index) {
     assert(index < m_surfel_index_to_id.size());
     return m_surfel_index_to_id.at(index);
 }
@@ -56,7 +56,7 @@ AnimeshApplication::surfel_index_to_id(unsigned int index) {
 /**
  * Obtain new frame data and pass to canvas for redraw.
  */
-void AnimeshApplication::update_canvas() {
+void animesh_screen::update_canvas() {
     using namespace nanogui;
     using namespace std;
 
@@ -95,7 +95,7 @@ void AnimeshApplication::update_canvas() {
     m_txt_num_surfels->setValue(format_with_commas(m_surfel_data.size()));
 }
 
-void AnimeshApplication::load_all_the_things() {
+void animesh_screen::load_all_the_things() {
     using namespace std;
     using namespace spdlog;
 
@@ -112,7 +112,7 @@ void AnimeshApplication::load_all_the_things() {
     update_canvas();
 }
 
-void AnimeshApplication::surfel_selected(int surfel_idx) {
+void animesh_screen::surfel_selected(int surfel_idx) {
     // Lookup the ID
     m_selected_surfel_id = surfel_index_to_id(surfel_idx);
 
@@ -121,7 +121,7 @@ void AnimeshApplication::surfel_selected(int surfel_idx) {
     maybe_highlight_surfel_and_neighbours();
 }
 
-void AnimeshApplication::update_selected_surfel_data(bool clear) {
+void animesh_screen::update_selected_surfel_data(bool clear) {
     if( m_selected_surfel_id.empty() || clear ) {
         m_txt_selected_surfel_id->setValue("");
         m_txt_selected_surfel_idx->setValue("");
@@ -168,7 +168,7 @@ make_label_value_panel( nanogui::Widget * container, int rows ) {
     return panel;
 }
 
-void AnimeshApplication::make_global_data_panel(nanogui::Widget *window) {
+void animesh_screen::make_global_data_panel(nanogui::Widget *window) {
     using namespace nanogui;
 
     auto data_panel = make_label_value_panel(window, 3);
@@ -177,7 +177,7 @@ void AnimeshApplication::make_global_data_panel(nanogui::Widget *window) {
     m_txt_global_error = make_label_textbox_pair(data_panel, 2, "Global Smoothness");
 }
 
-void AnimeshApplication::make_surfel_data_panel(nanogui::Widget *window) {
+void animesh_screen::make_surfel_data_panel(nanogui::Widget *window) {
     using namespace nanogui;
 
     auto stat_panel = make_label_value_panel(window, 4);
@@ -187,7 +187,7 @@ void AnimeshApplication::make_surfel_data_panel(nanogui::Widget *window) {
     m_txt_selected_surfel_adj = make_label_textbox_pair(stat_panel,3, "Last Adj");
 }
 
-void AnimeshApplication::maybe_highlight_surfel_and_neighbours() {
+void animesh_screen::maybe_highlight_surfel_and_neighbours() {
     m_canvas->remove_highlights();
     if (m_optimiser->surfel_is_in_frame(m_selected_surfel_id, m_frame_idx)) {
         auto surfel_idx = surfel_id_to_index(m_selected_surfel_id);
@@ -211,14 +211,14 @@ void AnimeshApplication::maybe_highlight_surfel_and_neighbours() {
  * Set the frame being rendered.
  * @param frame_idx
  */
-void AnimeshApplication::set_frame(unsigned int frame_idx) {
+void animesh_screen::set_frame(unsigned int frame_idx) {
     if (m_frame_idx != frame_idx) {
         m_frame_idx = frame_idx;
         update_canvas();
     }
 }
 
-void AnimeshApplication::make_colour_panel(nanogui::Widget *container) {
+void animesh_screen::make_colour_panel(nanogui::Widget *container) {
     using namespace nanogui;
 
     auto colouring_panel = new Widget(container);
@@ -229,22 +229,22 @@ void AnimeshApplication::make_colour_panel(nanogui::Widget *container) {
     auto *normal_colouring_button = new Button(colouring_panel, "Normal");
     normal_colouring_button->setFlags(Button::Flags::RadioButton);
     normal_colouring_button->setCallback([this]() {
-        m_canvas->set_colouring_mode(CrossFieldGLCanvas::NATURAL);
+        m_canvas->set_colouring_mode(cross_field_GL_canvas::NATURAL);
     });
     auto *adj_colouring_button = new Button(colouring_panel, "Adjustment");
     adj_colouring_button->setFlags(Button::Flags::RadioButton);
     adj_colouring_button->setCallback([this]() {
-        m_canvas->set_colouring_mode(CrossFieldGLCanvas::ADJUSTMENT);
+        m_canvas->set_colouring_mode(cross_field_GL_canvas::ADJUSTMENT);
     });
     auto *error_colouring_button = new Button(colouring_panel, "Abs. Smoothness");
     error_colouring_button->setFlags(Button::Flags::RadioButton);
     error_colouring_button->setCallback([this]() {
-        m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR);
+        m_canvas->set_colouring_mode(cross_field_GL_canvas::ERROR);
     });
     auto *error_rel_colouring_button = new Button(colouring_panel, "Rel. Smoothness");
     error_rel_colouring_button->setFlags(Button::Flags::RadioButton);
     error_rel_colouring_button->setCallback([this]() {
-        m_canvas->set_colouring_mode(CrossFieldGLCanvas::ERROR_REL);
+        m_canvas->set_colouring_mode(cross_field_GL_canvas::ERROR_REL);
     });
     std::vector<Button *> button_group{adj_colouring_button, normal_colouring_button, error_colouring_button,
                                        error_rel_colouring_button};
@@ -255,7 +255,7 @@ void AnimeshApplication::make_colour_panel(nanogui::Widget *container) {
 }
 
 
-void AnimeshApplication::make_frame_selector_panel(nanogui::Widget *container, unsigned int num_frames) {
+void animesh_screen::make_frame_selector_panel(nanogui::Widget *container, unsigned int num_frames) {
     using namespace nanogui;
 
     auto frame_panel = new Widget(container);
@@ -272,7 +272,7 @@ void AnimeshApplication::make_frame_selector_panel(nanogui::Widget *container, u
     });
 }
 
-void AnimeshApplication::make_buttons_panel(nanogui::Widget *container) {
+void animesh_screen::make_buttons_panel(nanogui::Widget *container) {
     using namespace nanogui;
 
     auto step_panel = new Widget(container);
@@ -293,7 +293,7 @@ void AnimeshApplication::make_buttons_panel(nanogui::Widget *container) {
     });
 }
 
-void AnimeshApplication::build_ui() {
+void animesh_screen::build_ui() {
     using namespace nanogui;
 
     auto layout =new AdvancedGridLayout({0,0}, {0});
@@ -311,7 +311,7 @@ void AnimeshApplication::build_ui() {
     make_global_data_panel(tool_window);
     layout->setAnchor(tool_window, AdvancedGridLayout::Anchor{0, 0, Alignment::Fill, Alignment::Fill});
 
-    m_canvas = new CrossFieldGLCanvas(this);
+    m_canvas = new cross_field_GL_canvas(this);
     m_canvas->setBackgroundColor({100, 100, 100, 255});
     m_canvas->set_click_callback([=](int surfel_idx) {
         this->surfel_selected(surfel_idx);
@@ -325,7 +325,7 @@ void AnimeshApplication::build_ui() {
     performLayout();
 }
 
-AnimeshApplication::AnimeshApplication(int argc, char *argv[]) :
+animesh_screen::animesh_screen(int argc, char *argv[]) :
         nanogui::Screen(Eigen::Vector2i(800, 600), "Animesh", true),
         m_canvas{nullptr},
         m_optimiser{nullptr},
@@ -350,7 +350,7 @@ AnimeshApplication::AnimeshApplication(int argc, char *argv[]) :
     load_all_the_things();
 }
 
-bool AnimeshApplication::keyboardEvent(int key, int scancode, int action, int modifiers) {
+bool animesh_screen::keyboardEvent(int key, int scancode, int action, int modifiers) {
     if (Screen::keyboardEvent(key, scancode, action, modifiers))
         return true;
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
@@ -360,7 +360,7 @@ bool AnimeshApplication::keyboardEvent(int key, int scancode, int action, int mo
     return false;
 }
 
-void AnimeshApplication::draw(NVGcontext *ctx) {
+void animesh_screen::draw(NVGcontext *ctx) {
     /* Draw the user interface */
     Screen::draw(ctx);
 }

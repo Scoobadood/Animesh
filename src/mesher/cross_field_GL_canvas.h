@@ -2,8 +2,7 @@
 // Created by Dave Durbin on 28/3/20.
 //
 
-#ifndef ANIMESH_CROSSFIELDGLCANVAS_H
-#define ANIMESH_CROSSFIELDGLCANVAS_H
+#pragma once
 
 #include <nanogui/nanogui.h>
 #include <Camera/Camera.h>
@@ -12,7 +11,7 @@
 #include <utility>
 #include "types.h"
 
-class CrossFieldGLCanvas : public nanogui::GLCanvas {
+class cross_field_GL_canvas : public nanogui::GLCanvas {
 public:
     struct SurfelData {
         nanogui::Vector3f point;
@@ -22,11 +21,11 @@ public:
         float error;
 
         SurfelData(
-                const nanogui::Vector3f& point,
-                const nanogui::Vector3f& normal,
+                const nanogui::Vector3f&  point,
+                const nanogui::Vector3f&  normal,
                 const nanogui::Vector3f& tangent,
                 float adjustment,
-                float error) : point{point}, normal{std::move(normal)}, tangent{std::move(tangent)}, adjustment{adjustment}, error{error} {}
+                float error) : point{point}, normal{normal}, tangent{tangent}, adjustment{adjustment}, error{error} {}
     };
 
     /**
@@ -39,9 +38,9 @@ public:
         ERROR_REL
     };
 
-    explicit CrossFieldGLCanvas(Widget *parent);
+    explicit cross_field_GL_canvas(Widget *parent);
 
-    ~CrossFieldGLCanvas() override;
+    ~cross_field_GL_canvas() override;
 
     void drawGL() override;
 
@@ -62,7 +61,7 @@ public:
      */
     void set_colouring_mode(SurfelColouring colouring);
 
-    nanogui::MatrixXf make_colours(CrossFieldGLCanvas::SurfelColouring surfel_colouring,
+    nanogui::MatrixXf make_colours(cross_field_GL_canvas::SurfelColouring surfel_colouring,
                                    int num_surfels,
                                    const std::vector<float> &adjustments,
                                    const std::vector<float> &errors);
@@ -160,6 +159,3 @@ private:
 
     nanogui::Vector3f compute_ray_through_pixel(const nanogui::Vector2i &pixel_coord);
 };
-
-
-#endif //ANIMESH_CROSSFIELDGLCANVAS_H

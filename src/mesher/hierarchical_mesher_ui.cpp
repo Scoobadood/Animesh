@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include <nanogui/nanogui.h>
-#include "AnimeshApplication.h"
+#include "animesh_screen.h"
 #include <spdlog/cfg/env.h>
 
 int main(int argc, char ** argv) {
@@ -15,7 +15,7 @@ int main(int argc, char ** argv) {
         nanogui::init();
         /* scoped variables */
         {
-            nanogui::ref <AnimeshApplication> app = new AnimeshApplication(argc, argv);
+            nanogui::ref <animesh_screen> app = new animesh_screen(argc, argv);
             app->drawAll();
             app->setVisible(true);
             nanogui::mainloop();

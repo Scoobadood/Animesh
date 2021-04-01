@@ -2,19 +2,15 @@
 // Created by Dave Durbin on 28/3/20.
 //
 
-#ifndef ANIMESH_ANIMESHAPPLICATION_H
-#define ANIMESH_ANIMESHAPPLICATION_H
-
+#pragma once
 #include <Properties/Properties.h>
-#include <DepthMap/DepthMap.h>
-#include "RoSy/RoSyOptimiser.h"
-
-#include "CrossFieldGLCanvas.h"
+#include <RoSy/RoSyOptimiser.h>
+#include "cross_field_GL_canvas.h"
 #include <nanogui/nanogui.h>
 
-class AnimeshApplication : public nanogui::Screen {
+class animesh_screen : public nanogui::Screen {
 public:
-    AnimeshApplication(int argc, char *argv[]);
+    animesh_screen(int argc, char *argv[]);
 
     bool keyboardEvent(int key, int scancode, int action, int modifiers) override;
 
@@ -31,7 +27,7 @@ private:
 
     void build_ui();
 
-    CrossFieldGLCanvas *m_canvas;
+    cross_field_GL_canvas *m_canvas;
     Properties *m_properties;
     RoSyOptimiser *m_optimiser;
     std::vector<Camera> m_cameras;
@@ -69,8 +65,5 @@ private:
 
     std::map<std::string, unsigned int> m_surfel_id_to_index;
     std::vector<std::string> m_surfel_index_to_id;
-    std::vector<CrossFieldGLCanvas::SurfelData> m_surfel_data;
+    std::vector<cross_field_GL_canvas::SurfelData> m_surfel_data;
 };
-
-
-#endif //ANIMESH_ANIMESHAPPLICATION_H

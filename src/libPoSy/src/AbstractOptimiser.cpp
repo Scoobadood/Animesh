@@ -9,12 +9,11 @@
 #include <algorithm>
 #include <random>
 
-AbstractOptimiser::AbstractOptimiser(Properties properties) : m_properties(std::move(properties)),
-                                                              m_state{UNINITIALISED},
+AbstractOptimiser::AbstractOptimiser(Properties properties) : m_state{UNINITIALISED},
+                                                              m_properties(std::move(properties)),
+                                                              m_convergence_threshold{1.0},
                                                               m_optimisation_cycles{0},
-                                                              m_last_smoothness{0.0f},
-                                                              m_convergence_threshold{1.0} {
-}
+                                                              m_last_smoothness{0.0f} {}
 
 AbstractOptimiser::~AbstractOptimiser() = default;
 
@@ -281,7 +280,7 @@ AbstractOptimiser::compute_surfel_smoothness_for_frame(const std::shared_ptr<Sur
     const auto &bounds = m_neighbours_by_surfel_frame.equal_range(surfel_in_frame);
     unsigned int num_neighbours = 0;
     for (auto np = bounds.first; np != bounds.second; ++np) {
-        const auto & neighbour_ptr = np->second;
+        const auto &neighbour_ptr = np->second;
         const SurfelInFrame neighbour_in_frame{neighbour_ptr, frame_id};
         const auto &neighbour_orientation_in_frame = m_norm_tan_by_surfel_frame.at(neighbour_in_frame);
         const auto &neighbour_frame_data = frame_data_for_surfel_in_frame(neighbour_in_frame);

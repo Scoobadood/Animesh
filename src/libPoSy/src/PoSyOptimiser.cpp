@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 #include <RoSy/RoSy.h>
-#include <Eigen/core>
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 static const char *SSA_SELECT_ALL_IN_RANDOM_ORDER = "select-all-in-random-order";

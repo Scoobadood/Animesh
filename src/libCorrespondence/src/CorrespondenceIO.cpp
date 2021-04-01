@@ -25,7 +25,6 @@ load_correspondences_from_file(const std::string &file_name,
     correspondences.clear();
     correspondences.reserve(num_correspondences);
 
-    int count = 0;
     for (unsigned int i = 0; i < num_correspondences; ++i) {
         auto num_entries = read_unsigned_int(file);
         vector<PixelInFrame> correspondence;

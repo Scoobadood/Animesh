@@ -6,7 +6,7 @@
 
 #include <nanogui/nanogui.h>
 #include "AnimeshApplication.h"
-#include "spdlog/cfg/env.h"
+#include <spdlog/cfg/env.h>
 
 int main(int argc, char ** argv) {
     using namespace std;

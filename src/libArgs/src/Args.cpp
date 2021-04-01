@@ -1,16 +1,11 @@
+#include <__bit_reference>
 #include "Args.h"
 
 #include <tclap/CmdLine.h>
 #include <tclap/ArgException.h>
 
 const int DEFAULT_SMOOTH_ITERATIONS = 50;
-const int DIM_X = 20;
-const int DIM_Y = 20;
-const float GRID_SPACING = 5.0f;
-const float RADIUS = 10.0f;
-const int SPHERE_THETA_STEPS = 30;
-const int SPHERE_PHI_STEPS = 15;
-const int CUBE_SIZE = 3;
+const int UNUSED = -1;
 
 std::vector<std::string> split( const std::string& str, char token )  {
 	std::vector<std::string> strings;
@@ -45,11 +40,14 @@ protected:
 		m_grid_spacing = grid_spacing;
 		m_dim1 = dim1;
 		m_dim2 = dim2;
+		m_dim3 = UNUSED;
 	}
 
 	Prefab( const std::string& name, float grid_spacing, int dim1) : m_name{ name } {
 		m_grid_spacing = grid_spacing;
 		m_dim1 = dim1;
+        m_dim2 = UNUSED;
+        m_dim3 = UNUSED;
 	}
 
 public:

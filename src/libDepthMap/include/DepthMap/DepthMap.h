@@ -25,7 +25,7 @@ public:
     /**
 	 * Load from file.
 	 */
-	DepthMap(const std::string& filename);
+	explicit DepthMap(const std::string& filename);
 
 	/**
 	 * Construct from an array of floats and dimensions

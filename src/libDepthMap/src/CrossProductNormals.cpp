@@ -80,7 +80,7 @@ compute_derived_normals(const DepthMap * const depth_map, std::vector<std::vecto
             }
 
             vector<float> sum{0.0f, 0.0f, 0.0f};
-            int count = 0;
+            float count = 0;
             for (int ri = (int)(row - 1); ri <= row + 1; ri++) {
                 for (int ci = (int)(col - 1); ci <= col + 1; ci++) {
                     if (ri < 0 || ri >= depth_map->width() || ci < 0 || ci >= depth_map->width()) {

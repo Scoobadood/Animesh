@@ -1,5 +1,8 @@
 add_subdirectory(data_gen)
+add_subdirectory(glm)
 
+
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/lib/cmake/cpd")
 find_package(Cpd REQUIRED)
 
 # OBJ File Converter
@@ -28,8 +31,12 @@ add_executable(
 		mesh.cpp
 		model.cpp
 )
+target_include_directories(
+		dmr PUBLIC glm
+)
+
 target_link_libraries(
-		dmr
+		dmr glm::glm
 )
 
 add_executable(

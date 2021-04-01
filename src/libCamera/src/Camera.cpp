@@ -11,9 +11,9 @@ Camera::Camera(const float position[3],
                const float view[3], const float up[3], const float res[2],
                const float fov[2], float f) : m_origin{position[0], position[1], position[2]},
                                               m_look_at{view[0], view[1], view[2]},
-                                              m_up{up[0], up[1], up[2]},
-                                              m_resolution{res[0], res[1]},
                                               m_field_of_view{fov[0] * DEG_TO_RAD, fov[1] * DEG_TO_RAD},
+                                              m_resolution{res[0], res[1]},
+                                              m_up{up[0], up[1], up[2]},
                                               m_focal_length{f} {
     compute_camera_parms();
 }

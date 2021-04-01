@@ -34,8 +34,8 @@ target_link_libraries(
 		Graph
 		GeomFileUtils
 		gtest gmock
-		fmt
 		${CMAKE_THREAD_LIBS_INIT}
+		spdlog::spdlog
 )
 
 add_custom_command(

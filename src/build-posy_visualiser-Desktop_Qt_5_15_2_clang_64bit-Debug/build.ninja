@@ -101,7 +101,7 @@ build CMakeFiles/posy_visualiser.dir/posy_visualiser_window.cpp.o: CXX_COMPILER_
 
 build posy_visualiser: CXX_EXECUTABLE_LINKER__posy_visualiser_Debug CMakeFiles/posy_visualiser.dir/posy_visualiser_autogen/mocs_compilation.cpp.o CMakeFiles/posy_visualiser.dir/main.cpp.o CMakeFiles/posy_visualiser.dir/posy_visualiser_window.cpp.o | /Users/dave/Qt/5.15.2/clang_64/lib/QtWidgets.framework/QtWidgets /Users/dave/Qt/5.15.2/clang_64/lib/QtGui.framework/QtGui /Users/dave/Qt/5.15.2/clang_64/lib/QtCore.framework/QtCore || posy_visualiser_autogen posy_visualiser_autogen_timestamp_deps
   FLAGS = -g -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.1.sdk -mmacosx-version-min=10.15
-  LINK_LIBRARIES = -Wl,-rpath,/Users/dave/Qt/5.15.2/clang_64/lib  /Users/dave/Qt/5.15.2/clang_64/lib/QtWidgets.framework/QtWidgets  /Users/dave/Qt/5.15.2/clang_64/lib/QtGui.framework/QtGui  /Users/dave/Qt/5.15.2/clang_64/lib/QtCore.framework/QtCore
+  LINK_LIBRARIES = -Wl,-rpath,/Users/dave/Qt/5.15.2/clang_64/lib  /Users/dave/Qt/5.15.2/clang_64/lib/QtWidgets.framework/QtWidgets  -lSurfel  /Users/dave/Qt/5.15.2/clang_64/lib/QtGui.framework/QtGui  /Users/dave/Qt/5.15.2/clang_64/lib/QtCore.framework/QtCore
   OBJECT_DIR = CMakeFiles/posy_visualiser.dir
   POST_BUILD = :
   PRE_LINK = :

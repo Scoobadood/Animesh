@@ -170,6 +170,11 @@
 				"role" : "libraries"
 			},
 			{
+				"backtrace" : 2,
+				"fragment" : "-lSurfel",
+				"role" : "libraries"
+			},
+			{
 				"fragment" : "/Users/dave/Qt/5.15.2/clang_64/lib/QtGui.framework/QtGui",
 				"role" : "libraries"
 			},

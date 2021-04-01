@@ -50,4 +50,6 @@ else()
     endif()
 endif()
 
-target_link_libraries(posy_visualiser PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(posy_visualiser
+    PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+    Surfel)

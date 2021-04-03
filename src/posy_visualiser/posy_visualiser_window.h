@@ -18,6 +18,9 @@ public:
 
     void set_graph(SurfelGraphPtr graph_ptr);
 
+private slots:
+    void on_actionOpen_triggered();
+
 private:
     Ui::posy_visualiser_window *ui;
     SurfelGraphPtr m_graph_ptr;

@@ -347,3 +347,81 @@ std::tuple<unsigned int, unsigned int, float> closest_points(const std::vector<E
     }
     return std::make_tuple(p1_index, p2_index, sqrtf(min_distance));
 }
+
+/**
+ * Return a 3D vector representing the centroid of the given vector of points
+ * @param xyz A vector containing X, Y and Z coordinates of a set of points. Must have length multiple of 3 and at least 3
+ * Populates centroidX centroidY and centroidZ
+ */
+void compute_centroid(const std::vector<float>& xyz,
+                      float& centroidX,
+                      float& centroidY,
+                      float& centroidZ) {
+    assert( !xyz.empty() );
+    assert( xyz.size() % 3 == 0 );
+
+    auto x = 0.0f;
+    auto y = 0.0f;
+    auto z = 0.0f;
+
+    for( int i=0; i<xyz.size(); i+=3) {
+        x += xyz.at(i+0);
+        y += xyz.at(i+1);
+        z += xyz.at(i+2);
+    }
+    centroidX = x / (xyz.size()/3);
+    centroidY = y / (xyz.size()/3);
+    centroidZ = z / (xyz.size()/3);
+}
+
+/**
+ * Return the min and max X,Y and Z for the given points.
+ * @param xyz A vector containing X, Y and Z coordinates of a set of points. Must have length multiple of 3 and at least 3
+ * Populates minX, maxX etc.
+ */
+void compute_bounds( const std::vector<float>& xyz,
+                     float& minX, float& maxX,
+                     float& minY, float& maxY,
+                     float& minZ, float& maxZ) {
+    assert( !xyz.empty() );
+    assert( xyz.size() % 3 == 0 );
+
+    for( unsigned int i=0; i<xyz.size(); i+=3) {
+        auto x = xyz.at(i + 0);
+        auto y = xyz.at(i + 1);
+        auto z = xyz.at(i + 2);
+
+        if( x < minX) minX = x;
+        if( x > maxX) maxX = x;
+        if( y < minY) minY = y;
+        if( y > maxY) maxY = y;
+        if( z < minZ) minZ = z;
+        if( z > maxZ) maxZ = z;
+    }
+}
+
+/**
+ * @return The Euclidean distance between the two points.
+ */
+float
+distance_from_point_to_point(const Eigen::Vector3f& p1, const Eigen::Vector3f& p2 ) {
+    const auto dx = p1.x() - p2.x();
+    const auto dy = p1.y() - p2.y();
+    const auto dz = p1.z() - p2.z();
+
+    return sqrtf(dx*dx+dy*dy+dz*dz);
+}
+
+/**
+ * @return The Euclidean distance between the two points.
+ */
+float
+distance_from_point_to_point(
+        float p1x, float p1y, float p1z,
+        float p2x, float p2y, float p2z) {
+    const auto dx = p1x - p2x;
+    const auto dy = p1y - p2y;
+    const auto dz = p1z - p2z;
+
+    return sqrtf(dx*dx+dy*dy+dz*dz);
+}

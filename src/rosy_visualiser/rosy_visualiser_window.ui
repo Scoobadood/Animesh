@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>posy_visualiser_window</class>
- <widget class="QMainWindow" name="posy_visualiser_window">
+ <class>rosy_visualiser_window</class>
+ <widget class="QMainWindow" name="rosy_visualiser_window">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,10 +11,10 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>posy_visualiser_window</string>
+   <string>rosy_visualiser_window</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="posy_gl_widget" name="openGLWidget">
+   <widget class="rosy_gl_widget" name="openGLWidget">
     <property name="geometry">
      <rect>
       <x>0</x>
@@ -57,9 +57,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>posy_gl_widget</class>
+   <class>rosy_gl_widget</class>
    <extends>QOpenGLWidget</extends>
-   <header>posy_gl_widget.h</header>
+   <header location="global">rosy_gl_widget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

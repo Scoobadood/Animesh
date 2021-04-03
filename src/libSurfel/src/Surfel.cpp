@@ -44,32 +44,32 @@ Surfel::Surfel(std::string id,
 // TODO: Consider early return is frame < fd.pif.frame when framedata is sorted
 // TODO: Consider constructing vector<int> and using binary_search
 bool
-Surfel::is_in_frame(int frame) const {
+Surfel::is_in_frame(unsigned int frame) const {
     for (const auto &fd : frame_data) {
         if (fd.pixel_in_frame.frame == frame) {
             return true;
         }
-        return false;
     }
+    return false;
 }
 
 const FrameData&
-Surfel::frame_data_for_frame(int frame) const {
+Surfel::frame_data_for_frame(unsigned int frame) const {
     for (const auto &fd : frame_data) {
         if (fd.pixel_in_frame.frame == frame) {
             return fd;
         }
-        throw std::runtime_error("Surfel not in frame");
     }
+    throw std::runtime_error("Surfel not in frame");
 }
 
 void
-Surfel::get_position_tangent_normal_for_frame(int frame, Eigen::Vector3f& position, Eigen::Vector3f& tangent, Eigen::Vector3f& normal ) const {
+Surfel::get_position_tangent_normal_for_frame(unsigned int frame, Eigen::Vector3f& position, Eigen::Vector3f& tangent, Eigen::Vector3f& normal ) const {
     const auto & fd = frame_data_for_frame(frame);
 
     position = fd.position;
     normal = fd.normal;
-    tangent = fd.transform * tangent;
+    tangent = fd.transform * this->tangent;
     // Force reproject tangent to surface
     project_vector_to_plane(tangent, normal, true);
 }

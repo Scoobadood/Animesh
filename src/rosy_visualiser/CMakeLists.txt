@@ -11,24 +11,26 @@ find_package( OpenGL REQUIRED )
 
 set(PROJECT_SOURCES
         main.cpp
-        posy_visualiser_window.cpp
-        posy_visualiser_window.h
-        posy_gl_widget.cpp
-        posy_gl_widget.h
-        posy_visualiser_window.ui
+        rosy_visualiser_window.cpp
+        rosy_visualiser_window.h
+        rosy_gl_widget.cpp
+        rosy_gl_widget.h
+        surfel_graph_geometry_extractor.h
+        surfel_graph_geometry_extractor.cpp
+        rosy_visualiser_window.ui
 )
 
-add_executable(posy_visualiser
+add_executable(rosy_visualiser
     ${PROJECT_SOURCES}
 )
 
 target_include_directories(
-                posy_visualiser
+                rosy_visualiser
                 PUBLIC
                 ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(posy_visualiser
+target_link_libraries(rosy_visualiser
     PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
     ${OPENGL_LIBRARIES}
     Qt5::Widgets

@@ -62,7 +62,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QFrame" name="showFRame">
+           <widget class="QFrame" name="showFrame">
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
             </property>
@@ -103,6 +103,72 @@
             </layout>
            </widget>
           </item>
+          <item alignment="Qt::AlignTop">
+           <widget class="QFrame" name="cameraFrame">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_4">
+             <property name="leftMargin">
+              <number>6</number>
+             </property>
+             <property name="topMargin">
+              <number>6</number>
+             </property>
+             <property name="rightMargin">
+              <number>6</number>
+             </property>
+             <property name="bottomMargin">
+              <number>6</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="layFov">
+               <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
+                <widget class="QSlider" name="slFov">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item alignment="Qt::AlignRight|Qt::AlignVCenter">
+                <widget class="QLabel" name="lblFovValue">
+                 <property name="frameShape">
+                  <enum>QFrame::Panel</enum>
+                 </property>
+                 <property name="text">
+                  <string>123</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="layFar">
+               <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
+                <widget class="QSlider" name="slFar">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item alignment="Qt::AlignRight|Qt::AlignVCenter">
+                <widget class="QLabel" name="lblFarValue">
+                 <property name="frameShape">
+                  <enum>QFrame::Panel</enum>
+                 </property>
+                 <property name="text">
+                  <string>123</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -110,7 +176,14 @@
      </widget>
     </item>
     <item>
-     <widget class="rosy_visualiser_status_bar" name="rosyStatusBar" native="true"/>
+     <widget class="rosy_visualiser_status_bar" name="rosyStatusBar" native="true">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>27</height>
+       </size>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -160,6 +233,8 @@
     <signal>cameraPositionChanged(float,float,float)</signal>
     <signal>cameraOrientationChanged(float,float,float)</signal>
     <slot>renderNormals(bool)</slot>
+    <slot>setFov(int)</slot>
+    <slot>setFar(int)</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -203,7 +278,39 @@
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
-     <y>433</y>
+     <y>560</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>slFov</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>lblFovValue</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>697</x>
+     <y>173</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>738</x>
+     <y>175</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>slFar</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>lblFarValue</receiver>
+   <slot>setNum(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>670</x>
+     <y>207</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>744</x>
+     <y>212</y>
     </hint>
    </hints>
   </connection>

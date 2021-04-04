@@ -54,3 +54,13 @@ void rosy_visualiser_window::on_cbOtherTangents_toggled(bool checked)
 {
     ui->rosyGLWidget->renderOtherTangents(checked);
 }
+
+void rosy_visualiser_window::on_slFov_valueChanged(int value)
+{
+    ui->rosyGLWidget->setFov(value);
+}
+
+void rosy_visualiser_window::on_slFar_valueChanged(int value)
+{
+    ui->rosyGLWidget->setFar(value);
+}

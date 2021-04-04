@@ -65,6 +65,11 @@ rosy_gl_widget::drawPositions() const {
               m_normalColour.blueF(),
               m_normalColour.alphaF());
 
+    glEnable(GL_POINT_SMOOTH);
+    float oldPointSize;
+    glGetFloatv(GL_POINT_SIZE, &oldPointSize);
+
+    glPointSize(3.0f);
     for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
         glBegin(GL_POINTS);
             glVertex3f( m_positions.at(i*3 + 0),
@@ -72,6 +77,8 @@ rosy_gl_widget::drawPositions() const {
                         m_positions.at(i*3 + 2));
         glEnd();
     }
+    glPointSize(oldPointSize);
+    glDisable(GL_POINT_SMOOTH);
 }
 
 void
@@ -157,8 +164,8 @@ rosy_gl_widget::setModelViewMatrix() {
 void
 rosy_gl_widget::setProjectionMatrix() {
         glMatrixMode(GL_PROJECTION);
-        double tangent = tan(m_fov * DEG2RAD);   // tangent of half fovY
-        double height = m_front * tangent;       // half height of near plane
+        double tangent = tan(m_fov * DEG2RAD * 0.5f);   // tangent of half fovY
+        double height = m_front * tangent;              // half height of near plane
         double width = height * m_aspect_ratio;
         glFrustum(-width, width, -height, height, m_front, m_back);
 }

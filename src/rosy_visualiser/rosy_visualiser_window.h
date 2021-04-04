@@ -26,6 +26,10 @@ private slots:
 
     void on_cbOtherTangents_toggled(bool checked);
 
+    void on_slFov_valueChanged(int value);
+
+    void on_slFar_valueChanged(int value);
+
 private:
     Ui::rosy_visualiser_window *ui;
     SurfelGraphPtr m_graph_ptr;

@@ -46,6 +46,20 @@ public:
         }
     }
 
+    inline void setFar(int far) {
+        if( m_back!= far) {
+            m_back = far;
+            update();
+        }
+    }
+
+    inline void setFov(int fov) {
+        if( m_fov != fov) {
+            m_fov = fov;
+            update();
+        }
+    }
+
 protected:
     void paintGL() override;
     void keyPressEvent(QKeyEvent *event) override;

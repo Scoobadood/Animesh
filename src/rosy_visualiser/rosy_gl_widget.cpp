@@ -126,7 +126,6 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
         auto crossTanY = (normZ * tanX - normX * tanZ) * m_normal_scale_factor; //bn -cm
         auto crossTanZ = (normX * tanY - normY * tanX) * m_normal_scale_factor; //bn -cm
 
-
         glBegin(GL_LINES);
             glVertex3f( m_positions.at(i*3 + 0) - crossTanX,
                         m_positions.at(i*3 + 1) - crossTanY,
@@ -155,6 +154,7 @@ void
 rosy_gl_widget::setModelViewMatrix() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    glScalef(0.1, 0.1, 0.1);
     glRotatef(m_camera_pitch, 1, 0, 0);
     glRotatef(m_camera_yaw, 0, 1, 0);
     glRotatef(m_camera_roll, 0, 0, 1);
@@ -220,18 +220,18 @@ rosy_gl_widget::setupDummyData() {
     m_positions.push_back( 0.5f);
 
     m_normals.push_back(0.0f);
-    m_normals.push_back(0.1f);
+    m_normals.push_back(1.0f);
     m_normals.push_back(0.0f);
     m_normals.push_back(0.0f);
-    m_normals.push_back(0.1f);
+    m_normals.push_back(1.0f);
     m_normals.push_back(0.0f);
 
-    m_tangents.push_back(0.1f);
+    m_tangents.push_back(1.0f);
     m_tangents.push_back(0.0f);
     m_tangents.push_back(0.0f);
-    m_tangents.push_back(0.0707f);
+    m_tangents.push_back(0.707f);
     m_tangents.push_back(0.0f);
-    m_tangents.push_back(0.0707f);
+    m_tangents.push_back(0.707f);
 }
 
 void rosy_gl_widget::keyPressEvent(QKeyEvent *event) {
@@ -310,10 +310,10 @@ void rosy_gl_widget::keyPressEvent(QKeyEvent *event) {
     }
     if(movedCamera || rotatedCamera) {
         if( movedCamera) {
-            cameraPositionChanged(m_camera_x, m_camera_y, m_camera_z);
+            emit cameraPositionChanged(m_camera_x, m_camera_y, m_camera_z);
         }
         if( rotatedCamera) {
-            cameraOrientationChanged(m_camera_roll, m_camera_pitch, m_camera_yaw);
+            emit cameraOrientationChanged(m_camera_roll, m_camera_pitch, m_camera_yaw);
         }
         update();
     }

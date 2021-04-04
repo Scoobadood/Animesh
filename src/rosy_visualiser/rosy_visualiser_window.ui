@@ -128,6 +128,12 @@
               <layout class="QHBoxLayout" name="layFov">
                <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
                 <widget class="QSlider" name="slFov">
+                 <property name="minimum">
+                  <number>1</number>
+                 </property>
+                 <property name="maximum">
+                  <number>90</number>
+                 </property>
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>
@@ -149,6 +155,12 @@
               <layout class="QHBoxLayout" name="layFar">
                <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
                 <widget class="QSlider" name="slFar">
+                 <property name="minimum">
+                  <number>1</number>
+                 </property>
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
                  </property>

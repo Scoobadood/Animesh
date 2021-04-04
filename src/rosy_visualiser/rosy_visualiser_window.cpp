@@ -39,3 +39,18 @@ void rosy_visualiser_window::on_actionOpen_triggered()
     sg->extract_geometry(graph,positions, tangents, normals, scale_factor);
     ui->rosyGLWidget->setRoSyData(positions, normals, tangents, scale_factor);
 }
+
+void rosy_visualiser_window::on_cbNormals_toggled(bool checked)
+{
+    ui->rosyGLWidget->renderNormals(checked);
+}
+
+void rosy_visualiser_window::on_cbMainTangent_toggled(bool checked)
+{
+    ui->rosyGLWidget->renderMainTangents(checked);
+}
+
+void rosy_visualiser_window::on_cbOtherTangents_toggled(bool checked)
+{
+    ui->rosyGLWidget->renderOtherTangents(checked);
+}

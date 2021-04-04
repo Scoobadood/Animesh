@@ -75,6 +75,9 @@
                <property name="text">
                 <string>Normals</string>
                </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
@@ -82,12 +85,18 @@
                <property name="text">
                 <string>Tangents</string>
                </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
               <widget class="QCheckBox" name="cbOtherTangents">
                <property name="text">
                 <string>Other Tangents</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -150,6 +159,7 @@
    <slots>
     <signal>cameraPositionChanged(float,float,float)</signal>
     <signal>cameraOrientationChanged(float,float,float)</signal>
+    <slot>renderNormals(bool)</slot>
    </slots>
   </customwidget>
   <customwidget>

@@ -20,6 +20,12 @@ public:
 
 private slots:
     void on_actionOpen_triggered();
+    void on_cbNormals_toggled(bool checked);
+
+    void on_cbMainTangent_toggled(bool checked);
+
+    void on_cbOtherTangents_toggled(bool checked);
+
 private:
     Ui::rosy_visualiser_window *ui;
     SurfelGraphPtr m_graph_ptr;

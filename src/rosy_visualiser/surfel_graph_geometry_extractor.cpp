@@ -9,30 +9,19 @@ surfel_graph_geometry_extractor::surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
-/**
- * Generate the vertex, colour and index data needed to render the currentframe of this graph
- * @param graph The graph to extract data from
- * @param vertex_data Vertices, specified as 3xfloat X,Y,Z then 4xfloat RGBA
- * @param index_data Indices for use with VAO to draw lines
- */
-void surfel_graph_geometry_extractor::extract_geometry(
-        const SurfelGraph& graph,
-        std::vector<float>& positions,
-        std::vector<float>& tangents,
-        std::vector<float>& normals) const {
-
-    positions.clear();
-    tangents.clear();
-    normals.clear();
-
+void extract_xyz_triples_for_frame(const SurfelGraph& graph,
+                                   unsigned int frame,
+                                   std::vector<float>& positions,
+                                   std::vector<float>& tangents,
+                                   std::vector<float>& normals) {
     for( const auto& node : graph.nodes()) {
         const auto& surfel = node->data();
-        if(!surfel->is_in_frame(m_frame)) {
+        if(!surfel->is_in_frame(frame)) {
             continue;
         }
 
         Eigen::Vector3f position, normal, tangent;
-        surfel->get_position_tangent_normal_for_frame(m_frame, position, tangent, normal);
+        surfel->get_position_tangent_normal_for_frame(frame, position, tangent, normal);
 
         positions.push_back(position.x());
         positions.push_back(position.y());
@@ -46,36 +35,42 @@ void surfel_graph_geometry_extractor::extract_geometry(
         normals.push_back(normal.y());
         normals.push_back(normal.z());
     }
+}
 
+void centre_at_origin(std::vector<float>& xyz) {
     auto centroidX = 0.0f;
     auto centroidY = 0.0f;
     auto centroidZ = 0.0f;
-    compute_centroid(positions, centroidX, centroidY, centroidZ);
-    for( unsigned int i=0; i<positions.size() / 3; i += 3) {
-        positions.at(i + 0) -= centroidX;
-        positions.at(i + 1) -= centroidY;
-        positions.at(i + 2) -= centroidZ;
+    compute_centroid(xyz, centroidX, centroidY, centroidZ);
+    for( unsigned int i=0; i<xyz.size() / 3; i += 3) {
+        xyz.at(i + 0) -= centroidX;
+        xyz.at(i + 1) -= centroidY;
+        xyz.at(i + 2) -= centroidZ;
     }
+}
 
+float scale_to_region(std::vector<float>& xyz) {
     auto minX = MAXFLOAT;
     auto minY = MAXFLOAT;
     auto minZ = MAXFLOAT;
     auto maxX = -MAXFLOAT;
     auto maxY = -MAXFLOAT;
     auto maxZ = -MAXFLOAT;
-    compute_bounds(positions, minX, maxX, minY, maxY, minZ, maxZ);
+    compute_bounds(xyz, minX, maxX, minY, maxY, minZ, maxZ);
 
     auto rangeX = maxX - minX;
     auto rangeY = maxY - minY;
     auto rangeZ = maxZ - minZ;
     auto range = fmaxf(fmaxf( rangeX, rangeY), rangeZ);
     auto scale = 1.0f / range;
-    for( unsigned int i=0; i<positions.size(); ++i) {
-        positions.at(i) *= scale;
+    for( unsigned int i=0; i<xyz.size(); ++i) {
+        xyz.at(i) *= scale;
     }
+    return scale;
+}
 
-    // Scale tangents and normals
-    // Pick a random surfel and compute mean neighbour distance for this frame
+float compute_tan_scale(const SurfelGraph& graph, float scale) {
+    // Pick a surfel and compute mean neighbour distance for this frame
     const auto node = graph.nodes().front();
     const auto surfel = node->data();
     const auto neighbours = graph.neighbours(node);
@@ -95,12 +90,39 @@ void surfel_graph_geometry_extractor::extract_geometry(
             }
         }
     }
-    float tanScale = count > 0
-        ? ((distance * scale)/ count)
-        : scale;
-//    tanScale  = tanScale  * tanScale;
-    for( unsigned int i=0; i<tangents.size(); i++ ) {
-        tangents.at(i) *= tanScale;
-        normals.at(i) *= tanScale;
-    }
+    const auto mean_neighbour_distance = (count > 0)
+        ? distance/ count
+        : 1.0f;
+
+    // Proposed scale should be 2/5 of mean neighbour distance so that
+    // in general, adjacent tangents don't touch.
+    return mean_neighbour_distance * 0.4f;
+}
+
+/**
+ * @brief Generate the vertex data needed to render the current frame of this graph.
+ * All float vectors are populated in x,y,z coordinate triplets.
+ * @param graph The Surfel Graph
+ * @param positions a vector into which the Surfel positions will be pushed.
+ * @param tangents A Vector of XYZ coordinates for the unit indicative tangent.
+ * @param normals A Vector of XYZ coordinates for the unit normal.
+ * @param scaleFactor A proposed scaling for the normals and tangents.
+ */
+void surfel_graph_geometry_extractor::extract_geometry(
+        const SurfelGraph& graph,
+        std::vector<float>& positions,
+        std::vector<float>& tangents,
+        std::vector<float>& normals,
+        float& scale_factor
+        ) const {
+
+    positions.clear();
+    tangents.clear();
+    normals.clear();
+
+    extract_xyz_triples_for_frame(graph, m_frame, positions, tangents, normals);
+    centre_at_origin(positions);
+    const auto scale = scale_to_region(positions);
+
+    scale_factor = compute_tan_scale(graph, scale);
 }

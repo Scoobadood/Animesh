@@ -22,26 +22,27 @@ public:
 
     void setRoSyData(const std::vector<float>& positions,
                      const std::vector<float>& normals,
-                     const std::vector<float>& tangents );
+                     const std::vector<float>& tangents,
+                     const float scale_factor);
 
     inline void renderNormals( bool shouldRender) {
         if( m_renderNormals != shouldRender) {
             m_renderNormals = shouldRender;
-            m_isDirty = true;
+            update();
         }
     }
 
     inline void renderMainTangents( bool shouldRender) {
         if( m_renderMainTangents != shouldRender) {
             m_renderMainTangents = shouldRender;
-            m_isDirty = true;
+            update();
         }
     }
 
     inline void renderOtherTangents( bool shouldRender) {
         if( m_renderOtherTangents != shouldRender) {
             m_renderOtherTangents = shouldRender;
-            m_isDirty = true;
+            update();
         }
     }
 
@@ -53,7 +54,8 @@ private:
     std::vector<float> m_positions;
     std::vector<float> m_tangents;
     std::vector<float> m_normals;
-    int m_frame = 0;
+    float m_normal_scale_factor;
+    int m_frame;
     bool m_renderNormals;
     bool m_renderMainTangents;
     bool m_renderOtherTangents;

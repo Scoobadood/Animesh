@@ -12,6 +12,8 @@ const double DEG2RAD = 3.14159265 / 180;
 
 rosy_gl_widget::rosy_gl_widget(QWidget* parent, Qt::WindowFlags f) :
     QOpenGLWidget{parent, f},
+    m_normal_scale_factor{1.0f},
+    m_frame{0},
     m_renderNormals{true},
     m_renderMainTangents{true},
     m_renderOtherTangents{true},
@@ -40,19 +42,22 @@ rosy_gl_widget::maybeDrawNormals() const {
         return;
     }
     for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
+        double r,g,b,a;
+        m_normalColour.getRgbF(&r, &g, &b, &a);
         glColor4f(m_normalColour.redF(),
                   m_normalColour.greenF(),
                   m_normalColour.blueF(),
                   m_normalColour.alphaF());
+        glColor4f(r,g,b,a);
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
         glBegin(GL_LINES);
             glVertex3f( m_positions.at(i*3 + 0),
                         m_positions.at(i*3 + 1),
                         m_positions.at(i*3 + 2));
-            glVertex3f( m_positions.at(i*3 + 0) + m_normals.at(i*3 + 0),
-                        m_positions.at(i*3 + 1) + m_normals.at(i*3 + 1),
-                        m_positions.at(i*3 + 2) + m_normals.at(i*3 + 2));
+            glVertex3f( m_positions.at(i*3 + 0) + (m_normals.at(i*3 + 0) * m_normal_scale_factor),
+                        m_positions.at(i*3 + 1) + (m_normals.at(i*3 + 1) * m_normal_scale_factor),
+                        m_positions.at(i*3 + 2) + (m_normals.at(i*3 + 2) * m_normal_scale_factor));
         glEnd();
     }
 }
@@ -74,9 +79,9 @@ rosy_gl_widget::maybeDrawMainTangents() const {
             glVertex3f( m_positions.at(i*3 + 0),
                         m_positions.at(i*3 + 1),
                         m_positions.at(i*3 + 2));
-            glVertex3f( m_positions.at(i*3 + 0) + m_tangents.at(i*3 + 0),
-                        m_positions.at(i*3 + 1) + m_tangents.at(i*3 + 1),
-                        m_positions.at(i*3 + 2) + m_tangents.at(i*3 + 2));
+            glVertex3f( m_positions.at(i*3 + 0) + (m_tangents.at(i*3 + 0) * m_normal_scale_factor),
+                        m_positions.at(i*3 + 1) + (m_tangents.at(i*3 + 1) * m_normal_scale_factor),
+                        m_positions.at(i*3 + 2) + (m_tangents.at(i*3 + 2) * m_normal_scale_factor));
         glEnd();
     }
 }
@@ -101,19 +106,9 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
         const auto tanY = m_tangents.at(i*3 + 1);
         const auto tanZ = m_tangents.at(i*3 + 2);
 
-        const float norm1 = distance_from_point_to_point(0,0,0,normX, normY, normZ);
-        const float norm2 = distance_from_point_to_point(0,0,0,tanX, tanY, tanZ);
-        const auto unitNormX = normX / norm1;
-        const auto unitNormY = normY / norm1;
-        const auto unitNormZ = normZ / norm1;
-        const auto unitTanX = tanX / norm2;
-        const auto unitTanY = tanY / norm2;
-        const auto unitTanZ = tanZ / norm2;
-
-        auto crossTanX = (unitNormY * unitTanZ - unitNormZ * unitTanY) * norm2; //bn -cm
-        auto crossTanY = (unitNormZ * unitTanX - unitNormX * unitTanZ) * norm2; //bn -cm
-        auto crossTanZ = (unitNormX * unitTanY - unitNormY * unitTanX) * norm2; //bn -cm
-
+        auto crossTanX = (normY * tanZ - normZ * tanY) * m_normal_scale_factor; //bn -cm
+        auto crossTanY = (normZ * tanX - normX * tanZ) * m_normal_scale_factor; //bn -cm
+        auto crossTanZ = (normX * tanY - normY * tanX) * m_normal_scale_factor; //bn -cm
 
 
         glBegin(GL_LINES);
@@ -123,9 +118,9 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
             glVertex3f( m_positions.at(i*3 + 0) + crossTanX,
                         m_positions.at(i*3 + 1) + crossTanY,
                         m_positions.at(i*3 + 2) + crossTanZ);
-            glVertex3f( m_positions.at(i*3 + 0) - tanX,
-                        m_positions.at(i*3 + 1) - tanY,
-                        m_positions.at(i*3 + 2) - tanZ);
+            glVertex3f( m_positions.at(i*3 + 0) - (tanX * m_normal_scale_factor),
+                        m_positions.at(i*3 + 1) - (tanY * m_normal_scale_factor),
+                        m_positions.at(i*3 + 2) - (tanZ * m_normal_scale_factor));
             glVertex3f( m_positions.at(i*3 + 0),
                         m_positions.at(i*3 + 1),
                         m_positions.at(i*3 + 2));
@@ -182,8 +177,9 @@ rosy_gl_widget::paintGL() {
 
 void
 rosy_gl_widget::setRoSyData(const std::vector<float>& positions,
-                 const std::vector<float>& normals,
-                 const std::vector<float>& tangents ) {
+                            const std::vector<float>& normals,
+                            const std::vector<float>& tangents,
+                            const float normal_scale_factor) {
     m_positions.clear();
     m_tangents.clear();
     m_normals.clear();
@@ -191,8 +187,9 @@ rosy_gl_widget::setRoSyData(const std::vector<float>& positions,
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
+    m_normal_scale_factor = normal_scale_factor;
 
-    paintGL();
+    update();
 }
 
 void

@@ -34,6 +34,7 @@ void rosy_visualiser_window::on_actionOpen_triggered()
     std::vector<float> positions;
     std::vector<float> normals;
     std::vector<float> tangents;
-    sg->extract_geometry(graph,positions, tangents, normals);
-    ui->openGLWidget->setRoSyData(positions, normals, tangents);
+    float scale_factor;
+    sg->extract_geometry(graph,positions, tangents, normals, scale_factor);
+    ui->openGLWidget->setRoSyData(positions, normals, tangents, scale_factor);
 }

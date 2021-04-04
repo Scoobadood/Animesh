@@ -12,7 +12,8 @@ public:
     void extract_geometry(const SurfelGraph& graph,
                           std::vector<float>& positions,
                           std::vector<float>& tangents,
-                          std::vector<float>& normals) const;
+                          std::vector<float>& normals,
+                          float& scale_factor) const;
     inline void set_frame(int frame) {
         if(m_frame != frame) {
             m_frame = frame;

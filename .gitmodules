@@ -1,9 +1,3 @@
-[submodule "src/third_party/cpd"]
-	path = src/third_party/cpd
-	url = https://github.com/gadomski/cpd.git
-[submodule "src/third_party/glm"]
-	path = src/third_party/glm
-	url = git@github.com:g-truc/glm.git
 [submodule "dependencies/assimp"]
 	path = dependencies/assimp
 	url = https://github.com/assimp/assimp.git
@@ -25,3 +19,6 @@
 [submodule "dependencies/fmt"]
 	path = dependencies/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "java/AnimeshJ"]
+	path = java/AnimeshJ
+	url = https://github.com/Scoobadood/AnimeshJ.git

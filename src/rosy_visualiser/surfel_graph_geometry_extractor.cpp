@@ -9,12 +9,12 @@ surfel_graph_geometry_extractor::surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
-void extract_xyz_triples_for_frame(const SurfelGraph& graph,
+void extract_xyz_triples_for_frame(const SurfelGraphPtr graphPtr,
                                    unsigned int frame,
                                    std::vector<float>& positions,
                                    std::vector<float>& tangents,
                                    std::vector<float>& normals) {
-    for( const auto& node : graph.nodes()) {
+    for( const auto& node : graphPtr->nodes()) {
         const auto& surfel = node->data();
         if(!surfel->is_in_frame(frame)) {
             continue;
@@ -69,11 +69,11 @@ float scale_to_region(std::vector<float>& xyz) {
     return scale;
 }
 
-float compute_tan_scale(const SurfelGraph& graph, float scale) {
+float compute_tan_scale(const SurfelGraphPtr graphPtr, float scale) {
     // Pick a surfel and compute mean neighbour distance for this frame
-    const auto node = graph.nodes().front();
+    const auto node = graphPtr->nodes().front();
     const auto surfel = node->data();
-    const auto neighbours = graph.neighbours(node);
+    const auto neighbours = graphPtr->neighbours(node);
     int count = 0;
     float distance = 0.0f;
     for( const auto& fd : surfel->frame_data) {
@@ -109,7 +109,7 @@ float compute_tan_scale(const SurfelGraph& graph, float scale) {
  * @param scaleFactor A proposed scaling for the normals and tangents.
  */
 void surfel_graph_geometry_extractor::extract_geometry(
-        const SurfelGraph& graph,
+        const SurfelGraphPtr graphPtr,
         std::vector<float>& positions,
         std::vector<float>& tangents,
         std::vector<float>& normals,
@@ -120,9 +120,9 @@ void surfel_graph_geometry_extractor::extract_geometry(
     tangents.clear();
     normals.clear();
 
-    extract_xyz_triples_for_frame(graph, m_frame, positions, tangents, normals);
+    extract_xyz_triples_for_frame(graphPtr, m_frame, positions, tangents, normals);
 //    centre_at_origin(positions);
 //    const auto scale = scale_to_region(positions);
-const auto scale = 1.0f;
-    scale_factor = compute_tan_scale(graph, scale);
+    const auto scale = 1.0f;
+    scale_factor = compute_tan_scale(graphPtr, scale);
 }

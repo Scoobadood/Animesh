@@ -13,7 +13,6 @@ const double DEG2RAD = 3.14159265 / 180;
 rosy_gl_widget::rosy_gl_widget(QWidget* parent, Qt::WindowFlags f) :
     QOpenGLWidget{parent, f},
     m_normal_scale_factor{1.0f},
-    m_frame{0},
     m_renderNormals{true},
     m_renderMainTangents{true},
     m_renderOtherTangents{true},

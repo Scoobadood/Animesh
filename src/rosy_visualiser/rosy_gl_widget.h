@@ -69,7 +69,6 @@ private:
     std::vector<float> m_tangents;
     std::vector<float> m_normals;
     float m_normal_scale_factor;
-    int m_frame;
     bool m_renderNormals;
     bool m_renderMainTangents;
     bool m_renderOtherTangents;

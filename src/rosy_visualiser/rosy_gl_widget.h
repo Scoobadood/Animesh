@@ -64,6 +64,7 @@ private:
     QColor m_mainTangentColour;
     QColor m_otherTangentsColour;
 
+    void drawPositions() const;
     void maybeDrawNormals() const;
     void maybeDrawMainTangents() const;
     void maybeDrawOtherTangents() const;

@@ -18,12 +18,12 @@ rosy_gl_widget::rosy_gl_widget(QWidget* parent, Qt::WindowFlags f) :
     m_renderMainTangents{true},
     m_renderOtherTangents{true},
     m_isDirty{false},
-    m_normalColour{QColor{0, 0, 255, 255}},
-    m_mainTangentColour{QColor{0, 255, 0, 255}},
-    m_otherTangentsColour{QColor{255, 0, 255, 255}},
-    m_fov{135},
+    m_normalColour{QColor{255, 255, 255, 255}},
+    m_mainTangentColour{QColor{255, 0, 0, 255}},
+    m_otherTangentsColour{QColor{0, 255, 0, 255}},
+    m_fov{60},
     m_front{0.5f},
-    m_back{10.0f},
+    m_back{1000.0f},
     m_aspect_ratio{1.0f},
     m_camera_x{0.0f},
     m_camera_y{0.0f},
@@ -41,16 +41,12 @@ rosy_gl_widget::maybeDrawNormals() const {
     if( !m_renderNormals) {
         return;
     }
-    for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
-        double r,g,b,a;
-        m_normalColour.getRgbF(&r, &g, &b, &a);
-        glColor4f(m_normalColour.redF(),
-                  m_normalColour.greenF(),
-                  m_normalColour.blueF(),
-                  m_normalColour.alphaF());
-        glColor4f(r,g,b,a);
-        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    glColor4f(m_normalColour.redF(),
+              m_normalColour.greenF(),
+              m_normalColour.blueF(),
+              m_normalColour.alphaF());
 
+    for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
         glBegin(GL_LINES);
             glVertex3f( m_positions.at(i*3 + 0),
                         m_positions.at(i*3 + 1),
@@ -58,6 +54,22 @@ rosy_gl_widget::maybeDrawNormals() const {
             glVertex3f( m_positions.at(i*3 + 0) + (m_normals.at(i*3 + 0) * m_normal_scale_factor),
                         m_positions.at(i*3 + 1) + (m_normals.at(i*3 + 1) * m_normal_scale_factor),
                         m_positions.at(i*3 + 2) + (m_normals.at(i*3 + 2) * m_normal_scale_factor));
+        glEnd();
+    }
+}
+
+void
+rosy_gl_widget::drawPositions() const {
+    glColor4f(m_normalColour.redF(),
+              m_normalColour.greenF(),
+              m_normalColour.blueF(),
+              m_normalColour.alphaF());
+
+    for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
+        glBegin(GL_POINTS);
+            glVertex3f( m_positions.at(i*3 + 0),
+                        m_positions.at(i*3 + 1),
+                        m_positions.at(i*3 + 2));
         glEnd();
     }
 }
@@ -71,8 +83,6 @@ rosy_gl_widget::maybeDrawMainTangents() const {
               m_mainTangentColour.greenF(),
               m_mainTangentColour.blueF(),
               m_mainTangentColour.alphaF());
-    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
-
 
     for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
         glBegin(GL_LINES);
@@ -95,7 +105,6 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
               m_otherTangentsColour.greenF(),
               m_otherTangentsColour.blueF(),
               m_otherTangentsColour.alphaF());
-    glColor4f(0.0f, 1.0f, 1.0f, 1.0f);
 
     for( unsigned int i=0; i<m_positions.size() / 3; ++i) {
         // Get perpendicular tangent by computing cross(norm,tan)
@@ -163,6 +172,8 @@ rosy_gl_widget::paintGL() {
     setModelViewMatrix();
 
     setProjectionMatrix();
+
+    drawPositions();
 
     maybeDrawNormals();
 

@@ -121,8 +121,8 @@ void surfel_graph_geometry_extractor::extract_geometry(
     normals.clear();
 
     extract_xyz_triples_for_frame(graph, m_frame, positions, tangents, normals);
-    centre_at_origin(positions);
-    const auto scale = scale_to_region(positions);
-
+//    centre_at_origin(positions);
+//    const auto scale = scale_to_region(positions);
+const auto scale = 1.0f;
     scale_factor = compute_tan_scale(graph, scale);
 }

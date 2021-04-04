@@ -231,84 +231,83 @@ void rosy_gl_widget::keyPressEvent(QKeyEvent *event) {
     float deltaPos = 0.1f;
     float deltaAngle = 1.0f;
     bool shiftDown = (event->modifiers() & Qt::KeyboardModifier::ShiftModifier) == Qt::KeyboardModifier::ShiftModifier;
+    bool movedCamera = false;
+    bool rotatedCamera = false;
     switch(event->key()) {
         case Qt::Key_Left:
             if(shiftDown){
                 m_camera_roll -= deltaAngle;
-                std::cout << "Roll left" << std::endl;
+                rotatedCamera = true;
             }
             else {
                 m_camera_x -= deltaPos;
-                std::cout << "Left" << std::endl;
+                movedCamera = true;
             }
-            m_isDirty = true;
             break;
 
         case Qt::Key_Right:
             if(shiftDown){
                 m_camera_roll += deltaAngle;
-                std::cout << "Roll right" << std::endl;
+                rotatedCamera = true;
             }
             else {
                 m_camera_x += deltaPos;
-                std::cout << "Right" << std::endl;
+                movedCamera = true;
             }
-            m_isDirty = true;
             break;
 
         case Qt::Key_Up:
             if( shiftDown){
                 m_camera_pitch += deltaAngle;
-                std::cout << "Pitch Forward" << std::endl;
+                rotatedCamera = true;
             }
             else {
                 m_camera_y += deltaPos;
-                std::cout << "Up" << std::endl;
+                movedCamera = true;
             }
-            m_isDirty = true;
             break;
 
         case Qt::Key_Down:
             if( shiftDown){
                 m_camera_pitch -= deltaAngle;
-                std::cout << "Pitch Backwards" << std::endl;
+                rotatedCamera = true;
             }
             else {
                 m_camera_y -= deltaPos;
-                std::cout << "Down" << std::endl;
+                movedCamera = true;
             }
-            m_isDirty = true;
             break;
 
         case Qt::Key_Equal:
-            if( shiftDown){
-                m_camera_yaw += deltaAngle;
-                std::cout << "Yaw right" << std::endl;
-            }
-            else {
-                m_camera_z += deltaPos;
-                std::cout << "In" << std::endl;
-            }
-            m_isDirty = true;
+            m_camera_z += deltaPos;
+            movedCamera = true;
+            break;
+
+        case Qt::Key_Plus:
+            m_camera_yaw += deltaAngle;
+            rotatedCamera = true;
             break;
 
         case Qt::Key_Minus:
-            if( shiftDown){
-                m_camera_yaw -= deltaAngle;
-                std::cout << "Yawleft" << std::endl;
-            }
-            else {
-                m_camera_z -= deltaPos;
-                std::cout << "Out" << std::endl;
-            }
-            m_isDirty = true;
+            m_camera_z -= deltaPos;
+            movedCamera = true;
+            break;
+
+        case Qt::Key_Underscore:
+            m_camera_yaw -= deltaAngle;
+            rotatedCamera = true;
             break;
 
         default:
             std::cout << "Key pressed " << event->key() << std::endl;
     }
-    if( m_isDirty) {
+    if(movedCamera || rotatedCamera) {
+        if( movedCamera) {
+            cameraPositionChanged(m_camera_x, m_camera_y, m_camera_z);
+        }
+        if( rotatedCamera) {
+            cameraOrientationChanged(m_camera_roll, m_camera_pitch, m_camera_yaw);
+        }
         update();
-        m_isDirty = false;
     }
 }

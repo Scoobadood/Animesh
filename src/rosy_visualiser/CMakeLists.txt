@@ -18,6 +18,9 @@ set(PROJECT_SOURCES
         surfel_graph_geometry_extractor.h
         surfel_graph_geometry_extractor.cpp
         rosy_visualiser_window.ui
+        rosy_visualiser_status_bar.cpp
+        rosy_visualiser_status_bar.h
+        rosy_visualiser_status_bar.ui
 )
 
 add_executable(rosy_visualiser

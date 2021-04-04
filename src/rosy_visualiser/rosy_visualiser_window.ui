@@ -14,22 +14,96 @@
    <string>rosy_visualiser_window</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="rosy_gl_widget" name="openGLWidget">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>811</width>
-      <height>551</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-      <horstretch>1</horstretch>
-      <verstretch>1</verstretch>
-     </sizepolicy>
-    </property>
-   </widget>
+   <layout class="QVBoxLayout" name="verticalLayout_3">
+    <item>
+     <widget class="QFrame" name="frame">
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="rosy_gl_widget" name="rosyGLWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+           <horstretch>80</horstretch>
+           <verstretch>100</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>100</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>320000</width>
+           <height>32000</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item alignment="Qt::AlignTop">
+        <widget class="QWidget" name="controlPanel" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>20</horstretch>
+           <verstretch>100</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>100</height>
+          </size>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QFrame" name="showFRame">
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_2">
+             <item>
+              <widget class="QCheckBox" name="cbNormals">
+               <property name="text">
+                <string>Normals</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cbMainTangent">
+               <property name="text">
+                <string>Tangents</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cbOtherTangents">
+               <property name="text">
+                <string>Other Tangents</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="rosy_visualiser_status_bar" name="rosyStatusBar" native="true"/>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -48,7 +122,20 @@
    </widget>
    <addaction name="menuFile"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusbar">
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>27</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>16777215</width>
+     <height>27</height>
+    </size>
+   </property>
+  </widget>
   <action name="actionOpen">
    <property name="text">
     <string>Open</string>
@@ -60,8 +147,55 @@
    <class>rosy_gl_widget</class>
    <extends>QOpenGLWidget</extends>
    <header location="global">rosy_gl_widget.h</header>
+   <slots>
+    <signal>cameraPositionChanged(float,float,float)</signal>
+    <signal>cameraOrientationChanged(float,float,float)</signal>
+   </slots>
+  </customwidget>
+  <customwidget>
+   <class>rosy_visualiser_status_bar</class>
+   <extends>QWidget</extends>
+   <header>rosy_visualiser_status_bar.h</header>
+   <container>1</container>
+   <slots>
+    <slot>cameraPositionChanged(float,float,float)</slot>
+    <slot>cameraOrientationChanged(float,float,float)</slot>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>rosyGLWidget</sender>
+   <signal>cameraPositionChanged(float,float,float)</signal>
+   <receiver>rosyStatusBar</receiver>
+   <slot>cameraPositionChanged(float,float,float)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>250</x>
+     <y>149</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>309</x>
+     <y>552</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>rosyGLWidget</sender>
+   <signal>cameraOrientationChanged(float,float,float)</signal>
+   <receiver>rosyStatusBar</receiver>
+   <slot>cameraOrientationChanged(float,float,float)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>320</x>
+     <y>161</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>433</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

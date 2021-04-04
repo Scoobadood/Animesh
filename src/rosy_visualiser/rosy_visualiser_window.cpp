@@ -11,6 +11,7 @@ rosy_visualiser_window::rosy_visualiser_window(QWidget *parent)
     , ui(new Ui::rosy_visualiser_window)
 {
     ui->setupUi(this);
+    ui->statusbar->addPermanentWidget(ui->rosyStatusBar);
 }
 
 rosy_visualiser_window::~rosy_visualiser_window()
@@ -36,5 +37,5 @@ void rosy_visualiser_window::on_actionOpen_triggered()
     std::vector<float> tangents;
     float scale_factor;
     sg->extract_geometry(graph,positions, tangents, normals, scale_factor);
-    ui->openGLWidget->setRoSyData(positions, normals, tangents, scale_factor);
+    ui->rosyGLWidget->setRoSyData(positions, normals, tangents, scale_factor);
 }

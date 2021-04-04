@@ -87,6 +87,10 @@ private:
     float m_camera_pitch;
     float m_camera_yaw;
     float m_camera_roll;
+
+signals:
+    void cameraPositionChanged(float x, float y, float z) const;
+    void cameraOrientationChanged(float roll, float pitch, float yaw) const;
 };
 
 #endif // POSY_GL_WIDGET_H

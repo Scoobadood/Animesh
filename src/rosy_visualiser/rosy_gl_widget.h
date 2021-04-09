@@ -1,10 +1,12 @@
-#ifndef POSY_GL_WIDGET_H
-#define POSY_GL_WIDGET_H
+#pragma once
 
 #include <QColor>
+#include <QVector3D>
+#include <QMatrix4x4>
 #include <QOpenGLWidget>
 #include <Surfel/SurfelGraph.h>
 #include <vector>
+#include <QOpenGLDebugLogger>
 
 /**
  * @brief The rosy_gl_widget class.
@@ -23,7 +25,7 @@ public:
     void setRoSyData(const std::vector<float>& positions,
                      const std::vector<float>& normals,
                      const std::vector<float>& tangents,
-                     const float scale_factor);
+                     float scale_factor);
 
     inline void renderNormals( bool shouldRender) {
         if( m_renderNormals != shouldRender) {
@@ -46,25 +48,62 @@ public:
         }
     }
 
-    inline void setFar(int far) {
-        if( m_back!= far) {
-            m_back = far;
+    inline void setZFar(float zFar) {
+        if (m_z_far != zFar) {
+            m_z_far = zFar;
             update();
         }
     }
 
-    inline void setFov(int fov) {
+    inline void setFov(float fov) {
         if( m_fov != fov) {
             m_fov = fov;
             update();
         }
     }
 
+    /**
+     * Rotate the camera about a point in front of it (m_target). Theta is a rotation
+     * that tilts the camera forward and backward. Phi tilts the camera side to side.
+     *
+     * @param dTheta    The number of radians to rotate in the theta direction
+     * @param dPhi      The number of radians to rotate in the phi direction
+     */
+    void rotate(float dTheta, float dPhi);
+
+    /**
+     * Move the camera down the look vector, closer to m_target. If we overtake m_target,
+     * it is reprojected 30 units down the look vector
+     *
+     * TODO: Find a way to *not* hard-code the reprojection distance. Perhaps base it on the
+     *       scene size? Or maybe have it defined in an settings.ini file
+     *
+     * @param distance    The distance to zoom. Negative distance will move the camera away from the target, positive will move towards
+     */
+    void zoom(float distance);
+
+    /**
+         * Moves the camera within its local X-Y plane
+         *
+         * @param dx    The amount to move the camera right or left
+         * @param dy    The amount to move the camera up or down
+         */
+    void pan(float dx, float dy);
+
 protected:
     void paintGL() override;
+    void initializeGL() override;
     void keyPressEvent(QKeyEvent *event) override;
+    void resizeGL(int width, int height) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
 
 private:
+    const float ROTATE_FACTOR = 300.0f;
+    const float PAN_FACTOR = 0.01f;
+    const float ZOOM_FACTOR = 0.1f;
+
     std::vector<float> m_positions;
     std::vector<float> m_tangents;
     std::vector<float> m_normals;
@@ -72,7 +111,6 @@ private:
     bool m_renderNormals;
     bool m_renderMainTangents;
     bool m_renderOtherTangents;
-    bool m_isDirty;
     QColor m_normalColour;
     QColor m_mainTangentColour;
     QColor m_otherTangentsColour;
@@ -85,25 +123,32 @@ private:
     void setupDummyData();
 
     void clear();
-    void setModelViewMatrix();
-    void setProjectionMatrix();
+    void applyModelViewMatrix();
+    void applyProjectionMatrix();
 
     float m_fov;
-    float m_front;
-    float m_back;
+    float m_z_near;
+    float m_z_far;
     float m_aspect_ratio;
-
-    float m_camera_x;
-    float m_camera_y;
-    float m_camera_z;
-
-    float m_camera_pitch;
-    float m_camera_yaw;
-    float m_camera_roll;
+    QOpenGLDebugLogger * m_debugLogger;
+    void checkGLError(const std::string& context) const;
+    //
+    // ArcBall Controls
+    //
+    float m_theta;
+    float m_phi;
+    float m_radius;
+    float m_up;
+    QPoint m_lastPixelPosition;
+    QVector3D m_target;
+    QMatrix4x4 m_projectionMatrix;
+    QMatrix4x4 m_modelViewMatrix;
+    bool m_modelViewMatrixIsDirty;
+    QVector3D getCameraPosition() const;
+    void updateModelViewMatrix();
+    QVector3D toCartesian() const;
 
 signals:
     void cameraPositionChanged(float x, float y, float z) const;
     void cameraOrientationChanged(float roll, float pitch, float yaw) const;
 };
-
-#endif // POSY_GL_WIDGET_H

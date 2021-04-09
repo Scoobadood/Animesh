@@ -37,10 +37,10 @@ public:
     /**
      * Set the optimisation data
      */
-    void set_data(const SurfelGraph &graph);
+    void set_data(const SurfelGraphPtr &graph);
 
 protected:
-    SurfelGraph m_surfel_graph;
+    SurfelGraphPtr m_surfel_graph;
 
     Properties m_properties;
 

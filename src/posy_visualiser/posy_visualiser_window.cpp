@@ -28,5 +28,5 @@ void posy_visualiser_window::on_actionOpen_triggered()
             tr("Open Graph"), "",
             tr("Surfel Graph Files (*.bin);;All Files (*)"));
     const auto graph = load_surfel_graph_from_file(fileName.toStdString());
-    ui->openGLWidget->setPoSyData(graph);
+//    ui->openGLWidget->setPoSyData(graph);
 }

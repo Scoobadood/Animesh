@@ -160,3 +160,14 @@ float
 distance_from_point_to_point(
         float p1x, float p1y, float p1z,
         float p2x, float p2y, float p2z);
+
+/**
+ * Convert from polar to cartesian coordinates.
+ *
+ * @param theta Rotation in the XY plane. [0, 2 * pi)
+ * @param phi Vertical rotation. [0, pi)
+ * @param radius Distance from the sphere centre.
+ * @return X,Y Z coordinates.
+ */
+Eigen::Vector3f
+spherical_to_cartesian(float radius, float theta, float phi );

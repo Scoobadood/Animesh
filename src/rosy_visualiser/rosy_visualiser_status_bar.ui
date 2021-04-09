@@ -111,14 +111,14 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="lblRoll">
+    <widget class="QLabel" name="lblRadius">
      <property name="text">
-      <string>Roll:</string>
+      <string>Radius:</string>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="lblRollValue">
+    <widget class="QLabel" name="lblRadiusValue">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -134,14 +134,14 @@
     </widget>
    </item>
    <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
-    <widget class="QLabel" name="lblPitch">
+    <widget class="QLabel" name="lblTheta">
      <property name="text">
-      <string>Pitch:</string>
+      <string>Theta:</string>
      </property>
     </widget>
    </item>
    <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
-    <widget class="QLabel" name="lblPitchValue">
+    <widget class="QLabel" name="lblThetaValue">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -157,14 +157,14 @@
     </widget>
    </item>
    <item alignment="Qt::AlignLeft">
-    <widget class="QLabel" name="lblYaw">
+    <widget class="QLabel" name="lblPhi">
      <property name="text">
-      <string>Yaw:</string>
+      <string>Phi:</string>
      </property>
     </widget>
    </item>
    <item alignment="Qt::AlignLeft|Qt::AlignVCenter">
-    <widget class="QLabel" name="lblYawValue">
+    <widget class="QLabel" name="lblPhiValue">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>

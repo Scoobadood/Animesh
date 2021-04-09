@@ -12,7 +12,7 @@
  */
 void
 save_surfel_graph_to_file(const std::string& file_name,
-                          const SurfelGraph& surfel_graph);
+                          const SurfelGraphPtr& surfel_graph);
 
 /**
  * Load surfel data from binary file

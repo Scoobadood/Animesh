@@ -23,16 +23,16 @@
  */
 void
 save_surfel_graph_to_file(const std::string &file_name,
-                          const SurfelGraph &surfel_graph) {
+                          const SurfelGraphPtr &surfel_graph) {
     using namespace std;
     using namespace spdlog;
 
-    info("Saving {:d} surfels from graph to file {:s}", surfel_graph.num_nodes(), file_name);
+    info("Saving {:d} surfels from graph to file {:s}", surfel_graph->num_nodes(), file_name);
 
     ofstream file{file_name, ios::out | ios::binary};
     // Count
-    write_unsigned_int(file, surfel_graph.num_nodes());
-    for (auto const &surfel : surfel_graph.nodes()) {
+    write_unsigned_int(file, surfel_graph->num_nodes());
+    for (auto const &surfel : surfel_graph->nodes()) {
         // ID
         write_string(file, surfel->data()->id);
         // FrameData size
@@ -62,7 +62,7 @@ save_surfel_graph_to_file(const std::string &file_name,
             write_vector_3f(file, fd.position);
         }
 
-        const auto neighbours = surfel_graph.neighbours(surfel);
+        const auto neighbours = surfel_graph->neighbours(surfel);
         write_unsigned_int(file, neighbours.size());
         for (const auto &surfel_ptr : neighbours) {
             write_string(file, surfel_ptr->data()->id);

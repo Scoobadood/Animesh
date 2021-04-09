@@ -25,5 +25,5 @@ public:
     void TearDown();
 
 protected:
-    SurfelGraph surfel_graph;
+    SurfelGraphPtr surfel_graph;
 };

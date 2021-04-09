@@ -19,8 +19,8 @@ void rosy_visualiser_status_bar::cameraPositionChanged(float x, float y, float z
     ui->lblZValue->setText(QString::number(z));
 }
 
-void rosy_visualiser_status_bar::cameraOrientationChanged(float roll, float pitch, float yaw) {
-    ui->lblRollValue->setText(QString::number(roll));
-    ui->lblPitchValue->setText(QString::number(pitch));
-    ui->lblYawValue->setText(QString::number(yaw));
+void rosy_visualiser_status_bar::cameraOrientationChanged(float radius, float theta, float phi) {
+    ui->lblRadiusValue->setText(QString::number(radius));
+    ui->lblThetaValue->setText(QString::number(theta));
+    ui->lblPhiValue->setText(QString::number(phi));
 }

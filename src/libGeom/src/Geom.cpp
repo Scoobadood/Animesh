@@ -349,9 +349,10 @@ std::tuple<unsigned int, unsigned int, float> closest_points(const std::vector<E
 }
 
 /**
- * Return a 3D vector representing the centroid of the given vector of points
- * @param xyz A vector containing X, Y and Z coordinates of a set of points. Must have length multiple of 3 and at least 3
- * Populates centroidX centroidY and centroidZ
+ * Return a 3D vector representing the centroid of the given vector of points.
+ * @param xyz A vector containing X, Y and Z coordinates of a set of points.
+ * Must have length multiple of 3 and at least 3.
+ * Populates centroidX centroidY and centroidZ.
  */
 void compute_centroid(const std::vector<float>& xyz,
                       float& centroidX,
@@ -364,14 +365,15 @@ void compute_centroid(const std::vector<float>& xyz,
     auto y = 0.0f;
     auto z = 0.0f;
 
-    for( int i=0; i<xyz.size(); i+=3) {
+    for( unsigned int i=0; i<xyz.size(); i+=3) {
         x += xyz.at(i+0);
         y += xyz.at(i+1);
         z += xyz.at(i+2);
     }
-    centroidX = x / (xyz.size()/3);
-    centroidY = y / (xyz.size()/3);
-    centroidZ = z / (xyz.size()/3);
+    const auto numPoints = xyz.size() / 3;
+    centroidX = x / numPoints;
+    centroidY = y / numPoints;
+    centroidZ = z / numPoints;
 }
 
 /**
@@ -424,4 +426,20 @@ distance_from_point_to_point(
     const auto dz = p1z - p2z;
 
     return sqrtf(dx*dx+dy*dy+dz*dz);
+}
+
+/**
+ * Convert from polar to cartesian coordinates.
+ *
+ * @param theta Rotation in the XY plane. [0, pi)
+ * @param phi Vertical rotation. [0, 2 * pi)
+ * @param radius Distance from the sphere centre. ( r >= 0)
+ * @return X,Y Z coordinates.
+ */
+Eigen::Vector3f
+spherical_to_cartesian(float radius, float theta, float phi) {
+    const auto x = radius * std::sinf(phi) * std::sinf(theta);
+    const auto y = radius * std::cosf(phi);
+    const auto z = radius * std::sinf(phi) * std::cosf(theta);
+    return Eigen::Vector3f{x, y, z};
 }

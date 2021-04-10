@@ -3,14 +3,12 @@
 #endif
 
 #include <map>
-#include <set>
 #include <regex>
 #include <random>
 #include <iostream>
 #include <memory>
 #include <DepthMap/DepthMap.h>
 #include <Geom/Geom.h>
-#include <Graph/Graph.h>
 #include <Properties/Properties.h>
 #include "Surfel_Compute.h"
 #include "PixelInFrame.h"
@@ -98,8 +96,8 @@ are_neighbours(const std::shared_ptr<Surfel> &surfel1, const std::shared_ptr<Sur
     auto it1 = surfel1->frame_data.begin();
     auto it2 = surfel2->frame_data.begin();
     while ((it1 != surfel1->frame_data.end()) && (it2 != surfel2->frame_data.end())) {
-        const PixelInFrame& pif1 = it1->pixel_in_frame;
-        const PixelInFrame& pif2 = it2->pixel_in_frame;
+        const PixelInFrame &pif1 = it1->pixel_in_frame;
+        const PixelInFrame &pif2 = it2->pixel_in_frame;
         if (pif1.frame == pif2.frame) {
             if (are_neighbours(pif1, pif2, eight_connected)) {
                 return true;
@@ -128,32 +126,32 @@ are_neighbours(const std::shared_ptr<Surfel> &surfel1, const std::shared_ptr<Sur
  * @param surfels The list of all surfels.
  * @param neighbours 
  */
-SurfelGraph
+SurfelGraphPtr
 graph_from_surfels(std::vector<std::shared_ptr<Surfel>> &surfels, bool eight_connected) {
     using namespace std;
     using namespace spdlog;
 
-    SurfelGraph graph;
+    SurfelGraphPtr graph = std::make_shared<SurfelGraph>(new SurfelGraph());
 
     assert(!surfels.empty());
 
     // Add surfels to graph
     map<string, SurfelGraphNodePtr> m;
-    for( const auto& surfel : surfels) {
-        auto node = graph.add_node(surfel);
+    for (const auto &surfel : surfels) {
+        auto node = graph->add_node(surfel);
         m.emplace(surfel->id, node);
     }
 
     for (unsigned int i = 0; i < surfels.size() - 1; ++i) {
-        auto & surfel = surfels.at(i);
-        debug ("Populating neighbours of surfel : {:d}", i);
+        auto &surfel = surfels.at(i);
+        debug("Populating neighbours of surfel : {:d}", i);
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfel, surfels.at(j), eight_connected)) {
                 auto node1 = m.at(surfels.at(j)->id);
                 auto node2 = m.at(surfels.at(i)->id);
 
-                graph.add_edge(node1, node2, SurfelGraphEdge{1.0});
-                graph.add_edge(node2, node1, SurfelGraphEdge{1.0});
+                graph->add_edge(node1, node2, SurfelGraphEdge{1.0});
+                graph->add_edge(node2, node1, SurfelGraphEdge{1.0});
             }
         }
     }
@@ -168,21 +166,22 @@ graph_from_surfels(std::vector<std::shared_ptr<Surfel>> &surfels, bool eight_con
 std::vector<FrameData>
 populate_frame_data(const std::vector<PixelInFrame> &pifs_in_correspondence_group,
                     const std::vector<DepthMap> &depth_maps_by_frame,
-                    const std::map<PixelInFrame, Eigen::Vector3f>& coordinates_by_pif) {
+                    const std::map<PixelInFrame, Eigen::Vector3f> &coordinates_by_pif) {
     using namespace std;
     using namespace Eigen;
 
     Vector3f y_axis{0.0, 1.0, 0.0};
     vector<FrameData> frame_data;
-    for (const auto& pif : pifs_in_correspondence_group) {
-        const auto& normal = depth_maps_by_frame.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
+    for (const auto &pif : pifs_in_correspondence_group) {
+        const auto &normal = depth_maps_by_frame.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
         Vector3f target_normal{normal.x, normal.y, normal.z};
         auto depth = depth_maps_by_frame.at(pif.frame).depth_at(pif.pixel.x, pif.pixel.y);
         auto target_position = coordinates_by_pif.at(pif);
 
-        frame_data.emplace_back(pif, depth, vector_to_vector_rotation(y_axis, target_normal), target_normal, target_position);
+        frame_data.emplace_back(pif, depth, vector_to_vector_rotation(y_axis, target_normal), target_normal,
+                                target_position);
     }
-    std::sort( frame_data.begin(), frame_data.end());
+    std::sort(frame_data.begin(), frame_data.end());
     return frame_data;
 }
 
@@ -207,9 +206,9 @@ filter_pifs_with_normals(const std::vector<PixelInFrame> &corresponding_pifs,
         if (depth_maps.at(pif.frame).is_normal_defined(pif.pixel.x, pif.pixel.y)) {
             pifs_with_normals.push_back(pif);
 
-            const auto & nn = depth_maps.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
+            const auto &nn = depth_maps.at(pif.frame).normal_at(pif.pixel.x, pif.pixel.y);
             msg << pif << " --> Normal: {"
-                 << nn.type << " " << nn.x << " " << nn.y << " " << nn.z << "}" << endl;
+                << nn.type << " " << nn.x << " " << nn.y << " " << nn.z << "}" << endl;
         } else {
             msg << "  skipping " << pif << " --> No normal" << endl;
         }
@@ -228,7 +227,7 @@ generate_uuid() {
     uniform_int_distribution<int> dist(0, 15);
 
     const char *v = "0123456789abcdef";
-    const bool dash[] = { false, false, false, false, false, false, false, false };
+    const bool dash[] = {false, false, false, false, false, false, false, false};
 
     string res;
     for (bool i : dash) {
@@ -267,11 +266,11 @@ generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
 /**
  * Given depth maps and correspondences, compute a vector of surfels
  */
-SurfelGraph
+SurfelGraphPtr
 generate_surfels(const std::vector<DepthMap> &depth_maps,
                  const std::vector<std::vector<PixelInFrame>> &correspondences,
                  const std::map<PixelInFrame, Eigen::Vector3f> &coordinates_by_pif,
-                 const Properties& properties) {
+                 const Properties &properties) {
     using namespace std;
     assert(!correspondences.empty());
     assert(!depth_maps.empty());
@@ -288,7 +287,7 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
         // each of them has a valid normal (it may have insufficient neighbours, be on an edge or
         // whatever. Filter them.
         const auto pifs_with_normals = filter_pifs_with_normals(corresponding_pifs, depth_maps);
-        if( pifs_with_normals.empty()) {
+        if (pifs_with_normals.empty()) {
             spdlog::debug("\t rejected - no normals defined for any of {:d} pifs", corresponding_pifs.size());
             continue;
         }
@@ -301,7 +300,7 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
     randomize_tangents(surfels);
 
     // Sort neighbours and frames
-    for( auto& s : surfels) {
+    for (auto &s : surfels) {
         Surfel::surfel_by_id.emplace(s->id, s);
         s->last_correction = 0.0f;
         s->error = 45.0f * 45.0f;
@@ -309,6 +308,6 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
 
     auto surfel_graph = graph_from_surfels(surfels, properties.getBooleanProperty("eight-connected"));
 
-    spdlog::info(" generated {:d} surfels",  surfels.size());
+    spdlog::info(" generated {:d} surfels", surfels.size());
     return surfel_graph;
 }

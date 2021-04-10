@@ -1,6 +1,24 @@
-[submodule "src/third_party/cpd"]
-	path = src/third_party/cpd
-	url = https://github.com/gadomski/cpd.git
-[submodule "src/third_party/glm"]
-	path = src/third_party/glm
-	url = git@github.com:g-truc/glm.git
+[submodule "dependencies/assimp"]
+	path = dependencies/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "dependencies/pcl"]
+	path = dependencies/pcl
+	url = https://github.com/PointCloudLibrary/pcl.git
+[submodule "dependencies/fgt"]
+	path = dependencies/fgt
+	url = https://github.com/gadomski/fgt.git
+[submodule "dependencies/flann"]
+	path = dependencies/flann
+	url = https://github.com/mariusmuja/flann.git
+[submodule "dependencies/spdlog"]
+	path = dependencies/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "dependencies/vtk"]
+	path = dependencies/vtk
+	url = https://github.com/Kitware/VTK.git
+[submodule "dependencies/fmt"]
+	path = dependencies/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "java/AnimeshJ"]
+	path = java/AnimeshJ
+	url = https://github.com/Scoobadood/AnimeshJ.git

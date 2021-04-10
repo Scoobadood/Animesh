@@ -553,3 +553,49 @@ TEST_F( TestGeom, Angle_Between_Vectors_45_2) {
     float expected = 45.0f;
     EXPECT_FLOAT_EQ(actual, expected);
 }
+
+TEST_F( TestGeom, CentroidOfNoFloatsThrows) {
+    std::vector<float> emptyVector;
+    auto x = 0.0f, y= 0.0f, z= 0.0f;
+
+    ASSERT_DEATH(compute_centroid(emptyVector, x, y, z),
+            "(!xyz\\.empty())");
+}
+
+TEST_F( TestGeom, CentroidOfShortFloatsThrows) {
+    std::vector<float> twoFloats{1.0f, 2.0f};
+    auto x = 0.0f, y= 0.0f, z= 0.0f;
+
+    ASSERT_DEATH(compute_centroid(twoFloats, x, y, z),
+            "(xyz\\.size\\(\\) % 3 == 0)");
+}
+
+TEST_F( TestGeom, CentroidOfThreeFloatsIsPoint) {
+    std::vector<float> threeFloats{1.0f, 2.0f, 3.0f};
+    auto x = 0.0f, y= 0.0f, z= 0.0f;
+
+    compute_centroid(threeFloats, x, y, z);
+    EXPECT_FLOAT_EQ(x, threeFloats.at(0));
+    EXPECT_FLOAT_EQ(y, threeFloats.at(1));
+    EXPECT_FLOAT_EQ(z, threeFloats.at(2));
+}
+
+TEST_F( TestGeom, CentroidOfThreePointsIsCorrect) {
+    std::vector<float> cube;
+    for( float x = 0.0f; x <= 1.0f; x += 1.0f) {
+        for( float y = 0.0f; y <= 1.0f; y += 1.0f) {
+            for( float z = 0.0f; z <= 1.0f; z += 1.0f) {
+                cube.push_back(x);
+                cube.push_back(y);
+                cube.push_back(z);
+            }
+        }
+    }
+    auto x = 0.0f, y= 0.0f, z= 0.0f;
+    compute_centroid(cube, x, y, z);
+    EXPECT_FLOAT_EQ(x, 0.5f);
+    EXPECT_FLOAT_EQ(y, 0.5f);
+    EXPECT_FLOAT_EQ(z, 0.5f);
+}
+
+

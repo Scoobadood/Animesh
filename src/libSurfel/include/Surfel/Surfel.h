@@ -31,6 +31,12 @@ struct Surfel {
     float last_correction;
     float error;
     float posy_smoothness;
+
+    bool is_in_frame(unsigned int frame) const;
+    void get_position_tangent_normal_for_frame(unsigned int frame, Eigen::Vector3f& position, Eigen::Vector3f& tangent, Eigen::Vector3f& normal ) const;
+
+private:
+    const FrameData&frame_data_for_frame(unsigned int frame) const;
 };
 
 #endif //ANIMESH_SURFEL_H

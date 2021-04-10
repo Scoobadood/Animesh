@@ -90,7 +90,6 @@ bool Properties::getBooleanProperty(const std::string& key) const {
     using namespace std;
 
     string val = getProperty(key);
-    bool b = false;
     vector<string> yes{"yes", "Yes", "YES", "y", "Y", "true", "True", "TRUE", "t", "T", "1"};
     vector<string> no{"no", "No", "NO", "n", "N", "false", "False", "FALSE", "f", "F", "0"};
     if( find(yes.begin(), yes.end(), val) != yes.end()) return true;

@@ -9,12 +9,11 @@
 #include <algorithm>
 #include <random>
 
-AbstractOptimiser::AbstractOptimiser(Properties properties) : m_properties(std::move(properties)),
-                                                              m_state{UNINITIALISED},
+AbstractOptimiser::AbstractOptimiser(Properties properties) : m_state{UNINITIALISED},
+                                                              m_properties(std::move(properties)),
+                                                              m_convergence_threshold{1.0},
                                                               m_optimisation_cycles{0},
-                                                              m_last_smoothness{0.0f},
-                                                              m_convergence_threshold{1.0} {
-}
+                                                              m_last_smoothness{0.0f} {}
 
 AbstractOptimiser::~AbstractOptimiser() = default;
 
@@ -37,7 +36,7 @@ AbstractOptimiser::populate_norm_tan_by_surfel_frame() {
        Transform the norm and tan
        Put it in the map.
      */
-    for (const auto &n : m_surfel_graph.nodes()) {
+    for (const auto &n : m_surfel_graph->nodes()) {
         const auto &surfel_ptr = n->data();
         for (const auto &fd : surfel_ptr->frame_data) {
             SurfelInFrame surfel_in_frame{surfel_ptr, fd.pixel_in_frame.frame};
@@ -62,7 +61,7 @@ AbstractOptimiser::populate_frame_to_surfel() {
     m_surfels_by_frame.clear();
     // For each Surfel add it to each frame in which it appears.
     size_t max_frame_index = 0;
-    for (const auto &n : m_surfel_graph.nodes()) {
+    for (const auto &n : m_surfel_graph->nodes()) {
         const auto &surfel = n->data();
         for (const auto &fd : surfel->frame_data) {
             surfels_by_frame.emplace(fd.pixel_in_frame.frame, surfel);
@@ -101,11 +100,11 @@ AbstractOptimiser::populate_neighbours_by_surfel_frame() {
     const auto num_frames = m_surfels_by_frame.size();
 
     // For each Surfel
-    for (const auto &surfel_ptr_node : m_surfel_graph.nodes()) {
+    for (const auto &surfel_ptr_node : m_surfel_graph->nodes()) {
         const auto surfel_ptr = surfel_ptr_node->data();
 
         // Consider each neighbour
-        for (const auto &neighbour : m_surfel_graph.neighbours(surfel_ptr_node)) {
+        for (const auto &neighbour : m_surfel_graph->neighbours(surfel_ptr_node)) {
 
             // And each frame
             for (size_t frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
@@ -281,7 +280,7 @@ AbstractOptimiser::compute_surfel_smoothness_for_frame(const std::shared_ptr<Sur
     const auto &bounds = m_neighbours_by_surfel_frame.equal_range(surfel_in_frame);
     unsigned int num_neighbours = 0;
     for (auto np = bounds.first; np != bounds.second; ++np) {
-        const auto & neighbour_ptr = np->second;
+        const auto &neighbour_ptr = np->second;
         const SurfelInFrame neighbour_in_frame{neighbour_ptr, frame_id};
         const auto &neighbour_orientation_in_frame = m_norm_tan_by_surfel_frame.at(neighbour_in_frame);
         const auto &neighbour_frame_data = frame_data_for_surfel_in_frame(neighbour_in_frame);
@@ -323,10 +322,10 @@ AbstractOptimiser::compute_surfel_smoothness(const std::shared_ptr<Surfel> &surf
 float
 AbstractOptimiser::compute_smoothness_per_surfel() const {
     float total_smoothness = 0.0f;
-    for (const auto &n : m_surfel_graph.nodes()) {
+    for (const auto &n : m_surfel_graph->nodes()) {
         total_smoothness += compute_surfel_smoothness(n->data());
     }
-    return total_smoothness / m_surfel_graph.num_nodes();
+    return total_smoothness / m_surfel_graph->num_nodes();
 }
 
 /**
@@ -350,7 +349,7 @@ AbstractOptimiser::check_convergence() {
  * Set the optimisation data
  */
 void
-AbstractOptimiser::set_data(const SurfelGraph &surfel_graph) {
+AbstractOptimiser::set_data(const SurfelGraphPtr &surfel_graph) {
     m_surfel_graph = surfel_graph;
     m_state = INITIALISED;
 }
@@ -362,13 +361,13 @@ std::vector<SurfelGraphNodePtr>
 AbstractOptimiser::ssa_select_all_in_random_order() {
     using namespace std;
 
-    vector<size_t> indices(m_surfel_graph.num_nodes());
+    vector<size_t> indices(m_surfel_graph->num_nodes());
     iota(begin(indices), end(indices), 0);
     shuffle(begin(indices), end(indices),
             default_random_engine(chrono::system_clock::now().time_since_epoch().count()));
     vector<SurfelGraphNodePtr> selected_nodes;
     selected_nodes.reserve(indices.size());
-    const auto graph_nodes = m_surfel_graph.nodes();
+    const auto graph_nodes = m_surfel_graph->nodes();
     for (const auto i : indices) {
         selected_nodes.push_back(graph_nodes.at(i));
     }

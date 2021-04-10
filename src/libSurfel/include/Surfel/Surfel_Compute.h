@@ -47,10 +47,10 @@ are_neighbours(const std::shared_ptr<Surfel> &surfel1, const std::shared_ptr<Sur
  * @param surfels The list of all surfels.
  * @param neighbours
  */
-SurfelGraph
+SurfelGraphPtr
 graph_from_surfels(std::vector<std::shared_ptr<Surfel>> &surfels, bool eight_connected);
 
-SurfelGraph
+SurfelGraphPtr
 generate_surfels(const std::vector<DepthMap> &depth_maps,
                  const std::vector<std::vector<PixelInFrame>> &correspondences,
                  const std::map<PixelInFrame, Eigen::Vector3f> &coordinates_by_pif,

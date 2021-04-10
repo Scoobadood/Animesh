@@ -27,9 +27,9 @@ void TestSurfelIO::SetUp() {
                                         Eigen::Vector3f{5.0f, 6.0f, 7.0f},
                                         Eigen::Vector2f{5.5f, 6.5f}
     );
-    const auto &sn1 = surfel_graph.add_node(s1);
-    const auto &sn2 = surfel_graph.add_node(s2);
-    surfel_graph.add_edge(sn1, sn2, 1.0);
+    const auto &sn1 = surfel_graph->add_node(s1);
+    const auto &sn2 = surfel_graph->add_node(s2);
+    surfel_graph->add_edge(sn1, sn2, 1.0);
 }
 
 void TestSurfelIO::TearDown() {}
@@ -70,10 +70,17 @@ expect_graphs_equal(const SurfelGraph &graph1,
     EXPECT_EQ(graph1.num_edges(), graph2.num_edges());
 }
 
+void
+expect_graphs_equal(const SurfelGraphPtr &graph1,
+                    const SurfelGraphPtr& graph2) {
+    EXPECT_EQ(graph1->num_nodes(), graph2->num_nodes());
+    EXPECT_EQ(graph1->num_edges(), graph2->num_edges());
+}
+
 TEST_F(TestSurfelIO, LoadFromTestFile) {
     std::string gold_file_name = "surfel_test_data/gold_graph.bin";
     auto loaded_graph = load_surfel_graph_from_file(gold_file_name);
-    expect_graphs_equal(loaded_graph, surfel_graph);
+    expect_graphs_equal(surfel_graph, loaded_graph);
 }
 
 TEST_F(TestSurfelIO, SaveToTestFile) {
@@ -91,6 +98,6 @@ TEST_F(TestSurfelIO, SaveLoadRoundTrip) {
 
     auto loaded_graph = load_surfel_graph_from_file(tmp_file_name);
 
-    expect_graphs_equal(loaded_graph, surfel_graph);
+    expect_graphs_equal(surfel_graph, loaded_graph);
 }
 

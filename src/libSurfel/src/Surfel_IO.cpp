@@ -23,16 +23,16 @@
  */
 void
 save_surfel_graph_to_file(const std::string &file_name,
-                          const SurfelGraph &surfel_graph) {
+                          const SurfelGraphPtr &surfel_graph) {
     using namespace std;
     using namespace spdlog;
 
-    info("Saving {:d} surfels from graph to file {:s}", surfel_graph.num_nodes(), file_name);
+    info("Saving {:d} surfels from graph to file {:s}", surfel_graph->num_nodes(), file_name);
 
     ofstream file{file_name, ios::out | ios::binary};
     // Count
-    write_unsigned_int(file, surfel_graph.num_nodes());
-    for (auto const &surfel : surfel_graph.nodes()) {
+    write_unsigned_int(file, surfel_graph->num_nodes());
+    for (auto const &surfel : surfel_graph->nodes()) {
         // ID
         write_string(file, surfel->data()->id);
         // FrameData size
@@ -62,7 +62,7 @@ save_surfel_graph_to_file(const std::string &file_name,
             write_vector_3f(file, fd.position);
         }
 
-        const auto neighbours = surfel_graph.neighbours(surfel);
+        const auto neighbours = surfel_graph->neighbours(surfel);
         write_unsigned_int(file, neighbours.size());
         for (const auto &surfel_ptr : neighbours) {
             write_string(file, surfel_ptr->data()->id);
@@ -77,14 +77,14 @@ save_surfel_graph_to_file(const std::string &file_name,
 /**
  * Load surfel data from binary file
  */
-SurfelGraph
+SurfelGraphPtr
 load_surfel_graph_from_file(const std::string &file_name) {
     using namespace std;
     using namespace spdlog;
 
     info("Loading surfel graph from file {:s}", file_name);
 
-    SurfelGraph graph;
+    SurfelGraphPtr graph = make_shared<SurfelGraph>(false);
     ifstream file{file_name, ios::in | ios::binary};
     if (file.fail() ) {
         throw runtime_error("Error reading file " + file_name);
@@ -95,11 +95,11 @@ load_surfel_graph_from_file(const std::string &file_name) {
     map<string, vector<string>> neighbours_of_surfel_by_id;
     map<string, SurfelGraphNodePtr> graph_node_by_id;
 
-    for (int sIdx = 0; sIdx < num_surfels; ++sIdx) {
+    for (unsigned int sIdx = 0; sIdx < num_surfels; ++sIdx) {
         string surfel_id = read_string(file);
         unsigned int num_frames = read_unsigned_int(file);
         vector<FrameData> frames;
-        for (int fdIdx = 0; fdIdx < num_frames; ++fdIdx) {
+        for (unsigned int fdIdx = 0; fdIdx < num_frames; ++fdIdx) {
             FrameData fd;
 
             // PixelInFrame
@@ -128,7 +128,7 @@ load_surfel_graph_from_file(const std::string &file_name) {
         unsigned int num_neighbours = read_unsigned_int(file);
         vector<string> neighbours;
         neighbours.reserve(num_neighbours);
-        for (int nIdx = 0; nIdx < num_neighbours; ++nIdx) {
+        for (unsigned int nIdx = 0; nIdx < num_neighbours; ++nIdx) {
             neighbours.push_back(read_string(file));
         }
 
@@ -136,18 +136,18 @@ load_surfel_graph_from_file(const std::string &file_name) {
         const auto closest_mesh_vertex_offset = read_vector_2f(file);
 
         auto surfel_ptr = make_shared<Surfel>(surfel_id, frames, tangent, closest_mesh_vertex_offset);
-        auto graph_node = graph.add_node(surfel_ptr);
+        auto graph_node = graph->add_node(surfel_ptr);
         neighbours_of_surfel_by_id.emplace(surfel_id, neighbours);
         graph_node_by_id.emplace(surfel_id, graph_node);
     }
     file.close();
 
     // Populate neighbours
-    for( auto& graph_node : graph.nodes()) {
+    for( auto& graph_node : graph->nodes()) {
         const auto& neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id);
         for( const auto& neighbour_id : neighbour_ids ) {
             const auto neighbour_node = graph_node_by_id.at(neighbour_id);
-            graph.add_edge( graph_node, neighbour_node, 1.0);
+            graph->add_edge( graph_node, neighbour_node, 1.0);
         }
     }
 

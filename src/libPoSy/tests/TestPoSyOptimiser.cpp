@@ -35,7 +35,7 @@ TEST_F(TestPoSyOptimiser, FailsAssertionOptimisingWhenUnready) {
 
 TEST_F(TestPoSyOptimiser, IsReadyOnceDataIsSet) {
     PoSyOptimiser optimiser{m_properties};
-    SurfelGraph g;
+    SurfelGraphPtr g = std::make_shared<SurfelGraph>(new SurfelGraph());
     optimiser.set_data(g);
 
     optimiser.optimise_do_one_step();

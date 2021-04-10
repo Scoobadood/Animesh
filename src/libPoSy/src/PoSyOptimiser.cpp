@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 #include <RoSy/RoSy.h>
-#include <Eigen/core>
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 static const char *SSA_SELECT_ALL_IN_RANDOM_ORDER = "select-all-in-random-order";
@@ -53,11 +53,11 @@ PoSyOptimiser::ssa_select_worst_100() {
     using namespace std;
 
     vector<SurfelGraphNodePtr> selected_nodes;
-    for (const auto &n : m_surfel_graph.nodes()) {
+    for (const auto &n : m_surfel_graph->nodes()) {
         selected_nodes.push_back(n);
     }
     stable_sort(begin(selected_nodes), end(selected_nodes),
-                [this](const SurfelGraphNodePtr &s1, const SurfelGraphNodePtr &s2) {
+                [](const SurfelGraphNodePtr &s1, const SurfelGraphNodePtr &s2) {
                     return s1->data()->posy_smoothness > s2->data()->posy_smoothness;
                 });
 
@@ -80,7 +80,7 @@ void PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
     auto new_lattice_offset = this_surfel_ptr->closest_mesh_vertex_offset;
     // Get all neighbours of this Surfel
     Vector2f nudge = Vector2f::Zero();
-    for (const auto &surfel_ptr_neighbour : m_surfel_graph.neighbours(node)) {
+    for (const auto &surfel_ptr_neighbour : m_surfel_graph->neighbours(node)) {
         const auto that_surfel_ptr = surfel_ptr_neighbour->data();
 
         // For this neighbour, consider it over all common frames.
@@ -99,7 +99,7 @@ void PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
             // TODO(dave.d): We don't want to compute this every time. It should have been stabilised after computing
             // the orientation field and we should store it in the graph on edges.
-            const auto best_pair = best_rosy_vector_pair(
+            best_rosy_vector_pair(
                     surfel_tan_in_frame, surfel_normal_in_frame,
                     neighbour_tan_in_frame, neighbour_normal_in_frame );
 

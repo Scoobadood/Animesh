@@ -84,16 +84,26 @@ Eigen::Matrix3f vector_to_vector_rotation( const Eigen::Vector3f& v1, const Eige
 /**
  * Return a 3D vector perpendicular to the given 3D vector
  * @param v The vector
- * @retrun A vector perpendicular to it
+ * @return A vector perpendicular to it
  */
 Eigen::Vector3f vector_perpendicular_to_vector( const Eigen::Vector3f& v1 );
 
 /**
  * Return a 3D vector representing the centroid of the given vector of points
  * @param points A vector containing at least one point (asserted)
- * @retrun The centroid of those points.
+ * @return The centroid of those points.
  */
 Eigen::Vector3f compute_centroid(const std::vector<Eigen::Vector3f>& points);
+
+/**
+ * Return a 3D vector representing the centroid of the given vector of points
+ * @param xyz A vector containing X, Y and Z coordinates of a set of points. Must have length multiple of 3 and at least 3
+ * Populates centroidX centroidY and centroidZ
+ */
+void compute_centroid(const std::vector<float>& xyz,
+                      float& centroidX,
+                      float& centroidY,
+                      float& centroidZ);
 
 /**
  * Compute the perpendicular distance between a point and a line given.
@@ -104,6 +114,16 @@ Eigen::Vector3f compute_centroid(const std::vector<Eigen::Vector3f>& points);
  */
 float distance_from_point_to_line(const Eigen::Vector3f &point, const Eigen::Vector3f &anchor,
                                   const Eigen::Vector3f &direction);
+
+/**
+ * Return the min and max X,Y and Z for the given points.
+ * @param xyz A vector containing X, Y and Z coordinates of a set of points. Must have length multiple of 3 and at least 3
+ * Populates minX, maxX etc.
+ */
+void compute_bounds( const std::vector<float>& xyz,
+                     float& minX, float& maxX,
+                     float& minY, float& maxY,
+                     float& minZ, float& maxZ);
 
 /**
  * Find the closest pair of points in a given cloud.
@@ -126,3 +146,28 @@ is_zero_vector(const Eigen::Vector3f& vector);
  */
 bool
 is_unit_vector(const Eigen::Vector3f& vector);
+
+/**
+ * @return The Euclidean distance between the two points.
+ */
+float
+distance_from_point_to_point(const Eigen::Vector3f& p1, const Eigen::Vector3f& p2 );
+
+/**
+ * @return The Euclidean distance between the two points.
+ */
+float
+distance_from_point_to_point(
+        float p1x, float p1y, float p1z,
+        float p2x, float p2y, float p2z);
+
+/**
+ * Convert from polar to cartesian coordinates.
+ *
+ * @param theta Rotation in the XY plane. [0, 2 * pi)
+ * @param phi Vertical rotation. [0, pi)
+ * @param radius Distance from the sphere centre.
+ * @return X,Y Z coordinates.
+ */
+Eigen::Vector3f
+spherical_to_cartesian(float radius, float theta, float phi );

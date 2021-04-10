@@ -86,10 +86,10 @@ private:
     std::vector<std::shared_ptr<Surfel>> m_previous_level_surfels;
 
     /** Graph of current level surfels */
-    SurfelGraph m_surfel_graph;
+    SurfelGraphPtr m_surfel_graph;
 
     /** Graph of previous level surfels */
-    SurfelGraph m_previous_surfel_graph;
+    SurfelGraphPtr m_previous_surfel_graph;
 
     /** Properties to use for the optimiser */
     const Properties m_properties;
@@ -293,15 +293,15 @@ private:
  * Create a map to allow lookup of a GraphNode from a PIF
  */
 std::map<PixelInFrame, SurfelGraphNodePtr>
-create_pif_to_graphnode_map(const SurfelGraph & surfel_graph);
+create_pif_to_graphnode_map(const SurfelGraphPtr & surfel_graph);
 
 /**
  * Given a set of parent and child GraphNodes, estalish a mapping from child to one or more parents.
  * Children with no parents are stored as IDs in unmapped
  */
 std::multimap<SurfelGraphNodePtr, SurfelGraphNodePtr>
-compute_child_to_parent_surfel_map(const SurfelGraph & child_graph, //
-                                   const SurfelGraph & parent_graph, //
+compute_child_to_parent_surfel_map(const SurfelGraphPtr & child_graph, //
+                                   const SurfelGraphPtr & parent_graph, //
                                    std::vector<SurfelGraphNodePtr> &orphans);
 
 /**
@@ -356,6 +356,6 @@ remove_surfels_by_id(std::vector<std::shared_ptr<Surfel>> &surfels,
  * @param properties
  */
 void
-initialise_tangents_from_previous_level(SurfelGraph & current_level_surfel_graph,
-                                        const SurfelGraph & previous_level_surfel_graph,
+initialise_tangents_from_previous_level(SurfelGraphPtr & current_level_surfel_graph,
+                                        const SurfelGraphPtr & previous_level_surfel_graph,
                                         const Properties &properties);

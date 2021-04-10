@@ -8,7 +8,6 @@ set(PROJECT_VERSION 0.2)
 
 set(GIT_VERSION_STRING "git version 2.20.1 (Apple Git-117)")
 
-set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -Wall")
 set(CMAKE_CXX_FLAGS "")
@@ -116,3 +115,5 @@ add_subdirectory( libSurfel )
 add_subdirectory( libUtilities )
 add_subdirectory( mesher )
 #add_subdirectory( tools )
+add_subdirectory(rosy_visualiser)
+add_subdirectory(posy_visualiser)

@@ -4,13 +4,15 @@
 #include <QVector3D>
 #include <QMatrix4x4>
 #include <QOpenGLWidget>
-#include <Surfel/SurfelGraph.h>
-#include <vector>
 #include <QOpenGLDebugLogger>
+
+#include <Surfel/SurfelGraph.h>
+
+#include <vector>
 
 /**
  * @brief The rosy_gl_widget class.
- * Renders RoSy with trackball controls and allows selectoin of individual surfels.
+ * Renders RoSy with trackball controls and allows selection of individual surfels.
  * Interface contract:
  * Can accept new data and redraw
  * Can handle mouse selection of a surfel and emits a selected event
@@ -20,74 +22,20 @@
 class rosy_gl_widget : public QOpenGLWidget {
     Q_OBJECT
 public:
-    rosy_gl_widget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit rosy_gl_widget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 
     void setRoSyData(const std::vector<float>& positions,
                      const std::vector<float>& normals,
                      const std::vector<float>& tangents,
                      float scale_factor);
 
-    inline void renderNormals( bool shouldRender) {
-        if( m_renderNormals != shouldRender) {
-            m_renderNormals = shouldRender;
-            update();
-        }
-    }
-
-    inline void renderMainTangents( bool shouldRender) {
-        if( m_renderMainTangents != shouldRender) {
-            m_renderMainTangents = shouldRender;
-            update();
-        }
-    }
-
-    inline void renderOtherTangents( bool shouldRender) {
-        if( m_renderOtherTangents != shouldRender) {
-            m_renderOtherTangents = shouldRender;
-            update();
-        }
-    }
-
-    inline void setZFar(float zFar) {
-        if (m_z_far != zFar) {
-            m_z_far = zFar;
-            update();
-        }
-    }
-
-    inline void setFov(float fov) {
-        if( m_fov != fov) {
-            m_fov = fov;
-            update();
-        }
-    }
-
-    /**
-     * Rotate the camera about a point in front of it (m_target). Theta is a rotation
-     * that tilts the camera forward and backward. Phi tilts the camera side to side.
-     *
-     * @param dTheta    The number of radians to rotate in the theta direction
-     * @param dPhi      The number of radians to rotate in the phi direction
-     */
+    void renderNormals( bool shouldRender);
+    void renderMainTangents( bool shouldRender);
+    void renderOtherTangents( bool shouldRender);
+    void setZFar(float zFar);
+    void setFov(float fov);
     void rotate(float dTheta, float dPhi);
-
-    /**
-     * Move the camera down the look vector, closer to m_target. If we overtake m_target,
-     * it is reprojected 30 units down the look vector
-     *
-     * TODO: Find a way to *not* hard-code the reprojection distance. Perhaps base it on the
-     *       scene size? Or maybe have it defined in an settings.ini file
-     *
-     * @param distance    The distance to zoom. Negative distance will move the camera away from the target, positive will move towards
-     */
     void zoom(float distance);
-
-    /**
-         * Moves the camera within its local X-Y plane
-         *
-         * @param dx    The amount to move the camera right or left
-         * @param dy    The amount to move the camera up or down
-         */
     void pan(float dx, float dy);
 
 protected:
@@ -102,12 +50,12 @@ protected:
 private:
     const float ROTATE_FACTOR = 300.0f;
     const float PAN_FACTOR = 0.01f;
-    const float ZOOM_FACTOR = 0.1f;
+    const float ZOOM_FACTOR = 0.05f;
 
     std::vector<float> m_positions;
     std::vector<float> m_tangents;
     std::vector<float> m_normals;
-    float m_normal_scale_factor;
+    float m_normalScaleFactor;
     bool m_renderNormals;
     bool m_renderMainTangents;
     bool m_renderOtherTangents;
@@ -115,23 +63,20 @@ private:
     QColor m_mainTangentColour;
     QColor m_otherTangentsColour;
 
+    void maybeUpdateModelViewMatrix();
+    void maybeUpdateProjectionMatrix() const;
+    static void clear();
     void drawPositions() const;
     void maybeDrawNormals() const;
     void maybeDrawMainTangents() const;
     void maybeDrawOtherTangents() const;
 
-    void setupDummyData();
-
-    void clear();
-    void applyModelViewMatrix();
-    void applyProjectionMatrix();
-
     float m_fov;
-    float m_z_near;
-    float m_z_far;
-    float m_aspect_ratio;
-    QOpenGLDebugLogger * m_debugLogger;
-    void checkGLError(const std::string& context) const;
+    float m_zNear;
+    float m_zFar;
+    float m_aspectRatio;
+
+    static void checkGLError(const std::string& context) ;
     //
     // ArcBall Controls
     //
@@ -139,13 +84,11 @@ private:
     float m_phi;
     float m_radius;
     float m_up;
+    bool m_modelViewMatrixIsDirty;
+    bool m_projectionMatrixIsDirty;
     QPoint m_lastPixelPosition;
     QVector3D m_target;
-    QMatrix4x4 m_projectionMatrix;
-    QMatrix4x4 m_modelViewMatrix;
-    bool m_modelViewMatrixIsDirty;
     QVector3D getCameraPosition() const;
-    void updateModelViewMatrix();
     QVector3D toCartesian() const;
 
 signals:

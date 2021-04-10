@@ -1,20 +1,18 @@
 #include "rosy_gl_widget.h"
 
-#include "QOpenGLFunctions"
 #include <iostream>
-#include <Surfel/SurfelGraph.h>
 #include <vector>
 #include <QColor>
 #include <QKeyEvent>
 #include <QQuaternion>
-#include <QOpenGLDebugLogger>
 #include <Geom/Geom.h>
+#include <Surfel/SurfelGraph.h>
 
-const double DEG2RAD = (3.14159265f / 180.0f);
+const float DEG2RAD = (3.14159265f / 180.0f);
 const float TWO_PI = M_PI * 2.0f;
 
 rosy_gl_widget::rosy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
-        QOpenGLWidget{parent, f}, m_normal_scale_factor{1.0f} //
+        QOpenGLWidget{parent, f}, m_normalScaleFactor{1.0f} //
         , m_renderNormals{true} //
         , m_renderMainTangents{true} //
         , m_renderOtherTangents{true} //
@@ -22,18 +20,25 @@ rosy_gl_widget::rosy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
         , m_mainTangentColour{QColor{255, 0, 0, 255}} //
         , m_otherTangentsColour{QColor{0, 255, 0, 255}} //
         , m_fov{60} //
-        , m_z_near{0.5f} //
-        , m_z_far{50.0f} //
-        , m_aspect_ratio{1.0f} //
+        , m_zNear{0.5f} //
+        , m_zFar{50.0f} //
+        , m_aspectRatio{1.0f} //
         , m_theta{0.0f} //
         , m_phi{0.0f} //
         , m_radius{1.0f} //
         , m_up{1.0f} //
+        , m_modelViewMatrixIsDirty{true} //
+        , m_projectionMatrixIsDirty{true} //
         , m_target{0.0f, 0.0f, 0.0f} //
-        , m_modelViewMatrixIsDirty{true} {
-    m_modelViewMatrix.setToIdentity();
-    setupDummyData();
+{
     setFocus();
+    // Dummy data
+    setRoSyData(
+            std::vector<float>{0.0f, 0.0f, 0.0f},
+            std::vector<float>{0.0f, 1.0f, 0.0f},
+            std::vector<float>{0.0f, 0.0f, 1.0f},
+            1.0f
+    );
 }
 
 void
@@ -41,19 +46,17 @@ rosy_gl_widget::maybeDrawNormals() const {
     if (!m_renderNormals) {
         return;
     }
-    glColor4f(m_normalColour.redF(),
-              m_normalColour.greenF(),
-              m_normalColour.blueF(),
-              m_normalColour.alphaF());
+    glColor4d(m_normalColour.redF(), m_normalColour.greenF(),
+              m_normalColour.blueF(), m_normalColour.alphaF());
 
     for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
         glBegin(GL_LINES);
         glVertex3f(m_positions.at(i * 3 + 0),
                    m_positions.at(i * 3 + 1),
                    m_positions.at(i * 3 + 2));
-        glVertex3f(m_positions.at(i * 3 + 0) + (m_normals.at(i * 3 + 0) * m_normal_scale_factor),
-                   m_positions.at(i * 3 + 1) + (m_normals.at(i * 3 + 1) * m_normal_scale_factor),
-                   m_positions.at(i * 3 + 2) + (m_normals.at(i * 3 + 2) * m_normal_scale_factor));
+        glVertex3f(m_positions.at(i * 3 + 0) + (m_normals.at(i * 3 + 0) * m_normalScaleFactor),
+                   m_positions.at(i * 3 + 1) + (m_normals.at(i * 3 + 1) * m_normalScaleFactor),
+                   m_positions.at(i * 3 + 2) + (m_normals.at(i * 3 + 2) * m_normalScaleFactor));
         glEnd();
     }
     checkGLError("maybeDrawNormals");
@@ -62,10 +65,8 @@ rosy_gl_widget::maybeDrawNormals() const {
 
 void
 rosy_gl_widget::drawPositions() const {
-    glColor4f(m_normalColour.redF(),
-              m_normalColour.greenF(),
-              m_normalColour.blueF(),
-              m_normalColour.alphaF());
+    glColor4d(m_normalColour.redF(),m_normalColour.greenF(),
+              m_normalColour.blueF(),m_normalColour.alphaF());
 
     glEnable(GL_POINT_SMOOTH);
     float oldPointSize;
@@ -82,7 +83,6 @@ rosy_gl_widget::drawPositions() const {
     glPointSize(oldPointSize);
     glDisable(GL_POINT_SMOOTH);
     checkGLError("drawPositions");
-
 }
 
 void
@@ -90,19 +90,17 @@ rosy_gl_widget::maybeDrawMainTangents() const {
     if (!m_renderMainTangents) {
         return;
     }
-    glColor4f(m_mainTangentColour.redF(),
-              m_mainTangentColour.greenF(),
-              m_mainTangentColour.blueF(),
-              m_mainTangentColour.alphaF());
+    glColor4d(m_mainTangentColour.redF(),m_mainTangentColour.greenF(),
+              m_mainTangentColour.blueF(),m_mainTangentColour.alphaF());
 
     for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
         glBegin(GL_LINES);
         glVertex3f(m_positions.at(i * 3 + 0),
                    m_positions.at(i * 3 + 1),
                    m_positions.at(i * 3 + 2));
-        glVertex3f(m_positions.at(i * 3 + 0) + (m_tangents.at(i * 3 + 0) * m_normal_scale_factor),
-                   m_positions.at(i * 3 + 1) + (m_tangents.at(i * 3 + 1) * m_normal_scale_factor),
-                   m_positions.at(i * 3 + 2) + (m_tangents.at(i * 3 + 2) * m_normal_scale_factor));
+        glVertex3f(m_positions.at(i * 3 + 0) + (m_tangents.at(i * 3 + 0) * m_normalScaleFactor),
+                   m_positions.at(i * 3 + 1) + (m_tangents.at(i * 3 + 1) * m_normalScaleFactor),
+                   m_positions.at(i * 3 + 2) + (m_tangents.at(i * 3 + 2) * m_normalScaleFactor));
         glEnd();
     }
     checkGLError("maybeDrawTangents");
@@ -114,10 +112,10 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
     if (!m_renderOtherTangents) {
         return;
     }
-    glColor4f(m_otherTangentsColour.redF(),
-              m_otherTangentsColour.greenF(),
-              m_otherTangentsColour.blueF(),
-              m_otherTangentsColour.alphaF());
+    glColor4f((GLfloat) m_otherTangentsColour.redF(),
+              (GLfloat) m_otherTangentsColour.greenF(),
+              (GLfloat) m_otherTangentsColour.blueF(),
+              (GLfloat) m_otherTangentsColour.alphaF());
 
     for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
         // Get perpendicular tangent by computing cross(norm,tan)
@@ -128,9 +126,9 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
         const auto tanY = m_tangents.at(i * 3 + 1);
         const auto tanZ = m_tangents.at(i * 3 + 2);
 
-        auto crossTanX = (normY * tanZ - normZ * tanY) * m_normal_scale_factor; //bn -cm
-        auto crossTanY = (normZ * tanX - normX * tanZ) * m_normal_scale_factor; //bn -cm
-        auto crossTanZ = (normX * tanY - normY * tanX) * m_normal_scale_factor; //bn -cm
+        auto crossTanX = (normY * tanZ - normZ * tanY) * m_normalScaleFactor; //bn -cm
+        auto crossTanY = (normZ * tanX - normX * tanZ) * m_normalScaleFactor; //bn -cm
+        auto crossTanZ = (normX * tanY - normY * tanX) * m_normalScaleFactor; //bn -cm
 
         glBegin(GL_LINES);
         glVertex3f(m_positions.at(i * 3 + 0) - crossTanX,
@@ -139,16 +137,15 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
         glVertex3f(m_positions.at(i * 3 + 0) + crossTanX,
                    m_positions.at(i * 3 + 1) + crossTanY,
                    m_positions.at(i * 3 + 2) + crossTanZ);
-        glVertex3f(m_positions.at(i * 3 + 0) - (tanX * m_normal_scale_factor),
-                   m_positions.at(i * 3 + 1) - (tanY * m_normal_scale_factor),
-                   m_positions.at(i * 3 + 2) - (tanZ * m_normal_scale_factor));
+        glVertex3f(m_positions.at(i * 3 + 0) - (tanX * m_normalScaleFactor),
+                   m_positions.at(i * 3 + 1) - (tanY * m_normalScaleFactor),
+                   m_positions.at(i * 3 + 2) - (tanZ * m_normalScaleFactor));
         glVertex3f(m_positions.at(i * 3 + 0),
                    m_positions.at(i * 3 + 1),
                    m_positions.at(i * 3 + 2));
         glEnd();
     }
     checkGLError("maybeDrawOtherTangents");
-
 }
 
 void
@@ -156,57 +153,64 @@ rosy_gl_widget::clear() {
     glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     checkGLError("clear");
-
 }
 
+/**
+ * If the ModelView matrix is dirty, update and reload it.
+ */
 void
-rosy_gl_widget::applyModelViewMatrix() {
-//    if (m_modelViewMatrixIsDirty) {
-    updateModelViewMatrix();
-    for( int r=0; r<4; r++ ) {
-        for( int c=0; c<4; c++ ) {
-            std::cout << m_modelViewMatrix.constData()[r + c*4] << "  ";
-        }
-        std::cout << std::endl;
+rosy_gl_widget::maybeUpdateModelViewMatrix() {
+    if (m_modelViewMatrixIsDirty) {
+        QMatrix4x4 matrix;
+        matrix.setToIdentity();
+
+        const auto pos = getCameraPosition();
+        matrix.lookAt(
+                pos,
+                m_target,
+                QVector3D(0.0f, m_up, 0.0f));
+        matrix.translate(-pos.x(), -pos.y(), -pos.z());
+        m_modelViewMatrixIsDirty = false;
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadMatrixf(matrix.data());
     }
-    glMatrixMode(GL_MODELVIEW);
-    glLoadMatrixf(m_modelViewMatrix.data());
-
-// THESE WORK.
-//    glLoadIdentity();
-//    glRotatef(-90, 1,0,0);
-//    glTranslatef(0,1.0,0);
-
-//    }
-    checkGLError("applyModelViewMatrix");
-
+    checkGLError("maybeUpdateModelViewMatrix");
 }
 
+/**
+ * If the projection matrix is dirty, update and reload it.
+ */
 void
-rosy_gl_widget::applyProjectionMatrix() {
-    glMatrixMode(GL_PROJECTION);
-    const auto yMax = tan(m_fov * DEG2RAD * 0.5f);
-    const auto xMax = yMax * m_aspect_ratio;
-    glLoadIdentity();
-    glFrustum(-xMax, xMax, -yMax, yMax, m_z_near, m_z_far);
-    checkGLError("applyProjectionMatrix");
+rosy_gl_widget::maybeUpdateProjectionMatrix() const {
+    if (m_projectionMatrixIsDirty) {
+        const auto yMax = tan(m_fov * DEG2RAD * 0.5f);
+        const auto xMax = yMax * m_aspectRatio;
+
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glFrustum(-xMax, xMax, -yMax, yMax, m_zNear, m_zFar);
+    }
+    checkGLError("maybeUpdateProjectionMatrix");
 }
 
+/**
+ * Resize the viewport when the window resizes.
+ */
 void
 rosy_gl_widget::resizeGL(int width, int height) {
     glViewport(0, 0, width, height);
-    m_aspect_ratio = width / (float) height;
-    applyProjectionMatrix();
+    m_aspectRatio = (float) width / (float) height;
+    m_projectionMatrixIsDirty = true;
 }
 
 void
 rosy_gl_widget::paintGL() {
-    checkGLError("enter paintGL");
     clear();
 
-    applyProjectionMatrix();
+    maybeUpdateProjectionMatrix();
 
-    applyModelViewMatrix();
+    maybeUpdateModelViewMatrix();
 
     drawPositions();
 
@@ -229,31 +233,16 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
-    m_normal_scale_factor = normal_scale_factor;
+    m_normalScaleFactor = normal_scale_factor;
 
     update();
 }
 
 void
-rosy_gl_widget::setupDummyData() {
-    m_positions.push_back(0.0f);
-    m_positions.push_back(0.0f);
-    m_positions.push_back(0.0f);
-
-    m_normals.push_back(0.0f);
-    m_normals.push_back(1.0f);
-    m_normals.push_back(0.0f);
-
-    m_tangents.push_back(1.0f);
-    m_tangents.push_back(0.0f);
-    m_tangents.push_back(0.0f);
-}
-
-void
-rosy_gl_widget::checkGLError(const std::string& context) const{
+rosy_gl_widget::checkGLError(const std::string &context) {
     auto err = glGetError();
-    if( !err) return;
-    spdlog::error( "{}: {} ", context, err);
+    if (!err) return;
+    spdlog::error("{}: {} ", context, err);
 }
 
 void
@@ -265,61 +254,60 @@ void rosy_gl_widget::keyPressEvent(QKeyEvent *event) {
     bool shiftDown = (event->modifiers() & Qt::KeyboardModifier::ShiftModifier) == Qt::KeyboardModifier::ShiftModifier;
     bool movedCamera = false;
     bool rotatedCamera = false;
-    if (event)
-        switch (event->key()) {
-            case Qt::Key_Left:
-                if (shiftDown) {
-                    rotate(-10.f * DEG2RAD, 0);
-                    rotatedCamera = true;
-                } else {
-                    pan(-0.1f, 0.0f);
-                    movedCamera = true;
-                }
-                break;
-
-            case Qt::Key_Right:
-                if (shiftDown) {
-                    rotate(10.f * DEG2RAD, 0);
-                    rotatedCamera = true;
-                } else {
-                    pan(0.1f, 0.0f);
-                    movedCamera = true;
-                }
-                break;
-
-            case Qt::Key_Up:
-                if (shiftDown) {
-                    rotate(0.0f, -10.f * DEG2RAD);
-                    rotatedCamera = true;
-                } else {
-                    pan(0.0f, -0.1f);
-                    movedCamera = true;
-                }
-                break;
-
-            case Qt::Key_Down:
-                if (shiftDown) {
-                    rotate(0.0f, 10.f * DEG2RAD);
-                    rotatedCamera = true;
-                } else {
-                    pan(0.0f, 0.1f);
-                    movedCamera = true;
-                }
-                break;
-
-            case Qt::Key_Equal:
-                zoom(-0.5f);
+    switch (event->key()) {
+        case Qt::Key_Left:
+            if (shiftDown) {
+                rotate(-10.0f * DEG2RAD, 0);
+                rotatedCamera = true;
+            } else {
+                pan(-0.1f, 0.0f);
                 movedCamera = true;
-                break;
+            }
+            break;
 
-            case Qt::Key_Minus:
-                zoom(0.5f);
+        case Qt::Key_Right:
+            if (shiftDown) {
+                rotate(10.0f * DEG2RAD, 0);
+                rotatedCamera = true;
+            } else {
+                pan(0.1f, 0.0f);
                 movedCamera = true;
-                break;
+            }
+            break;
 
-            default:
-                std::cout << "Key pressed " << event->key() << std::endl;
-        }
+        case Qt::Key_Up:
+            if (shiftDown) {
+                rotate(0.0f, -10.f * DEG2RAD);
+                rotatedCamera = true;
+            } else {
+                pan(0.0f, -0.1f);
+                movedCamera = true;
+            }
+            break;
+
+        case Qt::Key_Down:
+            if (shiftDown) {
+                rotate(0.0f, 10.f * DEG2RAD);
+                rotatedCamera = true;
+            } else {
+                pan(0.0f, 0.1f);
+                movedCamera = true;
+            }
+            break;
+
+        case Qt::Key_Equal:
+            zoom(-0.5f);
+            movedCamera = true;
+            break;
+
+        case Qt::Key_Minus:
+            zoom(0.5f);
+            movedCamera = true;
+            break;
+
+        default:
+            std::cout << "Key pressed " << event->key() << std::endl;
+    }
     if (movedCamera || rotatedCamera) {
         if (movedCamera) {
             const auto pos = toCartesian();
@@ -328,6 +316,7 @@ void rosy_gl_widget::keyPressEvent(QKeyEvent *event) {
         if (rotatedCamera) {
             emit cameraOrientationChanged(m_radius, m_theta, m_phi);
         }
+        m_modelViewMatrixIsDirty = true;
         update();
     }
 }
@@ -337,24 +326,22 @@ rosy_gl_widget::mouseMoveEvent(QMouseEvent *e) {
     if (e->buttons() & Qt::LeftButton) {
         if (e->modifiers() & Qt::KeyboardModifier::ControlModifier) {
             const auto delta = m_lastPixelPosition - e->pos();
-            pan(-delta.x() * PAN_FACTOR, delta.y() * PAN_FACTOR);
-        } else if (e->modifiers() & Qt::KeyboardModifier::ShiftModifier) {
-            const auto zDelta = (m_lastPixelPosition - e->pos()).y();
-            zoom(zDelta * ZOOM_FACTOR);
+            pan((float) delta.x() * PAN_FACTOR, (float) delta.y() * PAN_FACTOR);
         } else {
-            // Calculate the new phi and theta based on mouse position relative to where the user clicked
             const auto delta = (m_lastPixelPosition - e->pos());
-            rotate(-delta.x() / ROTATE_FACTOR, delta.y() / ROTATE_FACTOR);
+            rotate(-(float) delta.x() / ROTATE_FACTOR, (float) delta.y() / ROTATE_FACTOR);
         }
+    } else if (e->buttons() & Qt::RightButton) {
+        const auto zDelta = (m_lastPixelPosition - e->pos()).y();
+        zoom((float) zDelta * ZOOM_FACTOR);
     }
     m_lastPixelPosition = e->pos();
     e->accept();
-    update();
 }
 
 void
 rosy_gl_widget::mousePressEvent(QMouseEvent *e) {
-    if (e->buttons() & Qt::LeftButton) {
+    if (e->buttons() & (Qt::LeftButton | Qt::RightButton)) {
         m_lastPixelPosition = e->pos();
     }
     e->accept();
@@ -389,12 +376,16 @@ rosy_gl_widget::rotate(float dTheta, float dPhi) {
         m_up = -1.0f;
     }
     m_modelViewMatrixIsDirty = true;
+    emit cameraOrientationChanged(m_radius, m_theta, m_phi);
+    update();
 }
 
 void
 rosy_gl_widget::zoom(float distance) {
     m_radius = std::fminf(30.0f, std::fmaxf(0.0f, m_radius - distance));
     m_modelViewMatrixIsDirty = true;
+    emit cameraOrientationChanged(m_radius, m_theta, m_phi);
+    update();
 }
 
 void
@@ -406,18 +397,7 @@ rosy_gl_widget::pan(float dx, float dy) {
 
     m_target = m_target + (right * dx) + (up * dy);
     m_modelViewMatrixIsDirty = true;
-}
-
-void
-rosy_gl_widget::updateModelViewMatrix() {
-    const auto pos = getCameraPosition();
-    m_modelViewMatrix.setToIdentity();
-    m_modelViewMatrix.lookAt(
-            pos,
-            m_target,
-            QVector3D(0.0f, m_up, 0.0f));
-    m_modelViewMatrix.translate(-pos.x(), -pos.y(), -pos.z());
-    m_modelViewMatrixIsDirty = false;
+    update();
 }
 
 QVector3D
@@ -432,3 +412,44 @@ rosy_gl_widget::toCartesian() const {
     return {vector.x(), vector.y(), vector.z()};
 }
 
+void
+rosy_gl_widget::renderNormals( bool shouldRender) {
+    if( m_renderNormals != shouldRender) {
+        m_renderNormals = shouldRender;
+        update();
+    }
+}
+
+void
+rosy_gl_widget::renderMainTangents( bool shouldRender) {
+    if( m_renderMainTangents != shouldRender) {
+        m_renderMainTangents = shouldRender;
+        update();
+    }
+}
+
+void
+rosy_gl_widget::renderOtherTangents( bool shouldRender) {
+    if( m_renderOtherTangents != shouldRender) {
+        m_renderOtherTangents = shouldRender;
+        update();
+    }
+}
+
+void
+rosy_gl_widget::setZFar(float zFar) {
+    if (m_zFar != zFar) {
+        m_zFar = zFar;
+        m_projectionMatrixIsDirty = true;
+        update();
+    }
+}
+
+void
+rosy_gl_widget::setFov(float fov) {
+    if( m_fov != fov) {
+        m_fov = fov;
+        m_projectionMatrixIsDirty = true;
+        update();
+    }
+}

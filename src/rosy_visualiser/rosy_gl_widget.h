@@ -7,7 +7,7 @@
 #include <QOpenGLDebugLogger>
 
 #include <Surfel/SurfelGraph.h>
-
+#include <arc_ball.h>
 #include <vector>
 
 /**
@@ -34,24 +34,13 @@ public:
     void renderOtherTangents( bool shouldRender);
     void setZFar(float zFar);
     void setFov(float fov);
-    void rotate(float dTheta, float dPhi);
-    void zoom(float distance);
-    void pan(float dx, float dy);
 
 protected:
     void paintGL() override;
     void initializeGL() override;
-    void keyPressEvent(QKeyEvent *event) override;
     void resizeGL(int width, int height) override;
-    void mouseMoveEvent(QMouseEvent *e) override;
-    void mousePressEvent(QMouseEvent *e) override;
-    void mouseReleaseEvent(QMouseEvent *e) override;
 
 private:
-    const float ROTATE_FACTOR = 300.0f;
-    const float PAN_FACTOR = 0.01f;
-    const float ZOOM_FACTOR = 0.05f;
-
     std::vector<float> m_positions;
     std::vector<float> m_tangents;
     std::vector<float> m_normals;
@@ -62,6 +51,8 @@ private:
     QColor m_normalColour;
     QColor m_mainTangentColour;
     QColor m_otherTangentsColour;
+
+    arc_ball * m_arcBall;
 
     void maybeUpdateModelViewMatrix();
     void maybeUpdateProjectionMatrix() const;
@@ -75,21 +66,9 @@ private:
     float m_zNear;
     float m_zFar;
     float m_aspectRatio;
+    bool m_projectionMatrixIsDirty;
 
     static void checkGLError(const std::string& context) ;
-    //
-    // ArcBall Controls
-    //
-    float m_theta;
-    float m_phi;
-    float m_radius;
-    float m_up;
-    bool m_modelViewMatrixIsDirty;
-    bool m_projectionMatrixIsDirty;
-    QPoint m_lastPixelPosition;
-    QVector3D m_target;
-    QVector3D getCameraPosition() const;
-    QVector3D toCartesian() const;
 
 signals:
     void cameraPositionChanged(float x, float y, float z) const;

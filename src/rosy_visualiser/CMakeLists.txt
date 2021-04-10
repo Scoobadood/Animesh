@@ -21,6 +21,7 @@ set(PROJECT_SOURCES
         rosy_visualiser_status_bar.cpp
         rosy_visualiser_status_bar.h
         rosy_visualiser_status_bar.ui
+		arc_ball.h arc_ball.cpp
 )
 
 add_executable(rosy_visualiser

@@ -30,10 +30,9 @@ void
 posy_visualiser_window::extract_geometry() {
     std::vector<float> positions;
     std::vector<float> normals;
-    std::vector<float> tangents;
-    float scale_factor;
-    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, tangents, normals, scale_factor);
-    ui->posyGLWidget->setPoSyData(positions, normals, tangents, scale_factor);
+    std::vector<float> uvs;
+    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, normals, uvs);
+    ui->posyGLWidget->setPoSyData(positions, normals, uvs);
 }
 
 void

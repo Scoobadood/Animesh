@@ -12,8 +12,8 @@ posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor() {
 void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
                                    unsigned int frame,
                                    std::vector<float> &positions,
-                                   std::vector<float> &tangents,
-                                   std::vector<float> &normals) {
+                                   std::vector<float> &normals,
+                                   std::vector<float> &uvs) {
     for (const auto &node : graphPtr->nodes()) {
         const auto &surfel = node->data();
         if (!surfel->is_in_frame(frame)) {
@@ -22,18 +22,18 @@ void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
 
         Eigen::Vector3f position, normal, tangent;
         surfel->get_position_tangent_normal_for_frame(frame, position, tangent, normal);
+        auto uv = surfel->closest_mesh_vertex_offset;
 
         positions.push_back(position.x());
         positions.push_back(position.y());
         positions.push_back(position.z());
 
-        tangents.push_back(tangent.x());
-        tangents.push_back(tangent.y());
-        tangents.push_back(tangent.z());
-
         normals.push_back(normal.x());
         normals.push_back(normal.y());
         normals.push_back(normal.z());
+
+        uvs.push_back(uv.x());
+        uvs.push_back(uv.y());
     }
 }
 
@@ -49,38 +49,6 @@ void centre_at_origin(std::vector<float> &xyz) {
     }
 }
 
-float compute_normal_scale(
-        const SurfelGraphPtr& graphPtr,
-        float model_scale) {
-    // Pick a surfel and compute mean neighbour distance for this frame
-    const auto node = graphPtr->nodes().front();
-    const auto surfel = node->data();
-    const auto neighbours = graphPtr->neighbours(node);
-    int count = 0;
-    float distance = 0.0f;
-    for (const auto &fd : surfel->frame_data) {
-        unsigned int frame = fd.pixel_in_frame.frame;
-        const auto &this_surfel_position = fd.position;
-        for (const auto &neighbour_node : neighbours) {
-            const auto &otherSurfel = neighbour_node->data();
-            if (otherSurfel->is_in_frame(frame)) {
-                Eigen::Vector3f other_surfel_position, tangent, normal;
-                otherSurfel->get_position_tangent_normal_for_frame(frame, other_surfel_position, tangent, normal);
-                distance += (distance_from_point_to_point(other_surfel_position, this_surfel_position));
-                count++;
-            }
-        }
-    }
-
-    const auto mean_neighbour_distance = (count > 0)
-                                         ? distance / (float)count
-                                         : 1.0f;
-
-    // Proposed scale should be 2/5 of mean neighbour distance so that
-    // in general, adjacent tangents don't touch. But we must also scale by the model_scale
-    return mean_neighbour_distance * model_scale * 0.4f;
-}
-
 /**
  * @brief Generate the vertex data needed to render the current frame of this graph.
  * All float vectors are populated in x,y,z coordinate triplets.
@@ -93,19 +61,14 @@ float compute_normal_scale(
 void posy_surfel_graph_geometry_extractor::extract_geometry(
         const SurfelGraphPtr& graphPtr,
         std::vector<float> &positions,
-        std::vector<float> &tangents,
         std::vector<float> &normals,
-        float &normal_scale
+        std::vector<float> &uvs
 ) const {
 
     positions.clear();
-    tangents.clear();
     normals.clear();
+    uvs.clear();
 
-    extract_xyz_triples_for_frame(graphPtr, m_frame, positions, tangents, normals);
+    extract_xyz_triples_for_frame(graphPtr, m_frame, positions, normals, uvs);
     centre_at_origin(positions);
-//    const auto model_scale = scale_to_region(positions);
-    const auto model_scale = 1.0f;
-    normal_scale = compute_normal_scale(graphPtr, model_scale);
-    normal_scale = 0.1f;
 }

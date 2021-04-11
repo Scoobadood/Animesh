@@ -5,6 +5,7 @@
 #include <QMatrix4x4>
 #include <QOpenGLWidget>
 #include <QOpenGLDebugLogger>
+#include <QOpenGLTexture>
 
 #include <Surfel/SurfelGraph.h>
 #include <ArcBall/ArcBall.h>
@@ -21,8 +22,8 @@ public:
 
     void setPoSyData(const std::vector<float>& positions,
                      const std::vector<float>& normals,
-                     const std::vector<float>& uvs,
-                     float scale_factor);
+                     const std::vector<float>& uvs
+                     );
 
     void setZFar(float zFar);
     void setFov(float fov);
@@ -43,13 +44,15 @@ private:
     void maybeUpdateProjectionMatrix() const;
     static void clear();
     void drawPositions() const;
+    void maybeDrawSplats() const;
+    QOpenGLTexture * splatTexture;
 
     float m_fov;
     float m_zNear;
     float m_zFar;
     float m_aspectRatio;
     bool m_projectionMatrixIsDirty;
-    float m_normalScaleFactor;
+    bool m_renderSplats;
 
     static void checkGLError(const std::string& context) ;
 

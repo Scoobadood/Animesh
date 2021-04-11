@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <QColor>
+#include <QImage>
 #include <Surfel/SurfelGraph.h>
 
 const float DEG2RAD = (3.14159265f / 180.0f);
@@ -13,7 +14,7 @@ posy_gl_widget::posy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
         , m_zFar{50.0f} //
         , m_aspectRatio{1.0f} //
         , m_projectionMatrixIsDirty{true} //
-        , m_normalScaleFactor{1.0f} //
+        , m_renderSplats{true} //
 {
     m_arcBall = new ArcBall();
     installEventFilter(m_arcBall);
@@ -22,9 +23,49 @@ posy_gl_widget::posy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
     setPoSyData(
             std::vector<float>{0.0f, 0.0f, 0.0f},
             std::vector<float>{0.0f, 1.0f, 0.0f},
-            std::vector<float>{0.0f, 0.0f},
-            1.0f
+            std::vector<float>{0.0f, 0.0f}
     );
+}
+
+void
+posy_gl_widget::maybeDrawSplats() const {
+    if (!m_renderSplats) {
+        return;
+    }
+    glEnable(GL_TEXTURE_2D);
+    checkGLError("Enable tex 2D");
+
+    glBindTexture(GL_TEXTURE_2D, splatTexture->textureId());
+    checkGLError("bound texture");
+
+    // Generate quad vertices facing +z direction with size 0.1
+    glBegin(GL_QUADS);
+    for (int i = 0; i < m_positions.size(); i += 3) {
+        glNormal3d(0, 1, 0);
+        glTexCoord2d(0, 0);
+        glVertex3f(m_positions.at(i + 0) - 0.1f,
+                   m_positions.at(i + 1),
+                   m_positions.at(i + 2) - 0.1f);
+
+        glTexCoord2d(0, 1);
+        glVertex3f(m_positions.at(i + 0) - 0.1f,
+                   m_positions.at(i + 1),
+                   m_positions.at(i + 2) + 0.1f);
+
+        glTexCoord2d(1, 1);
+        glVertex3f(m_positions.at(i + 0) + 0.1f,
+                   m_positions.at(i + 1),
+                   m_positions.at(i + 2) + 0.1f);
+
+        glTexCoord2d(1, 0);
+        glVertex3f(m_positions.at(i + 0) + 0.1f,
+                   m_positions.at(i + 1),
+                   m_positions.at(i + 2) - 0.1f);
+    }
+    glEnd();
+    glFlush();
+    glDisable(GL_TEXTURE_2D);
+    checkGLError("maybeDrawSplats");
 }
 
 void
@@ -60,7 +101,7 @@ posy_gl_widget::clear() {
  */
 void
 posy_gl_widget::maybeUpdateModelViewMatrix() {
-    if( m_arcBall->modelViewMatrixHasChanged()) {
+    if (m_arcBall->modelViewMatrixHasChanged()) {
         glMatrixMode(GL_MODELVIEW);
         float m[16];
         m_arcBall->modelViewMatrix(m);
@@ -104,13 +145,15 @@ posy_gl_widget::paintGL() {
     maybeUpdateModelViewMatrix();
 
     drawPositions();
+
+    maybeDrawSplats();
 }
 
 void
 posy_gl_widget::setPoSyData(const std::vector<float> &positions,
                             const std::vector<float> &normals,
-                            const std::vector<float> &uvs,
-                            const float normal_scale_factor) {
+                            const std::vector<float> &uvs
+) {
     m_positions.clear();
     m_normals.clear();
     m_uvs.clear();
@@ -118,7 +161,6 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
     m_uvs.insert(m_uvs.begin(), uvs.begin(), uvs.end());
-    m_normalScaleFactor = normal_scale_factor;
 
     update();
 }
@@ -132,7 +174,27 @@ posy_gl_widget::checkGLError(const std::string &context) {
 
 void
 posy_gl_widget::initializeGL() {
-    glEnable(GL_DEPTH);
+    QImage img(64, 64, QImage::Format_ARGB32);
+    for (int x = -31; x < 32; x++) {
+        for (int y = -31; y < 32; y++) {
+            float d2 = x * x + y * y;
+            const auto argb = (d2 < 400)
+                              ? 0xFFFF0000
+                              : 0xFFFFFFFF;
+            img.setPixel(x + 31, y + 31, argb);
+        }
+    }
+    for (int i = 0; i < 64; i++) {
+        img.setPixel(31, i, 0xFF00FF00);
+        img.setPixel(i, 31, 0xFFFF00FF);
+    }
+    checkGLError("Making image");
+
+    splatTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    splatTexture->setData(img, QOpenGLTexture::GenerateMipMaps);
+    splatTexture->setMinMagFilters(QOpenGLTexture::LinearMipMapLinear, QOpenGLTexture::Nearest);
+
+    checkGLError("Generating texture");
 }
 
 void
@@ -146,7 +208,7 @@ posy_gl_widget::setZFar(float zFar) {
 
 void
 posy_gl_widget::setFov(float fov) {
-    if( m_fov != fov) {
+    if (m_fov != fov) {
         m_fov = fov;
         m_projectionMatrixIsDirty = true;
         update();

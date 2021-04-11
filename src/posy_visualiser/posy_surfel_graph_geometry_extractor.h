@@ -11,9 +11,9 @@ public:
     posy_surfel_graph_geometry_extractor( );
     void extract_geometry(const SurfelGraphPtr& graphPtr,
                           std::vector<float>& positions,
-                          std::vector<float>& tangents,
                           std::vector<float>& normals,
-                          float& scale_factor) const;
+                          std::vector<float>& uvs
+                          ) const;
 
     inline void set_frame(int frame) {
         if(m_frame != frame) {

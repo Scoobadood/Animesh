@@ -10,14 +10,22 @@ rosy_visualiser_window::rosy_visualiser_window(QWidget *parent)
         : QMainWindow(parent), ui(new Ui::rosy_visualiser_window) {
     ui->setupUi(this);
     ui->statusbar->addPermanentWidget(ui->rosyStatusBar);
-    m_geometryExtractor = new surfel_graph_geometry_extractor();
+    m_geometryExtractor = new posy_surfel_graph_geometry_extractor();
 
-    connect(ui->cbNormals, &QCheckBox::toggled, this, &rosy_visualiser_window::normalsToggled);
-    connect(ui->cbMainTangent, &QCheckBox::toggled, this, &rosy_visualiser_window::mainTangentToggled);
-    connect(ui->cbOtherTangents, &QCheckBox::toggled, this, &rosy_visualiser_window::otherTangentsToggled);
-    connect(ui->slFar, &QSlider::valueChanged, this, &rosy_visualiser_window::zFarChanged);
-    connect(ui->slFov, &QSlider::valueChanged, this, &rosy_visualiser_window::fovChanged);
-    connect(ui->menuFile, &QMenu::triggered, this, &rosy_visualiser_window::fileOpenAction);
+    connect(ui->cbNormals, &QCheckBox::toggled,
+            ui->rosyGLWidget, &rosy_gl_widget::renderNormals);
+    connect(ui->cbMainTangent, &QCheckBox::toggled,
+            ui->rosyGLWidget, &rosy_gl_widget::renderMainTangents);
+    connect(ui->cbOtherTangents, &QCheckBox::toggled,
+            ui->rosyGLWidget, &rosy_gl_widget::renderOtherTangents);
+    connect(ui->slFar, &QSlider::valueChanged,
+            ui->rosyGLWidget, &rosy_gl_widget::setZFar);
+    connect(ui->slFov, &QSlider::valueChanged,
+            ui->rosyGLWidget, &rosy_gl_widget::setFov);
+    connect(ui->menuFile, &QMenu::triggered,
+            this, &rosy_visualiser_window::fileOpenAction);
+    connect(ui->frameSelector, &QSlider::valueChanged,
+            this, &rosy_visualiser_window::frameChanged);
 }
 
 rosy_visualiser_window::~rosy_visualiser_window() {
@@ -48,26 +56,6 @@ void rosy_visualiser_window::fileOpenAction() {
                                                     tr("Surfel Graph Files (*.bin);;All Files (*)"));
     const auto graphPtr = load_surfel_graph_from_file(fileName.toStdString());
     set_graph(graphPtr);
-}
-
-void rosy_visualiser_window::normalsToggled(bool checked) {
-    ui->rosyGLWidget->renderNormals(checked);
-}
-
-void rosy_visualiser_window::mainTangentToggled(bool checked) {
-    ui->rosyGLWidget->renderMainTangents(checked);
-}
-
-void rosy_visualiser_window::otherTangentsToggled(bool checked) {
-    ui->rosyGLWidget->renderOtherTangents(checked);
-}
-
-void rosy_visualiser_window::fovChanged(int value) {
-    ui->rosyGLWidget->setFov((float)value);
-}
-
-void rosy_visualiser_window::zFarChanged(int value) {
-    ui->rosyGLWidget->setZFar((float)value);
 }
 
 void rosy_visualiser_window::frameChanged(int value) {

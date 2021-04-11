@@ -2,7 +2,7 @@
 // Created by Dave Durbin (Old) on 2/4/21.
 //
 
-#include "surfel_graph_geometry_extractor.h"
+#include "posy_surfel_graph_geometry_extractor.h"
 #include <Geom/Geom.h>
 
 posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor() {

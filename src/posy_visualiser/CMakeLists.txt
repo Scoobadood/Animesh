@@ -15,6 +15,8 @@ set(PROJECT_SOURCES
 		posy_visualiser_window.h
 		posy_gl_widget.cpp
 		posy_gl_widget.h
+		posy_surfel_graph_geometry_extractor.cpp
+		posy_surfel_graph_geometry_extractor.h
 		posy_visualiser_window.ui
 		)
 

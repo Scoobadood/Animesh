@@ -9,7 +9,7 @@ surfel_graph_geometry_extractor::surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
-void extract_xyz_triples_for_frame(const SurfelGraphPtr graphPtr,
+void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
                                    unsigned int frame,
                                    std::vector<float> &positions,
                                    std::vector<float> &tangents,
@@ -49,27 +49,9 @@ void centre_at_origin(std::vector<float> &xyz) {
     }
 }
 
-float scale_to_region(std::vector<float> &xyz) {
-    auto minX = MAXFLOAT;
-    auto minY = MAXFLOAT;
-    auto minZ = MAXFLOAT;
-    auto maxX = -MAXFLOAT;
-    auto maxY = -MAXFLOAT;
-    auto maxZ = -MAXFLOAT;
-    compute_bounds(xyz, minX, maxX, minY, maxY, minZ, maxZ);
-
-    auto rangeX = maxX - minX;
-    auto rangeY = maxY - minY;
-    auto rangeZ = maxZ - minZ;
-    auto range = fmaxf(fmaxf(rangeX, rangeY), rangeZ);
-    auto scale = 1.0f / range;
-    for (unsigned int i = 0; i < xyz.size(); ++i) {
-        xyz.at(i) *= scale;
-    }
-    return scale;
-}
-
-float compute_normal_scale(const SurfelGraphPtr graphPtr, float model_scale) {
+float compute_normal_scale(
+        const SurfelGraphPtr& graphPtr,
+        float model_scale) {
     // Pick a surfel and compute mean neighbour distance for this frame
     const auto node = graphPtr->nodes().front();
     const auto surfel = node->data();
@@ -79,8 +61,8 @@ float compute_normal_scale(const SurfelGraphPtr graphPtr, float model_scale) {
     for (const auto &fd : surfel->frame_data) {
         unsigned int frame = fd.pixel_in_frame.frame;
         const auto &this_surfel_position = fd.position;
-        for (const auto &node : neighbours) {
-            const auto &otherSurfel = node->data();
+        for (const auto &neighbour_node : neighbours) {
+            const auto &otherSurfel = neighbour_node->data();
             if (otherSurfel->is_in_frame(frame)) {
                 Eigen::Vector3f other_surfel_position, tangent, normal;
                 otherSurfel->get_position_tangent_normal_for_frame(frame, other_surfel_position, tangent, normal);
@@ -91,7 +73,7 @@ float compute_normal_scale(const SurfelGraphPtr graphPtr, float model_scale) {
     }
 
     const auto mean_neighbour_distance = (count > 0)
-                                         ? distance / count
+                                         ? distance / (float)count
                                          : 1.0f;
 
     // Proposed scale should be 2/5 of mean neighbour distance so that
@@ -109,7 +91,7 @@ float compute_normal_scale(const SurfelGraphPtr graphPtr, float model_scale) {
  * @param scaleFactor A proposed scaling for the normals and tangents.
  */
 void surfel_graph_geometry_extractor::extract_geometry(
-        const SurfelGraphPtr graphPtr,
+        const SurfelGraphPtr& graphPtr,
         std::vector<float> &positions,
         std::vector<float> &tangents,
         std::vector<float> &normals,

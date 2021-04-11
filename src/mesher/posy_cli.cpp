@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     Properties properties{property_file_name};
 
     PoSyOptimiser poSyOptimiser{properties};
-    auto surfel_graph = load_surfel_graph_from_file("smoothed_01.bin");
+    auto surfel_graph = load_surfel_graph_from_file("smoothed_02.bin");
     poSyOptimiser.set_data(surfel_graph);
 
     auto start_time = std::chrono::system_clock::now();
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     cout << "Last level time " << last_level_elapsed_time <<"s  (" << mins << ":" << setw(2) << setfill('0') << secs << ")" << endl;
     cout << "Last level iterations : " << last_level_iterations << endl;
 
-    save_surfel_graph_to_file("posy_smoothed_01.bin", surfel_graph);
+    save_surfel_graph_to_file("posy_smoothed_02.bin", surfel_graph);
     cout << "Saved" << endl;
 
     return 0;

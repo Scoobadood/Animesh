@@ -29,10 +29,11 @@ posy_visualiser_window::~posy_visualiser_window() {
 void
 posy_visualiser_window::extract_geometry() {
     std::vector<float> positions;
+    std::vector<float> quads;
     std::vector<float> normals;
     std::vector<float> uvs;
-    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, normals, uvs);
-    ui->posyGLWidget->setPoSyData(positions, normals, uvs);
+    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, quads, normals, uvs);
+    ui->posyGLWidget->setPoSyData(positions, quads, normals, uvs);
 }
 
 void

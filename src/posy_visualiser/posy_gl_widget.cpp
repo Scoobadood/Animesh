@@ -22,6 +22,10 @@ posy_gl_widget::posy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
     // Dummy data
     setPoSyData(
             std::vector<float>{0.0f, 0.0f, 0.0f},
+            std::vector<float>{-0.4f, 0.0f, -0.4f,
+                               -0.4, 0.0, 0.4f,
+                               0.4f, 0.0f, 0.4f,
+                               0.4f, 0.0f, -0.4f},
             std::vector<float>{0.0f, 1.0f, 0.0f},
             std::vector<float>{0.0f, 0.0f}
     );
@@ -38,29 +42,32 @@ posy_gl_widget::maybeDrawSplats() const {
     glBindTexture(GL_TEXTURE_2D, splatTexture->textureId());
     checkGLError("bound texture");
 
-    // Generate quad vertices facing +z direction with size 0.1
     glBegin(GL_QUADS);
-    for (int i = 0; i < m_positions.size(); i += 3) {
-        glNormal3d(0, 1, 0);
+    const auto numPositions = m_positions.size() / 3;
+    for (int i = 0; i < numPositions; ++i) {
+        glNormal3d(m_normals.at(i * 3 + 0),
+                   m_normals.at(i * 3 + 1),
+                   m_normals.at(i * 3 + 2));
+
         glTexCoord2d(0, 0);
-        glVertex3f(m_positions.at(i + 0) - 0.1f,
-                   m_positions.at(i + 1),
-                   m_positions.at(i + 2) - 0.1f);
+        glVertex3f(m_quads.at(i * 12 + 0),
+                   m_quads.at(i * 12 + 1),
+                   m_quads.at(i * 12 + 2));
 
         glTexCoord2d(0, 1);
-        glVertex3f(m_positions.at(i + 0) - 0.1f,
-                   m_positions.at(i + 1),
-                   m_positions.at(i + 2) + 0.1f);
+        glVertex3f(m_quads.at(i * 12 + 3),
+                   m_quads.at(i * 12 + 4),
+                   m_quads.at(i * 12 + 5));
 
         glTexCoord2d(1, 1);
-        glVertex3f(m_positions.at(i + 0) + 0.1f,
-                   m_positions.at(i + 1),
-                   m_positions.at(i + 2) + 0.1f);
+        glVertex3f(m_quads.at(i * 12 + 6),
+                   m_quads.at(i * 12 + 7),
+                   m_quads.at(i * 12 + 8));
 
         glTexCoord2d(1, 0);
-        glVertex3f(m_positions.at(i + 0) + 0.1f,
-                   m_positions.at(i + 1),
-                   m_positions.at(i + 2) - 0.1f);
+        glVertex3f(m_quads.at(i * 12 + 9),
+                   m_quads.at(i * 12 + 10),
+                   m_quads.at(i * 12 + 11));
     }
     glEnd();
     glFlush();
@@ -151,14 +158,17 @@ posy_gl_widget::paintGL() {
 
 void
 posy_gl_widget::setPoSyData(const std::vector<float> &positions,
+                            const std::vector<float> &quads,
                             const std::vector<float> &normals,
                             const std::vector<float> &uvs
 ) {
     m_positions.clear();
+    m_quads.clear();
     m_normals.clear();
     m_uvs.clear();
 
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
+    m_quads.insert(m_quads.begin(), quads.begin(), quads.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
     m_uvs.insert(m_uvs.begin(), uvs.begin(), uvs.end());
 
@@ -172,16 +182,21 @@ posy_gl_widget::checkGLError(const std::string &context) {
     spdlog::error("{}: {} ", context, err);
 }
 
-void
-posy_gl_widget::initializeGL() {
+QImage
+posy_gl_widget::makeImage( ) const{
     QImage img(64, 64, QImage::Format_ARGB32);
     for (int x = -31; x < 32; x++) {
         for (int y = -31; y < 32; y++) {
-            float d2 = x * x + y * y;
-            const auto argb = (d2 < 400)
-                              ? 0xFFFF0000
-                              : 0xFFFFFFFF;
-            img.setPixel(x + 31, y + 31, argb);
+            float d = std::sqrtf(x * x + y * y);
+            int a = std::max<int>(0, 255 - (int)(d * 8));
+            int r = (y == 0)
+                    ? 255
+                    : 0;
+            int g = (x == 0 )
+                    ? 255
+                    : 0;
+            int colour = (a << 24) | ( r << 16) | (g << 8);
+            img.setPixel(x + 31, y + 31, colour);
         }
     }
     for (int i = 0; i < 64; i++) {
@@ -189,11 +204,22 @@ posy_gl_widget::initializeGL() {
         img.setPixel(i, 31, 0xFFFF00FF);
     }
     checkGLError("Making image");
+    return img;
+}
 
+void
+posy_gl_widget::initializeGL() {
+    glEnable( GL_BLEND );
+    glEnable( GL_DEPTH );
+    glEnable( GL_CULL_FACE );
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+    auto img = makeImage();
     splatTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
     splatTexture->setData(img, QOpenGLTexture::GenerateMipMaps);
     splatTexture->setMinMagFilters(QOpenGLTexture::LinearMipMapLinear, QOpenGLTexture::Nearest);
-
     checkGLError("Generating texture");
 }
 

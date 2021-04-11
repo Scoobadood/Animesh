@@ -9,11 +9,11 @@ posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
-void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
-                                   unsigned int frame,
-                                   std::vector<float> &positions,
-                                   std::vector<float> &tangents,
-                                   std::vector<float> &normals) {
+void extract_quads_for_frame(const SurfelGraphPtr& graphPtr,
+                             unsigned int frame,
+                             std::vector<float> &positions,
+                             std::vector<float> &normals,
+                             std::vector<float> &uvs) {
     for (const auto &node : graphPtr->nodes()) {
         const auto &surfel = node->data();
         if (!surfel->is_in_frame(frame)) {
@@ -27,13 +27,13 @@ void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
         positions.push_back(position.y());
         positions.push_back(position.z());
 
-        tangents.push_back(tangent.x());
-        tangents.push_back(tangent.y());
-        tangents.push_back(tangent.z());
+        normals.push_back(tangent.x());
+        normals.push_back(tangent.y());
+        normals.push_back(tangent.z());
 
-        normals.push_back(normal.x());
-        normals.push_back(normal.y());
-        normals.push_back(normal.z());
+        uvs.push_back(normal.x());
+        uvs.push_back(normal.y());
+        uvs.push_back(normal.z());
     }
 }
 
@@ -102,7 +102,7 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
     tangents.clear();
     normals.clear();
 
-    extract_xyz_triples_for_frame(graphPtr, m_frame, positions, tangents, normals);
+    extract_quads_for_frame(graphPtr, m_frame, positions, tangents, normals);
     centre_at_origin(positions);
 //    const auto model_scale = scale_to_region(positions);
     const auto model_scale = 1.0f;

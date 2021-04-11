@@ -9,11 +9,12 @@ posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
-void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
-                                   unsigned int frame,
-                                   std::vector<float> &positions,
-                                   std::vector<float> &normals,
-                                   std::vector<float> &uvs) {
+void extract_quads_for_frame(const SurfelGraphPtr& graphPtr,
+                             unsigned int frame,
+                             std::vector<float> &positions,
+                             std::vector<float> &quads,
+                             std::vector<float> &normals,
+                             std::vector<float> &uvs) {
     for (const auto &node : graphPtr->nodes()) {
         const auto &surfel = node->data();
         if (!surfel->is_in_frame(frame)) {
@@ -27,10 +28,28 @@ void extract_xyz_triples_for_frame(const SurfelGraphPtr& graphPtr,
         positions.push_back(position.x());
         positions.push_back(position.y());
         positions.push_back(position.z());
-
         normals.push_back(normal.x());
         normals.push_back(normal.y());
         normals.push_back(normal.z());
+
+        auto t2 = normal.cross(tangent);
+        const auto v1 = position - (tangent * 0.1f) - (t2 * 0.1f);
+        const auto v2 = position - (tangent * 0.1f) + (t2 * 0.1f);
+        const auto v3 = position + (tangent * 0.1f) + (t2 * 0.1f);
+        const auto v4 = position + (tangent * 0.1f) - (t2 * 0.1f);
+        quads.push_back(v1.x());
+        quads.push_back(v1.y());
+        quads.push_back(v1.z());
+        quads.push_back(v2.x());
+        quads.push_back(v2.y());
+        quads.push_back(v2.z());
+        quads.push_back(v3.x());
+        quads.push_back(v3.y());
+        quads.push_back(v3.z());
+        quads.push_back(v4.x());
+        quads.push_back(v4.y());
+        quads.push_back(v4.z());
+
 
         uvs.push_back(uv.x());
         uvs.push_back(uv.y());
@@ -61,14 +80,17 @@ void centre_at_origin(std::vector<float> &xyz) {
 void posy_surfel_graph_geometry_extractor::extract_geometry(
         const SurfelGraphPtr& graphPtr,
         std::vector<float> &positions,
+        std::vector<float> &quads,
         std::vector<float> &normals,
         std::vector<float> &uvs
 ) const {
 
     positions.clear();
     normals.clear();
+    quads.clear();
     uvs.clear();
 
-    extract_xyz_triples_for_frame(graphPtr, m_frame, positions, normals, uvs);
+    extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, uvs);
     centre_at_origin(positions);
+    centre_at_origin(quads);
 }

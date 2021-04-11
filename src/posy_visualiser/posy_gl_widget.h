@@ -21,6 +21,7 @@ public:
     explicit posy_gl_widget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 
     void setPoSyData(const std::vector<float>& positions,
+                     const std::vector<float>& quads,
                      const std::vector<float>& normals,
                      const std::vector<float>& uvs
                      );
@@ -35,6 +36,7 @@ protected:
 
 private:
     std::vector<float> m_positions;
+    std::vector<float> m_quads;
     std::vector<float> m_normals;
     std::vector<float> m_uvs;
 
@@ -45,6 +47,7 @@ private:
     static void clear();
     void drawPositions() const;
     void maybeDrawSplats() const;
+    QImage makeImage( ) const;
     QOpenGLTexture * splatTexture;
 
     float m_fov;

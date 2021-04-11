@@ -4,6 +4,7 @@
 
 #include "posy_surfel_graph_geometry_extractor.h"
 #include <Geom/Geom.h>
+#include <Eigen/Geometry>
 
 posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor() {
     m_frame = 0;

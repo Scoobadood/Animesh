@@ -432,7 +432,7 @@ RoSyOptimiser::ssa_select_worst_100() {
         selected_nodes.push_back(n);
     }
     stable_sort(begin(selected_nodes), end(selected_nodes),
-                [this](const SurfelGraphNodePtr &s1, const SurfelGraphNodePtr &s2) {
+                [](const SurfelGraphNodePtr &s1, const SurfelGraphNodePtr &s2) {
                     return s1->data()->error > s2->data()->error;
                 });
 
@@ -548,7 +548,6 @@ norm_tans_for_frames(const SurfelGraphNodePtr &node1,
     vector<NormalTangent> norm_tans;
 
     // For each neighbour
-    const auto &this_surfel_ptr = node1->data();
     const auto &that_surfel_ptr = node2->data();
 
     // For each common frame, get normal and tangent in surfel space
@@ -595,7 +594,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
         const auto common_frames = find_common_frames_for_nodes(node, neighbour);
         // Smooth over all frames
-        for (const auto frame_pair : common_frames) {
+        for (const auto& frame_pair : common_frames) {
             auto frame_idx = frame_pair.first.pixel_in_frame.frame;
             assert( frame_pair.second.pixel_in_frame.frame == frame_idx);
 

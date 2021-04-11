@@ -3,8 +3,6 @@
 #include <RoSy/RoSy.h>
 #include <Geom/Geom.h>
 
-const float EPSILON = 1e-4;
-
 /**
 * @param target_vector The vector we're trying to match.
 * @param target_normal The normal about which to rotate it.

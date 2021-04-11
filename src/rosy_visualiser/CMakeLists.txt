@@ -21,7 +21,6 @@ set(PROJECT_SOURCES
         rosy_visualiser_status_bar.cpp
         rosy_visualiser_status_bar.h
         rosy_visualiser_status_bar.ui
-		arc_ball.h arc_ball.cpp
 )
 
 add_executable(rosy_visualiser
@@ -29,9 +28,9 @@ add_executable(rosy_visualiser
 )
 
 target_include_directories(
-                rosy_visualiser
-                PUBLIC
-                ${CMAKE_CURRENT_SOURCE_DIR}
+		rosy_visualiser
+		PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(rosy_visualiser
@@ -39,4 +38,5 @@ target_link_libraries(rosy_visualiser
     ${OPENGL_LIBRARIES}
     Qt5::Widgets
     Qt5::OpenGL
-    Surfel)
+    Surfel
+	ArcBall)

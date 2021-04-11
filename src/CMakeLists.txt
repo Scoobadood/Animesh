@@ -21,6 +21,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../lib)
 
 set(CMAKE_CXX_STANDARD 14)
 
+add_definitions(-DGL_SILENCE_DEPRECATION)
 
 # Need spdlog`
 find_package(spdlog REQUIRED)
@@ -117,3 +118,4 @@ add_subdirectory( mesher )
 #add_subdirectory( tools )
 add_subdirectory(rosy_visualiser)
 add_subdirectory(posy_visualiser)
+add_subdirectory(libArcBall)

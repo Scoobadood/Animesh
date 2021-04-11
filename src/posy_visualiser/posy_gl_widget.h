@@ -47,7 +47,7 @@ private:
     static void clear();
     void drawPositions() const;
     void maybeDrawSplats() const;
-    QImage makeImage( ) const;
+    QImage makeSplatImage( ) const;
     QOpenGLTexture * splatTexture;
 
     float m_fov;

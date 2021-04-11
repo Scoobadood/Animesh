@@ -45,26 +45,28 @@ posy_gl_widget::maybeDrawSplats() const {
     glBegin(GL_QUADS);
     const auto numPositions = m_positions.size() / 3;
     for (int i = 0; i < numPositions; ++i) {
+        const auto s = m_uvs.at(i * 2 + 0);
+        const auto t = m_uvs.at(i * 2 + 1);
         glNormal3d(m_normals.at(i * 3 + 0),
                    m_normals.at(i * 3 + 1),
                    m_normals.at(i * 3 + 2));
 
-        glTexCoord2d(0, 0);
+        glTexCoord2d(s, t);
         glVertex3f(m_quads.at(i * 12 + 0),
                    m_quads.at(i * 12 + 1),
                    m_quads.at(i * 12 + 2));
 
-        glTexCoord2d(0, 1);
+        glTexCoord2d( s, t + 1);
         glVertex3f(m_quads.at(i * 12 + 3),
                    m_quads.at(i * 12 + 4),
                    m_quads.at(i * 12 + 5));
 
-        glTexCoord2d(1, 1);
+        glTexCoord2d(s + 1, t + 1);
         glVertex3f(m_quads.at(i * 12 + 6),
                    m_quads.at(i * 12 + 7),
                    m_quads.at(i * 12 + 8));
 
-        glTexCoord2d(1, 0);
+        glTexCoord2d(s + 1, t);
         glVertex3f(m_quads.at(i * 12 + 9),
                    m_quads.at(i * 12 + 10),
                    m_quads.at(i * 12 + 11));
@@ -183,19 +185,19 @@ posy_gl_widget::checkGLError(const std::string &context) {
 }
 
 QImage
-posy_gl_widget::makeImage( ) const{
+posy_gl_widget::makeSplatImage( ) const{
     QImage img(64, 64, QImage::Format_ARGB32);
     for (int x = -31; x < 32; x++) {
         for (int y = -31; y < 32; y++) {
             float d = std::sqrtf(x * x + y * y);
             int a = std::max<int>(0, 255 - (int)(d * 8));
-            int r = (y == 0)
-                    ? 255
-                    : 0;
-            int g = (x == 0 )
-                    ? 255
-                    : 0;
-            int colour = (a << 24) | ( r << 16) | (g << 8);
+            int r = (x == 0 )
+                    ? 0
+                    : 255;
+            int g = (y == 0 )
+                    ? 0
+                    : 255;
+            int colour = (a << 24) | ( r << 16) | (g << 8) | 255;
             img.setPixel(x + 31, y + 31, colour);
         }
     }
@@ -216,10 +218,11 @@ posy_gl_widget::initializeGL() {
     glFrontFace(GL_CW);
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
-    auto img = makeImage();
+    auto img = makeSplatImage();
     splatTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
     splatTexture->setData(img, QOpenGLTexture::GenerateMipMaps);
     splatTexture->setMinMagFilters(QOpenGLTexture::LinearMipMapLinear, QOpenGLTexture::Nearest);
+    splatTexture->setWrapMode(QOpenGLTexture::Repeat);
     checkGLError("Generating texture");
 }
 

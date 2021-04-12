@@ -108,24 +108,22 @@ void PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                     this_tangent, this_normal,
                     that_tangent, that_normal);
 
-            const auto distortion = compute_distortion(
-                    this_position,
-                    this_tangent,
-                    this_normal.cross(this_tangent),
+            const auto this_uv_error = compute_source_uv_correction(
+                    this_position, this_tangent, this_normal.cross(this_tangent),
                     new_mesh_vertex_offset,
 
-                    that_position,
-                    that_tangent,
-                    that_normal.cross(that_tangent),
+                    that_position, that_tangent, that_normal.cross(that_tangent),
                     neighbour_node->data()->closest_mesh_vertex_offset,
 
                     m_rho
             );
 
-            nudge = (weight * nudge + distortion) / (weight + 1.0f);
+            // FIXME: This looks very dubious. Not sure we should be computing and applygin nudge inside th same loop.
+            // Either we should sum the nudges and weight them and then apply the whole lot or we should nudge after each neighbour.
+            nudge = (weight * nudge + this_uv_error) / (weight + 1.0f);
             weight += 1.0f;
 
-            new_mesh_vertex_offset = this_surfel_ptr->closest_mesh_vertex_offset + nudge;
+            new_mesh_vertex_offset = this_surfel_ptr->closest_mesh_vertex_offset - nudge;
         } // End of neighbours
     } // End of frames
     this_surfel_ptr->closest_mesh_vertex_offset = new_mesh_vertex_offset;
@@ -151,7 +149,7 @@ PoSyOptimiser::compute_smoothness(
     using namespace std;
     using namespace Eigen;
 
-    auto distortion = compute_distortion(
+    auto distortion = compute_source_uv_correction(
             position1,
             tangent1,
             normal1.cross(tangent1),

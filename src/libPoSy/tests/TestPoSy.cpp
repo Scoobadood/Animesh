@@ -52,21 +52,20 @@ TestPoSy::makeTestGraph() {
  * *  Test average rosy vectors
  * *   
  * ********************************************************************************/
-TEST_F(TestPoSy, ClosestPointsOne) {
+TEST_F(TestPoSy, WithSingleIdenticalPointsDistanceIsZero) {
     using namespace Eigen;
 
     const auto tuple = closest_points({Vector3f{0.0, 0.0, 0.0}},
                                       {Vector3f{0.0, 0.0, 0.0}}
     );
-    EXPECT_EQ(std::get<0>(tuple), 0);
-    EXPECT_EQ(std::get<1>(tuple), 0);
-    EXPECT_FLOAT_EQ(std::get<4>(tuple), 0.0);
+
+    EXPECT_FLOAT_EQ(std::get<2>(tuple), 0.0);
 }
 
 TEST_F(TestPoSy, ComputeLatticeXZ) {
     using namespace Eigen;
 
-    const auto vertices = compute_local_lattice_vertices(
+    const auto vertices = compute_surrounding_vertices(
             Vector3f{0.0, 0.0, 0.0},
             Vector3f{1.0, 0.0, 0.0},
             Vector3f{0.0, 0.0, -1.0},
@@ -86,7 +85,7 @@ TEST_F(TestPoSy, ComputeLatticeXZ) {
 TEST_F(TestPoSy, ComputeLatticeYZ) {
     using namespace Eigen;
 
-    const auto vertices = compute_local_lattice_vertices(
+    const auto vertices = compute_surrounding_vertices(
             Vector3f{0.0, 1.0, 1.0},
             Vector3f{0.0, 0.0, 1.0},
             Vector3f{0.0, -1.0, 0.0},
@@ -106,7 +105,7 @@ TEST_F(TestPoSy, ComputeLatticeYZ) {
 TEST_F(TestPoSy, ComputeLatticeXY) {
     using namespace Eigen;
 
-    const auto vertices = compute_local_lattice_vertices(
+    const auto vertices = compute_surrounding_vertices(
             Vector3f{-1.0, -2.0, 0.0},
             Vector3f{1.0, 0.0, 0.0},
             Vector3f{0.0, 1.0, 0.0},
@@ -163,7 +162,7 @@ TEST_F(TestPoSy, SmoothAcrossPlanes) {
     const auto o1 = Vector3f{1.0, 0.0, 0.0};
     const auto n1 = Vector3f{0.0, 1.0, 0.0};
 
-    // v2 representatiove vector assumes it's at origin and is actually at 1,0,1
+    // v2 representative vector assumes it's at origin and is actually at 1,0,1
     const auto v2 = Vector3f{0.5, 0.5, 0.0};
     const auto p2 = v2 + Vector3f{0.0, 0.0, 0.0};
     const auto o2 = Vector3f{0.0, 0.0, 1.0};
@@ -177,11 +176,11 @@ TEST_F(TestPoSy, SmoothAcrossPlanes) {
     expect_vector_equality(expected, actual);
 }
 
-TEST_F(TestPoSy, DistortionInPlane) {
+TEST_F(TestPoSy, CorrectionInPlaneWhenOnLattice) {
     using namespace std;
     using namespace Eigen;
 
-    auto d = compute_distortion(
+    auto d = compute_source_uv_correction(
             {0.0f, 0.0f, 0.0f},
             {1.0f, 0.0f, 0.0f},
             {0.0f, 0.0f, 1.0f},
@@ -196,4 +195,90 @@ TEST_F(TestPoSy, DistortionInPlane) {
     );
     EXPECT_EQ(d[0], 0.0f);
     EXPECT_EQ(d[1], 0.0f);
+}
+
+TEST_F(TestPoSy, CorrectionInPlaneWhenInSameLatticeSquare) {
+    using namespace std;
+    using namespace Eigen;
+
+    auto d = compute_source_uv_correction(
+            {0.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            {0.5f, 0.0f, 0.5f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            1.0f
+    );
+    EXPECT_FLOAT_EQ(d[0], -0.5f);
+    EXPECT_FLOAT_EQ(d[1], -0.5f);
+}
+
+TEST_F(TestPoSy, CorrectionWhenLessThanHalf) {
+    using namespace std;
+    using namespace Eigen;
+
+    auto d = compute_source_uv_correction(
+            {0.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            {0.25f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            1.0f
+    );
+    EXPECT_EQ(d[0], -0.25f);
+    EXPECT_EQ(d[1], 0.0f);
+}
+
+TEST_F(TestPoSy, CorrectionWhenMoreThanHalf) {
+    using namespace std;
+    using namespace Eigen;
+
+    auto d = compute_source_uv_correction(
+            {0.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            {0.75f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            1.0f
+    );
+    EXPECT_FLOAT_EQ(d[0], 0.25f);
+    EXPECT_FLOAT_EQ(d[1], 0.0f);
+}
+
+
+
+TEST_F(TestPoSy, CorrectionWhenAxesRotated) {
+    using namespace std;
+    using namespace Eigen;
+
+    auto d = compute_source_uv_correction(
+            {0.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            {1.25f, 0.0f, 2.55f},
+            {0.0f, 0.0f, 1.0f},
+            {1.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f},
+
+            1.0f
+    );
+    EXPECT_FLOAT_EQ(d[0], -0.25f);
+    EXPECT_FLOAT_EQ(d[1], 0.45f);
 }

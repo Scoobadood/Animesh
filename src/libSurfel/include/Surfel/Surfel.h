@@ -25,6 +25,8 @@ struct Surfel {
 
     std::string id;
     std::vector<FrameData> frame_data;
+    std::vector<unsigned int> frames;
+
     Eigen::Vector3f tangent;
     // Relative position of representation lattice intersection [0,1) in trangent plane
     Eigen::Vector2f closest_mesh_vertex_offset;

@@ -51,22 +51,22 @@ posy_gl_widget::maybeDrawSplats() const {
                    m_normals.at(i * 3 + 1),
                    m_normals.at(i * 3 + 2));
 
-        glTexCoord2d(s, t);
+        glTexCoord2d(0.3f - s, 0.3f - t);
         glVertex3f(m_quads.at(i * 12 + 0),
                    m_quads.at(i * 12 + 1),
                    m_quads.at(i * 12 + 2));
 
-        glTexCoord2d( s, t + 1);
+        glTexCoord2d( 0.3f - s, 0.7f - t);
         glVertex3f(m_quads.at(i * 12 + 3),
                    m_quads.at(i * 12 + 4),
                    m_quads.at(i * 12 + 5));
 
-        glTexCoord2d(s + 1, t + 1);
+        glTexCoord2d(0.7f - s, 0.7f - t);
         glVertex3f(m_quads.at(i * 12 + 6),
                    m_quads.at(i * 12 + 7),
                    m_quads.at(i * 12 + 8));
 
-        glTexCoord2d(s + 1, t);
+        glTexCoord2d(0.7f - s, 0.3f - t);
         glVertex3f(m_quads.at(i * 12 + 9),
                    m_quads.at(i * 12 + 10),
                    m_quads.at(i * 12 + 11));

@@ -38,6 +38,7 @@ Surfel::Surfel(std::string id,
 
     for (auto &fd : frames) {
         frame_data.push_back(fd);
+        this->frames.push_back(fd.pixel_in_frame.frame);
     }
 }
 

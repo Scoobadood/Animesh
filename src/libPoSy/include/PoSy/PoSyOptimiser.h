@@ -2,14 +2,12 @@
 // Created by Dave Durbin on 18/5/20.
 //
 
-#ifndef ANIMESH_POSYOPTIMISER_H
-#define ANIMESH_POSYOPTIMISER_H
+#pragma once
 
 #include <Properties/Properties.h>
 #include <Graph/Graph.h>
 #include "AbstractOptimiser.h"
 #include "../../../mesher/types.h"
-
 
 class PoSyOptimiser : public AbstractOptimiser {
 
@@ -32,8 +30,9 @@ protected:
     /**
      * Surfel selection model 2: Select top 100 error scores
      */
-    std::vector<SurfelGraphNodePtr>
-    ssa_select_worst_100();
+    std::vector<SurfelGraphNodePtr> ssa_select_worst_100();
+
+    std::function<std::vector<SurfelGraphNodePtr>(const AbstractOptimiser &)> extractSsa(const Properties &properties);
 
 private:
     float m_rho;
@@ -51,15 +50,12 @@ private:
     Eigen::Vector2f compute_distortion(
             const Eigen::Vector3f &surfel_position1,
             const Eigen::Vector3f &o1,
-            const Eigen::Vector3f &o_prime1,
+            const Eigen::Vector3f &o1_prime,
             const Eigen::Vector2f &uv1,
 
             const Eigen::Vector3f &surfel_position2,
             const Eigen::Vector3f &o2,
-            const Eigen::Vector3f &o_prime2,
+            const Eigen::Vector3f &o2_prime,
             const Eigen::Vector2f &uv2
     ) const;
-    };
-
-
-#endif //ANIMESH_POSYOPTIMISER_H
+};

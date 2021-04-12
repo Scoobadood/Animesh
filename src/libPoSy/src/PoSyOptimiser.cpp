@@ -7,13 +7,10 @@
 #include <utility>
 #include <vector>
 #include <RoSy/RoSy.h>
+#include <Optimise/SurfelSelectionAlgorithm.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-static const char *SSA_SELECT_ALL_IN_RANDOM_ORDER = "select-all-in-random-order";
-static const char *SSA_SELECT_WORST_100 = "select-worst-100";
-
-// ========
 /**
  * Construct a PoSyOptimiser.
  * @param properties Parameters for the optimiser.
@@ -21,18 +18,22 @@ static const char *SSA_SELECT_WORST_100 = "select-worst-100";
 PoSyOptimiser::PoSyOptimiser(Properties properties) : AbstractOptimiser(std::move(properties)) {
     m_rho = m_properties.getFloatProperty("rho");
     m_convergence_threshold = m_properties.getFloatProperty("convergence-threshold");
-    auto ssa = m_properties.getProperty("surfel-selection-algorithm");
-    if (ssa == SSA_SELECT_ALL_IN_RANDOM_ORDER) {
-        m_node_selection_function = bind(&PoSyOptimiser::ssa_select_all_in_random_order, this);
-    } else if (ssa == SSA_SELECT_WORST_100) {
-        m_node_selection_function = bind(&PoSyOptimiser::ssa_select_worst_100, this);
-    } else {
-        throw std::runtime_error("Unknown surfel selection algorithm " + ssa);
-    }
+    m_node_selection_function = extractSsa(m_properties);
 }
 
 PoSyOptimiser::~PoSyOptimiser() = default;
 
+std::function<std::vector<SurfelGraphNodePtr>(const AbstractOptimiser &)>
+PoSyOptimiser::extractSsa(const Properties &properties) {
+    auto ssa = with_name(properties.getProperty("surfel-selection-algorithm"));
+    switch (ssa) {
+        case SSA_SELECT_ALL_IN_RANDOM_ORDER:
+            return std::bind(&PoSyOptimiser::ssa_select_all_in_random_order, this);
+
+        case SSA_SELECT_WORST_100:
+            return std::bind(&PoSyOptimiser::ssa_select_worst_100, this);
+    }
+}
 
 /**
  * Entered the begin optimisation phase. Prepare by constructing cached records of important data that will
@@ -73,54 +74,59 @@ PoSyOptimiser::ssa_select_worst_100() {
 void PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
     using namespace Eigen;
 
-
-    size_t total_common_frames = 0;
     const auto &this_surfel_ptr = node->data();
-    float weight = 0.0f;
-    auto new_lattice_offset = this_surfel_ptr->closest_mesh_vertex_offset;
-    // Get all neighbours of this Surfel
+    auto new_mesh_vertex_offset = this_surfel_ptr->closest_mesh_vertex_offset;
+
     Vector2f nudge = Vector2f::Zero();
-    for (const auto &surfel_ptr_neighbour : m_surfel_graph->neighbours(node)) {
-        const auto that_surfel_ptr = surfel_ptr_neighbour->data();
+    float weight = 0.0f;
 
-        // For this neighbour, consider it over all common frames.
-        const auto common_frames = find_common_frames_for_surfels(this_surfel_ptr, that_surfel_ptr);
-        total_common_frames += common_frames.size();
+    // For each neighbour in the graph
+    const auto this_surfel_neighbour_nodes = m_surfel_graph->neighbours(node);
 
-        // For each common frame, push surfel and neighbour into that frame
-        for (auto const &frame_pair : common_frames) {
-            const auto surfel_to_frame = frame_pair.first.get().transform;
-            const auto surfel_tan_in_frame = surfel_to_frame * this_surfel_ptr->tangent;
-            const auto surfel_normal_in_frame = frame_pair.first.get().normal;
+    // For each frame this surfel is in
+    for (const auto frame_index : this_surfel_ptr->frames) {
 
-            const auto neighbour_to_frame = frame_pair.second.get().transform;
-            const auto neighbour_tan_in_frame = neighbour_to_frame * that_surfel_ptr->tangent;
-            const auto neighbour_normal_in_frame = frame_pair.second.get().normal;
+        // For each neighbour
+        for (const auto &neighbour_node : this_surfel_neighbour_nodes) {
+
+            // If the neighbour's not in the frame, skip
+            if (!neighbour_node->data()->is_in_frame(frame_index)) {
+                continue;
+            }
+
+            Eigen::Vector3f this_position, this_tangent, this_normal;
+            this_surfel_ptr->get_position_tangent_normal_for_frame(frame_index, this_position, this_tangent,
+                                                                   this_normal);
+
+            Eigen::Vector3f that_position, that_tangent, that_normal;
+            neighbour_node->data()->get_position_tangent_normal_for_frame(frame_index, that_position, that_tangent,
+                                                                          that_normal);
 
             // TODO(dave.d): We don't want to compute this every time. It should have been stabilised after computing
             // the orientation field and we should store it in the graph on edges.
             best_rosy_vector_pair(
-                    surfel_tan_in_frame, surfel_normal_in_frame,
-                    neighbour_tan_in_frame, neighbour_normal_in_frame );
+                    this_tangent, this_normal,
+                    that_tangent, that_normal);
 
             const auto distortion = compute_distortion(
-                    frame_pair.first.get().position,
-                    surfel_tan_in_frame,
-                    surfel_normal_in_frame.cross(surfel_tan_in_frame),
-                    new_lattice_offset,
+                    this_position,
+                    this_tangent,
+                    this_normal.cross(this_tangent),
+                    new_mesh_vertex_offset,
 
-                    frame_pair.second.get().position,
-                    neighbour_tan_in_frame,
-                    neighbour_normal_in_frame.cross(neighbour_tan_in_frame),
-                    that_surfel_ptr->closest_mesh_vertex_offset
+                    that_position,
+                    that_tangent,
+                    that_normal.cross(that_tangent),
+                    neighbour_node->data()->closest_mesh_vertex_offset
             );
+
             nudge = (weight * nudge + distortion) / (weight + 1.0f);
             weight += 1.0f;
 
-            new_lattice_offset = this_surfel_ptr->closest_mesh_vertex_offset + nudge;
-        }
-    }
-    this_surfel_ptr->closest_mesh_vertex_offset = new_lattice_offset;
+            new_mesh_vertex_offset = this_surfel_ptr->closest_mesh_vertex_offset + nudge;
+        } // End of neighbours
+    } // End of frames
+    this_surfel_ptr->closest_mesh_vertex_offset = new_mesh_vertex_offset;
 }
 
 /**
@@ -136,8 +142,10 @@ void PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
  */
 float
 PoSyOptimiser::compute_smoothness(
-        const Eigen::Vector3f &position1, const Eigen::Vector3f &tangent1, const Eigen::Vector3f &normal1, const Eigen::Vector2f &uv1,
-        const Eigen::Vector3f &position2, const Eigen::Vector3f &tangent2, const Eigen::Vector3f &normal2, const Eigen::Vector2f &uv2) const {
+        const Eigen::Vector3f &position1, const Eigen::Vector3f &tangent1, const Eigen::Vector3f &normal1,
+        const Eigen::Vector2f &uv1,
+        const Eigen::Vector3f &position2, const Eigen::Vector3f &tangent2, const Eigen::Vector3f &normal2,
+        const Eigen::Vector2f &uv2) const {
     using namespace std;
     using namespace Eigen;
 
@@ -154,6 +162,7 @@ PoSyOptimiser::compute_smoothness(
 
     return (distortion[0] * distortion[0] + distortion[1] * distortion[1]);
 }
+
 /**
  * Compute the distortion of the u,v field between one surfel and another.
  */
@@ -161,34 +170,36 @@ Eigen::Vector2f
 PoSyOptimiser::compute_distortion(
         const Eigen::Vector3f &surfel_position1,
         const Eigen::Vector3f &o1,
-        const Eigen::Vector3f &o_prime1,
+        const Eigen::Vector3f &o1_prime,
         const Eigen::Vector2f &uv1,
 
         const Eigen::Vector3f &surfel_position2,
         const Eigen::Vector3f &o2,
-        const Eigen::Vector3f &o_prime2,
+        const Eigen::Vector3f &o2_prime,
         const Eigen::Vector2f &uv2
-    ) const {
+) const {
     using namespace std;
     using namespace Eigen;
 
-    const auto lattice_vertex1 = surfel_position1 + (o1 * uv1.x()) + (o_prime1 * uv1.y());
-    const auto l1 = compute_local_lattice_vertices(lattice_vertex1, o1, o_prime1, m_rho);
+    const auto lattice_vertex1 = surfel_position1 + (o1 * uv1.x()) + (o1_prime * uv1.y());
+    const auto l1 = compute_local_lattice_vertices(lattice_vertex1, o1, o1_prime, m_rho);
 
-    const auto lattice_vertex2 = surfel_position2 + (o2 * uv2.x()) + (o_prime2 * uv2.y());
-    const auto l2 = compute_local_lattice_vertices(lattice_vertex2, o2, o_prime2, m_rho);
-    // best_idx_a, best_idx_b, points_a.at(best_idx_a), points_b.at(best_idx_b), min_dist_squared
+    const auto lattice_vertex2 = surfel_position2 + (o2 * uv2.x()) + (o2_prime * uv2.y());
+    const auto l2 = compute_local_lattice_vertices(lattice_vertex2, o2, o2_prime, m_rho);
+
+    // following returns (best_idx_a, best_idx_b, points_a.at(best_idx_a), points_b.at(best_idx_b), min_dist_squared)
     const auto tuple = closest_points(l1, l2);
 
-    // Actual distance between lattice points in o1 and o_prime1 dimensions
+    // Actual distance between lattice points in o1 and o1_prime dimensions
     const auto actual_inter_vertex_vector = get<3>(tuple) - get<2>(tuple);
     const auto dist_o1 = actual_inter_vertex_vector.dot(o1);
-    const auto dist_o_prime1 = actual_inter_vertex_vector.dot(o_prime1);
+    const auto dist_o1_prime = actual_inter_vertex_vector.dot(o1_prime);
 
     // We would hope that these are _exact_ multiples of rho. The distortion is the amount by which they differ
     // from an exact multiple of rho.
-    const auto remdr_o = fmod(dist_o1, m_rho);
-    const auto remdr_o_prime = fmod(dist_o_prime1, m_rho);
+    const auto remdr_o = std::fmodf(dist_o1, m_rho);
+    const auto remdr_o_prime = std::fmodf(dist_o1_prime, m_rho);
 
-    return Vector2f(remdr_o, remdr_o_prime);
+    // This is the distortion
+    return {remdr_o, remdr_o_prime};
 }

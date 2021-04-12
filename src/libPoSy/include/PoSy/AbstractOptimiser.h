@@ -44,13 +44,12 @@ protected:
 
     Properties m_properties;
 
-    std::function<std::vector<SurfelGraphNodePtr>()> m_node_selection_function;
+    std::function<std::vector<SurfelGraphNodePtr>(const AbstractOptimiser&)> m_node_selection_function;
 
     /**
      * Select all surfels in a layer and randomize the order
      */
-    std::vector<SurfelGraphNodePtr>
-    ssa_select_all_in_random_order();
+    std::vector<SurfelGraphNodePtr> ssa_select_all_in_random_order();
 
     float m_convergence_threshold;
 
@@ -83,22 +82,6 @@ private:
     };
 
     /**
-     * Build a mapping from frame to the Surfels which appear in that frame.
-     * This allows us to work with frames individually.
-     * surfels_by_frame is a member variable.
-     */
-    void
-    populate_frame_to_surfel();
-
-    /**
-     * Build the norm_tan_by_surfel_frame data structure for this level of the
-     * surfel hierarchy. Note that tans will be updated every optimisation
-     * We should calculate this once per level and then update each time we change a tan.
-     */
-    void
-    populate_norm_tan_by_surfel_frame();
-
-    /**
      * Build the neighbours_by_surfel_frame data structure. Neighbours stay neighbours throughout and so we can compute this once
      * We assume that
      * -- surfels_by_frame is populated for this level
@@ -107,6 +90,8 @@ private:
      */
     void
     populate_neighbours_by_surfel_frame();
+
+    unsigned int m_numFrames;
 
     unsigned int m_optimisation_cycles;
 
@@ -118,17 +103,6 @@ private:
     float compute_surfel_smoothness(const std::shared_ptr<Surfel> &surfel) const;
 
     float compute_surfel_smoothness_for_frame(const std::shared_ptr<Surfel> &surfel_ptr, size_t frame_id) const;
-
-    /**
-     * Surfels in each frame.
-     */
-    std::vector<std::vector<std::shared_ptr<Surfel>>> m_surfels_by_frame;
-
-    /**
-     * Return true if the given Surfel is in the specified frame.
-     */
-    bool
-    surfel_is_in_frame(const std::shared_ptr<Surfel> &surfel_ptr, size_t frame_index) const;
 
     FrameData frame_data_for_surfel_in_frame(const std::shared_ptr<Surfel> &surfel_ptr, unsigned int frame_index) const;
 
@@ -142,12 +116,6 @@ private:
      * Key is surfel, frame
      */
     std::multimap<SurfelInFrame, std::shared_ptr<Surfel>> m_neighbours_by_surfel_frame;
-
-    /**
-     * Useful cache for error computation. Recalculated per level.
-     * A map from a surfel/frame pair to that surfel's transformed normal, tangent and position in that frame.
-     */
-    std::map<SurfelInFrame, NormalTangent> m_norm_tan_by_surfel_frame;
 
     std::vector<SurfelGraphNodePtr> select_nodes_to_optimise() const;
 

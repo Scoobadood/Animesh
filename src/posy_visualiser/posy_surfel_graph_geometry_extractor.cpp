@@ -34,10 +34,10 @@ void extract_quads_for_frame(const SurfelGraphPtr& graphPtr,
         normals.push_back(normal.z());
 
         auto t2 = normal.cross(tangent);
-        const auto v1 = position - (tangent * 0.1f) - (t2 * 0.1f);
-        const auto v2 = position - (tangent * 0.1f) + (t2 * 0.1f);
-        const auto v3 = position + (tangent * 0.1f) + (t2 * 0.1f);
-        const auto v4 = position + (tangent * 0.1f) - (t2 * 0.1f);
+        const auto v1 = position - (tangent * 0.1f ) - (t2 * 0.1f);
+        const auto v2 = position - (tangent * 0.1f ) + (t2 * 0.1f);
+        const auto v3 = position + (tangent * 0.1f ) + (t2 * 0.1f);
+        const auto v4 = position + (tangent * 0.1f ) - (t2 * 0.1f);
         quads.push_back(v1.x());
         quads.push_back(v1.y());
         quads.push_back(v1.z());

@@ -98,3 +98,46 @@ average_posy_vectors(const Eigen::Vector3f &p1,
     const auto new_position =  p1 + ((u_delta + v_delta)  * ( weight1/ (weight1 + weight2)));
     return new_position;
 }
+
+
+/**
+ * Compute the distortion of the u,v field between one surfel and another.
+ */
+Eigen::Vector2f compute_distortion(
+        const Eigen::Vector3f &surfel_position1,
+        const Eigen::Vector3f &o1,
+        const Eigen::Vector3f &o1_prime,
+        const Eigen::Vector2f &uv1,
+
+        const Eigen::Vector3f &surfel_position2,
+        const Eigen::Vector3f &o2,
+        const Eigen::Vector3f &o2_prime,
+        const Eigen::Vector2f &uv2,
+
+        float rho
+) {
+    using namespace std;
+    using namespace Eigen;
+
+    const auto nearest_vertex1 = surfel_position1 + (o1 * uv1.x()) + (o1_prime * uv1.y());
+    const auto nearest_vertex2 = surfel_position2 + (o2 * uv2.x()) + (o2_prime * uv2.y());
+
+    const auto l1 = compute_local_lattice_vertices(nearest_vertex1, o1, o1_prime, rho);
+    const auto l2 = compute_local_lattice_vertices(nearest_vertex2, o2, o2_prime, rho);
+
+    // following returns (best_idx_a, best_idx_b, points_a.at(best_idx_a), points_b.at(best_idx_b), min_dist_squared)
+    const auto tuple = closest_points(l1, l2);
+
+    // Actual distance between lattice points in o1 and o1_prime dimensions
+    const auto actual_inter_vertex_vector = get<3>(tuple) - get<2>(tuple);
+    const auto dist_o1 = actual_inter_vertex_vector.dot(o1);
+    const auto dist_o1_prime = actual_inter_vertex_vector.dot(o1_prime);
+
+    // We would hope that these are _exact_ multiples of rho. The distortion is the amount by which they differ
+    // from an exact multiple of rho.
+    const auto remdr_o = std::fmodf(dist_o1, rho);
+    const auto remdr_o_prime = std::fmodf(dist_o1_prime, rho);
+
+    // This is the distortion
+    return {remdr_o, remdr_o_prime};
+}

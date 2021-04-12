@@ -1,13 +1,50 @@
 #include "TestPoSy.h"
 #include <PoSy/PoSy.h>
+#include <Surfel/SurfelGraph.h>
 
-void TestPoSy::SetUp( ) {}
-void TestPoSy::TearDown( ) {}
+void TestPoSy::SetUp() {}
 
-void expect_vector_equality(const Eigen::Vector3f& v1, const Eigen::Vector3f& v2 ) {
+void TestPoSy::TearDown() {}
+
+void expect_vector_equality(const Eigen::Vector3f &v1, const Eigen::Vector3f &v2) {
     EXPECT_FLOAT_EQ(v1.x(), v2.x());
     EXPECT_FLOAT_EQ(v1.y(), v2.y());
     EXPECT_FLOAT_EQ(v1.z(), v2.z());
+}
+
+SurfelGraphPtr
+TestPoSy::makeTestGraph() {
+    SurfelGraphPtr sg = std::make_shared<SurfelGraph>();
+    auto s1 = std::make_shared<Surfel>(Surfel("s1",
+                                              {
+                                                      {
+                                                              {0, 0, 0},
+                                                              10.0f,
+                                                              Eigen::Matrix3f::Identity(),
+                                                              {0.0f, 1.0f, 0.0f},
+                                                              {0.0f, 0.0f, 0.0f}
+                                                      }
+                                              },
+                                              {1.0f, 0.0f, 0.0f},
+                                              {0.0f, 0.0f}));
+
+    auto s2 = std::make_shared<Surfel>(Surfel("s2",
+                                              {
+                                                      {
+                                                              {1, 1, 0},
+                                                              10.0f,
+                                                              Eigen::Matrix3f::Identity(),
+                                                              {0.0f, 1.0f, 0.0f},
+                                                              {0.5f, 0.5f, 0.0f}
+                                                      }
+                                              },
+                                              {1.0f, 0.0f, 0.0f},
+                                              {0.0f, 0.0f}
+    ));
+    const auto n1 = sg->add_node(s1);
+    const auto n2 = sg->add_node(s2);
+    sg->add_edge(n1, n2, SurfelGraphEdge{1.0f});
+    return sg;
 }
 
 /* ********************************************************************************
@@ -19,8 +56,8 @@ TEST_F(TestPoSy, ClosestPointsOne) {
     using namespace Eigen;
 
     const auto tuple = closest_points({Vector3f{0.0, 0.0, 0.0}},
-                    {Vector3f{0.0, 0.0, 0.0}}
-                    );
+                                      {Vector3f{0.0, 0.0, 0.0}}
+    );
     EXPECT_EQ(std::get<0>(tuple), 0);
     EXPECT_EQ(std::get<1>(tuple), 0);
     EXPECT_FLOAT_EQ(std::get<4>(tuple), 0.0);
@@ -105,11 +142,11 @@ TEST_F(TestPoSy, SmoothInXZPlane) {
     const auto o2 = Vector3f{1.0, 0.0, 0.0};
     const auto n2 = Vector3f{0.0, 1.0, 0.0};
 
-    auto expected = ( p1 + p2 ) / 2.0f;
+    auto expected = (p1 + p2) / 2.0f;
 
     auto actual = average_posy_vectors(
             p1, o1, n1, 1.0f,
-            p2, o2, n2, 1.0f, rho );
+            p2, o2, n2, 1.0f, rho);
     expect_vector_equality(expected, actual);
 }
 
@@ -132,10 +169,31 @@ TEST_F(TestPoSy, SmoothAcrossPlanes) {
     const auto o2 = Vector3f{0.0, 0.0, 1.0};
     const auto n2 = Vector3f{-1.0, 0.0, 0.0};
 
-    Vector3f expected{ 0.25f, 0.0f, 0.0f};
+    Vector3f expected{0.25f, 0.0f, 0.0f};
 
     auto actual = average_posy_vectors(
             p1, o1, n1, 1.0f,
-            p2, o2, n2, 1.0f, rho );
+            p2, o2, n2, 1.0f, rho);
     expect_vector_equality(expected, actual);
+}
+
+TEST_F(TestPoSy, DistortionInPlane) {
+    using namespace std;
+    using namespace Eigen;
+
+    auto d = compute_distortion(
+            {0.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            {1.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f},
+            {0.0f, 0.0f},
+
+            1.0f
+    );
+    EXPECT_EQ(d[0], 0.0f);
+    EXPECT_EQ(d[1], 0.0f);
 }

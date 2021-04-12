@@ -32,3 +32,16 @@ average_posy_vectors(const Eigen::Vector3f &p1,
                      float rho
 );
 
+Eigen::Vector2f compute_distortion(
+        const Eigen::Vector3f &surfel_position1,
+        const Eigen::Vector3f &o1,
+        const Eigen::Vector3f &o1_prime,
+        const Eigen::Vector2f &uv1,
+
+        const Eigen::Vector3f &surfel_position2,
+        const Eigen::Vector3f &o2,
+        const Eigen::Vector3f &o2_prime,
+        const Eigen::Vector2f &uv2,
+
+        float rho
+);

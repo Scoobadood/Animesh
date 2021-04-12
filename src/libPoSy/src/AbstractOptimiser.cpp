@@ -140,66 +140,12 @@ AbstractOptimiser::check_cancellation() {
     }
 }
 
-/**
- * Return a vector of pairs of FrameData for each frame that these surfels have in common
- */
-std::vector<std::pair<std::reference_wrapper<const FrameData>, std::reference_wrapper<const FrameData>>>
-find_common_frames_for_surfels(const std::shared_ptr<Surfel> &surfel1, const std::shared_ptr<Surfel> &surfel2) {
-    using namespace std;
-
-    vector<reference_wrapper<const FrameData>> surfel1_frames;
-    vector<reference_wrapper<const FrameData>> surfel2_frames;
-    for (const auto &f : surfel1->frame_data) {
-        surfel1_frames.emplace_back(f);
-    }
-    for (const auto &f : surfel2->frame_data) {
-        surfel2_frames.emplace_back(f);
-    }
-    sort(surfel1_frames.begin(), surfel1_frames.end(),
-         [](const FrameData &f1, const FrameData &f2) { return f1.pixel_in_frame.frame < f2.pixel_in_frame.frame; });
-    sort(surfel2_frames.begin(), surfel2_frames.end(),
-         [](const FrameData &f1, const FrameData &f2) { return f1.pixel_in_frame.frame < f2.pixel_in_frame.frame; });
-
-    vector<pair<reference_wrapper<const FrameData>, reference_wrapper<const FrameData>>> common_frames;
-    auto it1 = surfel1->frame_data.begin();
-    auto it2 = surfel2->frame_data.begin();
-    while (it1 != surfel1->frame_data.end() && it2 != surfel2->frame_data.end()) {
-        if (it1->pixel_in_frame.frame < it2->pixel_in_frame.frame) {
-            ++it1;
-        } else if (it2->pixel_in_frame.frame < it1->pixel_in_frame.frame) {
-            ++it2;
-        } else {
-            common_frames.emplace_back(ref(*it1), ref(*it2));
-            ++it1;
-            ++it2;
-        }
-    }
-    return common_frames;
-}
-
-FrameData
-AbstractOptimiser::frame_data_for_surfel_in_frame(const std::shared_ptr<Surfel> &surfel_ptr,
-                                                  unsigned int frame_index) const {
-    for (const auto &fd : surfel_ptr->frame_data) {
-        if (fd.pixel_in_frame.frame == frame_index) {
-            return fd;
-        }
-    }
-    throw std::runtime_error(
-            fmt::format("Frame data not found for surfel {} in frame {}", surfel_ptr->id, frame_index));
-}
-
-FrameData
-AbstractOptimiser::frame_data_for_surfel_in_frame(const SurfelInFrame &sif) const {
-    return frame_data_for_surfel_in_frame(sif.surfel_ptr, sif.frame_index);
-}
-
 float
 AbstractOptimiser::compute_surfel_smoothness_for_frame(const std::shared_ptr<Surfel> &surfel_ptr,
                                                        size_t frame_id) const {
     float total_smoothness = 0.0f;
 
-    // Get all neighbours in frame
+    // Get this surfels stats for the frame
     Eigen::Vector3f this_surfel_position, this_surfel_tangent, this_surfel_normal;
     surfel_ptr->get_position_tangent_normal_for_frame(frame_id //
             , this_surfel_position //
@@ -207,13 +153,13 @@ AbstractOptimiser::compute_surfel_smoothness_for_frame(const std::shared_ptr<Sur
             , this_surfel_normal
     );
 
-
-    const SurfelInFrame surfel_in_frame{surfel_ptr, frame_id};
+    // For each neighbour in this frame
+    const auto &bounds = m_neighbours_by_surfel_frame.equal_range({surfel_ptr, frame_id});
     unsigned int num_neighbours = 0;
-    const auto &bounds = m_neighbours_by_surfel_frame.equal_range(surfel_in_frame);
-    for (auto np = bounds.first; np != bounds.second; ++np) {
-        const auto &neighbour_ptr = np->second;
+    for (auto iter = bounds.first; iter != bounds.second; ++iter) {
+        const auto &neighbour_ptr = iter->second;
 
+        // Get the neighbours stats for the frame
         Eigen::Vector3f neighbour_surfel_position, neighbour_surfel_tangent, neighbour_surfel_normal;
         neighbour_ptr->get_position_tangent_normal_for_frame(frame_id //
                 , neighbour_surfel_position //
@@ -251,7 +197,7 @@ AbstractOptimiser::compute_surfel_smoothness(const std::shared_ptr<Surfel> &surf
         total_smoothness += compute_surfel_smoothness_for_frame(surfel, frame_data.pixel_in_frame.frame);
     }
     // Return mean smoothness per frame
-    (std::const_pointer_cast<Surfel>(surfel))->posy_smoothness = total_smoothness / surfel->frame_data.size();
+    (std::const_pointer_cast<Surfel>(surfel))->posy_smoothness = total_smoothness / (float) surfel->frames.size();
     return surfel->posy_smoothness;
 }
 
@@ -262,7 +208,7 @@ AbstractOptimiser::compute_smoothness_per_surfel() const {
     for (const auto &n : m_surfel_graph->nodes()) {
         total_smoothness += compute_surfel_smoothness(n->data());
     }
-    return total_smoothness / m_surfel_graph->num_nodes();
+    return total_smoothness / (float) m_surfel_graph->num_nodes();
 }
 
 /**
@@ -282,23 +228,26 @@ AbstractOptimiser::check_convergence() {
     }
 }
 
-/**
- * Set the optimisation data
- */
+
+unsigned int
+AbstractOptimiser::count_number_of_frames(const SurfelGraphPtr &surfel_graph) {
+    // Compute the number of frames
+    unsigned int max_frame_id = 0;
+    for (const auto &n : surfel_graph->nodes()) {
+        for (const auto &fd : n->data()->frame_data) {
+            if (fd.pixel_in_frame.frame > max_frame_id) {
+                max_frame_id = fd.pixel_in_frame.frame;
+            }
+        }
+    }
+    return max_frame_id + 1;
+}
+
 void
 AbstractOptimiser::set_data(const SurfelGraphPtr &surfel_graph) {
     m_surfel_graph = surfel_graph;
     m_state = INITIALISED;
-    // Compute the number of frames
-    int maxFrameId = 0;
-    for (const auto &n : surfel_graph->nodes()) {
-        for (const auto &fd : n->data()->frame_data) {
-            if (fd.pixel_in_frame.frame > maxFrameId) {
-                maxFrameId = fd.pixel_in_frame.frame;
-            }
-        }
-    }
-    m_numFrames = maxFrameId + 1;
+    m_numFrames = count_number_of_frames(surfel_graph);
 }
 
 /**

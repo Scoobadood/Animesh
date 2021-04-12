@@ -130,15 +130,9 @@ void PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 }
 
 /**
- * Compute the distortion of the u,v field between one surfel and another.
- *
- * @param normal1
- * @param tangent1
- * @param position1
- * @param normal2
- * @param tangent2
- * @param position2
- * @return
+ * Compute the smoothness of the u,v field between one surfel and another.
+ * this is calculated as the length of the correction vector required to
+ * bring the two views of the lattice into alignment.
  */
 float
 PoSyOptimiser::compute_smoothness(
@@ -146,21 +140,11 @@ PoSyOptimiser::compute_smoothness(
         const Eigen::Vector2f &uv1,
         const Eigen::Vector3f &position2, const Eigen::Vector3f &tangent2, const Eigen::Vector3f &normal2,
         const Eigen::Vector2f &uv2) const {
-    using namespace std;
     using namespace Eigen;
 
-    auto distortion = compute_source_uv_correction(
-            position1,
-            tangent1,
-            normal1.cross(tangent1),
-            uv1,
-
-            position2,
-            tangent2,
-            normal2.cross(tangent2),
-            uv2,
-
+    auto correction = compute_source_uv_correction(
+            position1, tangent1, normal1.cross(tangent1), uv1,
+            position2, tangent2, normal2.cross(tangent2), uv2,
             m_rho);
-
-    return (distortion[0] * distortion[0] + distortion[1] * distortion[1]);
+    return correction.norm();
 }

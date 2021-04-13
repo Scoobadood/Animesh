@@ -1,7 +1,6 @@
 add_library(PoSy STATIC
 		src/PoSy.cpp include/PoSy/PoSy.h
 		src/PoSyOptimiser.cpp include/PoSy/PoSyOptimiser.h
-		src/AbstractOptimiser.cpp include/PoSy/AbstractOptimiser.h
 		)
 
 

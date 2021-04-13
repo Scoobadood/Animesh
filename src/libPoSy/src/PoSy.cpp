@@ -5,6 +5,7 @@
 #include <Eigen/Geometry>
 #include <vector>
 #include <tuple>
+#include <spdlog/spdlog.h>
 
 /**
  * Given two sets of 3D positions, return the values of the closest two along with the squared distance between them.
@@ -138,14 +139,28 @@ Eigen::Vector2f compute_source_uv_correction(
 
     const auto source_nearest_lattice_vertex =
             source_position + (source_u * source_uv_offset.x()) + (source_v * source_uv_offset.y());
+    spdlog::debug("Source says nearest lattice is at: ({:.3f}, {:.3f}, {:.3f})",
+                 source_position.x(), source_position.y(), source_position.z()
+    );
+
     const auto target_nearest_lattice_vertex =
             target_position + (target_u * target_uv_offset.x()) + (target_v * target_uv_offset.y());
+    spdlog::debug("Target says nearest lattice is at: ({:.3f}, {:.3f}, {:.3f})",
+                 target_position.x(), target_position.y(), target_position.z()
+    );
 
     const auto l1 = compute_surrounding_vertices(source_nearest_lattice_vertex, source_u, source_v, rho);
     const auto l2 = compute_surrounding_vertices(target_nearest_lattice_vertex, target_u, target_v, rho);
 
     // following returns (best_idx_a, best_idx_b, points_a.at(best_idx_a), points_b.at(best_idx_b), min_dist_squared)
     const auto tuple = closest_points(l1, l2);
+
+    const auto dis1 = get<1>(tuple);
+    const auto dis0 = get<0>(tuple);
+    spdlog::debug("Computing correction between ({:.3f}, {:.3f}, {:.3f}) and ({:.3f}, {:.3f}, {:.3f})",
+                 dis1.x(), dis1.y(), dis1.z(),
+                 dis0.x(), dis0.y(), dis0.z()
+    );
 
     // Actual distance between lattice points in source_u and source_v dimensions
     const auto delta_xyz = get<1>(tuple) - get<0>(tuple);
@@ -156,6 +171,10 @@ Eigen::Vector2f compute_source_uv_correction(
     // from an exact multiple of rho.
     auto error_u = std::remainderf(delta_u, rho);
     auto error_v = std::remainderf(delta_v, rho);
+
+    spdlog::debug("   correction is ({}, {})",
+                 -error_u, -error_v
+    );
 
     // This is the correction
     return {-error_u, -error_v};

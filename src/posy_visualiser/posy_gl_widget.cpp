@@ -36,50 +36,52 @@ posy_gl_widget::maybeDrawSplats() const {
     if (!m_renderSplats) {
         return;
     }
-    glEnable(GL_TEXTURE_2D);
-    checkGLError("Enable tex 2D");
+//    glEnable(GL_TEXTURE_2D);
+//    checkGLError("Enable tex 2D");
 
-    glBindTexture(GL_TEXTURE_2D, splatTexture->textureId());
-    checkGLError("bound texture");
+//    glBindTexture(GL_TEXTURE_2D, splatTexture->textureId());
+//    checkGLError("bound texture");
 
-    glBegin(GL_QUADS);
     const auto numPositions = m_positions.size() / 3;
+    glColor4d(1.0, 1.0, 1.0, 1.0);
+
     for (int i = 0; i < numPositions; ++i) {
+    glBegin(GL_LINE_LOOP);
         const auto s = m_uvs.at(i * 2 + 0);
         const auto t = m_uvs.at(i * 2 + 1);
         glNormal3d(m_normals.at(i * 3 + 0),
                    m_normals.at(i * 3 + 1),
                    m_normals.at(i * 3 + 2));
 
-        glTexCoord2d(0.3f - s, 0.3f - t);
+//        glTexCoord2d(0.3f - s, 0.3f - t);
         glVertex3f(m_quads.at(i * 12 + 0),
                    m_quads.at(i * 12 + 1),
                    m_quads.at(i * 12 + 2));
 
-        glTexCoord2d( 0.3f - s, 0.7f - t);
+//        glTexCoord2d( 0.3f - s, 0.7f - t);
         glVertex3f(m_quads.at(i * 12 + 3),
                    m_quads.at(i * 12 + 4),
                    m_quads.at(i * 12 + 5));
 
-        glTexCoord2d(0.7f - s, 0.7f - t);
+//        glTexCoord2d(0.7f - s, 0.7f - t);
         glVertex3f(m_quads.at(i * 12 + 6),
                    m_quads.at(i * 12 + 7),
                    m_quads.at(i * 12 + 8));
 
-        glTexCoord2d(0.7f - s, 0.3f - t);
+//        glTexCoord2d(0.7f - s, 0.3f - t);
         glVertex3f(m_quads.at(i * 12 + 9),
                    m_quads.at(i * 12 + 10),
                    m_quads.at(i * 12 + 11));
-    }
     glEnd();
+    }
     glFlush();
-    glDisable(GL_TEXTURE_2D);
+//    glDisable(GL_TEXTURE_2D);
     checkGLError("maybeDrawSplats");
 }
 
 void
 posy_gl_widget::drawPositions() const {
-    glColor4d(1.0, 1.0, 1.0, 1.0);
+    glColor4d(1.0, 0.0, 0.0, 1.0);
 
     glEnable(GL_POINT_SMOOTH);
     float oldPointSize;

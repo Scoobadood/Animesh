@@ -6,34 +6,96 @@
 
 #include <Properties/Properties.h>
 #include <Graph/Graph.h>
-#include "AbstractOptimiser.h"
+#include <Surfel/Surfel.h>
+#include <Surfel/SurfelGraph.h>
 
-class PoSyOptimiser : public AbstractOptimiser {
+#include <utility>
+
+class PoSyOptimiser {
 
 public:
-    /**
-     * Construct a PoSyOptimiser.
-     * @param properties Parameters for the optimiser.
-     */
     explicit PoSyOptimiser(Properties properties);
 
-    ~PoSyOptimiser() override;
-
-protected:
-    void optimisation_began() override;
-
-    void optimisation_ended() override;
-
-    void optimise_node(const SurfelGraphNodePtr &node) override;
+    virtual ~PoSyOptimiser();
 
     /**
-     * Surfel selection model 2: Select top 100 error scores
+     * Perform a single step of optimisation. Return true if converged or halted.
      */
-    std::vector<SurfelGraphNodePtr> ssa_select_worst_100();
+    bool optimise_do_one_step();
 
-    std::function<std::vector<SurfelGraphNodePtr>(const AbstractOptimiser &)> extractSsa(const Properties &properties);
+    /**
+     * Set the optimisation data
+     */
+    void set_data(const SurfelGraphPtr &graph);
+
+protected:
+    Properties m_properties;
+
+    SurfelGraphPtr m_surfel_graph;
+
+    float m_convergence_threshold;
+
+    std::function<std::vector<SurfelGraphNodePtr>(const PoSyOptimiser &)> m_node_selection_function;
+
+    /**
+     * Select all surfels in a layer and randomize the order
+     */
+    std::vector<SurfelGraphNodePtr> ssa_select_all_in_random_order();
+
+    unsigned int m_numFrames;
+
+    unsigned int m_optimisation_cycles;
+
+    // Error and convergence
+    float m_last_smoothness;
 
 private:
+    // Utility class to map a surfel and frame
+    struct SurfelInFrame {
+        std::shared_ptr<Surfel> surfel_ptr;
+        size_t frame_index;
+
+        SurfelInFrame(std::shared_ptr<Surfel> surfel_ptr, size_t f)
+                : surfel_ptr{std::move(surfel_ptr)},
+                  frame_index{f} {
+        }
+
+        // Sort By surfel ID
+        bool operator<(const SurfelInFrame &other) const {
+            if (frame_index != other.frame_index)
+                return frame_index < other.frame_index;
+
+            return surfel_ptr->id < other.surfel_ptr->id;
+        }
+    };
+
+    void check_convergence();
+
+    float compute_total_smoothness() const;
+
+    float compute_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
+
+    float compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_ptr, size_t frame_index) const;
+
+    void optimise_node(const SurfelGraphNodePtr &node);
+
+    static unsigned int count_number_of_frames(const SurfelGraphPtr &surfel_graph);
+
+    std::vector<SurfelGraphNodePtr> select_nodes_to_optimise() const;
+
+    void begin_optimisation();
+
+    void optimise_end();
+
+    void check_cancellation();
+
+    /**
+ * Surfel selection model 2: Select top 100 error scores
+ */
+    std::vector<SurfelGraphNodePtr> ssa_select_worst_100();
+
+    std::function<std::vector<SurfelGraphNodePtr>(const PoSyOptimiser &)> extractSsa(const Properties &properties);
+
     float m_rho;
 
     float
@@ -44,5 +106,17 @@ private:
                        const Eigen::Vector3f &position2,
                        const Eigen::Vector3f &tangent2,
                        const Eigen::Vector3f &normal2,
-                       const Eigen::Vector2f &uv2) const override;
+                       const Eigen::Vector2f &uv2) const;
+
+    /**
+ * State of the optimiser.
+ */
+    enum OptimisationState {
+        UNINITIALISED,
+        INITIALISED,
+        OPTIMISING,
+        ENDING_OPTIMISATION
+    } m_state;
+
+
 };

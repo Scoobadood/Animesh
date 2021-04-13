@@ -34,24 +34,19 @@ void extract_quads_for_frame(const SurfelGraphPtr& graphPtr,
         normals.push_back(normal.z());
 
         auto t2 = normal.cross(tangent);
-        const auto v1 = position - (tangent * 0.1f ) - (t2 * 0.1f);
-        const auto v2 = position - (tangent * 0.1f ) + (t2 * 0.1f);
-        const auto v3 = position + (tangent * 0.1f ) + (t2 * 0.1f);
-        const auto v4 = position + (tangent * 0.1f ) - (t2 * 0.1f);
-        quads.push_back(v1.x());
-        quads.push_back(v1.y());
-        quads.push_back(v1.z());
-        quads.push_back(v2.x());
-        quads.push_back(v2.y());
-        quads.push_back(v2.z());
-        quads.push_back(v3.x());
-        quads.push_back(v3.y());
-        quads.push_back(v3.z());
-        quads.push_back(v4.x());
-        quads.push_back(v4.y());
-        quads.push_back(v4.z());
-
-
+        for( auto xy : std::vector<std::tuple<float,float>>{
+            {0.0f, 0.0f},
+            {0.0f, 1.0f},
+            {1.0f, 1.0f},
+            {1.0f, 0.0f},
+            }) {
+            const auto p = position
+                    + (tangent * (std::get<0>(xy) + uv.x()))
+                    + (t2 * (std::get<1>(xy) + uv.y()));
+            quads.push_back(p.x());
+            quads.push_back(p.y());
+            quads.push_back(p.z());
+        }
         uvs.push_back(uv.x());
         uvs.push_back(uv.y());
     }
@@ -92,6 +87,4 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
     uvs.clear();
 
     extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, uvs);
-    centre_at_origin(positions);
-    centre_at_origin(quads);
 }

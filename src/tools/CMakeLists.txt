@@ -55,7 +55,6 @@ add_executable(
 target_include_directories(
 		dmr PUBLIC glm
 		${ASSIMP_INCLUDE_DIRS}
-
 )
 
 target_link_libraries(

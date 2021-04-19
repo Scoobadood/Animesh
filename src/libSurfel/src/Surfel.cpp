@@ -6,38 +6,40 @@
 #include "FrameData.h"
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <utility>
 #include <vector>
 #include <memory>
 #include <Geom/Geom.h>
 
-std::map<std::string, std::shared_ptr<Surfel>> Surfel::surfel_by_id = [] {
+std::map<std::string, std::shared_ptr<Surfel>> Surfel::m_surfel_by_id = [] {
     return std::map<std::string, std::shared_ptr<Surfel>>{};
 }();
 
-std::shared_ptr<Surfel> Surfel::surfel_for_id(const std::string &id) {
-    auto it = surfel_by_id.find(id);
-    if (it != surfel_by_id.end()) {
-        return it->second;
-    }
-    std::cerr << "No surfel found for ID " << id << std::endl;
-    throw std::runtime_error("Bad surfel id");
-}
-
+//std::shared_ptr<Surfel> Surfel::surfel_for_id(const std::string &id) {
+//    auto it = m_surfel_by_id.find(id);
+//    if (it != m_surfel_by_id.end()) {
+//        return it->second;
+//    }
+//    std::cerr << "No surfel found for ID " << id << std::endl;
+//    throw std::runtime_error("Bad surfel id");
+//}
+//
 Surfel::Surfel(std::string id,
                const std::vector<FrameData> &frames,
                Eigen::Vector3f tangent,
-               Eigen::Vector2f closest_mesh_vertex_offset
+               Eigen::Vector2f reference_lattice_offset
 ) :
-        id{std::move(id)},
-        tangent{std::move(tangent)},
-        closest_mesh_vertex_offset{std::move(closest_mesh_vertex_offset)},
-        last_correction{0.0f},
-        error{0.0},
-        posy_smoothness{0.0f} {
+        m_id{std::move(id)},
+        m_tangent{std::move(tangent)},
+        m_reference_lattice_offset{std::move(reference_lattice_offset)},
+        m_rosy_smoothness{45.f * 45.f},
+        m_last_rosy_correction{0.0f},
+        m_posy_smoothness{0.0f} {
 
     for (auto &fd : frames) {
-        frame_data.push_back(fd);
+        m_frame_data.push_back(fd);
+        this->m_frames.push_back(fd.pixel_in_frame.frame);
     }
 }
 
@@ -45,31 +47,49 @@ Surfel::Surfel(std::string id,
 // TODO: Consider constructing vector<int> and using binary_search
 bool
 Surfel::is_in_frame(unsigned int frame) const {
-    for (const auto &fd : frame_data) {
-        if (fd.pixel_in_frame.frame == frame) {
-            return true;
-        }
-    }
-    return false;
+    using namespace std;
+    return any_of(begin(m_frame_data), end(m_frame_data),
+                  [frame](const FrameData &fd) { return (fd.pixel_in_frame.frame == frame); });
 }
 
-const FrameData&
+const FrameData &
 Surfel::frame_data_for_frame(unsigned int frame) const {
-    for (const auto &fd : frame_data) {
+    for (const auto &fd : m_frame_data) {
         if (fd.pixel_in_frame.frame == frame) {
             return fd;
         }
     }
-    throw std::runtime_error("Surfel not in frame");
+    throw std::runtime_error("Surfel " + m_id + " not in frame " + std::to_string(frame));
 }
 
 void
-Surfel::get_position_tangent_normal_for_frame(unsigned int frame, Eigen::Vector3f& position, Eigen::Vector3f& tangent, Eigen::Vector3f& normal ) const {
-    const auto & fd = frame_data_for_frame(frame);
+Surfel::get_vertex_tangent_normal_for_frame(
+        unsigned int frame_idx,
+        Eigen::Vector3f &vertex,
+        Eigen::Vector3f &tangent,
+        Eigen::Vector3f &normal) const {
+    const auto &fd = frame_data_for_frame(frame_idx);
 
-    position = fd.position;
+    vertex = fd.position;
     normal = fd.normal;
-    tangent = fd.transform * this->tangent;
+    tangent = fd.transform * m_tangent;
     // Force reproject tangent to surface
-    project_vector_to_plane(tangent, normal, true);
+    tangent -= tangent.dot(normal) * normal;
+    tangent.normalize();
 }
+
+void Surfel::get_all_data_for_surfel_in_frame(
+        unsigned int frame_idx,
+        Eigen::Vector3f &vertex,
+        Eigen::Vector3f &tangent,
+        Eigen::Vector3f &orth_tangent,
+        Eigen::Vector3f &normal,
+        Eigen::Vector3f &closest_mesh_vertex) const {
+    get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
+    orth_tangent = normal.cross(tangent);
+    closest_mesh_vertex = vertex +
+                          (m_reference_lattice_offset[0] * tangent) +
+                          (m_reference_lattice_offset[1] * orth_tangent);
+//    closest_mesh_vertex = project_vector_to_plane(closest_mesh_vertex, normal, false);
+}
+

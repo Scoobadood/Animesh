@@ -2,8 +2,7 @@
 // Created by Dave Durbin on 19/5/20.
 //
 
-#ifndef ANIMESH_SURFEL_H
-#define ANIMESH_SURFEL_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -12,31 +11,81 @@
 #include "FrameData.h"
 #include <memory>
 
-struct Surfel {
+class Surfel {
+public:
     Surfel(std::string id,
            const std::vector<FrameData> &frames,
-           Eigen::Vector3f tangent,
-           Eigen::Vector2f closest_mesh_vertex_offset
+           Eigen::Vector3f tangent = {1, 0, 0},
+           Eigen::Vector2f reference_lattice_offset = {0, 0}
     );
 
-    static std::map<std::string, std::shared_ptr<Surfel>> surfel_by_id;
+    inline const Eigen::Vector3f &tangent() const { return m_tangent; }
 
-    static std::shared_ptr<Surfel> surfel_for_id(const std::string &id);
+    inline void setTangent(const Eigen::Vector3f &tangent) { m_tangent = tangent; }
 
-    std::string id;
-    std::vector<FrameData> frame_data;
-    Eigen::Vector3f tangent;
-    // Relative position of representation lattice intersection [0,1) in trangent plane
-    Eigen::Vector2f closest_mesh_vertex_offset;
-    float last_correction;
-    float error;
-    float posy_smoothness;
+    inline const std::string &id() const { return m_id; }
+
+    inline const std::vector<FrameData> &frame_data() const { return m_frame_data; };
+
+    inline std::vector<FrameData> &frame_data() { return m_frame_data; };
+
+    inline const Eigen::Vector2f &reference_lattice_offset() const { return m_reference_lattice_offset; }
+
+    inline void
+    set_reference_lattice_offset(
+            const Eigen::Vector2f &reference_offset) {
+        m_last_posy_correction = reference_offset - m_reference_lattice_offset;
+        m_reference_lattice_offset = reference_offset;
+    }
+
+    inline void set_rosy_smoothness(float smoothness) { m_rosy_smoothness = smoothness; }
+
+    inline float rosy_smoothness() const { return m_rosy_smoothness; }
+
+    inline void set_posy_smoothness(float smoothness) { m_posy_smoothness = smoothness; }
+
+    inline float posy_smoothness() const { return m_posy_smoothness; }
+
+    inline void set_rosy_correction(float correction) { m_last_rosy_correction = correction; }
+
+    inline float rosy_correction() const { return m_last_rosy_correction; }
+
+    inline void set_posy_correction(const Eigen::Vector2f &correction) { m_last_posy_correction = correction; }
+
+    inline const Eigen::Vector2f &posy_correction() const { return m_last_posy_correction; }
+
+    inline const std::vector<unsigned int> &frames() const { return m_frames; }
+
+    inline size_t num_frames() const { return m_frames.size(); }
 
     bool is_in_frame(unsigned int frame) const;
-    void get_position_tangent_normal_for_frame(unsigned int frame, Eigen::Vector3f& position, Eigen::Vector3f& tangent, Eigen::Vector3f& normal ) const;
 
+    void get_vertex_tangent_normal_for_frame(unsigned int frame_idx,
+                                             Eigen::Vector3f &vertex,
+                                             Eigen::Vector3f &tangent,
+                                             Eigen::Vector3f &normal) const;
+
+    void get_all_data_for_surfel_in_frame(unsigned int frame_idx,
+                                          Eigen::Vector3f &vertex,
+                                          Eigen::Vector3f &tangent,
+                                          Eigen::Vector3f &orth_tangent,
+                                          Eigen::Vector3f &normal,
+                                          Eigen::Vector3f &closest_mesh_vertex) const;
+
+    static std::map<std::string, std::shared_ptr<Surfel>> m_surfel_by_id;
 private:
-    const FrameData&frame_data_for_frame(unsigned int frame) const;
-};
 
-#endif //ANIMESH_SURFEL_H
+//    static std::shared_ptr<Surfel> surfel_for_id(const std::string &id);
+
+    std::string m_id;
+    std::vector<FrameData> m_frame_data;
+    std::vector<unsigned int> m_frames;
+    Eigen::Vector3f m_tangent;
+    Eigen::Vector2f m_reference_lattice_offset;
+    float m_rosy_smoothness;
+    float m_last_rosy_correction;
+    float m_posy_smoothness;
+    Eigen::Vector2f m_last_posy_correction;
+
+    const FrameData &frame_data_for_frame(unsigned int frame) const;
+};

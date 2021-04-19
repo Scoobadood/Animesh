@@ -34,10 +34,10 @@ save_surfel_graph_to_file(const std::string &file_name,
     write_unsigned_int(file, surfel_graph->num_nodes());
     for (auto const &surfel : surfel_graph->nodes()) {
         // ID
-        write_string(file, surfel->data()->id);
+        write_string(file, surfel->data()->id());
         // FrameData size
-        write_unsigned_int(file, surfel->data()->frame_data.size());
-        for (auto const &fd : surfel->data()->frame_data) {
+        write_unsigned_int(file, surfel->data()->frame_data().size());
+        for (auto const &fd : surfel->data()->frame_data()) {
             // PixelInFrame
             write_size_t(file, fd.pixel_in_frame.pixel.x);
             write_size_t(file, fd.pixel_in_frame.pixel.y);
@@ -65,10 +65,10 @@ save_surfel_graph_to_file(const std::string &file_name,
         const auto neighbours = surfel_graph->neighbours(surfel);
         write_unsigned_int(file, neighbours.size());
         for (const auto &surfel_ptr : neighbours) {
-            write_string(file, surfel_ptr->data()->id);
+            write_string(file, surfel_ptr->data()->id());
         }
-        write_vector_3f(file, surfel->data()->tangent);
-        write_vector_2f(file, surfel->data()->closest_mesh_vertex_offset);
+        write_vector_3f(file, surfel->data()->tangent());
+        write_vector_2f(file, surfel->data()->reference_lattice_offset());
     }
     file.close();
     info(" done.");
@@ -144,7 +144,7 @@ load_surfel_graph_from_file(const std::string &file_name) {
 
     // Populate neighbours
     for( auto& graph_node : graph->nodes()) {
-        const auto& neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id);
+        const auto& neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id());
         for( const auto& neighbour_id : neighbour_ids ) {
             const auto neighbour_node = graph_node_by_id.at(neighbour_id);
             graph->add_edge( graph_node, neighbour_node, 1.0);

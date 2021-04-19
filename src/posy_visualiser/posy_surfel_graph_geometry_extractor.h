@@ -6,18 +6,22 @@
 
 #include <Surfel/SurfelGraph.h>
 
-class surfel_graph_geometry_extractor {
+class posy_surfel_graph_geometry_extractor {
 public:
-    surfel_graph_geometry_extractor( );
-    void extract_geometry(SurfelGraphPtr graph,
+    posy_surfel_graph_geometry_extractor( );
+    void extract_geometry(const SurfelGraphPtr& graphPtr,
                           std::vector<float>& positions,
-                          std::vector<float>& tangents,
-                          std::vector<float>& normals) const;
+                          std::vector<float>& quads,
+                          std::vector<float>& normals,
+                          std::vector<float>& uvs
+                          ) const;
+
     inline void set_frame(int frame) {
         if(m_frame != frame) {
             m_frame = frame;
         }
     }
+
     inline int get_frame() const {
         return m_frame;
     }

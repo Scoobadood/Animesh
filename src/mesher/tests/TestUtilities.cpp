@@ -140,11 +140,11 @@ TEST_F(TestUtilities, populate_surfel_neighbours) {
     auto n2 = graph->nodes().at(1);
     auto n = graph->neighbours(n1);
     EXPECT_EQ(n.size(), 1);
-    EXPECT_EQ(n.at(0)->data()->id, n2->data()->id);
+    EXPECT_EQ(n.at(0)->data()->id(), n2->data()->id());
 
     n = graph->neighbours(n2);
     EXPECT_EQ(n.size(), 1);
-    EXPECT_EQ(n.at(0)->data()->id, n1->data()->id);
+    EXPECT_EQ(n.at(0)->data()->id(), n1->data()->id());
 }
 
 TEST_F(TestUtilities, fail_to_populate_surfel_neighbours) {

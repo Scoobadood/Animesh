@@ -45,6 +45,20 @@ float degrees_angle_between_vectors(const Eigen::Vector3f& v1, const Eigen::Vect
 Eigen::Vector3f project_vector_to_plane(const Eigen::Vector3f& v, const Eigen::Vector3f& n, bool normalize = true);
 
 /**
+ * Rotate a point about an axis through an angle.
+ * @param axis The axis.
+ * @param angle The angle in radians.
+ * @param p The point to rotate.
+ * @return The rotated point.
+ */
+Eigen::Vector3f rotate_point_through_axis_angle(
+        const Eigen::Vector3f& axis,
+        float theta,
+        const Eigen::Vector3f& p);
+
+
+
+/**
  * Construct the skew symmetric matrix correesponding to 
  * the vector (v1,v2,v3)
  */

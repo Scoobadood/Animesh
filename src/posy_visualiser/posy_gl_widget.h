@@ -1,34 +1,65 @@
-#ifndef POSY_GL_WIDGET_H
-#define POSY_GL_WIDGET_H
+#pragma once
 
+#include <QColor>
+#include <QVector3D>
+#include <QMatrix4x4>
 #include <QOpenGLWidget>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLTexture>
+
 #include <Surfel/SurfelGraph.h>
+#include <ArcBall/ArcBall.h>
 #include <vector>
 
-class posy_gl_widget : public QOpenGLWidget
-{
-    Q_OBJECT
+/**
+ * @brief The posy_gl_widget class.
+ * Renders PoSy with trackball controls.
+ */
+class posy_gl_widget : public QOpenGLWidget {
+Q_OBJECT
 public:
-    posy_gl_widget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags()): QOpenGLWidget{parent, f}
-    {
-        positions.push_back(0.0f);
-        positions.push_back(0.0f);
-        positions.push_back(0.0f);
-        positions.push_back(2.0f);
-        positions.push_back(2.0f);
-        positions.push_back(2.0f);
+    explicit posy_gl_widget(QWidget* parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 
-        normals.push_back(0.0f);normals.push_back(1.0f);normals.push_back(0.0f);normals.push_back(0.0f);normals.push_back(1.0f);normals.push_back(0.0f);
-        tangents.push_back(1.0f);tangents.push_back(0.0f);tangents.push_back(0.0f);tangents.push_back(1.0f);tangents.push_back(0.0f);tangents.push_back(0.0f);
-    };
-    void setPoSyData(const SurfelGraph& graph);
+    void setPoSyData(const std::vector<float>& positions,
+                     const std::vector<float>& quads,
+                     const std::vector<float>& normals,
+                     const std::vector<float>& uvs
+                     );
+
+    void setZFar(float zFar);
+    void setFov(float fov);
+
 protected:
-    void paintGL();
-private:
-    std::vector<float> positions;
-    std::vector<float>tangents;
-    std::vector<float>normals;
-    int frame = 0;
-};
+    void paintGL() override;
+    void initializeGL() override;
+    void resizeGL(int width, int height) override;
 
-#endif // POSY_GL_WIDGET_H
+private:
+    std::vector<float> m_positions;
+    std::vector<float> m_quads;
+    std::vector<float> m_normals;
+    std::vector<float> m_uvs;
+
+    ArcBall * m_arcBall;
+
+    void maybeUpdateModelViewMatrix();
+    void maybeUpdateProjectionMatrix() const;
+    static void clear();
+    void drawPositions() const;
+    void maybeDrawSplats() const;
+    QImage makeSplatImage( ) const;
+    QOpenGLTexture * splatTexture;
+
+    float m_fov;
+    float m_zNear;
+    float m_zFar;
+    float m_aspectRatio;
+    bool m_projectionMatrixIsDirty;
+    bool m_renderSplats;
+
+    static void checkGLError(const std::string& context) ;
+
+signals:
+    void cameraPositionChanged(float x, float y, float z) const;
+    void cameraOrientationChanged(float roll, float pitch, float yaw) const;
+};

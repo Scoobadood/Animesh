@@ -63,7 +63,6 @@ setup_object(const std::string &file_name, bool face_wise) {
     using namespace std;
     using namespace animesh;
 
-    ObjFileParser parser;
     Graph<animesh::PointNormal::Ptr, int> object_graph;
 
     auto normals_and_adjacency = animesh::ObjFileParser::parse_file(file_name, true, face_wise);

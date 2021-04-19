@@ -80,7 +80,9 @@ Eigen::Vector3f vector_by_rotating_around_n( const Eigen::Vector3f & o, const Ei
 	if ( fabs( n.norm() - 1.0f ) > EPSILON )
 		throw std::invalid_argument( "Normal must be unit vector" );
 
-	return ((k & 1) ? (n.cross(o)) : o) * (k < 2 ? 1.0f : -1.0f);
+	Vector3f tangent = ((k & 1) ? (n.cross(o)) : o) * (k < 2 ? 1.0f : -1.0f);
+    tangent = project_vector_to_plane(tangent, n, true);
+    return tangent;
 }
 
 /**
@@ -442,4 +444,38 @@ spherical_to_cartesian(float radius, float theta, float phi) {
     const auto y = radius * std::cosf(phi);
     const auto z = radius * std::sinf(phi) * std::cosf(theta);
     return Eigen::Vector3f{x, y, z};
+}
+
+
+/**
+ * Rotate a point about an axis through an angle.
+ * @param axis The axis.
+ * @param angle The angle in radians.
+ * @param p The point to rotate.
+ * @return The rotated point.
+ */
+Eigen::Vector3f rotate_point_through_axis_angle(
+        const Eigen::Vector3f& axis,
+        float theta,
+        const Eigen::Vector3f& p) {
+    {
+        const auto normal_axis = axis.normalized();
+        Eigen::Vector3f q{0.0,0.0,0.0};
+        const auto cos_theta = std::cos(theta);
+        const auto sin_theta = std::sin(theta);
+
+        q[0] += (cos_theta + (1 - cos_theta) * normal_axis[0] * normal_axis[0]) * p[0];
+        q[0] += ((1 - cos_theta) * normal_axis[0] * normal_axis[1] - normal_axis[2] * sin_theta) * p[1];
+        q[0] += ((1 - cos_theta) * normal_axis[0] * normal_axis[2] + normal_axis[1] * sin_theta) * p[2];
+
+        q[1] += ((1 - cos_theta) * normal_axis[0] * normal_axis[1] + normal_axis[2] * sin_theta) * p[0];
+        q[1] += (cos_theta + (1 - cos_theta) * normal_axis[1] * normal_axis[1]) * p[1];
+        q[1] += ((1 - cos_theta) * normal_axis[1] * normal_axis[2] - normal_axis[0] * sin_theta) * p[2];
+
+        q[2] += ((1 - cos_theta) * normal_axis[0] * normal_axis[2] - normal_axis[1] * sin_theta) * p[0];
+        q[2] += ((1 - cos_theta) * normal_axis[1] * normal_axis[2] + normal_axis[0] * sin_theta) * p[1];
+        q[2] += (cos_theta + (1 - cos_theta) * normal_axis[2] * normal_axis[2]) * p[2];
+
+        return(q);
+    }
 }

@@ -257,9 +257,9 @@ RoSyOptimiser::optimise_end_level() {
         m_previous_surfel_graph = m_surfel_graph;
 
         // Copy all surfels in prev level to lookup table
-        Surfel::surfel_by_id.clear();
+        Surfel::m_surfel_by_id.clear();
         for (auto &s : m_previous_level_surfels) {
-            Surfel::surfel_by_id.emplace(s->id, s);
+            Surfel::m_surfel_by_id.emplace(s->id(), s);
         }
         m_state = STARTING_LEVEL;
     }
@@ -305,7 +305,7 @@ RoSyOptimiser::compute_surfel_error_for_frame(const std::shared_ptr<Surfel> &sur
     float total_neighbour_error = 0.0f;
 
     // Get all neighbours in frame
-    const SurfelInFrame surfel_in_frame{surfel->id, frame_id};
+    const SurfelInFrame surfel_in_frame{surfel->id(), frame_id};
 
     const auto &this_surfel_in_this_frame = m_norm_tan_by_surfel_frame.at(surfel_in_frame);
 
@@ -315,7 +315,7 @@ RoSyOptimiser::compute_surfel_error_for_frame(const std::shared_ptr<Surfel> &sur
     int n_k = 0;
     for (auto np = bounds.first; np != bounds.second; ++np) {
         const auto &this_neighbour_in_this_frame = m_norm_tan_by_surfel_frame.at(
-                SurfelInFrame{np->second->id, frame_id});
+                SurfelInFrame{np->second->id(), frame_id});
 
         // Compute the error between this surfel in this frame and the neighbour in this frame.
         total_neighbour_error += compute_error(this_surfel_in_this_frame, s_k, this_neighbour_in_this_frame, n_k);
@@ -340,13 +340,13 @@ RoSyOptimiser::compute_surfel_error(const std::shared_ptr<Surfel> &surfel) const
     float total_frame_error = 0.0f;
 
     // For each frame in which this surfel appears
-    for (const auto &frame_data : surfel->frame_data) {
+    for (const auto &frame_data : surfel->frame_data()) {
         // Compute the error in this frame
         total_frame_error += compute_surfel_error_for_frame(surfel, frame_data.pixel_in_frame.frame);
     }
     // Return mean error per frame
-    (std::const_pointer_cast<Surfel>(surfel))->error = total_frame_error / surfel->frame_data.size();
-    return surfel->error;
+    (std::const_pointer_cast<Surfel>(surfel))->set_rosy_smoothness(total_frame_error / surfel->frame_data().size());
+    return surfel->rosy_smoothness();
 }
 
 /*
@@ -409,8 +409,7 @@ RoSyOptimiser::ssa_select_all_in_random_order() {
 
     vector<size_t> indices(m_surfel_graph->num_nodes());
     iota(begin(indices), end(indices), 0);
-    shuffle(begin(indices), end(indices),
-            default_random_engine(chrono::system_clock::now().time_since_epoch().count()));
+    shuffle(begin(indices), end(indices), default_random_engine(123));
     vector<SurfelGraphNodePtr> selected_nodes;
     selected_nodes.reserve(indices.size());
     const auto graph_nodes = m_surfel_graph->nodes();
@@ -432,8 +431,8 @@ RoSyOptimiser::ssa_select_worst_100() {
         selected_nodes.push_back(n);
     }
     stable_sort(begin(selected_nodes), end(selected_nodes),
-                [this](const SurfelGraphNodePtr &s1, const SurfelGraphNodePtr &s2) {
-                    return s1->data()->error > s2->data()->error;
+                [](const SurfelGraphNodePtr &s1, const SurfelGraphNodePtr &s2) {
+                    return s1->data()->rosy_smoothness() > s2->data()->rosy_smoothness();
                 });
 
     selected_nodes.resize(100);
@@ -519,10 +518,10 @@ find_common_frames_for_surfels(const std::shared_ptr<Surfel> &surfel1, const std
     using namespace std;
 
     const auto func =[](const FrameData &f1, const FrameData &f2) { return f1.pixel_in_frame.frame < f2.pixel_in_frame.frame; };
-    sort(begin(surfel1->frame_data), end(surfel1->frame_data),func);
-    sort(begin(surfel2->frame_data), end(surfel2->frame_data), func);
+    sort(begin(surfel1->frame_data()), end(surfel1->frame_data()),func);
+    sort(begin(surfel2->frame_data()), end(surfel2->frame_data()), func);
 
-    return find_common_frame_data(surfel1->frame_data, surfel2->frame_data);
+    return find_common_frame_data(surfel1->frame_data(), surfel2->frame_data());
 }
 
 /**
@@ -548,7 +547,6 @@ norm_tans_for_frames(const SurfelGraphNodePtr &node1,
     vector<NormalTangent> norm_tans;
 
     // For each neighbour
-    const auto &this_surfel_ptr = node1->data();
     const auto &that_surfel_ptr = node2->data();
 
     // For each common frame, get normal and tangent in surfel space
@@ -564,7 +562,7 @@ norm_tans_for_frames(const SurfelGraphNodePtr &node1,
         //    transform from free space to frame space for tangent (stored) (we already have normal in frame space)
         //	  transform from frame space to free space using surfel data. (inv of stored)
         auto neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
-        auto neighbour_tan_in_surfel_space = neighbour_to_surfel * that_surfel_ptr->tangent;
+        auto neighbour_tan_in_surfel_space = neighbour_to_surfel * that_surfel_ptr->tangent();
         auto neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
 
         norm_tans.emplace_back(neighbour_norm_in_surfel_space, neighbour_tan_in_surfel_space);
@@ -583,7 +581,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 //    7.     Update edge with k values.
 
     const auto &this_surfel_ptr = node->data();
-    const auto & old_tangent = this_surfel_ptr->tangent;
+    const auto & old_tangent = this_surfel_ptr->tangent();
 
     Vector3f new_tangent{old_tangent};
     float weight = 0;
@@ -595,7 +593,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
         const auto common_frames = find_common_frames_for_nodes(node, neighbour);
         // Smooth over all frames
-        for (const auto frame_pair : common_frames) {
+        for (const auto& frame_pair : common_frames) {
             auto frame_idx = frame_pair.first.pixel_in_frame.frame;
             assert( frame_pair.second.pixel_in_frame.frame == frame_idx);
 
@@ -608,7 +606,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             const auto& neighbour_to_frame = frame_pair.second.transform;
             const auto& neighbour_normal_in_frame = frame_pair.second.normal;
             auto neighbour_to_surfel = frame_to_surfel * neighbour_to_frame;
-            auto neighbour_tan_in_surfel_space = neighbour_to_surfel * that_surfel_ptr->tangent;
+            auto neighbour_tan_in_surfel_space = neighbour_to_surfel * that_surfel_ptr->tangent();
             auto neighbour_norm_in_surfel_space = frame_to_surfel * neighbour_normal_in_frame;
 
             new_tangent = average_rosy_vectors(
@@ -635,9 +633,9 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         }
     }
 
-    node->data()->tangent = new_tangent;
+    node->data()->setTangent(new_tangent);
     auto vec_pair = best_rosy_vector_pair(new_tangent, Vector3f::UnitY(), old_tangent, Vector3f::UnitY());
-    node->data()->last_correction = fmod(degrees_angle_between_vectors(vec_pair.first, vec_pair.second), 90.0f);
+    node->data()->set_rosy_correction(fmod(degrees_angle_between_vectors(vec_pair.first, vec_pair.second), 90.0f));
 }
 
 
@@ -663,10 +661,10 @@ RoSyOptimiser::populate_norm_tan_by_surfel_frame() {
      */
     for (const auto &n : m_surfel_graph->nodes()) {
         const auto &surfel = n->data();
-        for (const auto &fd : surfel->frame_data) {
-            SurfelInFrame surfel_in_frame{surfel->id, fd.pixel_in_frame.frame};
+        for (const auto &fd : surfel->frame_data()) {
+            SurfelInFrame surfel_in_frame{surfel->id(), fd.pixel_in_frame.frame};
             Vector3f new_norm = fd.normal;
-            Vector3f new_tan = fd.transform * surfel->tangent;
+            Vector3f new_tan = fd.transform * surfel->tangent();
             m_norm_tan_by_surfel_frame.emplace(surfel_in_frame, NormalTangent{new_norm, new_tan});
         }
     }
@@ -693,9 +691,9 @@ RoSyOptimiser::populate_frame_to_surfel() {
     unsigned int surfel_idx = 0;
     for (const auto &n : m_surfel_graph->nodes()) {
         const auto &surfel = n->data();
-        for (const auto &fd : surfel->frame_data) {
-            m_surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel->id);
-            m_surfel_frame_map.emplace(SurfelInFrame{surfel->id, fd.pixel_in_frame.frame},
+        for (const auto &fd : surfel->frame_data()) {
+            m_surfels_by_frame.at(fd.pixel_in_frame.frame).push_back(surfel->id());
+            m_surfel_frame_map.emplace(SurfelInFrame{surfel->id(), fd.pixel_in_frame.frame},
                                        m_surfels_by_frame.at(fd.pixel_in_frame.frame).size() - 1);
         }
         ++surfel_idx;
@@ -747,14 +745,14 @@ RoSyOptimiser::populate_neighbours_by_surfel_frame() {
 
             // And each frame
             for (size_t frame_idx = 0; frame_idx < m_num_frames; ++frame_idx) {
-                if (!surfel_is_in_frame(surfel_ptr->id, frame_idx)) {
+                if (!surfel_is_in_frame(surfel_ptr->id(), frame_idx)) {
                     continue;
                 }
 
-                if (!surfel_is_in_frame(neighbour->data()->id, frame_idx)) {
+                if (!surfel_is_in_frame(neighbour->data()->id(), frame_idx)) {
                     continue;
                 }
-                SurfelInFrame sif{surfel_ptr->id, frame_idx};
+                SurfelInFrame sif{surfel_ptr->id(), frame_idx};
                 m_neighbours_by_surfel_frame.emplace(sif, neighbour->data());
             }
         }
@@ -800,7 +798,7 @@ create_pif_to_graphnode_map(const SurfelGraphPtr &surfel_graph) {
 
     map<PixelInFrame, SurfelGraphNodePtr> pif_to_graph_node;
     for (const auto &node : surfel_graph->nodes()) {
-        for (const auto &frame_data : node->data()->frame_data) {
+        for (const auto &frame_data : node->data()->frame_data()) {
             pif_to_graph_node.emplace(frame_data.pixel_in_frame, node);
         }
     }
@@ -825,7 +823,7 @@ compute_child_to_parent_surfel_map(const SurfelGraphPtr &child_graph, //
     multimap<SurfelGraphNodePtr, SurfelGraphNodePtr> child_to_parents_graphnode_map;
     for (const auto &child_node : child_graph->nodes()) {
         size_t parents_found = 0;
-        for (const auto &child_frame : child_node->data()->frame_data) {
+        for (const auto &child_frame : child_node->data()->frame_data()) {
             PixelInFrame parent_pif{child_frame.pixel_in_frame.pixel.x / 2, //
                                     child_frame.pixel_in_frame.pixel.y / 2, //
                                     child_frame.pixel_in_frame.frame};
@@ -862,12 +860,12 @@ down_propagate_tangents(const std::multimap<SurfelGraphNodePtr, SurfelGraphNodeP
         Vector3f mean_tangent{0.0f, 0.0f, 0.0};
         auto inner_it = outer_it;
         while ((inner_it != end(child_to_parents)) && (inner_it->first == child_graphnode)) {
-            mean_tangent += inner_it->second->data()->tangent;
+            mean_tangent += inner_it->second->data()->tangent();
             ++num_parents;
             ++inner_it;
         }
         // Set the child Surfel's tangent
-        outer_it->first->data()->tangent = (mean_tangent / num_parents).normalized();
+        outer_it->first->data()->setTangent((mean_tangent / num_parents).normalized());
         outer_it = inner_it;
     }
 }

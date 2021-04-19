@@ -72,19 +72,19 @@ void animesh_screen::update_canvas() {
     m_surfel_index_to_id.clear();
 
     for (const auto &s : surfel_data) {
-        for (const auto &fd : s->frame_data) {
+        for (const auto &fd : s->frame_data()) {
             if (fd.pixel_in_frame.frame == m_frame_idx) {
                 const auto point_in_space = temp_camera.to_world_coordinates(
                         fd.pixel_in_frame.pixel.x, fd.pixel_in_frame.pixel.y, fd.depth);
                 m_surfel_data.emplace_back(point_in_space,
                                            fd.normal,
-                                           fd.transform * s->tangent,
-                                           s->last_correction,
-                                           s->error
+                                           fd.transform * s->tangent(),
+                                           s->rosy_correction(),
+                                           s->rosy_smoothness()
                 );
 
-                m_surfel_index_to_id.push_back(s->id);
-                m_surfel_id_to_index.emplace(s->id, m_surfel_data.size() - 1);
+                m_surfel_index_to_id.push_back(s->id());
+                m_surfel_id_to_index.emplace(s->id(), m_surfel_data.size() - 1);
             }
         }
     }
@@ -197,8 +197,8 @@ void animesh_screen::maybe_highlight_surfel_and_neighbours() {
         // And it's neighbours in frame
         const auto neighbours = m_optimiser->get_neighbours_of_surfel_in_frame(m_selected_surfel_id, m_frame_idx);
         for (const auto &n : neighbours) {
-            spdlog::debug("Highlighting neighbour {:s}", n->id);
-            auto n_idx = surfel_id_to_index(n->id);
+            spdlog::debug("Highlighting neighbour {:s}", n->id());
+            auto n_idx = surfel_id_to_index(n->id());
             m_canvas->highlight_surfel(n_idx, default_highlighted_neighbour_colour());
         }
         update_selected_surfel_data();

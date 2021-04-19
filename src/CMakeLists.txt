@@ -21,6 +21,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/../lib)
 
 set(CMAKE_CXX_STANDARD 14)
 
+add_definitions(-DGL_SILENCE_DEPRECATION)
 
 # Need spdlog`
 find_package(spdlog REQUIRED)
@@ -68,15 +69,6 @@ IF (APPLE)
 ENDIF (APPLE)
 add_definitions(-DGL_SILENCE_DEPRECATION)
 
-# ASSIMP
-list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/lib/cmake/assimp-5.0")
-find_package(assimp REQUIRED)
-if (assimp_FOUND)
-	set(ASSIMP_LIBRARY "assimp")
-	add_library(${ASSIMP_LIBRARY} SHARED IMPORTED)
-	set_target_properties(${ASSIMP_LIBRARY} PROPERTIES IMPORTED_LOCATION "${ASSIMP_LIBRARY_DIRS}/libassimp.dylib")
-endif (assimp_FOUND)
-
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
 execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
@@ -114,6 +106,8 @@ add_subdirectory( libRoSy )
 add_subdirectory( libSurfel )
 add_subdirectory( libUtilities )
 add_subdirectory( mesher )
-#add_subdirectory( tools )
+add_subdirectory( tools )
 add_subdirectory(rosy_visualiser)
 add_subdirectory(posy_visualiser)
+add_subdirectory(libArcBall)
+add_subdirectory(libOptimise)

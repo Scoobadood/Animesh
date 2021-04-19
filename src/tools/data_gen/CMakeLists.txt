@@ -21,6 +21,7 @@ add_executable(
 target_include_directories(
 		dat_gen PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+		${ASSIMP_INCLUDE_DIRS}
 )
 
 target_link_libraries(

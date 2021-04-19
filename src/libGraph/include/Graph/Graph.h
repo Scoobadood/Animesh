@@ -152,7 +152,7 @@ namespace animesh {
             using namespace std;
 
             if (has_edge(from_node, to_node)) {
-                spdlog::warn("Ignoring attempt to add duplicate edge from {:p} to {:p}", fmt::ptr(from_node), fmt::ptr(to_node));
+                spdlog::debug("Ignoring attempt to add duplicate edge from {:p} to {:p}", fmt::ptr(from_node), fmt::ptr(to_node));
                 return;
             }
 

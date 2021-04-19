@@ -13,6 +13,7 @@ class TestPoSyOptimiser : public ::testing::Test {
 public:
     void SetUp( );
     void TearDown();
+    SurfelGraphPtr makeTestGraph();
     Properties m_properties;
 };
 

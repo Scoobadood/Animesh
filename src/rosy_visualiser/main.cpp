@@ -1,7 +1,5 @@
 #include "rosy_visualiser_window.h"
 
-#include <QSurfaceFormat>
-#include <QOpenGLContext>
 #include <QApplication>
 
 int

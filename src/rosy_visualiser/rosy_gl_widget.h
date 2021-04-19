@@ -7,7 +7,7 @@
 #include <QOpenGLDebugLogger>
 
 #include <Surfel/SurfelGraph.h>
-#include <arc_ball.h>
+#include <ArcBall/ArcBall.h>
 #include <vector>
 
 /**
@@ -52,7 +52,7 @@ private:
     QColor m_mainTangentColour;
     QColor m_otherTangentsColour;
 
-    arc_ball * m_arcBall;
+    ArcBall * m_arcBall;
 
     void maybeUpdateModelViewMatrix();
     void maybeUpdateProjectionMatrix() const;

@@ -2,15 +2,17 @@
 // Created by Dave Durbin (Old) on 10/4/21.
 //
 
-#ifndef ANIMESH_ARC_BALL_H
-#define ANIMESH_ARC_BALL_H
+#pragma once
 
 #include <QVector3D>
+#include <QMouseEvent>
+#include <QKeyEvent>
+#include <QWheelEvent>
 #include <QObject>
 
-class arc_ball : public QObject {
+class ArcBall : public QObject {
 public:
-    arc_ball();
+    ArcBall();
 
     void rotate(float dTheta, float dPhi);
 
@@ -54,5 +56,3 @@ protected:
 
     void wheelEvent(QWheelEvent *e);
 };
-
-#endif //ANIMESH_ARC_BALL_H

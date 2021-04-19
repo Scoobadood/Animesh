@@ -66,7 +66,6 @@ add_executable(
 		types.h
 		cross_field_GL_canvas.h cross_field_GL_canvas.cpp
 		hierarchical_mesher_ui.cpp
-		surfel_graph_geometry_extractor.h surfel_graph_geometry_extractor.cpp
 )
 
 target_link_libraries(

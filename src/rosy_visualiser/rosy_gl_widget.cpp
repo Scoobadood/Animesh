@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <QColor>
-#include <QKeyEvent>
 #include <Surfel/SurfelGraph.h>
 
 const float DEG2RAD = (3.14159265f / 180.0f);
@@ -21,7 +20,7 @@ rosy_gl_widget::rosy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
         , m_aspectRatio{1.0f} //
         , m_projectionMatrixIsDirty{true} //
 {
-    m_arcBall = new arc_ball();
+    m_arcBall = new ArcBall();
     installEventFilter(m_arcBall);
     setFocus();
     // Dummy data

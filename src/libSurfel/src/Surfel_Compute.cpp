@@ -39,7 +39,7 @@
  */
 float
 random_zero_to_one() {
-    static std::default_random_engine e;
+    static std::default_random_engine e(123);
     static std::uniform_real_distribution<> dis(0, 1); // range 0 - 1
     return dis(e);
 }
@@ -53,7 +53,7 @@ randomize_tangents(std::vector<std::shared_ptr<Surfel>> &surfels) {
     for (auto &surfel : surfels) {
         float xc = random_zero_to_one();
         float yc = sqrt(1.0f - (xc * xc));
-        surfel->tangent = Eigen::Vector3f{xc, 0.0f, yc};
+        surfel->setTangent(Eigen::Vector3f{xc, 0.0f, yc});
     }
 }
 
@@ -93,9 +93,9 @@ bool
 are_neighbours(const std::shared_ptr<Surfel> &surfel1, const std::shared_ptr<Surfel> &surfel2, bool eight_connected) {
     using namespace std;
 
-    auto it1 = surfel1->frame_data.begin();
-    auto it2 = surfel2->frame_data.begin();
-    while ((it1 != surfel1->frame_data.end()) && (it2 != surfel2->frame_data.end())) {
+    auto it1 = begin(surfel1->frame_data());
+    auto it2 = begin(surfel2->frame_data());
+    while ((it1 != end(surfel1->frame_data())) && (it2 != end(surfel2->frame_data()))) {
         const PixelInFrame &pif1 = it1->pixel_in_frame;
         const PixelInFrame &pif2 = it2->pixel_in_frame;
         if (pif1.frame == pif2.frame) {
@@ -139,7 +139,7 @@ graph_from_surfels(std::vector<std::shared_ptr<Surfel>> &surfels, bool eight_con
     map<string, SurfelGraphNodePtr> m;
     for (const auto &surfel : surfels) {
         auto node = graph->add_node(surfel);
-        m.emplace(surfel->id, node);
+        m.emplace(surfel->id(), node);
     }
 
     for (unsigned int i = 0; i < surfels.size() - 1; ++i) {
@@ -147,8 +147,8 @@ graph_from_surfels(std::vector<std::shared_ptr<Surfel>> &surfels, bool eight_con
         debug("Populating neighbours of surfel : {:d}", i);
         for (unsigned int j = i + 1; j < surfels.size(); ++j) {
             if (are_neighbours(surfel, surfels.at(j), eight_connected)) {
-                auto node1 = m.at(surfels.at(j)->id);
-                auto node2 = m.at(surfels.at(i)->id);
+                auto node1 = m.at(surfels.at(j)->id());
+                auto node2 = m.at(surfels.at(i)->id());
 
                 graph->add_edge(node1, node2, SurfelGraphEdge{1.0});
                 graph->add_edge(node2, node1, SurfelGraphEdge{1.0});
@@ -301,9 +301,7 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
 
     // Sort neighbours and frames
     for (auto &s : surfels) {
-        Surfel::surfel_by_id.emplace(s->id, s);
-        s->last_correction = 0.0f;
-        s->error = 45.0f * 45.0f;
+        Surfel::m_surfel_by_id.emplace(s->id(), s);
     }
 
     auto surfel_graph = graph_from_surfels(surfels, properties.getBooleanProperty("eight-connected"));

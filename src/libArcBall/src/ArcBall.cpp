@@ -2,16 +2,18 @@
 // Created by Dave Durbin (Old) on 10/4/21.
 //
 
-#include <QMouseEvent>
-#include "arc_ball.h"
+#include "ArcBall.h"
 #include <Geom/Geom.h>
+#include <cmath>
+
+#include <QMouseEvent>
 #include <QMatrix4x4>
 #include <QOpenGLWidget>
 
 const float DEG2RAD = (3.14159265f / 180.0f);
 const float TWO_PI = M_PI * 2.0f;
 
-arc_ball::arc_ball() :
+ArcBall::ArcBall() :
         m_theta{0.0f} //
         , m_phi{0.0f} //
         , m_radius{1.0f} //
@@ -21,7 +23,7 @@ arc_ball::arc_ball() :
 {}
 
 void
-arc_ball::rotate(float dTheta, float dPhi) {
+ArcBall::rotate(float dTheta, float dPhi) {
     if (m_up > 0.0f) {
         m_theta += dTheta;
     } else {
@@ -47,13 +49,13 @@ arc_ball::rotate(float dTheta, float dPhi) {
 }
 
 void
-arc_ball::zoom(float distance) {
+ArcBall::zoom(float distance) {
     m_radius = std::fminf(30.0f, std::fmaxf(0.0f, m_radius - distance));
     m_modelViewMatrixIsDirty = true;
 }
 
 void
-arc_ball::pan(float dx, float dy) {
+ArcBall::pan(float dx, float dy) {
     const auto lookDirection = (m_target - getCameraPosition()).normalized();
     const auto worldUp = QVector3D(0.0f, m_up, 0.0f);
     const auto right = QVector3D::crossProduct(lookDirection, worldUp);
@@ -64,18 +66,18 @@ arc_ball::pan(float dx, float dy) {
 }
 
 QVector3D
-arc_ball::getCameraPosition() const {
+ArcBall::getCameraPosition() const {
     return m_target + toCartesian();
 }
 
 QVector3D
-arc_ball::toCartesian() const {
+ArcBall::toCartesian() const {
     const auto vector = spherical_to_cartesian(m_radius, m_theta, m_phi);
     return {vector.x(), vector.y(), vector.z()};
 }
 
 void
-arc_ball::mouseMoveEvent(QMouseEvent *e) {
+ArcBall::mouseMoveEvent(QMouseEvent *e) {
     if (e->buttons() & Qt::LeftButton) {
         if (e->modifiers() & Qt::KeyboardModifier::ControlModifier) {
             const auto delta = m_lastPixelPosition - e->pos();
@@ -90,13 +92,13 @@ arc_ball::mouseMoveEvent(QMouseEvent *e) {
 }
 
 void
-arc_ball::wheelEvent(QWheelEvent *e) {
+ArcBall::wheelEvent(QWheelEvent *e) {
     const auto zDelta = e->angleDelta().y();
     zoom((float) zDelta * ZOOM_FACTOR);
 }
 
 void
-arc_ball::mousePressEvent(QMouseEvent *e) {
+ArcBall::mousePressEvent(QMouseEvent *e) {
     if (e->buttons() & (Qt::LeftButton | Qt::RightButton)) {
         m_lastPixelPosition = e->pos();
     }
@@ -104,11 +106,7 @@ arc_ball::mousePressEvent(QMouseEvent *e) {
 }
 
 void
-arc_ball::mouseReleaseEvent(QMouseEvent *e) {
-    e->accept();
-}
-
-void arc_ball::keyPressEvent(QKeyEvent *event) {
+ArcBall::keyPressEvent(QKeyEvent *event) {
     bool shiftDown = (event->modifiers() & Qt::KeyboardModifier::ShiftModifier) == Qt::KeyboardModifier::ShiftModifier;
     bool movedCamera = false;
     bool rotatedCamera = false;
@@ -168,7 +166,8 @@ void arc_ball::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-bool arc_ball::eventFilter(QObject *o, QEvent *e) {
+bool
+ArcBall::eventFilter(QObject *o, QEvent *e) {
     bool handled;
     switch (e->type()) {
         case QEvent::Wheel:
@@ -183,11 +182,6 @@ bool arc_ball::eventFilter(QObject *o, QEvent *e) {
 
         case QEvent::MouseButtonPress:
             mousePressEvent((QMouseEvent *) e);
-            handled = true;
-            break;
-
-        case QEvent::MouseButtonRelease:
-            mouseReleaseEvent((QMouseEvent *) e);
             handled = true;
             break;
 
@@ -206,7 +200,8 @@ bool arc_ball::eventFilter(QObject *o, QEvent *e) {
     return handled;
 }
 
-void arc_ball::modelViewMatrix(float mat[16]) {
+void
+ArcBall::modelViewMatrix(float mat[16]) {
     QMatrix4x4 matrix;
     matrix.setToIdentity();
 

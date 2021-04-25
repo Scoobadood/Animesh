@@ -1,23 +1,37 @@
 #include "posy_visualiser_window.h"
+#include "posy_surfel_graph_geometry_extractor.h"
 #include "ui_posy_visualiser_window.h"
 #include <Surfel/SurfelGraph.h>
 #include <Surfel/Surfel_IO.h>
 #include <QFileDialog>
 #include <utility>
-#include "posy_surfel_graph_geometry_extractor.h"
 
-posy_visualiser_window::posy_visualiser_window(QWidget *parent):
-        QMainWindow(parent)
-        , ui(new Ui::posy_visualiser_window)
-{
+posy_visualiser_window::posy_visualiser_window(Properties properties, QWidget *parent) :
+        QMainWindow(parent), ui(new Ui::posy_visualiser_window), m_properties{std::move(properties)} {
     ui->setupUi(this);
-//    ui->statusbar->addPermanentWidget(ui->rosyStatusBar);
-    m_geometryExtractor = new posy_surfel_graph_geometry_extractor();
+
+
+    float splatSize = m_properties.getFloatProperty("splat-size");
+    float rho = m_properties.getFloatProperty("rho");
+
+    ui->posyGLWidget->setRho(rho);
+    ui->posyGLWidget->setSplatSize(splatSize);
+
+    m_geometryExtractor = new posy_surfel_graph_geometry_extractor(rho, splatSize);
 
     connect(ui->menuFile, &QMenu::triggered,
             this, &posy_visualiser_window::fileOpenAction);
     connect(ui->frameSelector, &QSlider::valueChanged,
             this, &posy_visualiser_window::frameChanged);
+    connect(ui->horizontalSlider, &QSlider::valueChanged,
+            [=](int value) {
+                float newSize = value / 10.0f;
+                ui->posyGLWidget->setSplatSize(newSize);
+                m_geometryExtractor->setSplatSize(newSize);
+                extract_geometry();
+            });
+    connect(ui->cbShowQuads, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::renderQuads);
+    connect(ui->cbShowTextures, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::renderSplats);
 }
 
 posy_visualiser_window::~posy_visualiser_window() {

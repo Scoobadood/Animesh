@@ -90,6 +90,20 @@ void Surfel::get_all_data_for_surfel_in_frame(
     closest_mesh_vertex = vertex +
                           (m_reference_lattice_offset[0] * tangent) +
                           (m_reference_lattice_offset[1] * orth_tangent);
-//    closest_mesh_vertex = project_vector_to_plane(closest_mesh_vertex, normal, false);
 }
 
+void
+Surfel::transform_surfel_via_frame( const std::shared_ptr<Surfel>& that_surfel_ptr,
+                                    unsigned int frame_index,
+                                    Eigen::Vector3f& transformed_other_norm,
+                                    Eigen::Vector3f& transformed_other_tan) const {
+
+    const auto frame_to_surfel = frame_data_for_frame(frame_index).transform.transpose();
+    const auto &other_surfel_to_frame = that_surfel_ptr->frame_data_for_frame(frame_index).transform;
+    auto other_surfel_to_this_surfel = frame_to_surfel * other_surfel_to_frame;
+
+    const auto &neighbour_normal_in_frame = that_surfel_ptr->frame_data_for_frame(frame_index).normal;
+
+    transformed_other_norm = frame_to_surfel * neighbour_normal_in_frame;
+    transformed_other_tan = other_surfel_to_this_surfel * that_surfel_ptr->tangent();
+}

@@ -13,16 +13,24 @@
 #include <Eigen/Geometry>
 
 PoSyOptimiser::PoSyOptimiser(Properties properties)
-        : m_properties(std::move(properties)) //
+        :
+          m_termination_criteria{0} //
+        , m_term_crit_absolute_smoothness{0.0f} //
+        , m_term_crit_relative_smoothness{0.0f} //
+        , m_term_crit_max_iterations{0} //
+        , m_result{NOT_COMPLETE} //
+        , m_properties(std::move(properties)) //
         , m_convergence_threshold{1.0} //
-        , m_numFrames{0} //
-        , m_optimisation_cycles{0} //
+        , m_num_frames{0} //
         , m_last_smoothness{0.0f} //
         , m_state{UNINITIALISED} //
+        , m_num_iterations{0} //
 {
     m_rho = m_properties.getFloatProperty("rho");
     m_convergence_threshold = m_properties.getFloatProperty("convergence-threshold");
     m_node_selection_function = extractSsa(m_properties);
+
+    setup_termination_criteria();
 }
 
 PoSyOptimiser::~PoSyOptimiser() = default;
@@ -31,15 +39,45 @@ PoSyOptimiser::~PoSyOptimiser() = default;
  * Start global smoothing.
  */
 void
-PoSyOptimiser::begin_optimisation() {
+PoSyOptimiser::optimise_begin() {
     assert(m_state == INITIALISED);
 
     using namespace spdlog;
     info("Initialising error value");
-    m_last_smoothness = compute_total_smoothness();
-    m_optimisation_cycles = 0;
+    m_last_smoothness = compute_mean_smoothness();
+    m_num_iterations = 0;
     m_state = OPTIMISING;
 }
+
+void
+PoSyOptimiser::setup_termination_criteria() {
+    using namespace std;
+    m_termination_criteria = 0;
+    const auto term_crit = m_properties.getProperty("posy-termination-criteria");
+    stringstream ss(term_crit);
+    while (ss.good()) {
+        string option;
+        getline(ss, option, ',');
+        const auto old_term_crit = m_termination_criteria;
+        if (option == "absolute" && ((m_termination_criteria & TC_ABSOLUTE) == 0)) {
+            m_termination_criteria |= TC_ABSOLUTE;
+            m_term_crit_absolute_smoothness = m_properties.getFloatProperty("posy-term-crit-absolute-smoothness");
+        }
+        if (option == "relative" && ((m_termination_criteria & TC_RELATIVE) == 0)) {
+            m_termination_criteria |= TC_RELATIVE;
+            m_term_crit_relative_smoothness = m_properties.getFloatProperty("posy-term-crit-relative-smoothness");
+        }
+        if (option == "fixed" && ((m_termination_criteria & TC_FIXED) == 0)) {
+            m_termination_criteria |= TC_FIXED;
+            m_term_crit_max_iterations = m_properties.getIntProperty("posy-term-crit-max-iterations");
+        }
+        // Warn if the flag was ignored.
+        if (m_termination_criteria == old_term_crit) {
+            spdlog::warn("Ignoring termination criteria {}", option);
+        }
+    }
+}
+
 
 /**
  * Perform post-smoothing tidy up.
@@ -51,6 +89,25 @@ PoSyOptimiser::optimise_end() {
     m_state = INITIALISED;
 }
 
+void trace_smoothing(const SurfelGraphPtr &surfel_graph) {
+    const auto old_level = spdlog::default_logger_raw()->level();
+    spdlog::default_logger_raw()->set_level(spdlog::level::trace);
+    spdlog::debug("Round completed.");
+    for (const auto &n : surfel_graph->nodes()) {
+        Eigen::Vector3f p, no, t, t1, v;
+        if (n->data()->is_in_frame(0)) {
+            n->data()->get_all_data_for_surfel_in_frame(0, v, t, t1, no, p);
+            spdlog::trace("  p : ({:3f}, {:3f}, {:3f}),  d : ({:3f}, {:3f}),   s : {:3f}",
+                          p[0], p[1], p[2],
+                          n->data()->posy_correction()[0],
+                          n->data()->posy_correction()[1],
+                          n->data()->posy_smoothness()
+            );
+        }
+    }
+    spdlog::default_logger_raw()->set_level(old_level);
+}
+
 /**
  * Perform a single step of optimisation. Return true if converged or halted.
  */
@@ -59,7 +116,7 @@ PoSyOptimiser::optimise_do_one_step() {
     assert(m_state != UNINITIALISED);
 
     if (m_state == INITIALISED) {
-        begin_optimisation();
+        optimise_begin();
     }
 
     if (m_state == OPTIMISING) {
@@ -68,28 +125,17 @@ PoSyOptimiser::optimise_do_one_step() {
             optimise_node(node);
         }
 
+        ++m_num_iterations;
+
         if (m_properties.getBooleanProperty("trace-smoothing")) {
-            const auto old_level = spdlog::default_logger_raw()->level();
-            spdlog::default_logger_raw()->set_level(spdlog::level::trace);
-            spdlog::debug("Round completed.");
-            for (const auto &n : m_surfel_graph->nodes()) {
-                Eigen::Vector3f p, no, t, t1, v;
-                if( n->data()->is_in_frame(0)) {
-                    n->data()->get_all_data_for_surfel_in_frame(0, v, t, t1, no, p);
-                    spdlog::trace("  p : ({:3f}, {:3f}, {:3f}),  d : ({:3f}, {:3f}),   s : {:3f}",
-                                  p[0], p[1], p[2],
-                                  n->data()->posy_correction()[0],
-                                  n->data()->posy_correction()[1],
-                                  n->data()->posy_smoothness()
-                    );
-                }
-            }
-            spdlog::default_logger_raw()->set_level(old_level);
+            trace_smoothing(m_surfel_graph);
         }
 
-        ++m_optimisation_cycles;
-        check_cancellation();
-        check_convergence();
+        float smoothness;
+        if (check_termination_criteria(smoothness, m_result)) {
+            m_state = ENDING_OPTIMISATION;
+        }
+        m_last_smoothness = smoothness;
     }
 
     if (m_state == ENDING_OPTIMISATION) {
@@ -107,22 +153,10 @@ PoSyOptimiser::select_nodes_to_optimise() const {
     return m_node_selection_function(*this);
 }
 
-/**
- * Check whether the user cancelled optimisation by creating the
- * halt file.
- */
-void
-PoSyOptimiser::check_cancellation() {
-    struct stat buffer{};
-    auto rv = stat("halt", &buffer);
-    if (rv == 0) {
-        m_state = ENDING_OPTIMISATION;
-    }
-}
-
 float
 PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_ptr,
-                                                 size_t frame_index) const {
+                                                 size_t frame_index,
+                                                 unsigned int &num_neighbours) const {
     float frame_smoothness = 0.0f;
 
     Eigen::Vector3f vertex, reference_lattice_vertex, normal, tangent, orth_tangent;
@@ -136,6 +170,7 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
     );
 
     // For each neighbour...
+    num_neighbours = 0;
     for (const auto &neighbour_node : m_surfel_graph->neighbours(node_ptr)) {
         if (!neighbour_node->data()->is_in_frame(frame_index)) {
             continue;
@@ -162,7 +197,7 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
 
         // Compute the smoothness over this surfel in this frame and the neighbour in this frame.
         const auto delta = (cp_j - cp_i).squaredNorm();
-        if( m_properties.getBooleanProperty("diagnose_dodgy_deltas")) {
+        if (m_properties.getBooleanProperty("diagnose_dodgy_deltas")) {
             if (delta > 0.866) {
                 spdlog::warn("Unlikely looking closest distance {:4} for surfels {} and {}", delta,
                              node_ptr->data()->id(),
@@ -197,54 +232,130 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
             }
         }
         frame_smoothness += delta;
+        ++num_neighbours;
     }
     return frame_smoothness;
 }
 
 float
-PoSyOptimiser::compute_node_smoothness(const SurfelGraphNodePtr &node_ptr) const {
+PoSyOptimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const {
     float node_smoothness = 0.0f;
+    unsigned int num_neighbours = 0;
 
     // For each frame in which this surfel appears
+    unsigned int num_neighbours_in_frame;
     for (const auto &frame : node_ptr->data()->frames()) {
         // Compute the smoothness in this frame
-        node_smoothness += compute_node_smoothness_for_frame(node_ptr, frame);
+        node_smoothness += compute_node_smoothness_for_frame(node_ptr, frame, num_neighbours_in_frame);
+        num_neighbours += num_neighbours_in_frame;
     }
-    // Set the mean smoothness per frame
-    node_ptr->data()->set_posy_smoothness(node_smoothness / node_ptr->data()->num_frames());
+    // Set the mean smoothness
+    const auto mean_smoothness = (num_neighbours == 0)
+                                 ? 0
+                                 : node_smoothness / (float) num_neighbours;
 
-    // But we return the total
-    return node_smoothness;
-}
-
-float
-PoSyOptimiser::compute_total_smoothness() const {
-    float total_smoothness = 0.0f;
-    for (const auto &n : m_surfel_graph->nodes()) {
-        total_smoothness += compute_node_smoothness(n);
-    }
-    return total_smoothness;
+    node_ptr->data()->set_posy_smoothness(mean_smoothness);
+    return mean_smoothness;
 }
 
 /**
- * Check whether optimisation has converged.
- * We're converged when either we have reached a smoothness of 0.0 or else
- * when the change in smoothness between the last pass and this has been less
- * than the convergence threshold specified.
+ * Compute the mean smoothness for the graph.
+ * Total smoothness across every node/frame/neighbour
+ * divided by the total number of node * frame * neighbour
  */
-void
-PoSyOptimiser::check_convergence() {
-    using namespace spdlog;
-
-    float current_smoothness = compute_total_smoothness();
-    float improvement = m_last_smoothness - current_smoothness;
-    m_last_smoothness = current_smoothness;
-    float pct = (100.0f * improvement) / m_last_smoothness;
-    info("Smoothness: {} ({}%)", current_smoothness, pct);
-    if ((std::abs(current_smoothness) < 1e-4)
-        || ((pct >= 0) && (std::abs(pct) < m_convergence_threshold))) {
-        m_state = ENDING_OPTIMISATION;
+float
+PoSyOptimiser::compute_mean_smoothness() const {
+    float total_smoothness = 0.0f;
+    for (const auto &n : m_surfel_graph->nodes()) {
+        total_smoothness += compute_mean_node_smoothness(n);
     }
+    return total_smoothness / (float) m_surfel_graph->num_nodes();
+}
+
+bool
+PoSyOptimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult &result) const {
+    if ((m_termination_criteria & (TC_ABSOLUTE | TC_RELATIVE)) == 0) {
+        return false;
+    }
+
+    latest_smoothness = compute_mean_smoothness();
+    spdlog::info("Total smoothness: {}", latest_smoothness);
+    // If it's 0 then we converged, regardless of whether we're checking for absolute smoothness or not.
+    if (std::abs(latest_smoothness) < 1e-9) {
+        result = CONVERGED;
+        return true;
+    }
+
+    if ((m_termination_criteria & TC_RELATIVE) != 0) {
+        float improvement = m_last_smoothness - latest_smoothness;
+        float pct = (100.0f * improvement) / m_last_smoothness;
+        spdlog::info("  Improvement {}%", pct);
+        if ((pct >= 0) && (std::abs(pct) < m_term_crit_relative_smoothness)) {
+            result = CONVERGED;
+            return true;
+        }
+    }
+
+    if ((m_termination_criteria & TC_ABSOLUTE) != 0) {
+        if (latest_smoothness <= m_term_crit_absolute_smoothness) {
+            result = CONVERGED;
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool
+PoSyOptimiser::maybe_check_iterations(OptimisationResult &result) const {
+    if ((m_termination_criteria & TC_FIXED) == 0) {
+        return false;
+    }
+
+    if (m_num_iterations >= m_term_crit_max_iterations) {
+        result = CONVERGED;
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Check whether user asked for optimising to halt.
+ */
+bool
+PoSyOptimiser::user_canceled_optimise() {
+    struct stat buffer{};
+    return (stat("halt", &buffer) == 0);
+}
+
+bool
+PoSyOptimiser::check_cancellation(OptimisationResult &result) {
+    if (!user_canceled_optimise()) {
+        return false;
+    }
+
+    result = CANCELLED;
+    return true;
+}
+
+/**
+ * Measure the change in error. If it's below some threshold, consider this level converged.
+ */
+bool
+PoSyOptimiser::check_termination_criteria(
+        float &smoothness,
+        OptimisationResult &result) const {
+
+    if (check_cancellation(result))
+        return true;
+
+    if (maybe_check_convergence(smoothness, result))
+        return true;
+
+    if (maybe_check_iterations(result))
+        return true;
+
+    return false;
 }
 
 /**
@@ -269,7 +380,7 @@ void
 PoSyOptimiser::set_data(const SurfelGraphPtr &surfel_graph) {
     m_surfel_graph = surfel_graph;
     m_state = INITIALISED;
-    m_numFrames = count_number_of_frames(surfel_graph);
+    m_num_frames = count_number_of_frames(surfel_graph);
 }
 
 std::function<std::vector<SurfelGraphNodePtr>(const PoSyOptimiser &)>

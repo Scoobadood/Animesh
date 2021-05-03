@@ -73,7 +73,13 @@ public:
                                           Eigen::Vector3f &closest_mesh_vertex) const;
 
     static std::map<std::string, std::shared_ptr<Surfel>> m_surfel_by_id;
-private:
+
+    void transform_surfel_via_frame( const std::shared_ptr<Surfel>& that_surfel_ptr,
+                                     unsigned int frame_index,
+                                     Eigen::Vector3f& transformed_other_norm,
+                                     Eigen::Vector3f& transformed_other_tan)  const;
+
+        private:
 
 //    static std::shared_ptr<Surfel> surfel_for_id(const std::string &id);
 

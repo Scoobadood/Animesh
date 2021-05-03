@@ -13,7 +13,7 @@
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3f &target_normal,
                       const Eigen::Vector3f &source_vector, const Eigen::Vector3f &source_normal) {
-    int source_k = 0, target_k = 0;
+    unsigned short source_k = 0, target_k = 0;
     return best_rosy_vector_pair(target_vector, target_normal, target_k, source_vector, source_normal, source_k);
 }
 
@@ -27,8 +27,8 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3
 * @return the best fitting vector (i.e. best multiple of PI/2 + angle)
 */
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
-best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3f &target_normal, int &target_k,
-                      const Eigen::Vector3f &source_vector, const Eigen::Vector3f &source_normal, int &source_k) {
+best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3f &target_normal, unsigned short &target_k,
+                      const Eigen::Vector3f &source_vector, const Eigen::Vector3f &source_normal, unsigned short &source_k) {
     using namespace Eigen;
 
     if (!is_unit_vector(source_normal)) {
@@ -50,11 +50,11 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3
 
 
     float best_dot_product = -std::numeric_limits<float>::infinity();;
-    int best_target_idx = 0;
-    int best_source_idx = 0;
+    unsigned short best_target_idx = 0;
+    unsigned short best_source_idx = 0;
 
-    for (int i = 0; i < 2; ++i) {
-        for (int j = 0; j < 2; ++j) {
+    for (unsigned short i = 0; i < 2; ++i) {
+        for (unsigned short j = 0; j < 2; ++j) {
 
             float dp = std::abs(target_candidates[i].dot(source_candidates[j]));
             if (dp > best_dot_product) {
@@ -113,8 +113,8 @@ Eigen::Vector3f average_rosy_vectors(const Eigen::Vector3f &v1,
                                      const Eigen::Vector3f &v2,
                                      const Eigen::Vector3f &n2,
                                      float w2,
-                                     int &target_k,
-                                     int &source_k) {
+                                     unsigned short &target_k,
+                                     unsigned short &source_k) {
     using namespace Eigen;
 
     // Find best matching rotation

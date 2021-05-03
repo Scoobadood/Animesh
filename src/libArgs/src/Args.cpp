@@ -1,4 +1,3 @@
-#include <__bit_reference>
 #include "Args.h"
 
 #include <tclap/CmdLine.h>

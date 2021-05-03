@@ -15,30 +15,30 @@ if (NOT TARGET OpenMP::OpenMP_CXX)
 endif ()
 
 # Building Animesh
-add_executable(
-		animesh
-		hierarchical_mesher_cli.cpp
-		types.h
-)
-
-target_link_libraries(
-		animesh
-		Camera
-		Correspondence
-		DepthMap
-		FileUtils
-		GeomFileUtils
-		PoSy
-		Properties
-		RoSy
-		Surfel
-		Utilities
-		Cpd::Library-C++
-)
-
-target_compile_features(animesh
-		PUBLIC
-		cxx_std_11)
+#add_executable(
+#		animesh
+#		hierarchical_mesher_cli.cpp
+#		types.h
+#)
+#
+#target_link_libraries(
+#		animesh
+#		Camera
+#		Correspondence
+#		DepthMap
+#		FileUtils
+#		GeomFileUtils
+#		PoSy
+#		Properties
+#		RoSy
+#		Surfel
+#		Utilities
+#		Cpd::Library-C++
+#)
+#
+#target_compile_features(animesh
+#		PUBLIC
+#		cxx_std_11)
 
 # Building posy_cli
 add_executable(
@@ -60,35 +60,58 @@ target_compile_features(
 		cxx_std_11
 )
 
+# Building rosy_cli
 add_executable(
-		animesh_ui
-		animesh_screen.h animesh_screen.cpp
-		types.h
-		cross_field_GL_canvas.h cross_field_GL_canvas.cpp
-		hierarchical_mesher_ui.cpp
+		rosy_cli
+		rosy_cli.cpp
 )
 
 target_link_libraries(
-		animesh_ui
-		Camera
-		Correspondence
-		DepthMap
-		FileUtils
-		GeomFileUtils
-		Properties
+		rosy_cli
 		RoSy
+		Properties
 		Surfel
-		Utilities
-		Cpd::Library-C++
-		nanogui
-		${NANOGUI_EXTRA_LIBS}
 )
 
 target_compile_features(
-		animesh
+		rosy_cli
 		PUBLIC
 		cxx_std_11
 )
+
+
+
+
+
+#add_executable(
+#		animesh_ui
+#		animesh_screen.h animesh_screen.cpp
+#		types.h
+#		cross_field_GL_canvas.h cross_field_GL_canvas.cpp
+#		hierarchical_mesher_ui.cpp
+#)
+#
+#target_link_libraries(
+#		animesh_ui
+#		Camera
+#		Correspondence
+#		DepthMap
+#		FileUtils
+#		GeomFileUtils
+#		Properties
+#		RoSy
+#		Surfel
+#		Utilities
+#		Cpd::Library-C++
+#		nanogui
+#		${NANOGUI_EXTRA_LIBS}
+#)
+#
+#target_compile_features(
+#		animesh_ui
+#		PUBLIC
+#		cxx_std_11
+#)
 
 # Unit Tests
 # Include specific tests

@@ -84,11 +84,11 @@ TEST_F( TestMinimiseKL, ShouldBe_0_0_For_0_DegreesCoplanar ) {
     Vector3f o2 = vec_0_1_0;
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
+    unsigned short actualK;
+    unsigned short actualL;
 
-    int expectedK = 0;
-    int expectedL = 0;
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 0;
 
     best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
@@ -104,12 +104,12 @@ TEST_F( TestMinimiseKL, ShouldBe_0_0_For_30_DegreesCoplanar ) {
     Vector3f o2 = vec_0_1_0;
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
-    
+    unsigned short actualK;
+    unsigned short actualL;
 
-    int expectedK = 0;
-    int expectedL = 0;
+
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 0;
 
     best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
@@ -126,11 +126,10 @@ TEST_F( TestMinimiseKL, ShouldBe_0_0_For_45_DegreesCoplanar ) {
     Vector3f o2 = vec_0_1_0;
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
-
-    int expectedK = 0;
-    int expectedL = 0;
+    unsigned short actualK;
+    unsigned short actualL;
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 0;
 
     best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
@@ -148,11 +147,10 @@ TEST_F( TestMinimiseKL, ShouldBe_0_1_For_60_DegreesCoplanar ) {
     Vector3f o2 = vec_0_1_0;
     Vector3f n2 = vec_1_0_0;
 
-    int actualK;
-    int actualL;
-
-    int expectedK = 0;
-    int expectedL = 1;
+    unsigned short actualK;
+    unsigned short actualL;
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 1;
 
     best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
 
@@ -169,8 +167,8 @@ TEST_F( TestMinimiseKL, SPROG ) {
     Vector3f o2{ -0.5f, 1.0f, 0.0f };
     Vector3f n2{ 0.0f, 1.0f, 0.0f };
 
-    int actualK;
-    int actualL;
+    unsigned short actualK;
+    unsigned short actualL;
 
     best_rosy_vector_pair( o1, n1, o2, n2 );
     best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);

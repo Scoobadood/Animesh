@@ -249,7 +249,7 @@ posy_gl_widget::makeSplatImage() const {
             int a = std::max<int>(0, 255 - (int) (d * 8));
             a = 255;
             int r, g, b;
-            r = g = b = (x < -27 || y < -27)
+            r = g = b = (x < -30 || y < -30 || x > 30 || y >30 )
                         ? 0
                         : 127;
             int colour = (a << 24) | (r << 16) | (g << 8) | b;

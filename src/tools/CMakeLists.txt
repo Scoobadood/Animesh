@@ -37,7 +37,7 @@ target_compile_features(
 # PLanar surfel file generator
 add_executable(
 		gen_surfels
-		gen_planar_surfels.cpp
+		gen_surfel_graph.cpp
 )
 target_link_libraries(
 		gen_surfels
@@ -78,3 +78,19 @@ target_link_libraries(
 		Cpd::Library-C++)
 
 target_link_libraries(dmr ${EXTRA_LIBS} glfw ${ASSIMP_LIBRARY})
+
+add_executable(
+		gen_unsmoothed_rosy_graph
+		gen_unsmoothed_rosy_graph.cpp
+)
+
+target_include_directories(
+		gen_unsmoothed_rosy_graph
+		PUBLIC
+		../third_party/include
+)
+
+target_link_libraries(
+		gen_unsmoothed_rosy_graph
+		Surfel
+)

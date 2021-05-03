@@ -19,6 +19,7 @@ target_link_libraries(
 		RoSy
 		Correspondence
 		Geom
+		Optimise
 		Surfel
 		Utilities
 )

@@ -189,7 +189,8 @@ void animesh_screen::make_surfel_data_panel(nanogui::Widget *window) {
 
 void animesh_screen::maybe_highlight_surfel_and_neighbours() {
     m_canvas->remove_highlights();
-    if (m_optimiser->surfel_is_in_frame(m_selected_surfel_id, m_frame_idx)) {
+    // FIXME: Replace this with a better approach.These methods were removed to simplify the code.
+/*    if (m_optimiser->surfel_is_in_frame(m_selected_surfel_id, m_frame_idx)) {
         auto surfel_idx = surfel_id_to_index(m_selected_surfel_id);
         m_canvas->highlight_surfel(surfel_idx, default_highlighted_surfel_colour());
         spdlog::debug("Highlighting surfel {:s}", m_selected_surfel_id);
@@ -205,6 +206,7 @@ void animesh_screen::maybe_highlight_surfel_and_neighbours() {
     } else {
         update_selected_surfel_data(true);
     }
+    */
 }
 
 /**

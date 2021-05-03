@@ -29,9 +29,9 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector,
 */
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 best_rosy_vector_pair(const Eigen::Vector3f &target_vector,
-                      const Eigen::Vector3f &target_normal, int &target_k,
+                      const Eigen::Vector3f &target_normal, unsigned short &target_k,
                       const Eigen::Vector3f &source_vector,
-                      const Eigen::Vector3f &source_normal, int &source_k);
+                      const Eigen::Vector3f &source_normal, unsigned short &source_k);
 
 /**
  * Combine two tangent vectors with weighting
@@ -66,5 +66,5 @@ Eigen::Vector3f average_rosy_vectors(const Eigen::Vector3f &v1,
                                      const Eigen::Vector3f &v2,
                                      const Eigen::Vector3f &n2,
                                      float w2,
-                                     int &target_k,
-                                     int &source_k);
+                                     unsigned short &target_k,
+                                     unsigned short &source_k);

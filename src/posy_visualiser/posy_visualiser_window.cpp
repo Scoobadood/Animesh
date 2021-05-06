@@ -10,14 +10,11 @@ posy_visualiser_window::posy_visualiser_window(Properties properties, QWidget *p
         QMainWindow(parent), ui(new Ui::posy_visualiser_window), m_properties{std::move(properties)} {
     ui->setupUi(this);
 
-
-    float splatSize = m_properties.getFloatProperty("splat-size");
     float rho = m_properties.getFloatProperty("rho");
 
     ui->posyGLWidget->setRho(rho);
-    ui->posyGLWidget->setSplatSize(splatSize);
 
-    m_geometryExtractor = new posy_surfel_graph_geometry_extractor(rho, splatSize);
+    m_geometryExtractor = new posy_surfel_graph_geometry_extractor(rho);
 
     connect(ui->menuFile, &QMenu::triggered,
             this, &posy_visualiser_window::fileOpenAction);
@@ -25,9 +22,9 @@ posy_visualiser_window::posy_visualiser_window(Properties properties, QWidget *p
             this, &posy_visualiser_window::frameChanged);
     connect(ui->horizontalSlider, &QSlider::valueChanged,
             [=](int value) {
-                float newSize = value / 10.0f;
-                ui->posyGLWidget->setSplatSize(newSize);
-                m_geometryExtractor->setSplatSize(newSize);
+                float mapped_value = value / 10.0f;
+//                ui->posyGLWidget->setSplatSize(newSize);
+                m_geometryExtractor->set_splat_scale_factor(0.5f + mapped_value);
                 extract_geometry();
             });
     connect(ui->cbShowQuads, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::renderQuads);
@@ -45,9 +42,10 @@ posy_visualiser_window::extract_geometry() {
     std::vector<float> positions;
     std::vector<float> quads;
     std::vector<float> normals;
+    std::vector<float> splat_sizes;
     std::vector<float> uvs;
-    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, quads, normals, uvs);
-    ui->posyGLWidget->setPoSyData(positions, quads, normals, uvs);
+    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, quads, normals, splat_sizes, uvs);
+    ui->posyGLWidget->setPoSyData(positions, quads, normals, splat_sizes, uvs);
 }
 
 void

@@ -119,13 +119,22 @@
              <item>
               <widget class="QSlider" name="horizontalSlider">
                <property name="minimum">
-                <number>1</number>
+                <number>0</number>
                </property>
                <property name="maximum">
                 <number>10</number>
                </property>
+               <property name="sliderPosition">
+                <number>5</number>
+               </property>
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="tickPosition">
+                <enum>QSlider::TicksBelow</enum>
+               </property>
+               <property name="tickInterval">
+                <number>1</number>
                </property>
               </widget>
              </item>

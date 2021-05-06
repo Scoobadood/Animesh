@@ -25,6 +25,7 @@ public:
     void setPoSyData(const std::vector<float> &positions,
                      const std::vector<float> &quads,
                      const std::vector<float> &normals,
+                     const std::vector<float> &splat_sizes,
                      const std::vector<float> &uvs
     );
 
@@ -42,13 +43,6 @@ public:
         }
         m_renderSplats = render;
         update();
-    }
-
-    void setSplatSize(float splatSize) {
-        if( m_splatSize != splatSize) {
-            m_splatSize = splatSize;
-            update();
-        }
     }
 
     void setRho(float rho) {
@@ -89,7 +83,7 @@ private:
 
     void maybeDrawQuads() const;
 
-    QImage makeSplatImage() const;
+    static QImage makeSplatImage() ;
 
     QOpenGLTexture *splatTexture;
 
@@ -100,8 +94,9 @@ private:
     bool m_projectionMatrixIsDirty;
     bool m_renderSplats;
     bool m_renderQuads;
-    float m_splatSize;
+    std::vector<float> m_splat_sizes;
     float m_rho;
+    float m_splat_scale_factor;
 
     static void checkGLError(const std::string &context);
 

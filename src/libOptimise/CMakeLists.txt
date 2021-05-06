@@ -1,5 +1,6 @@
 add_library(Optimise STATIC
 		src/SurfelSelectionAlgorithm.cpp include/Optimise/SurfelSelectionAlgorithm.h
+		src/Optimiser.cpp include/Optimise/Optimiser.h
 		)
 
 
@@ -11,7 +12,10 @@ target_include_directories(Optimise
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:include>
 		PRIVATE
-		include/Optimise)
+		include/Optimise
+		)
 
-#target_link_libraries(Optimise
-#)
+target_link_libraries(Optimise
+		Properties
+		Surfel
+)

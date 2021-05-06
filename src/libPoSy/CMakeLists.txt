@@ -1,4 +1,4 @@
-add_library(PoSy STATIC
+add_library(PoSy SHARED
 		src/PoSy.cpp include/PoSy/PoSy.h
 		src/PoSyOptimiser.cpp include/PoSy/PoSyOptimiser.h
 		)
@@ -16,10 +16,6 @@ target_include_directories(PoSy
 		include/PoSy)
 
 target_link_libraries(PoSy
-		Properties
-		Graph
-		RoSy
-		Surfel
 		Optimise
 		)
 
@@ -30,7 +26,7 @@ add_executable(testPoSy
 
 target_link_libraries(testPoSy
 		PoSy
-		Surfel
+		spdlog
 		gtest
 		gmock)
 

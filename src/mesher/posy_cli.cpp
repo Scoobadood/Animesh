@@ -4,12 +4,8 @@
 #include <Surfel/Surfel_IO.h>
 #include <Surfel/SurfelGraph.h>
 
-#include <Utilities/utilities.h>
-
-#include "spdlog/spdlog.h"
 #include "spdlog/cfg/env.h"
 #include <string>
-#include <vector>
 #include <chrono>
 #include <iostream>
 #include <iomanip>
@@ -36,6 +32,7 @@ int main(int argc, char *argv[]) {
     Properties properties{property_file_name};
 
     string input_file_name = properties.getProperty("posy-input-file");
+    string output_file_name = properties.getProperty("posy-output-file");
 
     PoSyOptimiser poSyOptimiser{properties};
     auto surfel_graph = load_surfel_graph_from_file(input_file_name);
@@ -55,17 +52,11 @@ int main(int argc, char *argv[]) {
 
     auto mins = (int) elapsed_time / 60;
     auto secs = elapsed_time - (mins * 60);
-    cout << "Total time " << elapsed_time << "s  (" << mins << ":" << setw(2) << setfill('0') << secs << ")" << endl;
-    cout << "Total iterations : " << (last_level_iterations) << endl;
+    info("Total time {}s ({02d}:{02d})", elapsed_time, mins, secs);
+    info("Total iterations : {}", last_level_iterations);
 
-    mins = (int) last_level_elapsed_time / 60;
-    secs = last_level_elapsed_time - (mins * 60);
-    cout << "Last level time " << last_level_elapsed_time << "s  (" << mins << ":" << setw(2) << setfill('0') << secs
-         << ")" << endl;
-    cout << "Last level iterations : " << last_level_iterations << endl;
-
-    save_surfel_graph_to_file("planar_surfels_posy_smoothed.bin", surfel_graph);
-    cout << "Saved" << endl;
+    save_surfel_graph_to_file(output_file_name, surfel_graph);
+    info("Saved to {}", output_file_name);
 
     return 0;
 }

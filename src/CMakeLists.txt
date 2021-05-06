@@ -1,8 +1,8 @@
-cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
-project( Animesh
+project(Animesh
 		VERSION 0.1
-		LANGUAGES CXX )
+		LANGUAGES CXX)
 
 set(PROJECT_VERSION 0.2)
 
@@ -33,8 +33,8 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Disable building extras we won't need (pure C++ project)
 set(NANOGUI_BUILD_EXAMPLE OFF CACHE BOOL " " FORCE)
-set(NANOGUI_BUILD_PYTHON  OFF CACHE BOOL " " FORCE)
-set(NANOGUI_INSTALL       OFF CACHE BOOL " " FORCE)
+set(NANOGUI_BUILD_PYTHON OFF CACHE BOOL " " FORCE)
+set(NANOGUI_INSTALL OFF CACHE BOOL " " FORCE)
 
 # Add the configurations from nanogui
 add_subdirectory(ext/nanogui)
@@ -50,10 +50,10 @@ include_directories(${NANOGUI_EXTRA_INCS})
 
 # GLFW
 find_package(glfw3 3.2 REQUIRED)
-if(GLFW3_FOUND)
+if (GLFW3_FOUND)
 	include_directories(${GLFW3_INCLUDE_DIRS})
 	target_link_libraries(foo ${GLFW3_LIBRARIES})
-endif()
+endif ()
 
 # OpenGL
 IF (APPLE)
@@ -72,9 +72,9 @@ add_definitions(-DGL_SILENCE_DEPRECATION)
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
 execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download" )
+		WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download")
 execute_process(COMMAND "${CMAKE_COMMAND}" --build .
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download" )
+		WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download")
 
 # Prevent GoogleTest from overriding our compiler/linker options
 # when building with Visual Studio
@@ -84,30 +84,30 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # the following targets: gtest, gtest_main, gmock
 # and gmock_main
 add_subdirectory("${CMAKE_BINARY_DIR}/googletest-src"
-                 "${CMAKE_BINARY_DIR}/googletest-build")
+		"${CMAKE_BINARY_DIR}/googletest-build")
 
 # Enable Test
-enable_testing( )
+enable_testing()
 
 
 # Add libraries
 #add_subdirectory( QtMain )
-add_subdirectory( libArgs )
-add_subdirectory( libCamera )
-add_subdirectory( libCorrespondence )
-add_subdirectory( libDepthMap )
-add_subdirectory( libFileUtils )
-add_subdirectory( libGeom )
-add_subdirectory( libGeomFileUtils )
-add_subdirectory( libGraph )
-add_subdirectory( libPoSy )
-add_subdirectory( libProperties )
-add_subdirectory( libRoSy )
-add_subdirectory( libSurfel )
-add_subdirectory( libUtilities )
-add_subdirectory( mesher )
-add_subdirectory( tools )
+add_subdirectory(libArcBall)
+add_subdirectory(libArgs)
+add_subdirectory(libCamera)
+add_subdirectory(libCorrespondence)
+add_subdirectory(libDepthMap)
+add_subdirectory(libFileUtils)
+add_subdirectory(libGeom)
+add_subdirectory(libGeomFileUtils)
+add_subdirectory(libGraph)
+add_subdirectory(libOptimise)
+add_subdirectory(libPoSy)
+add_subdirectory(libProperties)
+add_subdirectory(libRoSy)
+add_subdirectory(libSurfel)
+add_subdirectory(libUtilities)
+add_subdirectory(mesher)
+add_subdirectory(tools)
 add_subdirectory(rosy_visualiser)
 add_subdirectory(posy_visualiser)
-add_subdirectory(libArcBall)
-add_subdirectory(libOptimise)

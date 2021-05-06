@@ -17,7 +17,6 @@ posy_gl_widget::posy_gl_widget(
         , m_projectionMatrixIsDirty{true} //
         , m_renderSplats{true} //
         , m_renderQuads{true} //
-        , m_splatSize{0.2f} //
         , m_rho{1.0f} //
 {
     m_arcBall = new ArcBall();
@@ -31,6 +30,7 @@ posy_gl_widget::posy_gl_widget(
                                0.4f, 0.0f, 0.4f,
                                0.4f, 0.0f, -0.4f},
             std::vector<float>{0.0f, 1.0f, 0.0f},
+            std::vector<float>{1.0f},
             std::vector<float>{0.0f, 0.0f}
     );
 }
@@ -56,36 +56,29 @@ posy_gl_widget::maybeDrawSplats() const {
                    m_normals.at(i * 3 + 2));
 
         // S and t are in range [-0.5, 0.5)
-        auto s = m_uvs.at(i * 2 + 0);
-        auto t = m_uvs.at(i * 2 + 1);
+        const auto u = m_uvs.at(i * 2 + 0);
+        const auto v = m_uvs.at(i * 2 + 1);
+        const auto splat_size = m_splat_sizes.at(i);
 
+        const auto s = u -(splat_size * 0.5f);
+        const auto t = v - (splat_size * 0.5f);
 
-        s = -(m_splatSize * 0.5f) - s;
-        t = -(m_splatSize * 0.5f) - t;
-
-        // uvs are in the range 0 -> 1
-        // but splat_size maybe 0.1 ... 1.0
-        // Rho is arbitrarily large
-        // We alrady have quads sized to splatSize
-        // and UV points to the right part of the texture (s,t are fine)
-        // but the *proportion* of the texture to render will vary with splat size
-        float tileSize = m_splatSize;
         glTexCoord2d(s, t);
         glVertex3f(m_quads.at(i * 12 + 0),
                    m_quads.at(i * 12 + 1),
                    m_quads.at(i * 12 + 2));
 
-        glTexCoord2d(s, t + tileSize);
+        glTexCoord2d(s, t + splat_size);
         glVertex3f(m_quads.at(i * 12 + 3),
                    m_quads.at(i * 12 + 4),
                    m_quads.at(i * 12 + 5));
 
-        glTexCoord2d(s + tileSize, t + tileSize);
+        glTexCoord2d(s + splat_size, t + splat_size);
         glVertex3f(m_quads.at(i * 12 + 6),
                    m_quads.at(i * 12 + 7),
                    m_quads.at(i * 12 + 8));
 
-        glTexCoord2d(s + tileSize, t);
+        glTexCoord2d(s + splat_size, t);
         glVertex3f(m_quads.at(i * 12 + 9),
                    m_quads.at(i * 12 + 10),
                    m_quads.at(i * 12 + 11));
@@ -218,16 +211,19 @@ void
 posy_gl_widget::setPoSyData(const std::vector<float> &positions,
                             const std::vector<float> &quads,
                             const std::vector<float> &normals,
+                            const std::vector<float> &splat_sizes,
                             const std::vector<float> &uvs
 ) {
     m_positions.clear();
     m_quads.clear();
     m_normals.clear();
+    m_splat_sizes.clear();
     m_uvs.clear();
 
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_quads.insert(m_quads.begin(), quads.begin(), quads.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
+    m_splat_sizes.insert(m_splat_sizes.begin(), splat_sizes.begin(), splat_sizes.end());
     m_uvs.insert(m_uvs.begin(), uvs.begin(), uvs.end());
 
     update();
@@ -241,19 +237,16 @@ posy_gl_widget::checkGLError(const std::string &context) {
 }
 
 QImage
-posy_gl_widget::makeSplatImage() const {
+posy_gl_widget::makeSplatImage() {
     QImage img(64, 64, QImage::Format_ARGB32);
-    for (int x = -31; x < 32; x++) {
-        for (int y = -31; y < 32; y++) {
-            float d = std::sqrtf(x * x + y * y);
-            int a = std::max<int>(0, 255 - (int) (d * 8));
-            a = 255;
+    for (unsigned int x = 0; x < 64; ++x) {
+        for (unsigned int y = 0; y < 64; ++y) {
             int r, g, b;
-            r = g = b = (x < -30 || y < -30 || x > 30 || y >30 )
+            r = g = b = (x ==0 || y ==0 || x ==63 || y ==63 )
                         ? 0
                         : 127;
-            int colour = (a << 24) | (r << 16) | (g << 8) | b;
-            img.setPixel(x + 31, y + 31, colour);
+            int colour = (255 << 24) | (r << 16) | (g << 8) | b;
+            img.setPixel(x, y, colour);
         }
     }
     checkGLError("Making image");

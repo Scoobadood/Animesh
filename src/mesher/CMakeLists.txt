@@ -69,8 +69,6 @@ add_executable(
 target_link_libraries(
 		rosy_cli
 		RoSy
-		Properties
-		Surfel
 )
 
 target_compile_features(

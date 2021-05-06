@@ -17,11 +17,7 @@ target_include_directories(
 
 target_link_libraries(
 		RoSy
-		Correspondence
-		Geom
 		Optimise
-		Surfel
-		Utilities
 )
 
 # Tests
@@ -35,7 +31,6 @@ add_executable(
 
 target_link_libraries(
 		testRoSy
-		Geom
 		RoSy
 		gtest
 		gmock)

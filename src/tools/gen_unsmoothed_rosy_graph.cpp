@@ -38,6 +38,14 @@ struct Args {
 };
 
 
+void
+connect(SurfelGraphPtr& graph,
+        const SurfelGraphNodePtr& from_node,
+        const SurfelGraphNodePtr& to_node) {
+    graph->add_edge(from_node, to_node, SurfelGraphEdge{1.0f});
+    spdlog::info("Connected {} to {}", from_node->data()->id(), to_node->data()->id());
+}
+
 /*
  * Each node in the graph is connected to its 8 surrounding neighbours.
  * We rely on the fact that the graph is not directed so only create edges
@@ -47,20 +55,29 @@ void connectNodes(SurfelGraphPtr &graph,
                   SurfelGraphNodePtr *nodes,
                   unsigned int width,
                   unsigned int height) {
-    for (auto x = 0; x < width; x++) {
-        for (auto z = 0; z < height; z++) {
+    for (auto z = 0; z < height; z++) {
+        for (auto x = 0; x < width; x++) {
             auto nodeIndex = z * width + x;
+            const auto & from_node = nodes[nodeIndex];
+            if( z > 0 ) {
+                if( x > 0 ) {
+                    // (x-1, z-1)
+                    const auto & to_node = nodes[nodeIndex - width - 1];
+                    connect(graph, from_node, to_node);
+                }
+                // (x,z-1)
+                const auto& to_node = nodes[nodeIndex - width];
+                connect(graph, from_node, to_node);
+                if( x < width-1) {
+                    // (x+1,z-1)
+                    const auto& to_node = nodes[nodeIndex - width + 1];
+                    connect(graph, from_node, to_node);
+                }
+            }
             if (x > 0) {
-                graph->add_edge(nodes[nodeIndex], nodes[nodeIndex - 1], SurfelGraphEdge{1.0f});
-            }
-            if (z > 0) {
-                graph->add_edge(nodes[nodeIndex], nodes[nodeIndex - width], SurfelGraphEdge{1.0f});
-            }
-            if ((x > 0) && (z > 0)) {
-                graph->add_edge(nodes[nodeIndex], nodes[nodeIndex - width - 1], SurfelGraphEdge{1.0f});
-            }
-            if ((x < width - 1) && (z > 0)) {
-                graph->add_edge(nodes[nodeIndex], nodes[nodeIndex - width + 1], SurfelGraphEdge{1.0f});
+                // (x-1,y)
+                const auto& to_node = nodes[nodeIndex - 1];
+                connect(graph, from_node, to_node);
             }
         }
     }
@@ -86,9 +103,9 @@ SurfelGraphPtr generate_plane(const Args &args) {
             Eigen::Vector3f norm{0, 1, 0};
 
             Eigen::Vector3f pos{
-                    (float) (x - (width / 2.0) + (args.m_perturb_position ? p_dis(e) : 0.0)),
+                    (float) (x - ((width - 1) / 2.0) + (args.m_perturb_position ? p_dis(e) : 0.0)),
                     0.0f,
-                    (float) (z - (height / 2.0) + (args.m_perturb_position ? p_dis(e) : 0.0))
+                    (float) (z - ((height - 1) / 2.0) + (args.m_perturb_position ? p_dis(e) : 0.0))
             };
             auto theta = (float) (0.0 + (args.m_perturb_orientation ? r_dis(e) : 0.0));
             Eigen::Vector3f tan{

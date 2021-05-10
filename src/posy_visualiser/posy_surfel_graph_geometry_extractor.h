@@ -13,6 +13,8 @@ public:
     void extract_geometry(const SurfelGraphPtr &graphPtr,
                           std::vector<float> &positions,
                           std::vector<float> &quads,
+                          std::vector<float> &triangle_fans,
+                          std::vector<unsigned int> &fan_sizes,
                           std::vector<float> &normals,
                           std::vector<float> &splat_sizes,
                           std::vector<float> &uvs

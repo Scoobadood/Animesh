@@ -17,6 +17,7 @@ posy_gl_widget::posy_gl_widget(
         , m_projectionMatrixIsDirty{true} //
         , m_renderSplats{true} //
         , m_renderQuads{true} //
+        , m_render_triangle_fans{false} //
         , m_rho{1.0f} //
 {
     m_arcBall = new ArcBall();
@@ -29,6 +30,15 @@ posy_gl_widget::posy_gl_widget(
                                -0.4, 0.0, 0.4f,
                                0.4f, 0.0f, 0.4f,
                                0.4f, 0.0f, -0.4f},
+            std::vector<float>{ //
+                    0.0f, 0.0f, 0.0f, // hub
+                    0.4f, 0.0f, -0.4f,
+                    0.4f, 0.0f, 0.4f,
+                    -0.4, 0.0, 0.4f,
+                    -0.4f, 0.0f, -0.4f,
+                    0.4f, 0.0f, -0.4f,
+            },
+            std::vector<unsigned int>{6},
             std::vector<float>{0.0f, 1.0f, 0.0f},
             std::vector<float>{1.0f},
             std::vector<float>{0.0f, 0.0f}
@@ -40,6 +50,8 @@ posy_gl_widget::maybeDrawSplats() const {
     if (!m_renderSplats) {
         return;
     }
+    glPolygonMode(GL_FRONT, GL_POLYGON);
+
     glEnable(GL_TEXTURE_2D);
     checkGLError("Enable tex 2D");
 
@@ -60,7 +72,7 @@ posy_gl_widget::maybeDrawSplats() const {
         const auto v = m_uvs.at(i * 2 + 1);
         const auto splat_size = m_splat_sizes.at(i);
 
-        const auto s = u -(splat_size * 0.5f);
+        const auto s = u - (splat_size * 0.5f);
         const auto t = v - (splat_size * 0.5f);
 
         glTexCoord2d(s, t);
@@ -122,6 +134,47 @@ posy_gl_widget::maybeDrawQuads() const {
     }
     glFlush();
     checkGLError("maybeDrawQuads");
+}
+
+/*
+ * Each vertex has a triangle fan associated with it.
+ * We just draw the fans with no texture initially
+ */
+
+GLubyte cols[] = {
+        0xE6, 0x9F, 0x00, 0x99, 0x99, 0x99, 0xcc, 0x79, 0xa7, 0xd5, 0x5e, 0x00, 0x00, 0x72, 0xb2, 0xf0, 0xe4, 0x42,
+        0x00, 0x9e, 0x73, 0x56, 0xb4, 0xe9
+};
+
+void
+posy_gl_widget::maybeDrawTriangleFans() const {
+    if (!m_render_triangle_fans) {
+        return;
+    }
+    glLineWidth(3.0f);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    unsigned int fan_index = 0;
+    int c = 0;
+    for (int i=0; i<m_fan_sizes.size(); ++i) {
+        auto fan_size = m_fan_sizes[i];
+        glBegin(GL_TRIANGLE_FAN);
+
+        glColor3ub(cols[c * 3 + 0],
+                  cols[c * 3 + 1],
+                  cols[c * 3 + 2]);
+        // Hub vertex then (fan_size+1) additional vertices
+        for (auto j = 0; j < fan_size; ++j) {
+            glVertex3f(m_triangle_fans.at(fan_index + 0),
+                       m_triangle_fans.at(fan_index + 1),
+                       m_triangle_fans.at(fan_index + 2));
+            fan_index += 3;
+            // TODO: Compute or extract UV coordinates too.
+        }
+        glEnd();
+        c = (c + 1) % 8;
+    }
+    glFlush();
+    checkGLError("maybeDrawTriangleFans");
 }
 
 void
@@ -205,23 +258,31 @@ posy_gl_widget::paintGL() {
     maybeDrawSplats();
 
     maybeDrawQuads();
+
+    maybeDrawTriangleFans();
 }
 
 void
 posy_gl_widget::setPoSyData(const std::vector<float> &positions,
                             const std::vector<float> &quads,
+                            const std::vector<float> &triangle_fans,
+                            const std::vector<unsigned int> &fan_sizes,
                             const std::vector<float> &normals,
                             const std::vector<float> &splat_sizes,
                             const std::vector<float> &uvs
 ) {
     m_positions.clear();
     m_quads.clear();
+    m_triangle_fans.clear();
+    m_fan_sizes.clear();
     m_normals.clear();
     m_splat_sizes.clear();
     m_uvs.clear();
 
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_quads.insert(m_quads.begin(), quads.begin(), quads.end());
+    m_triangle_fans.insert(m_triangle_fans.begin(), triangle_fans.begin(), triangle_fans.end());
+    m_fan_sizes.insert(m_fan_sizes.begin(), fan_sizes.begin(), fan_sizes.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
     m_splat_sizes.insert(m_splat_sizes.begin(), splat_sizes.begin(), splat_sizes.end());
     m_uvs.insert(m_uvs.begin(), uvs.begin(), uvs.end());
@@ -238,14 +299,17 @@ posy_gl_widget::checkGLError(const std::string &context) {
 
 QImage
 posy_gl_widget::makeSplatImage() {
-    QImage img(64, 64, QImage::Format_ARGB32);
-    for (unsigned int x = 0; x < 64; ++x) {
-        for (unsigned int y = 0; y < 64; ++y) {
-            int r, g, b;
-            r = g = b = (x ==0 || y ==0 || x ==63 || y ==63 )
-                        ? 0
-                        : 127;
-            int colour = (255 << 24) | (r << 16) | (g << 8) | b;
+    QImage img(500, 500, QImage::Format_ARGB32);
+    unsigned int colour;
+    for (int x = 0; x < 500; ++x) {
+        for (int y = 0; y < 500; ++y) {
+            if (x == 0 || x == 1 || y == 0 || y == 1) {
+                colour = 0xFF942C20;
+            } else if (x % 100 == 0 || y % 100 == 0) {
+                colour = 0xFF5B8A8C;
+            } else {
+                colour = 0xFFFFFFFF;
+            }
             img.setPixel(x, y, colour);
         }
     }

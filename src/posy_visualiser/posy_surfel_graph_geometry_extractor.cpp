@@ -4,6 +4,9 @@
 
 #include "posy_surfel_graph_geometry_extractor.h"
 #include <Geom/Geom.h>
+#include <numeric>
+
+#include <Eigen/Geometry>
 
 posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor(float rho)
         : m_frame{0}, m_rho{rho} {
@@ -11,7 +14,7 @@ posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor(float
 
 void
 compute_distance_to_neighbours(const SurfelGraphNodePtr &node, const SurfelGraphPtr &graphPtr,
-                                          unsigned int frame, float& mean_nd, float& min_nd) {
+                               unsigned int frame, float &mean_nd, float &min_nd) {
     unsigned int num_neighbours = 0;
     Eigen::Vector3f vertex, normal, tangent, t2, reference_lattice_vertex;
     node->data()->get_vertex_tangent_normal_for_frame(frame, vertex, tangent, normal);
@@ -27,18 +30,198 @@ compute_distance_to_neighbours(const SurfelGraphNodePtr &node, const SurfelGraph
         n->data()->get_vertex_tangent_normal_for_frame(frame, other_vertex, other_tangent, other_normal);
         const auto dist = (vertex - other_vertex).norm();
         total_distance += dist;
-        if( dist < min_distance) {
+        if (dist < min_distance) {
             min_distance = dist;
         }
         ++num_neighbours;
     }
 
     mean_nd = num_neighbours == 0
-           ? 1.0f
-           : total_distance / (float) num_neighbours;
-    min_nd = num_neighbours == 0
               ? 1.0f
-              : min_distance;
+              : total_distance / (float) num_neighbours;
+    min_nd = num_neighbours == 0
+             ? 1.0f
+             : min_distance;
+}
+
+std::vector<SurfelGraphNodePtr> get_neighbours_in_frame(
+        const SurfelGraphPtr &graphPtr,
+        unsigned int frame,
+        const SurfelGraphNodePtr &node) {
+    using namespace std;
+
+    const auto neighbours = graphPtr->neighbours(node);
+    vector<SurfelGraphNodePtr> neighbours_in_frame{};
+    for (auto &item : neighbours) {
+        if (item->data()->is_in_frame(frame)) {
+            neighbours_in_frame.emplace_back(item);
+        }
+    }
+    return neighbours_in_frame;
+}
+
+
+std::vector<size_t>
+order_neighbours_around_centroid(
+        const Eigen::Vector3f &centroid,
+        const Eigen::Vector3f &normal,
+        const Eigen::Vector3f &t1,
+        const Eigen::Vector3f &t2,
+        const std::vector<Eigen::Vector3f> &points
+) {
+    using namespace std;
+
+    // Make index vector
+    vector<size_t> idx(points.size());
+    iota(idx.begin(), idx.end(), 0);
+
+    // Generate atan2 for each
+    std::vector<double> keys;
+    for (const auto &p : points) {
+        const auto r = p - centroid;
+        const auto t = normal.dot(r.cross(t1));
+        const auto u = normal.dot(r.cross(t2));
+        keys.emplace_back(std::atan2(u, t));
+    }
+
+    stable_sort(begin(idx), end(idx),
+                [&keys](const size_t v1_index, const size_t &v2_index) {
+                    return keys.at(v1_index) > keys.at(v2_index);
+                });
+    return idx;
+}
+
+/*
+ * let c be the center around which the counterclockwise sort is to be performed
+ * Sort from here: https://stackoverflow.com/questions/47949485/sorting-a-list-of-3d-points-in-clockwise-order
+ */
+std::vector<size_t>
+order_neighbours(
+        const Eigen::Vector3f &normal,
+        const Eigen::Vector3f &t1,
+        const Eigen::Vector3f &t2,
+        const std::vector<Eigen::Vector3f> &points) {
+    using namespace std;
+
+    // Compute centroid
+    Eigen::Vector3f c = Eigen::Vector3f::Zero();
+    for (const auto &p : points) {
+        c += p;
+    }
+    c /= ((float) points.size());
+    return order_neighbours_around_centroid(c, normal, t1, t2, points);
+}
+
+
+size_t
+find_fan_start(
+        const Eigen::Vector3f &vertex,
+        const Eigen::Vector3f &normal,
+        const std::vector<size_t> &ordered_indices,
+        const std::vector<Eigen::Vector3f> &vertices
+) {
+    using namespace std;
+    // Iterate through the triangles until we find one that is invalid
+    // or else we get back to the start
+    auto tentative_start_index = 0;
+    while (tentative_start_index < ordered_indices.size()) {
+        auto curr_vert_index = ordered_indices.at(tentative_start_index);
+        auto next_vert_index = ordered_indices.at((tentative_start_index + 1) % ordered_indices.size());
+        auto curr_vert = vertices.at(curr_vert_index);
+        auto next_vert = vertices.at(next_vert_index);
+        auto nn = (curr_vert - vertex).cross(next_vert - curr_vert);
+        if (nn.dot(normal) >= 0) {
+            // Found invalid triangle.
+            break;
+        }
+        tentative_start_index++;
+    }
+    return (tentative_start_index == ordered_indices.size())
+           ? 0
+           : (tentative_start_index + 1) % ordered_indices.size();
+}
+
+/**
+ * For each vertex in the frame, extract a triangle fan that connects it to its
+ * neighbours. Avoid triangles that are malformed.
+ *
+ * @param graphPtr
+ * @param frame
+ * @param triangle_fans
+ * @param fan_sizes
+ */
+void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
+                                 unsigned int frame,
+                                 std::vector<float> &triangle_fans,
+                                 std::vector<unsigned int> &fan_sizes) {
+    using namespace std;
+
+    for (const auto &node : graphPtr->nodes()) {
+        const auto &surfel = node->data();
+        if (!surfel->is_in_frame(frame)) {
+            continue;
+        }
+        const auto neighbours_in_frame = get_neighbours_in_frame(graphPtr, frame, node);
+        // we only make triangle fans if we have at least one triangle
+        if (neighbours_in_frame.size() < 2) {
+            continue;
+        }
+
+        // Get all metadata for main vertex
+        Eigen::Vector3f vertex, normal, tangent, t2, reference_lattice_vertex;
+        surfel->get_all_data_for_surfel_in_frame(frame, vertex, tangent, t2, normal, reference_lattice_vertex);
+
+        // Extract vertex coordinates for frame
+        vector<Eigen::Vector3f> neighbour_coords;
+        for (const auto &n : neighbours_in_frame) {
+            Eigen::Vector3f nbr_vertex, nbr_normal, nbr_tangent;
+            n->data()->get_vertex_tangent_normal_for_frame(frame, nbr_vertex, nbr_tangent, nbr_normal);
+            neighbour_coords.emplace_back(nbr_vertex);
+        }
+
+        // Sort them CCW around normal, returning indices
+        const auto ordered_indices = order_neighbours_around_centroid(
+                vertex,
+                normal,
+                tangent,
+                t2,
+                neighbour_coords
+        );
+
+        auto start_index = find_fan_start(
+                vertex,
+                normal,
+                ordered_indices,
+                neighbour_coords
+        );
+
+        // Output a triangle_fan
+        // Start with vertex (we may remove this later)
+        triangle_fans.emplace_back(vertex[0]);
+        triangle_fans.emplace_back(vertex[1]);
+        triangle_fans.emplace_back(vertex[2]);
+        spdlog::info("hub: {}", node->data()->id());
+
+        auto idx_index = start_index;
+        unsigned int fan_size = 1;
+        for (int i = 0; i < ordered_indices.size(); ++i) {
+            auto v1_index = ordered_indices.at(idx_index);
+            auto v1 = neighbour_coords.at(v1_index);
+            triangle_fans.emplace_back(v1[0]);
+            triangle_fans.emplace_back(v1[1]);
+            triangle_fans.emplace_back(v1[2]);
+            spdlog::info("  {} ({:1f},{:1f},{:1f})",
+                         neighbours_in_frame.at(v1_index)->data()->id(),
+                         neighbour_coords.at(v1_index).x(),
+                         neighbour_coords.at(v1_index).y(),
+                         neighbour_coords.at(v1_index).z()
+            );
+            fan_size++;
+
+            idx_index = (idx_index + 1) % ordered_indices.size();
+        }
+        fan_sizes.push_back(fan_size);
+    }
 }
 
 void extract_quads_for_frame(const SurfelGraphPtr &graphPtr,
@@ -97,15 +280,15 @@ void extract_quads_for_frame(const SurfelGraphPtr &graphPtr,
         // We need to divide by rho and add 0.5 to make them in the range
         // 0->1
         auto texture_offset = surfel->reference_lattice_offset();
-        auto norm_texture_offset = texture_offset/ rho; // -0.5 to 0.5
-        float u,v;
+        auto norm_texture_offset = texture_offset / rho; // -0.5 to 0.5
+        float u, v;
         if (norm_texture_offset[0] < 0.0) {
-            u = - norm_texture_offset[0];
+            u = -norm_texture_offset[0];
         } else {
             u = 1.0f - norm_texture_offset[0];
         }
         if (norm_texture_offset[1] < 0.0) {
-            v = - norm_texture_offset[1];
+            v = -norm_texture_offset[1];
         } else {
             v = 1.0f - norm_texture_offset[1];
         }
@@ -127,6 +310,8 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
         const SurfelGraphPtr &graphPtr,
         std::vector<float> &positions,
         std::vector<float> &quads,
+        std::vector<float> &triangle_fans,
+        std::vector<unsigned int> &fan_sizes,
         std::vector<float> &normals,
         std::vector<float> &splat_sizes,
         std::vector<float> &uvs
@@ -135,8 +320,12 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
     positions.clear();
     normals.clear();
     quads.clear();
+    triangle_fans.clear();
+    fan_sizes.clear();
     splat_sizes.clear();
     uvs.clear();
 
-    extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, splat_sizes, uvs, m_rho, m_splat_scale_factor);
+    extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, splat_sizes, uvs, m_rho,
+                            m_splat_scale_factor);
+    extract_triangles_for_frame(graphPtr, m_frame, triangle_fans, fan_sizes);
 }

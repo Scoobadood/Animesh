@@ -24,6 +24,8 @@ public:
 
     void setPoSyData(const std::vector<float> &positions,
                      const std::vector<float> &quads,
+                     const std::vector<float> &triangle_fans,
+                     const std::vector<unsigned int> &fan_sizes,
                      const std::vector<float> &normals,
                      const std::vector<float> &splat_sizes,
                      const std::vector<float> &uvs
@@ -34,6 +36,14 @@ public:
             return;
         }
         m_renderQuads = render;
+        update();
+    }
+
+    void render_triangle_fans(bool render) {
+        if (m_render_triangle_fans == render) {
+            return;
+        }
+        m_render_triangle_fans = render;
         update();
     }
 
@@ -66,8 +76,10 @@ protected:
 private:
     std::vector<float> m_positions;
     std::vector<float> m_quads;
+    std::vector<float> m_triangle_fans;
     std::vector<float> m_normals;
     std::vector<float> m_uvs;
+    std::vector<int> m_fan_sizes;
 
     ArcBall *m_arcBall;
 
@@ -82,7 +94,7 @@ private:
     void maybeDrawSplats() const;
 
     void maybeDrawQuads() const;
-
+    void maybeDrawTriangleFans() const;
     static QImage makeSplatImage() ;
 
     QOpenGLTexture *splatTexture;
@@ -94,6 +106,7 @@ private:
     bool m_projectionMatrixIsDirty;
     bool m_renderSplats;
     bool m_renderQuads;
+    bool m_render_triangle_fans;
     std::vector<float> m_splat_sizes;
     float m_rho;
     float m_splat_scale_factor;

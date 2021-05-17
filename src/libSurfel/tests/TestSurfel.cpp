@@ -17,16 +17,41 @@ void TestSurfel::TearDown() {}
 void TestSurfelIO::SetUp() {
     using namespace std;
 
+    surfel_graph = make_shared<SurfelGraph>();
+    Eigen::Matrix3f transform;
+    transform << 1.1f, 2.2f, 3.3f,
+            4.4f, 5.5f, 6.6f,
+            7.7f, 8.8f, 9.9f;
     const auto s1 = make_shared<Surfel>("a",
-                                        std::vector<FrameData>{},
-                                        Eigen::Vector3f{1.0f, 2.0f, 3.0f},
+                                        std::vector<FrameData>{
+                                                {
+                                                        {1, 1, 1}, // pif
+                                                        1.1f, // depth
+                                                        transform,
+                                                        {1.1f, 2.2f, 3.3f}, // norm
+                                                        {1.1f, 2.2f, 3.3f} //pos
+                                                }
+                                        },
+                                        Eigen::Vector3f{1.0f, 0.0f, 0.0f},
                                         Eigen::Vector2f{1.5f, 2.5f}
     );
+    s1->set_rosy_smoothness(0);
+    s1->set_posy_smoothness(0);
     const auto s2 = make_shared<Surfel>("b",
-                                        std::vector<FrameData>{},
-                                        Eigen::Vector3f{5.0f, 6.0f, 7.0f},
+                                        std::vector<FrameData>{
+                                                {
+                                                        {1, 1, 1}, // pif
+                                                        1.1f, // depth
+                                                        transform,
+                                                        {1.1f, 2.2f, 3.3f}, // norm
+                                                        {1.1f, 2.2f, 3.3f} //pos
+                                                }
+                                        },
+                                        Eigen::Vector3f{0.707f, 0, 0.707f},
                                         Eigen::Vector2f{5.5f, 6.5f}
     );
+    s2->set_rosy_smoothness(0);
+    s2->set_posy_smoothness(0);
     const auto &sn1 = surfel_graph->add_node(s1);
     const auto &sn2 = surfel_graph->add_node(s2);
     surfel_graph->add_edge(sn1, sn2, 1.0);
@@ -40,12 +65,12 @@ bool compare_files(const std::string &p1, const std::string &p2) {
     ifstream f1(p1, ifstream::binary | ifstream::ate);
     ifstream f2(p2, ifstream::binary | ifstream::ate);
 
-    if (f1.fail() ) {
+    if (f1.fail()) {
         spdlog::error("Error reading file {:s}", p1);
         return false; //file problem
     }
 
-    if (f2.fail() ) {
+    if (f2.fail()) {
         spdlog::error("Error reading file {:s}", p2);
         return false; //file problem
     }
@@ -72,7 +97,7 @@ expect_graphs_equal(const SurfelGraph &graph1,
 
 void
 expect_graphs_equal(const SurfelGraphPtr &graph1,
-                    const SurfelGraphPtr& graph2) {
+                    const SurfelGraphPtr &graph2) {
     EXPECT_EQ(graph1->num_nodes(), graph2->num_nodes());
     EXPECT_EQ(graph1->num_edges(), graph2->num_edges());
 }

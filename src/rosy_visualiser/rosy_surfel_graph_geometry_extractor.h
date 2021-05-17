@@ -13,6 +13,7 @@ public:
                           std::vector<float>& positions,
                           std::vector<float>& tangents,
                           std::vector<float>& normals,
+                          std::vector<float>& colours,
                           float& scale_factor) const;
 
     inline void set_frame(int frame) {

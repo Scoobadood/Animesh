@@ -24,4 +24,6 @@ private:
     }
 
     void optimise_node(const SurfelGraphNodePtr &node) override;
+
+    float m_damping_factor;
 };

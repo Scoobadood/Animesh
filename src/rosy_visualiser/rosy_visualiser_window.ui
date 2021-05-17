@@ -100,6 +100,16 @@
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QCheckBox" name="cbErrorColours">
+               <property name="text">
+                <string>Error Colours</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>

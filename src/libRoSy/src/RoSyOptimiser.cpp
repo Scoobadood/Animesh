@@ -17,6 +17,8 @@ RoSyOptimiser::RoSyOptimiser(const Properties& properties)
             "rosy-term-crit-relative-smoothness",
             "rosy-term-crit-absolute-smoothness",
             "rosy-term-crit-max-iterations");
+
+    m_damping_factor = m_properties.getFloatProperty("rosy-damping-factor");
 }
 
 /**
@@ -110,6 +112,10 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         }
     }
 
+    if( m_damping_factor > 0 ) {
+        new_tangent = (m_damping_factor * old_tangent) + ((1.0f - m_damping_factor) * new_tangent);
+        new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY(), true);
+    }
     node->data()->setTangent(new_tangent);
     auto vec_pair = best_rosy_vector_pair(new_tangent, Vector3f::UnitY(), old_tangent, Vector3f::UnitY());
     node->data()->set_rosy_correction(fmod(degrees_angle_between_vectors(vec_pair.first, vec_pair.second), 90.0f));

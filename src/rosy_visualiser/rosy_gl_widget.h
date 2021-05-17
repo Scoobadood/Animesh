@@ -27,11 +27,13 @@ public:
     void setRoSyData(const std::vector<float>& positions,
                      const std::vector<float>& normals,
                      const std::vector<float>& tangents,
+                     const std::vector<float>& colours,
                      float scale_factor);
 
     void renderNormals( bool shouldRender);
     void renderMainTangents( bool shouldRender);
     void renderOtherTangents( bool shouldRender);
+    void renderErrorColours( bool shouldRender);
     void setZFar(float zFar);
     void setFov(float fov);
 
@@ -44,10 +46,12 @@ private:
     std::vector<float> m_positions;
     std::vector<float> m_tangents;
     std::vector<float> m_normals;
+    std::vector<float> m_colours;
     float m_normalScaleFactor;
     bool m_renderNormals;
     bool m_renderMainTangents;
     bool m_renderOtherTangents;
+    bool m_renderErrorColours;
     QColor m_normalColour;
     QColor m_mainTangentColour;
     QColor m_otherTangentsColour;

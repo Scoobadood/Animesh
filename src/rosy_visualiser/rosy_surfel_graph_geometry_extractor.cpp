@@ -9,11 +9,14 @@ rosy_surfel_graph_geometry_extractor::rosy_surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
-void extract_quads_for_frame(const SurfelGraphPtr& graphPtr,
+void extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
                              unsigned int frame,
                              std::vector<float> &positions,
+                             std::vector<float> &tangents,
                              std::vector<float> &normals,
-                             std::vector<float> &uvs) {
+                             std::vector<float> &colours
+) {
+    std::vector<float> errors;
     for (const auto &node : graphPtr->nodes()) {
         const auto &surfel = node->data();
         if (!surfel->is_in_frame(frame)) {
@@ -27,30 +30,38 @@ void extract_quads_for_frame(const SurfelGraphPtr& graphPtr,
         positions.push_back(position.y());
         positions.push_back(position.z());
 
-        normals.push_back(tangent.x());
-        normals.push_back(tangent.y());
-        normals.push_back(tangent.z());
+        tangents.push_back(tangent.x());
+        tangents.push_back(tangent.y());
+        tangents.push_back(tangent.z());
 
-        uvs.push_back(normal.x());
-        uvs.push_back(normal.y());
-        uvs.push_back(normal.z());
+        normals.push_back(normal.x());
+        normals.push_back(normal.y());
+        normals.push_back(normal.z());
+
+        errors.push_back(surfel->rosy_smoothness());
     }
-}
-
-void centre_at_origin(std::vector<float> &xyz) {
-    auto centroidX = 0.0f;
-    auto centroidY = 0.0f;
-    auto centroidZ = 0.0f;
-    compute_centroid(xyz, centroidX, centroidY, centroidZ);
-    for (unsigned int i = 0; i < xyz.size(); i += 3) {
-        xyz.at(i + 0) -= centroidX;
-        xyz.at(i + 1) -= centroidY;
-        xyz.at(i + 2) -= centroidZ;
+    float max_error = 0.0f;
+    for (float error : errors) {
+        if (error > max_error) {
+            max_error = error;
+        }
+    }
+    // Now scale errors
+    auto error_scale_factor = (max_error != 0.0f)
+                              ? (1.0f / max_error)
+                              : 0.0f;
+    for (float error : errors) {
+        auto err = error * error_scale_factor;
+        spdlog::info(err);
+        colours.push_back(err); // red
+        colours.push_back(1.0f - err); // grn
+        colours.push_back(0.0f); // blu
+        colours.push_back(1.0f); // alp
     }
 }
 
 float compute_normal_scale(
-        const SurfelGraphPtr& graphPtr,
+        const SurfelGraphPtr &graphPtr,
         float model_scale) {
     // Pick a surfel and compute mean neighbour distance for this frame
     const auto node = graphPtr->nodes().front();
@@ -73,7 +84,7 @@ float compute_normal_scale(
     }
 
     const auto mean_neighbour_distance = (count > 0)
-                                         ? distance / (float)count
+                                         ? distance / (float) count
                                          : 1.0f;
 
     // Proposed scale should be 2/5 of mean neighbour distance so that
@@ -91,20 +102,20 @@ float compute_normal_scale(
  * @param scaleFactor A proposed scaling for the normals and tangents.
  */
 void rosy_surfel_graph_geometry_extractor::extract_geometry(
-        const SurfelGraphPtr& graphPtr,
+        const SurfelGraphPtr &graphPtr,
         std::vector<float> &positions,
         std::vector<float> &tangents,
         std::vector<float> &normals,
+        std::vector<float> &colours,
         float &normal_scale
 ) const {
 
     positions.clear();
     tangents.clear();
     normals.clear();
+    colours.clear();
 
-    extract_quads_for_frame(graphPtr, m_frame, positions, tangents, normals);
-//    centre_at_origin(positions);
-//    const auto model_scale = scale_to_region(positions);
+    extract_lines_for_frame(graphPtr, m_frame, positions, tangents, normals, colours);
     const auto model_scale = 1.0f;
     normal_scale = compute_normal_scale(graphPtr, model_scale);
     normal_scale = 0.4f;

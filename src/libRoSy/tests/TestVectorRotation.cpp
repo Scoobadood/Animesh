@@ -14,7 +14,7 @@ TEST_F(TestVectorRotation, ZeroLengthOShouldThrow) {
     int k = 0;
 
     EXPECT_THROW_WITH_MESSAGE(
-            vector_by_rotating_around_n(zero, vec_1_0_0, k),
+            vector_by_rotating_around_n(zero, unit_x, k),
             std::invalid_argument,
             "Vector may not be zero length"
     );
@@ -24,7 +24,7 @@ TEST_F(TestVectorRotation, NonUnitNormalShouldThrow) {
     int k = 0;
     
     try {
-        vector_by_rotating_around_n(vec_1_0_0, vec_1_1_1, k);
+        vector_by_rotating_around_n(unit_x, vec_1_1_1, k);
         FAIL() << "Expected std::invalid_argument";
    }
     catch ( std::invalid_argument const & err ){
@@ -45,7 +45,7 @@ TEST_F( TestVectorRotation, Rotate_2_1_0_about_0_0_1_by_0 ) {
     int k = 0;
 
     Vector3f expected = vec_2_1_0;
-    Vector3f actual = vector_by_rotating_around_n( vec_2_1_0, vec_0_0_1, k );
+    Vector3f actual = vector_by_rotating_around_n(vec_2_1_0, unit_z, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -57,8 +57,8 @@ TEST_F( TestVectorRotation, Rotate_2_1_0_about_0_0_1_by_1 ) {
 
     int k = 1;
 
-    Vector3f expected{ -1.0f, 2.0f, 0.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_2_1_0, vec_0_0_1, k );
+    Vector3f expected{ -0.6f, 0.8f, 0.0f};
+    Vector3f actual = vector_by_rotating_around_n(vec_2_1_0, unit_z, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -70,8 +70,8 @@ TEST_F( TestVectorRotation, Rotate_2_1_0_about_0_0_1_by_2 ) {
 
     int k = 2;
 
-    Vector3f expected{ -2.0f, -1.0f, 0.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_2_1_0, vec_0_0_1, k );
+    Vector3f expected{ -0.8f, -0.6f, 0.0f};
+    Vector3f actual = vector_by_rotating_around_n(vec_2_1_0, unit_z, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -83,8 +83,8 @@ TEST_F( TestVectorRotation, Rotate_2_1_0_about_0_0_1_by_3 ) {
 
     int k = 3;
 
-    Vector3f expected{ 1.0f, -2.0f, 0.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_2_1_0, vec_0_0_1, k );
+    Vector3f expected{ 0.6f, -0.8f, 0.0f};
+    Vector3f actual = vector_by_rotating_around_n(vec_2_1_0, unit_z, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -101,7 +101,7 @@ TEST_F( TestVectorRotation, Rotate_2_0_1_about_0_1_0_by_0 ) {
     int k = 0;
 
     Vector3f expected = vec_2_0_1;
-    Vector3f actual = vector_by_rotating_around_n( vec_2_0_1, vec_0_1_0, k );
+    Vector3f actual = vector_by_rotating_around_n(vec_2_0_1, unit_y, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -113,8 +113,8 @@ TEST_F( TestVectorRotation, Rotate_2_0_1_about_0_1_0_by_1 ) {
 
     int k = 1;
 
-    Vector3f expected{ 1.0f, 0.0f, -2.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_2_0_1, vec_0_1_0, k );
+    Vector3f expected{ 0.6f, 0.0f, -0.8f};
+    Vector3f actual = vector_by_rotating_around_n(vec_2_0_1, unit_y, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -126,8 +126,8 @@ TEST_F( TestVectorRotation, Rotate_2_0_1_about_0_1_0_by_2 ) {
 
     int k = 2;
 
-    Vector3f expected{ -2.0f, 0.0f, -1.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_2_0_1, vec_0_1_0, k );
+    Vector3f expected{ -0.8f, 0.0f, -0.6f};
+    Vector3f actual = vector_by_rotating_around_n(vec_2_0_1, unit_y, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -139,8 +139,8 @@ TEST_F( TestVectorRotation, Rotate_2_0_1_about_0_1_0_by_3 ) {
 
     int k = 3;
 
-    Vector3f expected{ -1.0f, 0.0f, 2.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_2_0_1, vec_0_1_0, k );
+    Vector3f expected{ -0.6f, 0.0f, 0.8f};
+    Vector3f actual = vector_by_rotating_around_n(vec_2_0_1, unit_y, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -156,7 +156,7 @@ TEST_F( TestVectorRotation, Rotate_0_2_1_about_1_0_0_by_0 ) {
     int k = 0;
 
     Vector3f expected = vec_0_2_1;
-    Vector3f actual = vector_by_rotating_around_n( vec_0_2_1, vec_1_0_0, k );
+    Vector3f actual = vector_by_rotating_around_n(vec_0_2_1, unit_x, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -168,8 +168,8 @@ TEST_F( TestVectorRotation, Rotate_0_1_2_about_1_0_0_by_1 ) {
 
     int k = 1;
 
-    Vector3f expected{ 0.0f, -1.0f, 2.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_0_2_1, vec_1_0_0, k );
+    Vector3f expected{ 0.0f, -0.6f, 0.8f};
+    Vector3f actual = vector_by_rotating_around_n(vec_0_2_1, unit_x, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -181,8 +181,8 @@ TEST_F( TestVectorRotation, Rotate_0_1_2_about_1_0_0_by_2 ) {
 
     int k = 2;
 
-    Vector3f expected{ 0.0f, -2.0f, -1.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_0_2_1, vec_1_0_0, k );
+    Vector3f expected{ 0.0f, -0.8f, -0.6f};
+    Vector3f actual = vector_by_rotating_around_n(vec_0_2_1, unit_x, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );
@@ -194,8 +194,8 @@ TEST_F( TestVectorRotation, Rotate_0_1_2_about_1_0_0_by_3 ) {
 
     int k = 3;
 
-    Vector3f expected{ 0.0f, 1.0f, -2.0f};
-    Vector3f actual = vector_by_rotating_around_n( vec_0_2_1, vec_1_0_0, k );
+    Vector3f expected{ 0.0f, 0.6f, -0.8f};
+    Vector3f actual = vector_by_rotating_around_n(vec_0_2_1, unit_x, k );
 
     EXPECT_FLOAT_EQ( expected[0], actual[0] );
     EXPECT_FLOAT_EQ( expected[1], actual[1] );

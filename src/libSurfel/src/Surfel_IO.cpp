@@ -69,6 +69,8 @@ save_surfel_graph_to_file(const std::string &file_name,
         }
         write_vector_3f(file, surfel->data()->tangent());
         write_vector_2f(file, surfel->data()->reference_lattice_offset());
+        write_float(file, surfel->data()->rosy_smoothness());
+        write_float(file, surfel->data()->posy_smoothness());
     }
     file.close();
     info(" done.");
@@ -78,7 +80,7 @@ save_surfel_graph_to_file(const std::string &file_name,
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name) {
+load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) {
     using namespace std;
     using namespace spdlog;
 
@@ -86,7 +88,7 @@ load_surfel_graph_from_file(const std::string &file_name) {
 
     SurfelGraphPtr graph = make_shared<SurfelGraph>(false);
     ifstream file{file_name, ios::in | ios::binary};
-    if (file.fail() ) {
+    if (file.fail()) {
         throw runtime_error("Error reading file " + file_name);
     }
 
@@ -136,6 +138,14 @@ load_surfel_graph_from_file(const std::string &file_name) {
         const auto closest_mesh_vertex_offset = read_vector_2f(file);
 
         auto surfel_ptr = make_shared<Surfel>(surfel_id, frames, tangent, closest_mesh_vertex_offset);
+        const auto rosy_smooth = read_smoothness
+                                 ? read_float(file)
+                                 : 0.0f;
+        const auto posy_smooth = read_smoothness
+                                 ? read_float(file)
+                                 : 0.0f;
+        surfel_ptr->set_rosy_smoothness(rosy_smooth);
+        surfel_ptr->set_posy_smoothness(posy_smooth);
         auto graph_node = graph->add_node(surfel_ptr);
         neighbours_of_surfel_by_id.emplace(surfel_id, neighbours);
         graph_node_by_id.emplace(surfel_id, graph_node);
@@ -143,11 +153,11 @@ load_surfel_graph_from_file(const std::string &file_name) {
     file.close();
 
     // Populate neighbours
-    for( auto& graph_node : graph->nodes()) {
-        const auto& neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id());
-        for( const auto& neighbour_id : neighbour_ids ) {
+    for (auto &graph_node : graph->nodes()) {
+        const auto &neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id());
+        for (const auto &neighbour_id : neighbour_ids) {
             const auto neighbour_node = graph_node_by_id.at(neighbour_id);
-            graph->add_edge( graph_node, neighbour_node, 1.0);
+            graph->add_edge(graph_node, neighbour_node, 1.0);
         }
     }
 

@@ -59,7 +59,7 @@ TEST_F( TestProperties, MissingValueShouldThrow) {
     EXPECT_THROW_WITH_MESSAGE(
             p.getProperty("Missing"),
             std::out_of_range,
-            "map::at:  key not found"
+            "Property not found: Missing"
     );
 }
 

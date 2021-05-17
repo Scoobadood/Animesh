@@ -28,6 +28,7 @@ rosy_gl_widget::rosy_gl_widget(QWidget *parent, Qt::WindowFlags f) :
             std::vector<float>{0.0f, 0.0f, 0.0f},
             std::vector<float>{0.0f, 1.0f, 0.0f},
             std::vector<float>{0.0f, 0.0f, 1.0f},
+            std::vector<float>{0.0f, 1.0f, 0.0f, 1.0f},
             1.0f
     );
 }
@@ -41,6 +42,13 @@ rosy_gl_widget::maybeDrawNormals() const {
               m_normalColour.blueF(), m_normalColour.alphaF());
 
     for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+        if( m_renderErrorColours) {
+            auto r = m_colours.at(i * 4 + 0);
+            auto g = m_colours.at(i * 4 + 1);
+            auto b = m_colours.at(i * 4 + 2);
+            auto a = m_colours.at(i * 4 + 3);
+            glColor4f(r, g, b, a);
+        }
         glBegin(GL_LINES);
         glVertex3f(m_positions.at(i * 3 + 0),
                    m_positions.at(i * 3 + 1),
@@ -81,10 +89,17 @@ rosy_gl_widget::maybeDrawMainTangents() const {
     if (!m_renderMainTangents) {
         return;
     }
-    glColor4d(m_mainTangentColour.redF(),m_mainTangentColour.greenF(),
-              m_mainTangentColour.blueF(),m_mainTangentColour.alphaF());
-
+        glColor4d(m_mainTangentColour.redF(),m_mainTangentColour.greenF(),
+                  m_mainTangentColour.blueF(),m_mainTangentColour.alphaF());
     for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+        if( m_renderErrorColours) {
+            auto r = m_colours.at(i * 4 + 0);
+            auto g = m_colours.at(i * 4 + 1);
+            auto b = m_colours.at(i * 4 + 2);
+            auto a = m_colours.at(i * 4 + 3);
+            glColor4f(r, g, b, a);
+        }
+
         glBegin(GL_LINES);
         glVertex3f(m_positions.at(i * 3 + 0),
                    m_positions.at(i * 3 + 1),
@@ -109,6 +124,13 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
               (GLfloat) m_otherTangentsColour.alphaF());
 
     for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+        if( m_renderErrorColours) {
+            auto r = m_colours.at(i * 4 + 0);
+            auto g = m_colours.at(i * 4 + 1);
+            auto b = m_colours.at(i * 4 + 2);
+            auto a = m_colours.at(i * 4 + 3);
+            glColor4f(r, g, b, a);
+        }
         // Get perpendicular tangent by computing cross(norm,tan)
         const auto normX = m_normals.at(i * 3 + 0);
         const auto normY = m_normals.at(i * 3 + 1);
@@ -207,14 +229,17 @@ void
 rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
                             const std::vector<float> &normals,
                             const std::vector<float> &tangents,
+                            const std::vector<float> &colours,
                             const float normal_scale_factor) {
     m_positions.clear();
     m_tangents.clear();
     m_normals.clear();
+    m_colours.clear();
 
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
+    m_colours.insert(m_colours.begin(), colours.begin(), colours.end());
     m_normalScaleFactor = normal_scale_factor;
 
     update();
@@ -253,6 +278,14 @@ void
 rosy_gl_widget::renderOtherTangents( bool shouldRender) {
     if( m_renderOtherTangents != shouldRender) {
         m_renderOtherTangents = shouldRender;
+        update();
+    }
+}
+
+void
+rosy_gl_widget::renderErrorColours( bool shouldRender) {
+    if( m_renderErrorColours != shouldRender) {
+        m_renderErrorColours = shouldRender;
         update();
     }
 }

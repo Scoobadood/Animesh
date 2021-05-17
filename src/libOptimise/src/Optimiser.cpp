@@ -97,8 +97,8 @@ Optimiser::optimise_begin() {
     assert(m_state == INITIALISED);
 
     using namespace spdlog;
-    info("Initialising error value");
     setup_ssa();
+    info("Initialising error value");
     m_last_smoothness = compute_mean_smoothness();
     m_num_iterations = 0;
     m_state = OPTIMISING;
@@ -305,7 +305,9 @@ Optimiser::ssa_select_worst_100() const {
                     return compare_worst_first(l, r);
                 });
 
-    selected_nodes.resize(100);
+    if (selected_nodes.size() > 100) {
+        selected_nodes.resize(100);
+    }
     return selected_nodes;
 }
 

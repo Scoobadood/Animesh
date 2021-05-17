@@ -18,6 +18,8 @@ rosy_visualiser_window::rosy_visualiser_window(QWidget *parent)
             ui->rosyGLWidget, &rosy_gl_widget::renderMainTangents);
     connect(ui->cbOtherTangents, &QCheckBox::toggled,
             ui->rosyGLWidget, &rosy_gl_widget::renderOtherTangents);
+    connect(ui->cbErrorColours, &QCheckBox::toggled,
+            ui->rosyGLWidget, &rosy_gl_widget::renderErrorColours);
     connect(ui->slFar, &QSlider::valueChanged,
             ui->rosyGLWidget, &rosy_gl_widget::setZFar);
     connect(ui->slFov, &QSlider::valueChanged,
@@ -39,9 +41,10 @@ rosy_visualiser_window::extract_geometry() {
     std::vector<float> positions;
     std::vector<float> normals;
     std::vector<float> tangents;
+    std::vector<float> colours;
     float scale_factor;
-    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, tangents, normals, scale_factor);
-    ui->rosyGLWidget->setRoSyData(positions, normals, tangents, scale_factor);
+    m_geometryExtractor->extract_geometry(m_graph_ptr, positions, tangents, normals, colours, scale_factor);
+    ui->rosyGLWidget->setRoSyData(positions, normals, tangents, colours, scale_factor);
 }
 
 void

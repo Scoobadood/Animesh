@@ -1,18 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../bin/animesh_ui"
-  "../../../bin/animesh_ui.pdb"
-  "CMakeFiles/animesh_ui.dir/correspondences_io.cpp.o"
-  "CMakeFiles/animesh_ui.dir/depth_map_io.cpp.o"
-  "CMakeFiles/animesh_ui.dir/hierarchical_mesher_ui.cpp.o"
-  "CMakeFiles/animesh_ui.dir/hierarchical_mesher_utilities.cpp.o"
-  "CMakeFiles/animesh_ui.dir/io_utils.cpp.o"
-  "CMakeFiles/animesh_ui.dir/optimise.cpp.o"
-  "CMakeFiles/animesh_ui.dir/surfel_compute.cpp.o"
-  "CMakeFiles/animesh_ui.dir/surfel_io.cpp.o"
-  "CMakeFiles/animesh_ui.dir/utilities.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/animesh_ui.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:600ddd7a980fd5e02439de6ee248ea4a7e979eaad15f8caee3b3e0483ecb1859
+size 701

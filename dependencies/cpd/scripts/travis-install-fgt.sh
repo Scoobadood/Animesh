@@ -1,15 +1,3 @@
-#!/usr/bin/env sh
-# Installs fgt to $HOME/local
-
-set -ex
-
-git clone https://github.com/gadomski/fgt.git
-mkdir fgt/build
-cd fgt/build
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=$HOME/local \
-    -DWITH_TESTS=OFF \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_SHARED_LIBS=ON
-make
-make install
+version https://git-lfs.github.com/spec/v1
+oid sha256:8efd42e9fa9f9339290c87f8f777b3dbba58dd58aeef134e2877946757b68bd3
+size 286

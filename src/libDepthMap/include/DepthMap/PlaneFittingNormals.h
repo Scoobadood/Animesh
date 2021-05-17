@@ -1,20 +1,3 @@
-//
-// Created by Dave Durbin on 11/3/20.
-//
-
-#ifndef ANIMESH_PLANEFITTINGNORMALS_H
-#define ANIMESH_PLANEFITTINGNORMALS_H
-
-#include <vector>
-#include <DepthMap/Normals.h>
-#include <DepthMap/DepthMap.h>
-#include <Camera/Camera.h>
-
-/**
- * Compute normal using estinate of normal to plane tangent to surface
- * using neighbours in depth map
- */
-std::vector<std::vector<NormalWithType>>
-compute_normals_from_neighbours(DepthMap* depth_map, const Camera& camera);
-
-#endif //ANIMESH_PLANEFITTINGNORMALS_H
+version https://git-lfs.github.com/spec/v1
+oid sha256:f894b6822d7ec55d6b9a817cbbd060ceed19bc2206ea7cb3b60b799533a478ab
+size 498

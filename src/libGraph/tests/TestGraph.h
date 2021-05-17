@@ -1,15 +1,3 @@
-#pragma once
-
-#include "gtest/gtest.h"
-#include <Graph/Graph.h>
-
-class TestGraph : public ::testing::Test {
-public:
-    animesh::Graph<std::string, float>::GraphNode * gn1;
-    animesh::Graph<std::string, float>::GraphNode * gn2;
-    animesh::Graph<std::string, float> graph{true}; // directed
-    animesh::Graph<std::string, float> undirected_graph; // undirected
-
-	void SetUp( );
-	void TearDown( );
-};
+version https://git-lfs.github.com/spec/v1
+oid sha256:4a1d288f8a110ad1fde18696b83c3cbecc20c898d1c10bea26e1880a39383570
+size 404

@@ -1,19 +1,3 @@
-#pragma once 
-
-#include <string>
-#include <Eigen/Core>
-
-/**
- * Check that a vector is of unit length or throw
- */
-void checkUnitLength( const std::string& vector_name, const Eigen::Vector3f& vector ); 
-
-/**
- * Check that two vectors are perpendicular or throw
- */
-void checkPerpendicular( const std::string& vec1_name, const Eigen::Vector3f& vec1, const std::string& vec2_name, const Eigen::Vector3f& vec2 );
-
-
-void checkRotationMatrix( const std::string& matrix_name, const Eigen::Matrix3f& R);
-
-void checkNotZeroVector(const std::string& vector_name, const Eigen::Vector3f& v);
+version https://git-lfs.github.com/spec/v1
+oid sha256:f5adac72de1d95dea635fd0c8f9baa25ed11d98ab4b4f831dd2e99ae5372ced7
+size 580

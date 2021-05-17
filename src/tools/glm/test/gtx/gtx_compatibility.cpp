@@ -1,19 +1,3 @@
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/compatibility.hpp>
-
-int main()
-{
-	int Error(0);
-
-	Error += glm::isfinite(1.0f) ? 0 : 1;
-	Error += glm::isfinite(1.0) ? 0 : 1;
-	Error += glm::isfinite(-1.0f) ? 0 : 1;
-	Error += glm::isfinite(-1.0) ? 0 : 1;
-
-	Error += glm::all(glm::isfinite(glm::vec4(1.0f))) ? 0 : 1;
-	Error += glm::all(glm::isfinite(glm::dvec4(1.0))) ? 0 : 1;
-	Error += glm::all(glm::isfinite(glm::vec4(-1.0f))) ? 0 : 1;
-	Error += glm::all(glm::isfinite(glm::dvec4(-1.0))) ? 0 : 1;
-
-	return Error;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:c61883ce5255d95ecb27484beccfcad86419b6591a1d9f61d855aa14190fab3a
+size 516

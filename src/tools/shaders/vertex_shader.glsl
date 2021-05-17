@@ -1,12 +1,3 @@
-#version 330 core
-layout (location = 0) in vec3 aPos;
-
-uniform mat4 projectionMatrix;
-uniform mat4 modelMatrix;
-uniform mat4 viewMatrix;
-
-void main() {
-	vec4 worldCoord = modelMatrix * vec4(aPos, 1.0);
-	vec4 viewCoord  = viewMatrix  * worldCoord; 
-	gl_Position = projectionMatrix * viewCoord;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:d76d00d4a3d0b9bebf43947acb342cd17a9b0d4d693c3ccaf6ca02d8ebd66f62
+size 294

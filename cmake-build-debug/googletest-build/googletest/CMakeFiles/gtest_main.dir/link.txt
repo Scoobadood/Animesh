@@ -1,1 +1,3 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ -g -Wall -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -dynamiclib -Wl,-headerpad_max_install_names  -o ../../lib/libgtest_maind.dylib -install_name /Users/dave/Animesh/cmake-build-debug/lib/libgtest_maind.dylib CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  ../../lib/libgtestd.dylib 
+version https://git-lfs.github.com/spec/v1
+oid sha256:9744c2310b83d390cd06e2ceabca00852df1646d84857481f69a7c6d47a0cd80
+size 441

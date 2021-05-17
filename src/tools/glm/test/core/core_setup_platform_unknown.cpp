@@ -1,21 +1,3 @@
-#ifndef GLM_FORCE_PLATFORM_UNKNOWN
-#	define GLM_FORCE_PLATFORM_UNKNOWN
-#endif
-#ifndef GLM_FORCE_COMPILER_UNKNOWN
-#	define GLM_FORCE_COMPILER_UNKNOWN
-#endif
-#ifndef GLM_FORCE_ARCH_UNKNOWN
-#	define GLM_FORCE_ARCH_UNKNOWN
-#endif
-#ifndef GLM_FORCE_CXX_UNKNOWN
-#	define GLM_FORCE_CXX_UNKNOWN
-#endif
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-
-int main()
-{
-	int Error = 0;
-
-	return Error;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:8779a44b5266ea54d10205b4fff44416f1750cb1fee9a7de217840699f9b34df
+size 388

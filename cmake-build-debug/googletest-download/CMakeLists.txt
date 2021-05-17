@@ -1,15 +1,3 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
-
-project(googletest-download NONE)
-
-include(ExternalProject)
-ExternalProject_Add(googletest
-  GIT_REPOSITORY    https://github.com/google/googletest.git
-  GIT_TAG           master
-  SOURCE_DIR        "/Users/dave/Animesh/cmake-build-debug/googletest-src"
-  BINARY_DIR        "/Users/dave/Animesh/cmake-build-debug/googletest-build"
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND     ""
-  INSTALL_COMMAND   ""
-  TEST_COMMAND      ""
-)
+version https://git-lfs.github.com/spec/v1
+oid sha256:d4d2b27c55d18bbf259b2194d221571e2efeac3607d787eb53e577ce0126ecc6
+size 474

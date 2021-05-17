@@ -1,18 +1,3 @@
-# CMake generated Testfile for 
-# Source directory: /Users/dave/Animesh/src
-# Build directory: /Users/dave/Animesh/cmake-build-debug/src
-# 
-# This file includes the relevant testing commands required for 
-# testing this directory and lists subdirectories to be tested as well.
-subdirs("QtMain")
-subdirs("libCamera")
-subdirs("libGeom")
-subdirs("libRoSy")
-subdirs("libDepthMap")
-subdirs("libGraph")
-subdirs("libProperties")
-subdirs("libField")
-subdirs("libArgs")
-subdirs("libFileUtils")
-subdirs("mesher")
-subdirs("tools")
+version https://git-lfs.github.com/spec/v1
+oid sha256:a52f84510240d8018c61a96c622c73a0f9f44ce104e9ec678d21d2d6cb5abcc7
+size 520

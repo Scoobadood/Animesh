@@ -1,15 +1,3 @@
-/*============================================================================
-  MetaIO
-  Copyright 2000-2011 Insight Software Consortium
-
-  Distributed under the OSI-approved BSD License (the "License");
-  see accompanying file Copyright.txt for details.
-
-  This software is distributed WITHOUT ANY WARRANTY; without even the
-  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-  See the License for more information.
-============================================================================*/
-#undef METAIO_FOR_VTK
-#undef METAIO_FOR_ITK
-#define METAIO_FOR_VTK
-/* #undef METAIO_FOR_ITK */
+version https://git-lfs.github.com/spec/v1
+oid sha256:4040c1fb5e837616d3221acce828d8362674127d5ffe17d738f3310f44b381d6
+size 616

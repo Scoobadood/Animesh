@@ -1,13 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../../bin/dat_gen"
-  "../../../../bin/dat_gen.pdb"
-  "CMakeFiles/dat_gen.dir/dat_gen.cpp.o"
-  "CMakeFiles/dat_gen.dir/mesh_cl.cpp.o"
-  "CMakeFiles/dat_gen.dir/model_cl.cpp.o"
-  "CMakeFiles/dat_gen.dir/utility.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/dat_gen.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:d25cc3c6b780f7b4c854ee84592030e81935469f14242a51960f1edb4b2fa714
+size 401

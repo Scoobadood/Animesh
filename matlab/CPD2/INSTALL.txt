@@ -1,5 +1,3 @@
-Unpack the CPD distribution archive.
-Add 'CPD' directory with all subdirectories to the Matlab path.
-Run cpd_make (in Matlab) to mex-compile some essential files.
-
-See the README file for further details.
+version https://git-lfs.github.com/spec/v1
+oid sha256:8742d77da792427f4d782e9214cb1dd01d4943c0d18efd7834afaefcd23e6687
+size 210

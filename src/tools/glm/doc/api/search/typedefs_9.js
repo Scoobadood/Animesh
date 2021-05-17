@@ -1,5 +1,3 @@
-var searchData=
-[
-  ['quat',['quat',['../a00252.html#gab0b441adb4509bc58d2946c2239a8942',1,'glm']]],
-  ['qword',['qword',['../a00354.html#ga4021754ffb8e5ef14c75802b15657714',1,'glm']]]
-];
+version https://git-lfs.github.com/spec/v1
+oid sha256:7d9b588bb88a1e8193d6f97190dc9c92a414180676d6d83b462a38d82c405650
+size 188

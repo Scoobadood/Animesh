@@ -1,21 +1,3 @@
-//
-// Created by Dave Durbin on 18/5/20.
-//
-
-#ifndef ANIMESH_TESTPOSYOPTIMISER_H
-#define ANIMESH_TESTPOSYOPTIMISER_H
-
-
-#include <gtest/gtest.h>
-#include <Properties/Properties.h>
-
-class TestPoSyOptimiser : public ::testing::Test {
-public:
-    void SetUp( );
-    void TearDown();
-    SurfelGraphPtr makeTestGraph();
-    Properties m_properties;
-};
-
-
-#endif //ANIMESH_TESTPOSYOPTIMISER_H
+version https://git-lfs.github.com/spec/v1
+oid sha256:5efbda72cf95e51b850c8c054d3925487832d381c67abaa8c71825fa5c133269
+size 386

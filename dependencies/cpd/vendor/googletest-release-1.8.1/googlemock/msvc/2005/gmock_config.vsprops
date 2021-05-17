@@ -1,15 +1,3 @@
-<?xml version="1.0" encoding="Windows-1252"?>
-<VisualStudioPropertySheet
-	ProjectType="Visual C++"
-	Version="8.00"
-	Name="gmock_config"
-	>
-	<Tool
-		Name="VCCLCompilerTool"
-		AdditionalIncludeDirectories="&quot;$(GTestDir)/include&quot;"
-	/>
-	<UserMacro
-		Name="GTestDir"
-		Value="../../../googletest"
-	/>
-</VisualStudioPropertySheet>
+version https://git-lfs.github.com/spec/v1
+oid sha256:097ce05278e539d154f430717482c3eee46bbf8e6d3a38b8209e1fdf71c86e7d
+size 349

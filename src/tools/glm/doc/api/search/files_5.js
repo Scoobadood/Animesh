@@ -1,7 +1,3 @@
-var searchData=
-[
-  ['fast_5fexponential_2ehpp',['fast_exponential.hpp',['../a00031.html',1,'']]],
-  ['fast_5fsquare_5froot_2ehpp',['fast_square_root.hpp',['../a00032.html',1,'']]],
-  ['fast_5ftrigonometry_2ehpp',['fast_trigonometry.hpp',['../a00033.html',1,'']]],
-  ['functions_2ehpp',['functions.hpp',['../a00034.html',1,'']]]
-];
+version https://git-lfs.github.com/spec/v1
+oid sha256:554ec91046ac722b6f4f23faab626318ae7e8ad63b39bfc462aeef7fc0bc4029
+size 332

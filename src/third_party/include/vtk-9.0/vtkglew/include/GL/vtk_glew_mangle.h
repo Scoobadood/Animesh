@@ -1,14 +1,3 @@
-#ifndef vtk_glew_mangle_h
-#define vtk_glew_mangle_h
-
-#define glewGetErrorString vtkglew_glewGetErrorString
-#define glewGetExtension vtkglew_glewGetExtension
-#define glewGetString vtkglew_glewGetString
-#define glewInit vtkglew_glewInit
-#define glewIsSupported vtkglew_glewIsSupported
-#define glxewContextInit vtkglew_glxewContextInit
-#define glxewGetExtension vtkglew_glxewGetExtension
-#define glxewInit vtkglew_glxewInit
-#define glxewIsSupported vtkglew_glxewIsSupported
-
-#endif
+version https://git-lfs.github.com/spec/v1
+oid sha256:558c1cc93aeb472e51ac324f4ae91a823bc4053be2bbfc527b66fd0ecc331ab2
+size 479

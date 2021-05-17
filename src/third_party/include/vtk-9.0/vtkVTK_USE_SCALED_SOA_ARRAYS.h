@@ -1,17 +1,3 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkVTK_USE_SCALED_SOA_ARRAYS.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-
-// defined if VTK provides the vtkScaledSOADataArray classes
-/* #undef VTK_USE_SCALED_SOA_ARRAYS */
+version https://git-lfs.github.com/spec/v1
+oid sha256:228b756de98dd4908577f291edd6e96b8e6b14a9e41810f11c557054797927bd
+size 700

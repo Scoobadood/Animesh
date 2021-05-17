@@ -1,20 +1,3 @@
-glmCreateTestGTC(gtc_bitfield)
-glmCreateTestGTC(gtc_color_space)
-glmCreateTestGTC(gtc_constants)
-glmCreateTestGTC(gtc_epsilon)
-glmCreateTestGTC(gtc_integer)
-glmCreateTestGTC(gtc_matrix_access)
-glmCreateTestGTC(gtc_matrix_integer)
-glmCreateTestGTC(gtc_matrix_inverse)
-glmCreateTestGTC(gtc_matrix_transform)
-glmCreateTestGTC(gtc_noise)
-glmCreateTestGTC(gtc_packing)
-glmCreateTestGTC(gtc_quaternion)
-glmCreateTestGTC(gtc_random)
-glmCreateTestGTC(gtc_round)
-glmCreateTestGTC(gtc_reciprocal)
-glmCreateTestGTC(gtc_type_aligned)
-glmCreateTestGTC(gtc_type_precision)
-glmCreateTestGTC(gtc_type_ptr)
-glmCreateTestGTC(gtc_ulp)
-glmCreateTestGTC(gtc_vec1)
+version https://git-lfs.github.com/spec/v1
+oid sha256:00deba908589753433892b666f8d0d3fc0c46aa3d95e80c03cfb08cebaba354d
+size 643

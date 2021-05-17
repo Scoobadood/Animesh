@@ -1,11 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../bin/testGeom"
-  "../../../bin/testGeom.pdb"
-  "CMakeFiles/testGeom.dir/tests/TestGeom.cpp.o"
-  "CMakeFiles/testGeom.dir/tests/main.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/testGeom.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:6f2350831fc11674645abf79a478c118fa61544e35db287dbcce57caed428c8c
+size 327

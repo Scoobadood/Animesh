@@ -1,18 +1,3 @@
-#include <string>
-
-#ifdef __APPLE__
-#include "cl.hpp"
-#else /// your stuff for linux
-#include <CL/cl.hpp> // main OpenCL include file 
-#endif
-
-/*
- * Load an OpenCL kernel
- */
-std::string loadCode( const std::string& kernelPath );
-
-cl::Platform selectPlatform();
-
-cl::Device selectDevice(cl::Platform& platform);
-
-void buildProgram( cl::Program& program, const cl::Device& device );
+version https://git-lfs.github.com/spec/v1
+oid sha256:f400a06d33d32e6257dc6b3355d4028b56295a17aea2f2f9432109cfda141cc2
+size 382

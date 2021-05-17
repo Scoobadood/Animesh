@@ -1,11 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../bin/testPlanarNormals"
-  "../../../bin/testPlanarNormals.pdb"
-  "CMakeFiles/testPlanarNormals.dir/tests/TestPlanarNormals.cpp.o"
-  "CMakeFiles/testPlanarNormals.dir/tests/main.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/testPlanarNormals.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:e83e7964fced1ef837e05c2fdc47dc0b06b9d612c03b64dc9387426142609ebd
+size 381

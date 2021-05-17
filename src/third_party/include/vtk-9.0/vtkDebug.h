@@ -1,24 +1,3 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkDebug.h.in
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-#ifndef vtkDebug_h
-#define vtkDebug_h
-
-/* Debug leaks support.  */
-/* #undef VTK_DEBUG_LEAKS */
-
-/* Print warning on vtkArrayDispatch failure.  */
-/* #undef VTK_WARN_ON_DISPATCH_FAILURE */
-
-#endif
+version https://git-lfs.github.com/spec/v1
+oid sha256:a810b4e081c127ebcb5f88cfa1739ddea0f62b326385db461dae626f5ba65c5b
+size 779

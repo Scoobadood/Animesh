@@ -1,31 +1,3 @@
-//
-// Created by Dave Durbin on 19/5/20.
-//
-
-#ifndef ANIMESH_PIXELINFRAME_H
-#define ANIMESH_PIXELINFRAME_H
-
-#include <iostream>
-#include "Pixel.h"
-
-struct PixelInFrame {
-    PixelInFrame(unsigned int x, unsigned int y, unsigned int frame);
-    PixelInFrame(Pixel pixel, unsigned int frame);
-    bool operator<(const PixelInFrame &other) const;
-
-    Pixel pixel;
-    unsigned int frame;
-};
-
-inline bool operator==(const PixelInFrame &lhs, const PixelInFrame &rhs) {
-    return (lhs.pixel == rhs.pixel) && (lhs.frame == rhs.frame);
-}
-
-inline std::ostream &operator<<(std::ostream &os, const PixelInFrame &pif) {
-    using namespace std;
-    os << "{ f: " << pif.frame << " x: " << pif.pixel.x << " y: " << pif.pixel.y << " }";
-    return os;
-}
-
-
-#endif //ANIMESH_PIXELINFRAME_H
+version https://git-lfs.github.com/spec/v1
+oid sha256:1279d84cfd74d314a2e3dee4e58bd838d2ff1ba7e53ec5b53ff2a935a41d4576
+size 776

@@ -1,12 +1,3 @@
-#define GLM_FORCE_LEFT_HANDED
-
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-
-int main()
-{
-	int Error = 0;
-
-	return Error;
-}
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:f083820fdde230e3261eb666dc527bafec40bfa840f70ddcd9b132cadae5b41f
+size 126

@@ -1,2 +1,3 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc ../../../lib/libRoSy.a  CMakeFiles/RoSy.dir/src/RoSy.cpp.o
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib ../../../lib/libRoSy.a
+version https://git-lfs.github.com/spec/v1
+oid sha256:8cd931d36e2ed1dcba9015bc71b3bde91685a7c7d7173e9f23dfcb046aa0460a
+size 269

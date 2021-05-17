@@ -1,12 +1,3 @@
-# The set of languages for which implicit dependencies are needed:
-set(CMAKE_DEPENDS_LANGUAGES
-  )
-# The set of files for implicit dependencies of each language:
-
-# Targets to which this target links.
-set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/Users/dave/Animesh/cmake-build-debug/third_party/nanogui/CMakeFiles/nanogui.dir/DependInfo.cmake"
-  )
-
-# Fortran module output directory.
-set(CMAKE_Fortran_TARGET_MODULE_DIR "")
+version https://git-lfs.github.com/spec/v1
+oid sha256:988e1e211260613595e89da4d590ab5ddb925f9de03bda227234c84cbc5808e8
+size 418

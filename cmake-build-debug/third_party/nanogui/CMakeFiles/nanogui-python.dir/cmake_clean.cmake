@@ -1,9 +1,3 @@
-file(REMOVE_RECURSE
-  "python/nanogui.cpython-37m-darwin.so"
-  "python/nanogui.pdb"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang C CXX)
-  include(CMakeFiles/nanogui-python.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:a223f62c0ede9499609fee33919974fb6dbf887cdd72e55a67175974e7ff27b4
+size 249

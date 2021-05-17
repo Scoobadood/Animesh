@@ -1,22 +1,3 @@
-# The set of languages for which implicit dependencies are needed:
-set(CMAKE_DEPENDS_LANGUAGES
-  "CXX"
-  )
-# The set of files for implicit dependencies of each language:
-set(CMAKE_DEPENDS_CHECK_CXX
-  "/Users/dave/Animesh/src/libProperties/src/Properties.cpp" "/Users/dave/Animesh/cmake-build-debug/src/libProperties/CMakeFiles/Properties.dir/src/Properties.cpp.o"
-  )
-set(CMAKE_CXX_COMPILER_ID "AppleClang")
-
-# The include file search paths:
-set(CMAKE_CXX_TARGET_INCLUDE_PATH
-  "../src/libProperties/include"
-  "../src/libProperties/src"
-  )
-
-# Targets to which this target links.
-set(CMAKE_TARGET_LINKED_INFO_FILES
-  )
-
-# Fortran module output directory.
-set(CMAKE_Fortran_TARGET_MODULE_DIR "")
+version https://git-lfs.github.com/spec/v1
+oid sha256:16f90af435db7eee0879e2f83faef8693007943588c809e70764b733742920b6
+size 696

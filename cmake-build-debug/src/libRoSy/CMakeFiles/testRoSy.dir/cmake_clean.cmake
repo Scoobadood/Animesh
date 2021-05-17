@@ -1,14 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../bin/testRoSy"
-  "../../../bin/testRoSy.pdb"
-  "CMakeFiles/testRoSy.dir/tests/TestAngleBetweenVectors.cpp.o"
-  "CMakeFiles/testRoSy.dir/tests/TestMinimiseKL.cpp.o"
-  "CMakeFiles/testRoSy.dir/tests/TestRoSy.cpp.o"
-  "CMakeFiles/testRoSy.dir/tests/TestVectorRotation.cpp.o"
-  "CMakeFiles/testRoSy.dir/tests/main.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/testRoSy.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:eff2a430e90c562a5bcc985a95a47bf4c59bba4611e5c0e1e0c1b465ba6f5270
+size 505

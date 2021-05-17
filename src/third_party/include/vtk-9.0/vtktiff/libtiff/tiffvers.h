@@ -1,9 +1,3 @@
-#define TIFFLIB_VERSION_STR "LIBTIFF, Version 4.1.0\nCopyright (c) 1988-1996 Sam Leffler\nCopyright (c) 1991-1996 Silicon Graphics, Inc."
-/*
- * This define can be used in code that requires
- * compilation-related definitions specific to a
- * version or versions of the library.  Runtime
- * version checking should be done based on the
- * string returned by TIFFGetVersion.
- */
-#define TIFFLIB_VERSION 20191103
+version https://git-lfs.github.com/spec/v1
+oid sha256:5374cd8bc4fe1886a3cb3640f4c01deeba5f18d4bb78a34b3795de4ca566fdbe
+size 410

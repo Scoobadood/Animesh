@@ -1,6 +1,3 @@
-#version 330 core
-
-out vec4 FragColor;
-void main() {
-  FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:418d5f4e1c2ece46953c81441355ba92be02ac9153b19397dda2c863041e361b
+size 127

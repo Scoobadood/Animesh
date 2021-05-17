@@ -1,22 +1,3 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkChemistryConfigure.h.in
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-
-#ifndef vtkDomainsChemistryConfigure_h
-#define vtkDomainsChemistryConfigure_h
-
-/* Where the Blue Obelisk Data Repository element.xml file is found. */
-#define VTK_BODR_DATA_PATH_BUILD "/Users/dave/Animesh/dependencies/vtk/Domains/Chemistry"
-
-#endif
+version https://git-lfs.github.com/spec/v1
+oid sha256:21b3bdf6f3747e095d19302c7f06f68899fa9997e95de8ecbdb1c7ebd44a9f3d
+size 845

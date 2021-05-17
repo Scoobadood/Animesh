@@ -1,19 +1,3 @@
-/**
- * Loads PGM files
- */
-#pragma once
-
-#include <vector>
-#include <string>
-
-struct PgmData {
-	std::size_t 		width;
-	std::size_t 		height;
-	std::vector<int>	data;
-};
-
-/**
- * Read the provided file and return a PgmData object.
- * File should be a type P2 at this point.
- */
-PgmData read_pgm( const std::string& file_name );
+version https://git-lfs.github.com/spec/v1
+oid sha256:5ce743f5419bb7bb4724a1e1f41f23fe45f90984959f9cfea7ee7d9f261a13f3
+size 323

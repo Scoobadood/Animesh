@@ -1,16 +1,3 @@
-#include "posy_visualiser_window.h"
-
-#include <QApplication>
-#include <Properties/Properties.h>
-
-int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-
-    std::string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
-    Properties properties{property_file_name};
-
-    posy_visualiser_window w(properties);
-    w.show();
-    return a.exec();
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:dd7673079efedf1bdf2dfc87783194fc1e8be7880510fcbb20ca879e4fc03c68
+size 375

@@ -1,1 +1,3 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -g -O0 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/dmr.dir/dmr.cpp.o CMakeFiles/dmr.dir/glutils.cpp.o CMakeFiles/dmr.dir/mesh.cpp.o CMakeFiles/dmr.dir/model.cpp.o  -o ../../../bin/dmr  -Wl,-rpath,/Users/dave/Animesh/cmake-build-debug/src/mesher/ext/nanogui/ext_build/glfw/src -lglm ../mesher/ext/nanogui/ext_build/glfw/src/libglfw.dylib 
+version https://git-lfs.github.com/spec/v1
+oid sha256:f8a60bdb7f2dbed2884178e4b66ae0b44f6af83c15b660236b1f618c64a514b5
+size 565

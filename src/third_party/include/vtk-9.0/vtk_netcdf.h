@@ -1,27 +1,3 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtk_netcdf.h
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-#ifndef vtk_netcdf_h
-#define vtk_netcdf_h
-
-/* Use the netcdf library configured for VTK.  */
-#define VTK_MODULE_USE_EXTERNAL_vtknetcdf 0
-
-#if VTK_MODULE_USE_EXTERNAL_vtknetcdf
-# include <netcdf.h>
-#else
-# include <vtknetcdf/include/netcdf.h>
-#endif
-
-#endif
+version https://git-lfs.github.com/spec/v1
+oid sha256:4ffd5b5be139ec8cff946f10c6ea9357b97957af7a982dcc46725566b7d22a83
+size 838

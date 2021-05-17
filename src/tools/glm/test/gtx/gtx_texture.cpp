@@ -1,22 +1,3 @@
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/vec2.hpp>
-#include <glm/gtx/texture.hpp>
-
-int test_levels()
-{
-	int Error = 0;
-
-	int const Levels = glm::levels(glm::ivec2(3, 2));
-	Error += Levels == 2 ? 0 : 1;
-
-	return Error;
-}
-
-int main()
-{
-	int Error = 0;
-
-	Error += test_levels();
-
-	return Error;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:5c12c65de828fa0b47453f540746d56ca986f9f2628fe652b61f3eb7755e75d2
+size 299

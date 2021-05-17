@@ -1,17 +1,3 @@
-//
-// Created by Dave Durbin on 14/3/20.
-//
-
-#ifndef ANIMESH_TESTPLANARNORMALS_H
-#define ANIMESH_TESTPLANARNORMALS_H
-#pragma once
-
-#include "gtest/gtest.h"
-#include <DepthMap/DepthMap.h>
-
-class TestPlanarNormals : public ::testing::Test {
-public:
-    void SetUp( );
-    void TearDown();
-};
-#endif //ANIMESH_TESTPLANARNORMALS_H
+version https://git-lfs.github.com/spec/v1
+oid sha256:2b6f2e24633ebcad6705327173749b2566ebb169e8ecb4ea9c9408489440f81a
+size 327

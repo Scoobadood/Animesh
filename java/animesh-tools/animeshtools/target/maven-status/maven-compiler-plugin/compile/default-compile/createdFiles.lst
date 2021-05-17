@@ -1,25 +1,3 @@
-org/ddurbin/animesh/viewer/MatrixHelper.class
-org/ddurbin/animesh/viewer/ControlPanel$3.class
-org/ddurbin/common/Vector2f.class
-org/ddurbin/animesh/tools/State$Surfel.class
-org/ddurbin/common/Pair.class
-org/ddurbin/common/Vector3f.class
-org/ddurbin/common/Check$CheckException.class
-org/ddurbin/animesh/viewer/JoglMain$MyShaderProgram.class
-org/ddurbin/common/Camera.class
-org/ddurbin/animesh/tools/State$FrameData.class
-org/ddurbin/animesh/viewer/ControlPanel$2.class
-org/ddurbin/animesh/tools/State$PixelInFrame.class
-org/ddurbin/animesh/tools/MeasureError.class
-org/ddurbin/animesh/tools/State.class
-org/ddurbin/common/Camera$1.class
-org/ddurbin/common/Camera$CamCoordSystem.class
-org/ddurbin/animesh/tools/StateUtilities.class
-org/ddurbin/animesh/viewer/JoglMain.class
-org/ddurbin/animesh/viewer/StateToGlData.class
-org/ddurbin/animesh/viewer/ControlPanel.class
-org/ddurbin/common/Check.class
-org/ddurbin/common/Mapper.class
-org/ddurbin/animesh/viewer/ControlPanel$1.class
-org/ddurbin/common/Matrix3f.class
-org/ddurbin/animesh/tools/State$PointWithNormal.class
+version https://git-lfs.github.com/spec/v1
+oid sha256:13b45b2c7b98c03390af700afed742caba57af4260377b1d09e9639631ae7370
+size 1065

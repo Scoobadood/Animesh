@@ -1,10 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../lib/libArgs.a"
-  "../../../lib/libArgs.pdb"
-  "CMakeFiles/Args.dir/src/Args.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/Args.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:702447e481645d7baeec2c766755061bbd942ce096626ee6198323f2eac040c8
+size 268

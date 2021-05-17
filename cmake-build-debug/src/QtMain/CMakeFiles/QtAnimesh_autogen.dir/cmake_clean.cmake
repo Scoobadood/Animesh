@@ -1,9 +1,3 @@
-file(REMOVE_RECURSE
-  "CMakeFiles/QtAnimesh_autogen"
-  "QtAnimesh_autogen/mocs_compilation.cpp"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang )
-  include(CMakeFiles/QtAnimesh_autogen.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:50259205c35ed3c4647bb0565d30050cf311b58b52dccf4e7d550ee0674e6d0a
+size 259

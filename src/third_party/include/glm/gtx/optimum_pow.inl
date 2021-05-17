@@ -1,22 +1,3 @@
-/// @ref gtx_optimum_pow
-
-namespace glm
-{
-	template<typename genType>
-	GLM_FUNC_QUALIFIER genType pow2(genType const& x)
-	{
-		return x * x;
-	}
-
-	template<typename genType>
-	GLM_FUNC_QUALIFIER genType pow3(genType const& x)
-	{
-		return x * x * x;
-	}
-
-	template<typename genType>
-	GLM_FUNC_QUALIFIER genType pow4(genType const& x)
-	{
-		return (x * x) * (x * x);
-	}
-}//namespace glm
+version https://git-lfs.github.com/spec/v1
+oid sha256:9884fd95daf2985a30a0ba8bc6962ddaad0715cb0aaa9b68fd9b06d70179a385
+size 380

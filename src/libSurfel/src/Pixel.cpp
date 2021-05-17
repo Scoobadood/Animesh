@@ -1,15 +1,3 @@
-//
-// Created by Dave Durbin on 19/5/20.
-//
-
-#include "Pixel.h"
-
-Pixel::Pixel(unsigned int x, unsigned int y) : x{x}, y{y} {}
-
-bool Pixel::operator<(const Pixel &other) const {
-    if (y != other.y)
-        return y < other.y;
-
-    return x < other.x;
-}
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:b9b9f12fa279b4546475b1020c0df230ddc4134461f48cdf085be90e34fc62e3
+size 255

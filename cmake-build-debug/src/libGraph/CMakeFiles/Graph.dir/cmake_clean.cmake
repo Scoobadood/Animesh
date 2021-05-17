@@ -1,10 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../lib/libGraph.a"
-  "../../../lib/libGraph.pdb"
-  "CMakeFiles/Graph.dir/src/Path.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/Graph.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:66c53f1e99edf4b9fba459ef48874d8edc89a5a79b516967b5b39b531ed732e6
+size 272

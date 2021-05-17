@@ -1,16 +1,3 @@
-# Customization Points
-
-The custom directory is an injection point for custom user configurations.
-
-## Header `gmock-port.h`
-
-The following macros can be defined:
-
-### Flag related macros:
-
-*   `GMOCK_DECLARE_bool_(name)`
-*   `GMOCK_DECLARE_int32_(name)`
-*   `GMOCK_DECLARE_string_(name)`
-*   `GMOCK_DEFINE_bool_(name, default_val, doc)`
-*   `GMOCK_DEFINE_int32_(name, default_val, doc)`
-*   `GMOCK_DEFINE_string_(name, default_val, doc)`
+version https://git-lfs.github.com/spec/v1
+oid sha256:b056988a7596308a813d6c11f1168c46eb484492742bb650e1efc542f395453c
+size 439

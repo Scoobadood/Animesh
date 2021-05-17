@@ -1,10 +1,3 @@
-file(REMOVE_RECURSE
-  "CMakeFiles/example_icons.dir/src/example_icons.cpp.o"
-  "example_icons"
-  "example_icons.pdb"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/example_icons.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:19b4960be33c4034c79d3bd09453c7c7c016b385910cff66a0e28e3984f96df5
+size 279

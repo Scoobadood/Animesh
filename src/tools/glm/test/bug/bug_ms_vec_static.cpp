@@ -1,31 +1,3 @@
-#include <glm/glm.hpp>
-
-#if GLM_CONFIG_ANONYMOUS_STRUCT == GLM_ENABLE
-struct vec2;
-
-struct _swizzle
-{
-	char _buffer[1];
-};
-
-struct vec2
-{
-	GLM_CONSTEXPR vec2() :
-		x(0), y(0)
-	{}
-
-	union
-	{
-		struct { float x, y; };
-		struct { _swizzle xx; };
-	};
-};
-#endif
-
-// Visual C++ has a bug generating the error: fatal error C1001: An internal error has occurred in the compiler.
-// vec2 Bar;
-
-int main()
-{
-	return 0;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:256c1f54c9e53f8c5e0df1bb928326f319320e0e74e40af932af7de078a3e3b8
+size 411

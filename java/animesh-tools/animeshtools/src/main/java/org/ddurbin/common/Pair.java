@@ -1,11 +1,3 @@
-package org.ddurbin.common;
-
-public class Pair<T1, T2> {
-    public final T1 first;
-    public final T2 second;
-
-    public Pair(T1 first, T2 second) {
-        this.first = first;
-        this.second = second;
-    }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:90c16e05b1edca62cdcff7cc68ca670a909a0612cffa70d5b4c3be72bb33b9af
+size 218

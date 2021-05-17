@@ -1,5 +1,3 @@
-var searchData=
-[
-  ['exponential_20functions',['Exponential functions',['../a00242.html',1,'']]],
-  ['experimental_20extensions',['Experimental extensions',['../a00287.html',1,'']]]
-];
+version https://git-lfs.github.com/spec/v1
+oid sha256:debb89d32707d3d13b2b10693fda2e31fb941c66edf25eca1cb58bf904d0217e
+size 186

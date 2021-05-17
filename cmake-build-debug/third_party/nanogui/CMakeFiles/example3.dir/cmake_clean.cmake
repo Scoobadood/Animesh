@@ -1,10 +1,3 @@
-file(REMOVE_RECURSE
-  "CMakeFiles/example3.dir/src/example3.cpp.o"
-  "example3"
-  "example3.pdb"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/example3.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:e81a7f24349bd2e15a688fd3ab07782f5c914b009619ff0bdc53e67efc669bbd
+size 254

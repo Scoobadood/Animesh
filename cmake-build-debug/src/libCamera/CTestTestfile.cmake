@@ -1,8 +1,3 @@
-# CMake generated Testfile for 
-# Source directory: /Users/dave/Animesh/src/libCamera
-# Build directory: /Users/dave/Animesh/cmake-build-debug/src/libCamera
-# 
-# This file includes the relevant testing commands required for 
-# testing this directory and lists subdirectories to be tested as well.
-add_test(FileMissingFocalLengthShouldThrow "/Users/dave/Animesh/bin/testCamera" "--gtest_filter=FileMissingFocalLengthShouldThrow")
-set_tests_properties(FileMissingFocalLengthShouldThrow PROPERTIES  _BACKTRACE_TRIPLES "/Users/dave/Animesh/src/libCamera/CMakeLists.txt;58;add_test;/Users/dave/Animesh/src/libCamera/CMakeLists.txt;0;")
+version https://git-lfs.github.com/spec/v1
+oid sha256:887e782ab6de1d92ce854e054cd57bc838de9e0cb5c39a56b41d68521f04948a
+size 631

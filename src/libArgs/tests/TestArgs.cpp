@@ -1,25 +1,3 @@
-#include "gtest/gtest.h"
-#include <Args/Args.h>
-
-namespace {
-    /* **********************************************************************
-     * *                                                                    *
-     * * Args Parser Constructor tests                                      *
-     * *                                                                    *
-     * **********************************************************************/
-	TEST(TestArgs, Constructor) { 
-        int argc = 0;
-        char * argv[]{ const_cast<char*>("-f"), const_cast<char*>("-i 20")};
-
-    	try {
-        	Args args( argc, argv );
-        	FAIL() << "Expected std::invalid_argument";
-    	}
-	    catch ( std::invalid_argument const & err ){
-	        EXPECT_EQ( err.what(), std::string( "Normal vector must be unit") );
-	    }
-	    catch( ... ) {
-	        FAIL( ) <<"Expected std::invalid_argument";
-	    }
-    }
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:40c7695a05d6f8ffa48e2621eb2fd63cfe4611e94cf73f0c8fcd37217506595d
+size 911

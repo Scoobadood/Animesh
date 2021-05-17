@@ -1,16 +1,3 @@
-AC_INIT([Google C++ Mocking and Testing Frameworks],
-        [1.8.0],
-        [googlemock@googlegroups.com],
-        [googletest])
-
-# Provide various options to initialize the Autoconf and configure processes.
-AC_PREREQ([2.59])
-AC_CONFIG_SRCDIR([./README.md])
-AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_FILES([Makefile])
-AC_CONFIG_SUBDIRS([googletest googlemock])
-
-AM_INIT_AUTOMAKE
-
-# Output the generated files. No further autoconf macros may be used.
-AC_OUTPUT
+version https://git-lfs.github.com/spec/v1
+oid sha256:53c9d1263fe8467a2289156dadcc49c80d5897e49ef18f218074bad78c81e441
+size 461

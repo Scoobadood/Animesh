@@ -1,14 +1,3 @@
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/tools/StateUtilities.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Pair.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Camera.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Matrix3f.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/viewer/StateToGlData.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/tools/MeasureError.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Mapper.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Vector2f.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Vector3f.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/viewer/ControlPanel.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/tools/State.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/viewer/MatrixHelper.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/common/Check.java
-/Users/dave/Animesh/java/animesh-tools/animeshtools/src/main/java/org/ddurbin/animesh/viewer/JoglMain.java
+version https://git-lfs.github.com/spec/v1
+oid sha256:9964450ff8a12f9754ee4924c0c4075dcf2acc7b864b98a17b950e751d99c4b6
+size 1448

@@ -1,15 +1,3 @@
-/// @ref gtx_normal
-
-namespace glm
-{
-	template<typename T, qualifier Q>
-	GLM_FUNC_QUALIFIER vec<3, T, Q> triangleNormal
-	(
-		vec<3, T, Q> const& p1,
-		vec<3, T, Q> const& p2,
-		vec<3, T, Q> const& p3
-	)
-	{
-		return normalize(cross(p1 - p2, p1 - p3));
-	}
-}//namespace glm
+version https://git-lfs.github.com/spec/v1
+oid sha256:36160ffe00cf19d8dfa877c29815a3c00ec9ac6c9fbffcb8088bc9f758690dc6
+size 271

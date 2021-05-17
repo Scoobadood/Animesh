@@ -1,14 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="VcsDirectoryMappings">
-    <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cmake-build-debug/googletest-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ext/nanogui" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ext/nanogui/ext/eigen" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ext/nanogui/ext/glfw" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ext/nanogui/ext/nanovg" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ext/nanogui/ext/pybind11" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/ext/nanogui/ext/pybind11/tools/clang" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/tools/glm" vcs="Git" />
-  </component>
-</project>
+version https://git-lfs.github.com/spec/v1
+oid sha256:0bf2cf375abf451f6d75f2e8dffaf97d25daba475865cc0dba490ff8fa7fbd80
+size 782

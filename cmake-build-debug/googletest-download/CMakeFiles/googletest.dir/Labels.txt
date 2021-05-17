@@ -1,14 +1,3 @@
-# Target labels
- googletest
-# Source files and their labels
-/Users/dave/Animesh/cmake-build-debug/googletest-download/CMakeFiles/googletest
-/Users/dave/Animesh/cmake-build-debug/googletest-download/CMakeFiles/googletest.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/CMakeFiles/googletest-complete.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-install.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-mkdir.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-download.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-update.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-patch.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-configure.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-build.rule
-/Users/dave/Animesh/cmake-build-debug/googletest-download/googletest-prefix/src/googletest-stamp/googletest-test.rule
+version https://git-lfs.github.com/spec/v1
+oid sha256:7a4965243d89b553296aec1e27a6653b32b1b3027d4d131389bbb1e6502ec9ee
+size 1280

@@ -1,12 +1,3 @@
-#version 330
-
-uniform mat4    uniform_Projection;// Incoming data used by
-in vec3  attribute_Position;// the vertex shader
-in vec4  attribute_Color;// uniform and attributes
-
-out vec4    varying_Color;// Outgoing varying data
-void main(void)
-{
-    varying_Color = attribute_Color;
-    gl_Position = uniform_Projection * vec4(attribute_Position, 1.0);
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:ebfc09fb67c6702b87c9e12492874b77d4d261db7a5ade96f637b301071018df
+size 352

@@ -1,21 +1,3 @@
-/*=========================================================================
-
-  Program:   Visualization Toolkit
-  Module:    vtkBuild.h.in
-
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
-
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
-
-=========================================================================*/
-#ifndef vtkBuild_h
-#define vtkBuild_h
-
-/* Whether we are building shared libraries.  */
-#define VTK_BUILD_SHARED_LIBS
-
-#endif
+version https://git-lfs.github.com/spec/v1
+oid sha256:f73deb60dcb4a4e80c14e535835b72705682c61b93bbc9df68c785a0e102d766
+size 708

@@ -1,10 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../lib/libProperties.a"
-  "../../../lib/libProperties.pdb"
-  "CMakeFiles/Properties.dir/src/Properties.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/Properties.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:52dd8f660e46ddf76129ad81ec28632c33f55541a0fa877e40f87ea629b1626f
+size 298

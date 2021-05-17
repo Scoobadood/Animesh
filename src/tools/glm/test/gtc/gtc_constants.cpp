@@ -1,30 +1,3 @@
-#include <glm/gtc/constants.hpp>
-
-int test_epsilon()
-{
-	int Error = 0;
-
-	{
-		float Test = glm::epsilon<float>();
-		Error += Test > 0.0f ? 0 : 1;
-	}
-
-	{
-		double Test = glm::epsilon<double>();
-		Error += Test > 0.0 ? 0 : 1;
-	}
-
-	return Error;
-}
-
-int main()
-{
-	int Error(0);
-
-	//float MinHalf = 0.0f;
-	//while (glm::half(MinHalf) == glm::half(0.0f))
-	//	MinHalf += std::numeric_limits<float>::epsilon();
-	Error += test_epsilon();
-	
-	return Error;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:c3b4f592e98db0f9bf02cb9f8ccc5a80000ef61f5086cb9ceed1ad82838ed326
+size 447

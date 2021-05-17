@@ -1,6 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="1">
-    <includedir>
-        <dir name="../glm"/>
-    </includedir>
-</project>
+version https://git-lfs.github.com/spec/v1
+oid sha256:60b08a62e759c5f201edcf6bae563c487b24dc2ae75bf35107723bca16f52637
+size 136

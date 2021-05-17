@@ -1,24 +1,3 @@
-#!/usr/bin/env sh
-# Travis's build and test script
-
-set -ex
-
-mkdir build
-cd build
-cmake .. \
-    -DBUILD_SHARED_LIBS=ON \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=$HOME/local \
-    -DWITH_DOCS=OFF \
-    -DWITH_FGT=$CPD_WITH_FGT \
-    -DWITH_JSONCPP=ON \
-    -DWITH_STRICT_WARNINGS=ON \
-    -DWITH_TESTS=ON
-make
-CTEST_OUTPUT_ON_FAIULRE=1 make test
-make install
-cd ../examples
-mkdir build
-cd build
-cmake .. -DCMAKE_PREFIX_PATH=$HOME/local
-make
+version https://git-lfs.github.com/spec/v1
+oid sha256:62e09b075c4ad4d4ed2f99b0a7343ae31ec6b39bb06e572405f23dd4712958e5
+size 461

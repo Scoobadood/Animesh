@@ -1,15 +1,3 @@
-function [P1, Pt1, PX, L, sigma2, st]=cpd_Pfast(X,T,sigma2, outliers, sigma2_init, fgt)
-
-switch fgt,
-    case 1
-        if sigma2<0.05, sigma2=0.05; end;
-        [P1, Pt1, PX, L]=cpd_P_FGT(X, T, sigma2, outliers, sigma2_init); st='(FGT)';
-
-    case 2
-        if (sigma2 > 0.015*sigma2_init) % FGT sqrt(2/(N+M)
-            [P1, Pt1, PX, L]=cpd_P_FGT(X, T, sigma2, outliers, sigma2_init); st='(FGT)';
-        else
-            % quite FGT, switch to the truncated kernel approximation
-            [P1,Pt1, PX, L]=cpd_Pappmex(X,T, sigma2 ,outliers,1e-3);  st='(Truncated)';
-        end
-end
+version https://git-lfs.github.com/spec/v1
+oid sha256:e09f90b4f86f4f3bd6bc8bac8b63b6d3423510c9ee9752479b16ddebe1b6d4f5
+size 585

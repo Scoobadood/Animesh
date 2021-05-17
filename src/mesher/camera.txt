@@ -1,6 +1,3 @@
-position=0.0,8.0,10.0
-view=0.0,0.0,0.0
-up=0.0,1.0,0.0
-resolution=160,120
-fov=35.0,35.0
-f=5.0
+version https://git-lfs.github.com/spec/v1
+oid sha256:833275e95b28db76e7c4890767f4b833e17588403d3ad882f69d3e634f7806ea
+size 92

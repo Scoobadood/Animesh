@@ -1,21 +1,3 @@
-//
-// Created by Dave Durbin on 19/5/20.
-//
-
-#ifndef ANIMESH_PIXEL_H
-#define ANIMESH_PIXEL_H
-
-struct Pixel {
-    Pixel(unsigned int x, unsigned int y);
-    bool operator<(const Pixel &other) const;
-
-    unsigned int x;
-    unsigned int y;
-};
-
-inline bool operator==(const Pixel &lhs, const Pixel &rhs) {
-    return (lhs.x == rhs.x) && (lhs.y == rhs.y);
-}
-
-
-#endif //ANIMESH_PIXEL_H
+version https://git-lfs.github.com/spec/v1
+oid sha256:53dff7c8adddfa6894de5207625933bc221b56c6f293ba8975373367ccd04e8a
+size 382

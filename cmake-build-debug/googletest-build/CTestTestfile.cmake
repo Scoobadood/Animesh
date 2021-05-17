@@ -1,7 +1,3 @@
-# CMake generated Testfile for 
-# Source directory: /Users/dave/Animesh/cmake-build-debug/googletest-src
-# Build directory: /Users/dave/Animesh/cmake-build-debug/googletest-build
-# 
-# This file includes the relevant testing commands required for 
-# testing this directory and lists subdirectories to be tested as well.
-subdirs("googlemock")
+version https://git-lfs.github.com/spec/v1
+oid sha256:dd9f7d35f56bdc804a10f5ed94c2d7c4e0bbda11f705c586d6c69e42622f73f4
+size 341

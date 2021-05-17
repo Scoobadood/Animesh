@@ -1,22 +1,3 @@
-#pragma once
-
-#include "Surfel.h"
-#include "SurfelGraph.h"
-#include <Graph/Graph.h>
-#include <vector>
-#include <string>
-#include <memory>
-
-/**
- * Save surfel data as binary file to disk
- */
-void
-save_surfel_graph_to_file(const std::string& file_name,
-                          const SurfelGraphPtr& surfel_graph);
-
-/**
- * Load surfel data from binary file
- */
-SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name);
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:fd06d7d41bd6c76e78e2169c3dc08911ef98cdb1ff8d8671320a58815b71684c
+size 464

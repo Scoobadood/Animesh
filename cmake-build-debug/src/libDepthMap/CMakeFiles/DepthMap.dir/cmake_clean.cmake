@@ -1,14 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../lib/libDepthMap.a"
-  "../../../lib/libDepthMap.pdb"
-  "CMakeFiles/DepthMap.dir/src/CrossProductNormals.cpp.o"
-  "CMakeFiles/DepthMap.dir/src/DepthMap.cpp.o"
-  "CMakeFiles/DepthMap.dir/src/Normals.cpp.o"
-  "CMakeFiles/DepthMap.dir/src/PclNormals.cpp.o"
-  "CMakeFiles/DepthMap.dir/src/PlaneFittingNormals.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/DepthMap.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:7ffa45a2458266785617700c58d9f299543e37eb564cf347718677caeda4da93
+size 499

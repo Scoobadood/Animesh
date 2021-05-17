@@ -1,12 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../lib/libFileUtils.a"
-  "../../../lib/libFileUtils.pdb"
-  "CMakeFiles/FileUtils.dir/src/FileUtils.cpp.o"
-  "CMakeFiles/FileUtils.dir/src/ObjFileParser.cpp.o"
-  "CMakeFiles/FileUtils.dir/src/PgmFileParser.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/FileUtils.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:0cc7a5c29edb77f9c87c01633553300bdf2ac16cb3b0d1d0a1e0e0b34e10db8b
+size 399

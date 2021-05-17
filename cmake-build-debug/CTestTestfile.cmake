@@ -1,9 +1,3 @@
-# CMake generated Testfile for 
-# Source directory: /Users/dave/Animesh
-# Build directory: /Users/dave/Animesh/cmake-build-debug
-# 
-# This file includes the relevant testing commands required for 
-# testing this directory and lists subdirectories to be tested as well.
-subdirs("third_party/nanogui")
-subdirs("googletest-build")
-subdirs("src")
+version https://git-lfs.github.com/spec/v1
+oid sha256:f6bfe55cc2c7fe3c4ed8a0b461c103189106ffffb06ba21a3feefbf966184df2
+size 343

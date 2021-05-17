@@ -1,27 +1,3 @@
-#include <functional>
-#include <algorithm> // for std::min/max
-
-namespace diy
-{
-namespace mpi
-{
-  //! \addtogroup MPI
-  //!@{
-  template<class U>
-  struct maximum { const U& operator()(const U& x, const U& y) const { return std::max(x,y); } };
-  template<class U>
-  struct minimum { const U& operator()(const U& x, const U& y) const { return std::min(x,y); } };
-  //!@}
-
-namespace detail
-{
-  template<class T> struct mpi_op                           { static MPI_Op  get(); };
-  template<class U> struct mpi_op< maximum<U> >             { static MPI_Op  get() { return MPI_MAX; }  };
-  template<class U> struct mpi_op< minimum<U> >             { static MPI_Op  get() { return MPI_MIN; }  };
-  template<class U> struct mpi_op< std::plus<U> >           { static MPI_Op  get() { return MPI_SUM; }  };
-  template<class U> struct mpi_op< std::multiplies<U> >     { static MPI_Op  get() { return MPI_PROD; }  };
-  template<class U> struct mpi_op< std::logical_and<U> >    { static MPI_Op  get() { return MPI_LAND; }  };
-  template<class U> struct mpi_op< std::logical_or<U> >     { static MPI_Op  get() { return MPI_LOR; }  };
-}
-}
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:a1cdf31102df54ffb7ab2174d6555ef70976fd894c1e669acfd8a262baec6b67
+size 1127

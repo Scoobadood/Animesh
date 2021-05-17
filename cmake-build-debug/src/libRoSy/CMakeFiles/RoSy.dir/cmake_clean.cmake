@@ -1,10 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../lib/libRoSy.a"
-  "../../../lib/libRoSy.pdb"
-  "CMakeFiles/RoSy.dir/src/RoSy.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/RoSy.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:03df01f94ab22dd6353112834002d5db62c18f6fb250013dbd1ad498253d073e
+size 268

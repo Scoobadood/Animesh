@@ -1,13 +1,3 @@
-file(REMOVE_RECURSE
-  "../../../bin/testGraph"
-  "../../../bin/testGraph.pdb"
-  "CMakeFiles/testGraph.dir/tests/TestGraph.cpp.o"
-  "CMakeFiles/testGraph.dir/tests/TestGraphCycles.cpp.o"
-  "CMakeFiles/testGraph.dir/tests/TestGraphSimplifier.cpp.o"
-  "CMakeFiles/testGraph.dir/tests/main.cpp.o"
-)
-
-# Per-language clean rules from dependency scanning.
-foreach(lang CXX)
-  include(CMakeFiles/testGraph.dir/cmake_clean_${lang}.cmake OPTIONAL)
-endforeach()
+version https://git-lfs.github.com/spec/v1
+oid sha256:3b1c8c61268f37236c29c8ae648c446d62aba01dd4f4ac51e5ccabcce5a9f31a
+size 451

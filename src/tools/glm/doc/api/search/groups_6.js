@@ -1,6 +1,3 @@
-var searchData=
-[
-  ['matrix_20functions',['Matrix functions',['../a00371.html',1,'']]],
-  ['matrix_20types',['Matrix types',['../a00283.html',1,'']]],
-  ['matrix_20types_20with_20precision_20qualifiers',['Matrix types with precision qualifiers',['../a00284.html',1,'']]]
-];
+version https://git-lfs.github.com/spec/v1
+oid sha256:622467033e876f92260103734c6b6c0857ade15becb4c14c2fc97859f9eb9a78
+size 275

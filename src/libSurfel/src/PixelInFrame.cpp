@@ -1,17 +1,3 @@
-//
-// Created by Dave Durbin on 19/5/20.
-//
-
-#include "PixelInFrame.h"
-#include "Pixel.h"
-
-PixelInFrame::PixelInFrame(unsigned int x, unsigned int y, unsigned int frame) : pixel{x, y}, frame{frame} {};
-
-PixelInFrame::PixelInFrame(Pixel pixel, unsigned int frame) : pixel{pixel}, frame{frame} {};
-
-bool PixelInFrame::operator<(const PixelInFrame &other) const {
-    if (frame != other.frame)
-        return frame < other.frame;
-
-    return pixel < other.pixel;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:c9314000958d347fef61d7bcb3b2fd7c1585c959873939f82b2e67390588bd67
+size 462

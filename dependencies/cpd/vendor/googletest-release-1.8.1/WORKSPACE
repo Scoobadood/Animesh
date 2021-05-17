@@ -1,8 +1,3 @@
-workspace(name = "com_google_googletest")
-
-# Abseil
-http_archive(
-     name = "com_google_absl",
-     urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
-     strip_prefix = "abseil-cpp-master",
-)
+version https://git-lfs.github.com/spec/v1
+oid sha256:4a440e562fa3b1c7446a87c658d1e34d28dbfb703708afd42eb1cd9ea5a88170
+size 213

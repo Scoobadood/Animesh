@@ -1,9 +1,3 @@
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/optimum_pow.hpp>
-
-int main()
-{
-	int Error(0);
-
-	return Error;
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:6bb59a1ebecdc64b46beca45a5b6a77d5e71485e0ae3d5c869d942500657b3e0
+size 114

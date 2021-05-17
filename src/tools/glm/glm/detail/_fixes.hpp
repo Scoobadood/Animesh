@@ -1,27 +1,3 @@
-#include <cmath>
-
-//! Workaround for compatibility with other libraries
-#ifdef max
-#undef max
-#endif
-
-//! Workaround for compatibility with other libraries
-#ifdef min
-#undef min
-#endif
-
-//! Workaround for Android
-#ifdef isnan
-#undef isnan
-#endif
-
-//! Workaround for Android
-#ifdef isinf
-#undef isinf
-#endif
-
-//! Workaround for Chrone Native Client
-#ifdef log2
-#undef log2
-#endif
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:fa972e30228133d4a67cbdb1a05f0edfb32de4149c95c253650cf1ff1cf35ad1
+size 380

@@ -1,12 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
-  <component name="CidrRootsConfiguration">
-    <sourceRoots>
-      <file path="$PROJECT_DIR$" />
-    </sourceRoots>
-  </component>
-  <component name="JavaScriptSettings">
-    <option name="languageLevel" value="ES6" />
-  </component>
-</project>
+version https://git-lfs.github.com/spec/v1
+oid sha256:ac877d54289fa13cb4a263ea74f85c837c72e4ed14ab2f1b6b2aadf5041ec4b6
+size 372

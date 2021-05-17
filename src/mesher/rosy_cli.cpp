@@ -37,6 +37,8 @@ int main(int argc, char *argv[]) {
 
     RoSyOptimiser roSyOptimiser{properties};
     auto surfel_graph = load_surfel_graph_from_file(input_file_name);
+    info("Loaded from {}", input_file_name);
+
     roSyOptimiser.set_data(surfel_graph);
 
     auto start_time = std::chrono::system_clock::now();
@@ -50,7 +52,7 @@ int main(int argc, char *argv[]) {
 
     auto mins = (int) elapsed_time / 60;
     auto secs = elapsed_time - (mins * 60);
-    info("Total time {}s ({02d}:{02d})", elapsed_time, mins, secs);
+    info("Total time {}s ({:02d}:{:02d})", elapsed_time, mins, secs);
     info("Total iterations : {}", last_level_iterations);
 
     save_surfel_graph_to_file(output_file_name, surfel_graph);

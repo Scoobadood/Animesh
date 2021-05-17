@@ -14,6 +14,7 @@ public:
                           std::vector<float> &positions,
                           std::vector<float> &quads,
                           std::vector<float> &triangle_fans,
+                          std::vector<float> &triangle_uvs,
                           std::vector<unsigned int> &fan_sizes,
                           std::vector<float> &normals,
                           std::vector<float> &splat_sizes,

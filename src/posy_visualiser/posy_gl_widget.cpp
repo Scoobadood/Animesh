@@ -15,8 +15,8 @@ posy_gl_widget::posy_gl_widget(
         , m_zFar{50.0f} //
         , m_aspectRatio{1.0f} //
         , m_projectionMatrixIsDirty{true} //
-        , m_renderSplats{true} //
-        , m_renderQuads{true} //
+        , m_render_quads{true} //
+        , m_render_textures{false} //
         , m_render_triangle_fans{false} //
         , m_rho{1.0f} //
 {
@@ -38,27 +38,57 @@ posy_gl_widget::posy_gl_widget(
                     -0.4f, 0.0f, -0.4f,
                     0.4f, 0.0f, -0.4f,
             },
+            std::vector<float>{
+                    0.5f, 0.5f,
+                    1.0f, 0.0f,
+                    1.0f, 1.0f,
+                    0.0f, 1.0f,
+                    0.0f, 0.0f,
+                    1.0f, 0.0f
+            },
             std::vector<unsigned int>{6},
             std::vector<float>{0.0f, 1.0f, 0.0f},
             std::vector<float>{1.0f},
             std::vector<float>{0.0f, 0.0f}
     );
 }
+void
+posy_gl_widget::preRender(float & oldLineWidth) const {
+    if( m_render_textures) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_TEXTURE_2D);
+        m_texture->bind();
+        checkGLError("bind texture");
+    } else {
+        glGetFloatv(GL_LINE_WIDTH, &oldLineWidth);
+        glPolygonMode(GL_FRONT, GL_LINE);
+        glLineWidth(3.0f);
+    }
+}
 
 void
-posy_gl_widget::maybeDrawSplats() const {
-    if (!m_renderSplats) {
+posy_gl_widget::postRender(float oldLineWidth) const {
+    if( m_render_textures) {
+        m_texture->release();
+        glDisable(GL_TEXTURE_2D);
+        checkGLError("unbind texture");
+    } else {
+        glLineWidth(oldLineWidth);
+    }
+}
+
+void
+posy_gl_widget::maybeDrawQuads() const {
+    if (!m_render_quads) {
         return;
     }
-    glPolygonMode(GL_FRONT, GL_POLYGON);
 
-    glEnable(GL_TEXTURE_2D);
-    checkGLError("Enable tex 2D");
-
-    glBindTexture(GL_TEXTURE_2D, splatTexture->textureId());
-    checkGLError("bound texture");
+    float oldLineWidth;
+    preRender(oldLineWidth);
 
     const auto numPositions = m_positions.size() / 3;
+
+    // All vertices are white
     glColor4d(1.0, 1.0, 1.0, 1.0);
 
     for (int i = 0; i < numPositions; ++i) {
@@ -97,42 +127,7 @@ posy_gl_widget::maybeDrawSplats() const {
         glEnd();
     }
     glFlush();
-    glDisable(GL_TEXTURE_2D);
-    checkGLError("maybeDrawSplats");
-}
-
-void
-posy_gl_widget::maybeDrawQuads() const {
-    if (!m_renderQuads) {
-        return;
-    }
-    const auto numPositions = m_positions.size() / 3;
-    glColor4d(1.0, 1.0, 1.0, 1.0);
-
-    for (int i = 0; i < numPositions; ++i) {
-        glBegin(GL_LINE_LOOP);
-        glNormal3d(m_normals.at(i * 3 + 0),
-                   m_normals.at(i * 3 + 1),
-                   m_normals.at(i * 3 + 2));
-
-        glVertex3f(m_quads.at(i * 12 + 0),
-                   m_quads.at(i * 12 + 1),
-                   m_quads.at(i * 12 + 2));
-
-        glVertex3f(m_quads.at(i * 12 + 3),
-                   m_quads.at(i * 12 + 4),
-                   m_quads.at(i * 12 + 5));
-
-        glVertex3f(m_quads.at(i * 12 + 6),
-                   m_quads.at(i * 12 + 7),
-                   m_quads.at(i * 12 + 8));
-
-        glVertex3f(m_quads.at(i * 12 + 9),
-                   m_quads.at(i * 12 + 10),
-                   m_quads.at(i * 12 + 11));
-        glEnd();
-    }
-    glFlush();
+    postRender(oldLineWidth);
     checkGLError("maybeDrawQuads");
 }
 
@@ -151,29 +146,26 @@ posy_gl_widget::maybeDrawTriangleFans() const {
     if (!m_render_triangle_fans) {
         return;
     }
-    glLineWidth(3.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    float oldLineWidth;
+    preRender(oldLineWidth);
     unsigned int fan_index = 0;
-    int c = 0;
-    for (int i=0; i<m_fan_sizes.size(); ++i) {
-        auto fan_size = m_fan_sizes[i];
+    for (int fan_size : m_fan_sizes) {
         glBegin(GL_TRIANGLE_FAN);
 
-        glColor3ub(cols[c * 3 + 0],
-                  cols[c * 3 + 1],
-                  cols[c * 3 + 2]);
         // Hub vertex then (fan_size+1) additional vertices
+        glColor4ub(255,255,255,255);
         for (auto j = 0; j < fan_size; ++j) {
+            glTexCoord2d(m_triangle_uvs.at((fan_index / 3) * 2 + 0),
+                         m_triangle_uvs.at((fan_index / 3) * 2 + 1));
             glVertex3f(m_triangle_fans.at(fan_index + 0),
                        m_triangle_fans.at(fan_index + 1),
                        m_triangle_fans.at(fan_index + 2));
             fan_index += 3;
-            // TODO: Compute or extract UV coordinates too.
         }
         glEnd();
-        c = (c + 1) % 8;
     }
     glFlush();
+    postRender(oldLineWidth);
     checkGLError("maybeDrawTriangleFans");
 }
 
@@ -255,8 +247,6 @@ posy_gl_widget::paintGL() {
 
     drawPositions();
 
-    maybeDrawSplats();
-
     maybeDrawQuads();
 
     maybeDrawTriangleFans();
@@ -266,6 +256,7 @@ void
 posy_gl_widget::setPoSyData(const std::vector<float> &positions,
                             const std::vector<float> &quads,
                             const std::vector<float> &triangle_fans,
+                            const std::vector<float> &triangle_uvs,
                             const std::vector<unsigned int> &fan_sizes,
                             const std::vector<float> &normals,
                             const std::vector<float> &splat_sizes,
@@ -274,6 +265,7 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
     m_positions.clear();
     m_quads.clear();
     m_triangle_fans.clear();
+    m_triangle_uvs.clear();
     m_fan_sizes.clear();
     m_normals.clear();
     m_splat_sizes.clear();
@@ -282,6 +274,7 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
     m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
     m_quads.insert(m_quads.begin(), quads.begin(), quads.end());
     m_triangle_fans.insert(m_triangle_fans.begin(), triangle_fans.begin(), triangle_fans.end());
+    m_triangle_uvs.insert(m_triangle_uvs.begin(), triangle_uvs.begin(), triangle_uvs.end());
     m_fan_sizes.insert(m_fan_sizes.begin(), fan_sizes.begin(), fan_sizes.end());
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
     m_splat_sizes.insert(m_splat_sizes.begin(), splat_sizes.begin(), splat_sizes.end());
@@ -298,7 +291,7 @@ posy_gl_widget::checkGLError(const std::string &context) {
 }
 
 QImage
-posy_gl_widget::makeSplatImage() {
+posy_gl_widget::generateTexture() {
     QImage img(500, 500, QImage::Format_ARGB32);
     unsigned int colour;
     for (int x = 0; x < 500; ++x) {
@@ -319,18 +312,18 @@ posy_gl_widget::makeSplatImage() {
 
 void
 posy_gl_widget::initializeGL() {
-    glEnable(GL_BLEND);
-    glEnable(GL_DEPTH);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CW);
+    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    auto img = makeSplatImage();
-    splatTexture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-    splatTexture->setData(img, QOpenGLTexture::GenerateMipMaps);
-    splatTexture->setMinMagFilters(QOpenGLTexture::LinearMipMapLinear, QOpenGLTexture::Nearest);
-    splatTexture->setWrapMode(QOpenGLTexture::Repeat);
+    auto img = generateTexture();
+    m_texture = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    m_texture->setData(img, QOpenGLTexture::GenerateMipMaps);
+    m_texture->setMinMagFilters(QOpenGLTexture::LinearMipMapLinear, QOpenGLTexture::Nearest);
+    m_texture->setWrapMode(QOpenGLTexture::Repeat);
     checkGLError("Generating texture");
 }
 

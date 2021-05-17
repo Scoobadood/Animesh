@@ -2,10 +2,10 @@
 // Created by Dave Durbin (Old) on 2/4/21.
 //
 
-#include "surfel_graph_geometry_extractor.h"
+#include "rosy_surfel_graph_geometry_extractor.h"
 #include <Geom/Geom.h>
 
-posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor() {
+rosy_surfel_graph_geometry_extractor::rosy_surfel_graph_geometry_extractor() {
     m_frame = 0;
 }
 
@@ -90,7 +90,7 @@ float compute_normal_scale(
  * @param normals A Vector of XYZ coordinates for the unit normal.
  * @param scaleFactor A proposed scaling for the normals and tangents.
  */
-void posy_surfel_graph_geometry_extractor::extract_geometry(
+void rosy_surfel_graph_geometry_extractor::extract_geometry(
         const SurfelGraphPtr& graphPtr,
         std::vector<float> &positions,
         std::vector<float> &tangents,
@@ -103,9 +103,9 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
     normals.clear();
 
     extract_quads_for_frame(graphPtr, m_frame, positions, tangents, normals);
-    centre_at_origin(positions);
+//    centre_at_origin(positions);
 //    const auto model_scale = scale_to_region(positions);
     const auto model_scale = 1.0f;
     normal_scale = compute_normal_scale(graphPtr, model_scale);
-    normal_scale = 0.1f;
+    normal_scale = 0.4f;
 }

@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <random>
 #include <Eigen/Core>
 #include "FrameData.h"
 #include <memory>
@@ -17,6 +18,11 @@ public:
            const std::vector<FrameData> &frames,
            Eigen::Vector3f tangent = {1, 0, 0},
            Eigen::Vector2f reference_lattice_offset = {0, 0}
+    );
+
+    Surfel(std::string id,
+           const std::vector<FrameData> &frames,
+           std::default_random_engine& random_engine
     );
 
     inline const Eigen::Vector3f &tangent() const { return m_tangent; }

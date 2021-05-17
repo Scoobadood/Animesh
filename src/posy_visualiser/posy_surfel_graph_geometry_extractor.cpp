@@ -141,6 +141,11 @@ find_fan_start(
            : (tentative_start_index + 1) % ordered_indices.size();
 }
 
+void
+rlo_to_uv(const Eigen::Vector2f& rlo, float& u, float& v) {
+    u = (rlo[0] <= 0.0f ? 0.0f : 1.0f) - rlo[0];
+    v = (rlo[1] <= 0.0f ? 0.0f : 1.0f) - rlo[1];
+}
 /**
  * For each vertex in the frame, extract a triangle fan that connects it to its
  * neighbours. Avoid triangles that are malformed.
@@ -153,6 +158,7 @@ find_fan_start(
 void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
                                  unsigned int frame,
                                  std::vector<float> &triangle_fans,
+                                 std::vector<float> &triangle_uvs,
                                  std::vector<unsigned int> &fan_sizes) {
     using namespace std;
 
@@ -200,7 +206,14 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
         triangle_fans.emplace_back(vertex[0]);
         triangle_fans.emplace_back(vertex[1]);
         triangle_fans.emplace_back(vertex[2]);
-        spdlog::info("hub: {}", node->data()->id());
+
+        // rlo is [-0.5, 0.5)
+        auto rlo = node->data()->reference_lattice_offset();
+        // Intersection is at (0,0) in texture coords
+        float u,v;
+        rlo_to_uv(rlo, u, v);
+        triangle_uvs.push_back(u);
+        triangle_uvs.push_back(v);
 
         auto idx_index = start_index;
         unsigned int fan_size = 1;
@@ -210,12 +223,14 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
             triangle_fans.emplace_back(v1[0]);
             triangle_fans.emplace_back(v1[1]);
             triangle_fans.emplace_back(v1[2]);
-            spdlog::info("  {} ({:1f},{:1f},{:1f})",
-                         neighbours_in_frame.at(v1_index)->data()->id(),
-                         neighbour_coords.at(v1_index).x(),
-                         neighbour_coords.at(v1_index).y(),
-                         neighbour_coords.at(v1_index).z()
-            );
+
+            // Compute u and v components of (v1-vertex)
+            const auto r = v1 - vertex;
+            const auto uv1 = r.dot(tangent);
+            const auto uv2 = r.dot(t2);
+            triangle_uvs.push_back(u + uv1);
+            triangle_uvs.push_back(v + uv2);
+
             fan_size++;
 
             idx_index = (idx_index + 1) % ordered_indices.size();
@@ -311,6 +326,7 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
         std::vector<float> &positions,
         std::vector<float> &quads,
         std::vector<float> &triangle_fans,
+        std::vector<float> &triangle_uvs,
         std::vector<unsigned int> &fan_sizes,
         std::vector<float> &normals,
         std::vector<float> &splat_sizes,
@@ -321,11 +337,12 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
     normals.clear();
     quads.clear();
     triangle_fans.clear();
+    triangle_uvs.clear();
     fan_sizes.clear();
     splat_sizes.clear();
     uvs.clear();
 
     extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, splat_sizes, uvs, m_rho,
                             m_splat_scale_factor);
-    extract_triangles_for_frame(graphPtr, m_frame, triangle_fans, fan_sizes);
+    extract_triangles_for_frame(graphPtr, m_frame, triangle_fans, triangle_uvs, fan_sizes);
 }

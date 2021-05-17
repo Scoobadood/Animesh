@@ -130,7 +130,7 @@ Optimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult 
     }
 
     latest_smoothness = compute_mean_smoothness();
-    spdlog::info("Total smoothness: {}", latest_smoothness);
+    spdlog::info("Mean smoothness per node: {}", latest_smoothness);
     // If it's 0 then we converged, regardless of whether we're checking for absolute smoothness or not.
     if (std::abs(latest_smoothness) < 1e-9) {
         result = CONVERGED;

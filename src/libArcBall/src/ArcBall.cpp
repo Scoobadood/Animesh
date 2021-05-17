@@ -84,7 +84,7 @@ ArcBall::mouseMoveEvent(QMouseEvent *e) {
             pan((float) delta.x() * PAN_FACTOR, (float) delta.y() * PAN_FACTOR);
         } else {
             const auto delta = (m_lastPixelPosition - e->pos());
-            rotate(-(float) delta.x() / ROTATE_FACTOR, (float) delta.y() / ROTATE_FACTOR);
+            rotate((float) delta.x() / ROTATE_FACTOR, (float) delta.y() / ROTATE_FACTOR);
         }
     }
     m_lastPixelPosition = e->pos();

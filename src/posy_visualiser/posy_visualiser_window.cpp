@@ -27,8 +27,8 @@ posy_visualiser_window::posy_visualiser_window(Properties properties, QWidget *p
                 m_geometryExtractor->set_splat_scale_factor(0.5f + mapped_value);
                 extract_geometry();
             });
-    connect(ui->cbShowQuads, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::renderQuads);
-    connect(ui->cbShowTextures, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::renderSplats);
+    connect(ui->cbShowQuads, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_quads);
+    connect(ui->cbShowTextures, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_textures);
     connect(ui->cbShowTriangleFans, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_triangle_fans);
 }
 
@@ -43,6 +43,7 @@ posy_visualiser_window::extract_geometry() {
     std::vector<float> positions;
     std::vector<float> quads;
     std::vector<float> triangle_fans;
+    std::vector<float> triangle_uvs;
     std::vector<unsigned int> fan_sizes;
     std::vector<float> normals;
     std::vector<float> splat_sizes;
@@ -52,12 +53,14 @@ posy_visualiser_window::extract_geometry() {
             positions,
             quads,
             triangle_fans,
+            triangle_uvs,
             fan_sizes,
             normals,
             splat_sizes,
             uvs);
     ui->posyGLWidget->setPoSyData(positions, quads,
                                   triangle_fans,
+                                  triangle_uvs,
                                   fan_sizes,
                                   normals, splat_sizes, uvs);
 }

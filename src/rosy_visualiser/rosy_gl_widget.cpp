@@ -230,6 +230,7 @@ rosy_gl_widget::checkGLError(const std::string &context) {
 void
 rosy_gl_widget::initializeGL() {
     glEnable(GL_DEPTH);
+    glLineWidth(3.0f);
 }
 
 void

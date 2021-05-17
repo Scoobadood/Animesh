@@ -2,7 +2,7 @@
 
 #include <QMainWindow>
 #include <Surfel/SurfelGraph.h>
-#include "surfel_graph_geometry_extractor.h"
+#include "rosy_surfel_graph_geometry_extractor.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class rosy_visualiser_window; }
@@ -25,7 +25,7 @@ private slots:
 private:
     Ui::rosy_visualiser_window *ui;
     SurfelGraphPtr m_graph_ptr;
-    posy_surfel_graph_geometry_extractor * m_geometryExtractor;
+    rosy_surfel_graph_geometry_extractor * m_geometryExtractor;
     void extract_geometry();
 
 };

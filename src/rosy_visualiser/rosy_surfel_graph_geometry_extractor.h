@@ -6,9 +6,9 @@
 
 #include <Surfel/SurfelGraph.h>
 
-class posy_surfel_graph_geometry_extractor {
+class rosy_surfel_graph_geometry_extractor {
 public:
-    posy_surfel_graph_geometry_extractor( );
+    rosy_surfel_graph_geometry_extractor( );
     void extract_geometry(const SurfelGraphPtr& graphPtr,
                           std::vector<float>& positions,
                           std::vector<float>& tangents,

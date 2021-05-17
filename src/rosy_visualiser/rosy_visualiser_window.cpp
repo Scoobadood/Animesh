@@ -4,13 +4,13 @@
 #include <Surfel/Surfel_IO.h>
 #include <QFileDialog>
 #include <utility>
-#include "surfel_graph_geometry_extractor.h"
+#include "rosy_surfel_graph_geometry_extractor.h"
 
 rosy_visualiser_window::rosy_visualiser_window(QWidget *parent)
         : QMainWindow(parent), ui(new Ui::rosy_visualiser_window) {
     ui->setupUi(this);
     ui->statusbar->addPermanentWidget(ui->rosyStatusBar);
-    m_geometryExtractor = new posy_surfel_graph_geometry_extractor();
+    m_geometryExtractor = new rosy_surfel_graph_geometry_extractor();
 
     connect(ui->cbNormals, &QCheckBox::toggled,
             ui->rosyGLWidget, &rosy_gl_widget::renderNormals);

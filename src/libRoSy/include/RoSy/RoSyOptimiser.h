@@ -23,7 +23,14 @@ private:
         return SSA_PROPERTY_NAME;
     }
 
+    const std::string &get_ssa_percentage_property_name() const override {
+        static const std::string SSA_PERCENTAGE_PROPERTY_NAME = "rosy-ssa-percentage";
+        return SSA_PERCENTAGE_PROPERTY_NAME;
+    }
+
     void optimise_node(const SurfelGraphNodePtr &node) override;
 
     float m_damping_factor;
+    bool m_weight_for_error;
+    int m_weight_for_error_steps;
 };

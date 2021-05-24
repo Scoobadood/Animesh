@@ -3,9 +3,14 @@
 #include <Surfel/SurfelGraph.h>
 #include <gmock/gmock.h>
 
-void TestPoSy::SetUp() {}
+void TestPoSy::SetUp() {
+    std::default_random_engine re{123};
+    m_surfel_builder = new SurfelBuilder(re);
+}
 
-void TestPoSy::TearDown() {}
+void TestPoSy::TearDown() {
+    delete m_surfel_builder;
+}
 
 void expect_vector_equality(const Eigen::Vector3f &v1, const Eigen::Vector3f &v2) {
     EXPECT_FLOAT_EQ(v1.x(), v2.x());
@@ -16,32 +21,20 @@ void expect_vector_equality(const Eigen::Vector3f &v1, const Eigen::Vector3f &v2
 SurfelGraphPtr
 TestPoSy::makeTestGraph() {
     SurfelGraphPtr sg = std::make_shared<SurfelGraph>();
-    auto s1 = std::make_shared<Surfel>(Surfel("s1",
-                                              {
-                                                      {
-                                                              {0, 0, 0},
-                                                              10.0f,
-                                                              Eigen::Matrix3f::Identity(),
-                                                              {0.0f, 1.0f, 0.0f},
-                                                              {0.0f, 0.0f, 0.0f}
-                                                      }
-                                              },
-                                              {1.0f, 0.0f, 0.0f},
-                                              {0.0f, 0.0f}));
 
-    auto s2 = std::make_shared<Surfel>(Surfel("s2",
-                                              {
-                                                      {
-                                                              {1, 1, 0},
-                                                              10.0f,
-                                                              Eigen::Matrix3f::Identity(),
-                                                              {0.0f, 1.0f, 0.0f},
-                                                              {0.5f, 0.5f, 0.0f}
-                                                      }
-                                              },
-                                              {1.0f, 0.0f, 0.0f},
-                                              {0.0f, 0.0f}
-    ));
+    m_surfel_builder
+            ->reset()
+            ->with_id("s1")
+            ->with_tangent(1, 0, 0)
+            ->with_reference_lattice_offset(0, 0);
+    auto s1 = std::make_shared<Surfel>(m_surfel_builder->build());
+
+    m_surfel_builder
+            ->reset()
+            ->with_id("s2")
+            ->with_tangent(1, 0, 0)
+            ->with_reference_lattice_offset(0, 0);
+    auto s2 = std::make_shared<Surfel>(m_surfel_builder->build());
     const auto n1 = sg->add_node(s1);
     const auto n2 = sg->add_node(s2);
     sg->add_edge(n1, n2, SurfelGraphEdge{1.0f});

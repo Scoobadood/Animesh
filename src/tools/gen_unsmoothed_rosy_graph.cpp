@@ -5,6 +5,7 @@
 #include <Eigen/Geometry>
 #include <Geom/Geom.h>
 #include <tclap/CmdLine.h>
+#include <Surfel/SurfelBuilder.h>
 
 std::default_random_engine defaultRandomEngine{123};
 
@@ -68,26 +69,26 @@ void connectNodes(SurfelGraphPtr &graph,
             auto nodeIndex = z * width + x;
             const auto &from_node = nodes[nodeIndex];
 
-            if( double_neighbours) {
+            if (double_neighbours) {
                 if (z > 0) {
-                    if( x > 1) {
+                    if (x > 1) {
                         // (x-2,y-1)
                         const auto &to_node = nodes[nodeIndex - width - 2];
                         connect(graph, from_node, to_node);
                     }
-                    if( x < width-2) {
+                    if (x < width - 2) {
                         // (x+2,y-1)
                         const auto &to_node = nodes[nodeIndex - width + 2];
                         connect(graph, from_node, to_node);
                     }
                 }
                 if (z > 1) {
-                    if( x > 1) {
+                    if (x > 1) {
                         // (x-2,y-2)
                         const auto &to_node = nodes[nodeIndex - width - width - 2];
                         connect(graph, from_node, to_node);
                     }
-                    if( x > 0) {
+                    if (x > 0) {
                         // (x-1,y-2)
                         const auto &to_node = nodes[nodeIndex - width - width - 1];
                         connect(graph, from_node, to_node);
@@ -96,18 +97,18 @@ void connectNodes(SurfelGraphPtr &graph,
                     const auto &to_node = nodes[nodeIndex - width - width];
                     connect(graph, from_node, to_node);
 
-                    if( x < width-1) {
+                    if (x < width - 1) {
                         // (x+1,y-2)
                         const auto &to_node = nodes[nodeIndex - width - width + 1];
                         connect(graph, from_node, to_node);
                     }
-                    if( x < width-2) {
+                    if (x < width - 2) {
                         // (x+2,y-2)
                         const auto &to_node = nodes[nodeIndex - width - width + 2];
                         connect(graph, from_node, to_node);
                     }
                 }
-                if( x > 1) {
+                if (x > 1) {
                     // (x-2,y)
                     const auto &to_node = nodes[nodeIndex - 2];
                     connect(graph, from_node, to_node);
@@ -146,88 +147,87 @@ SurfelGraphPtr generate_plane(const Args &args) {
     SurfelGraphPtr graph = std::make_shared<SurfelGraph>();
     SurfelGraphNodePtr nodes[width * height];
 
-    std::uniform_real_distribution<> p_dis(-0.4f, 0.4f);
-    std::uniform_real_distribution<> r_dis(-M_PI_4, M_PI_4);
+
+    std::uniform_real_distribution<float> p_dis{-0.4, 0.4};
 
     for (unsigned int x = 0; x < width; x++) {
         for (unsigned int z = 0; z < height; z++) {
-
+            auto *sb = new SurfelBuilder(defaultRandomEngine);
+            sb = sb->with_id("s_" + std::to_string(x) + "_" + std::to_string(z));
 
             Eigen::Vector3f norm{0, 1, 0};
-
             Eigen::Vector3f pos{
                     (float) (x - ((width - 1) / 2.0) + (args.m_perturb_position ? p_dis(defaultRandomEngine) : 0.0)),
                     0.0f,
                     (float) (z - ((height - 1) / 2.0) + (args.m_perturb_position ? p_dis(defaultRandomEngine) : 0.0))
             };
-            auto surfel = std::make_shared<Surfel>(
-                    Surfel("s_" + std::to_string(x) + "_" + std::to_string(z),
-                           {
-                                   {
-                                           {x, z, 0},
-                                           10.0f,
-                                           Eigen::Matrix3f::Identity(),
-                                           norm,
-                                           pos
-                                   }
-                           },
-                           defaultRandomEngine));
+            sb->with_frame({x, z, 0},
+                           10.0f,
+                           Eigen::Matrix3f::Identity(),
+                           norm,
+                           pos
+            );
+            if (!args.m_perturb_orientation) {
+                sb->with_tangent({1.0, 0.0, 0.0});
+            }
+
+            auto surfel = std::make_shared<Surfel>(sb->build());
             auto node = graph->add_node(surfel);
             nodes[z * width + x] = node;
+            delete sb;
         }
     }
     connectNodes(graph, nodes, width, height);
     return graph;
 }
 
-
 void addSurfel(const std::string &name,
                const Eigen::Vector3f &pos,
                const Eigen::Vector3f &norm,
-               const Eigen::Matrix3f &transform,
                SurfelGraphPtr &graph,
                SurfelGraphNodePtr *nodes,
                unsigned int index
 ) {
+    auto surfel_builder = new SurfelBuilder(defaultRandomEngine);
     auto surfel = std::make_shared<Surfel>(
-            Surfel(name,
-                   {
-                           {
-                                   {0, 0, 0},
-                                   0.0f,
-                                   transform,
-                                   norm,
-                                   pos,
-                           }
-                   },
-                   defaultRandomEngine));
+            surfel_builder
+                    ->with_id(name)
+                    ->with_frame(
+                            {0, 0, 0},
+                            0.0f,
+                            norm,
+                            pos
+                    )
+                    ->build());
     auto node = graph->add_node(surfel);
     nodes[index] = node;
+    delete surfel_builder;
 }
 
 void addSurfel(const std::string &name,
                const Eigen::Vector3f &pos,
                const Eigen::Vector3f &norm,
+               const Eigen::Vector3f &tan,
                SurfelGraphPtr &graph,
                SurfelGraphNodePtr *nodes,
                unsigned int index
 ) {
-    // Transform Y axis into normal
-    auto c = Eigen::Vector3f{0, 1, 0}.dot(norm);
-    Eigen::Matrix3f transform;
-    if (c == 1) {
-        transform = Eigen::Matrix3f::Identity();
-    } else if (c == -1) {
-        transform << 1, 0, 0, 0, -1, 0, 0, 0, 1;
-    } else {
-        auto v = Eigen::Vector3f{0, 1, 0}.cross(norm);
-        auto s = v.norm();
-        auto skew = skew_symmetrix_matrix_for(v);
-        transform = Eigen::Matrix3f::Identity() + skew + ((skew * skew) * ((1.0 - c) / (s * s)));
-    }
-    addSurfel(name, pos, norm, transform, graph, nodes, index);
+    auto surfel_builder = new SurfelBuilder(defaultRandomEngine);
+    auto surfel = std::make_shared<Surfel>(
+            surfel_builder
+                    ->with_id(name)
+                    ->with_tangent(tan)
+                    ->with_frame(
+                            {0, 0, 0},
+                            0.0f,
+                            norm,
+                            pos
+                    )
+                    ->build());
+    auto node = graph->add_node(surfel);
+    nodes[index] = node;
+    delete surfel_builder;
 }
-
 
 /*
 *
@@ -282,9 +282,6 @@ SurfelGraphPtr generate_sphere(const Args &args) {
             node_index++;
         }
     }
-    auto psi = args.m_perturb_orientation
-               ? (float) r_dis(defaultRandomEngine)
-               : 0.0f;
     addSurfel("s_top", {0, 0, radius}, {0, 0, 1},
               graph,
               nodes, node_index);
@@ -450,7 +447,6 @@ generate_cylinder(const Args &args) {
     const auto rings = args.m_rings;
     const auto radius = args.m_radius;
 
-    const auto perturb_orientation = args.m_perturb_orientation;
     const auto perturb_position = args.m_perturb_position;
 
     spdlog::info("Generating cylinder. Rings: {}, segments {}, radius: {} ", rings, segments, radius);
@@ -468,11 +464,11 @@ generate_cylinder(const Args &args) {
             const auto theta = dTheta * (float) s;
 
             const auto positional_perturbation_xy = (perturb_position)
-                    ? xy_dis(defaultRandomEngine)
-                    : 0.0f;
-            const auto positional_perturbation_z = (perturb_position)
-                                                    ? z_dis(defaultRandomEngine)
+                                                    ? xy_dis(defaultRandomEngine)
                                                     : 0.0f;
+            const auto positional_perturbation_z = (perturb_position)
+                                                   ? z_dis(defaultRandomEngine)
+                                                   : 0.0f;
 
             Eigen::Vector3f pos{
                     (float) radius * std::cosf(theta + positional_perturbation_xy),  //
@@ -480,14 +476,21 @@ generate_cylinder(const Args &args) {
                     (float) r - (rings / 2.0f) + positional_perturbation_z
             };
             Eigen::Vector3f norm = Eigen::Vector3f{pos[0], pos[1], 0}.normalized();
-            addSurfel("s_" + std::to_string(r) + "_" + std::to_string(s),
-                      pos, norm, graph, nodes, node_index);
+            // If we have orientation perturbation, allow surfels to generate their own tans
+            if( args.m_perturb_orientation) {
+                addSurfel("s_" + std::to_string(r) + "_" + std::to_string(s),
+                          pos, norm, graph, nodes, node_index);
+            } else {
+                Eigen::Vector3f tan{0, 0, 1};
+                addSurfel("s_" + std::to_string(r) + "_" + std::to_string(s),
+                          pos, norm, tan, graph, nodes, node_index);
+            }
             node_index++;
         }
     }
     connectNodes(graph, nodes, segments, rings + 1, args.m_double_neighbours);
     // Also connect the right hand edge to the left
-    if( !args.m_open_cylinder) {
+    if (!args.m_open_cylinder) {
         for (int r = 0; r <= rings; ++r) {
             unsigned int nodeIndex = ((r + 1) * segments) - 1;
             const auto &from_node = nodes[nodeIndex];

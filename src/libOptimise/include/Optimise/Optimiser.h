@@ -30,6 +30,7 @@ protected:
     virtual void trace_smoothing(const SurfelGraphPtr &graph) const {};
 
     virtual const std::string &get_ssa_property_name() const = 0;
+    virtual const std::string &get_ssa_percentage_property_name() const = 0;
 
     Properties m_properties;
 
@@ -56,7 +57,11 @@ private:
 
     std::vector<SurfelGraphNodePtr> ssa_select_worst_100() const;
 
+    std::vector<SurfelGraphNodePtr> ssa_select_worst_percentage() const;
+
     std::vector<SurfelGraphNodePtr> select_nodes_to_optimise();
+
+    unsigned int m_ssa_percentage;
 
     void setup_ssa();
 

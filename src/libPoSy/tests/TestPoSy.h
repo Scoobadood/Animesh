@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <vector>
 #include <Surfel/SurfelGraph.h>
+#include <Surfel/SurfelBuilder.h>
 #include "gtest/gtest.h"
 
 class TestPoSy : public ::testing::Test {
@@ -19,5 +20,6 @@ public:
 	void SetUp( ) override;
 	void TearDown() override;
     SurfelGraphPtr makeTestGraph();
+    SurfelBuilder * m_surfel_builder;
 };
 

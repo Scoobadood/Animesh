@@ -27,6 +27,11 @@ private:
         return SSA_PROPERTY_NAME;
     }
 
+    const std::string &get_ssa_percentage_property_name() const override {
+        static const std::string SSA_PERCENTAGE_PROPERTY_NAME = "posy-ssa_percentage";
+        return SSA_PERCENTAGE_PROPERTY_NAME;
+    }
+
     void optimise_node(const SurfelGraphNodePtr &node) override;
     void trace_smoothing(const SurfelGraphPtr &surfel_graph) const override;
 

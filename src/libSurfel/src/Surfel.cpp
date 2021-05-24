@@ -43,30 +43,6 @@ Surfel::Surfel(std::string id,
     }
 }
 
-// Initialise a surfel with a random tangent and positional offset using the random engine provided
-Surfel::Surfel(std::string id,
-               const std::vector<FrameData> &frames,
-               std::default_random_engine& random_engine
-)
-        :
-        m_id{std::move(id)},
-        m_rosy_smoothness{45.f * 45.f},
-        m_last_rosy_correction{0.0f},
-        m_posy_smoothness{0.0f} {
-
-    std::uniform_real_distribution<float> two_pi(-M_PI, M_PI);
-    std::uniform_real_distribution<float> unit(-0.5f, 0.5f);
-
-    auto theta = two_pi(random_engine);
-    m_tangent = {std::cosf(theta), 0, std::sinf(theta)};
-    m_reference_lattice_offset = {unit(random_engine), unit(random_engine)};
-
-    for (auto &fd : frames) {
-        m_frame_data.push_back(fd);
-        this->m_frames.push_back(fd.pixel_in_frame.frame);
-    }
-}
-
 
 // TODO: Consider early return is frame < fd.pif.frame when framedata is sorted
 // TODO: Consider constructing vector<int> and using binary_search

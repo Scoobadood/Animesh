@@ -7,6 +7,7 @@
 #include <random>
 #include <cstdlib>
 #include <Eigen/Geometry>
+#include <Surfel/SurfelBuilder.h>
 
 const int DEFAULT_WIDTH = 2;
 const int DEFAULT_HEIGHT = 2;
@@ -33,11 +34,14 @@ void connectNodes(SurfelGraphPtr &graph, SurfelGraphNodePtr *nodes, int width, i
 }
 
 SurfelGraphPtr generate_cylinder(int height, int numSteps, float radius, float percentage) {
-    percentage = std::fminf( 1.0f, std::fmaxf(0.1f, percentage));
-    std::cout << "Generating cylinder " << numSteps << " x " << height << ", radius " << radius << " percent:" << percentage << std::endl;
+
+    percentage = std::fminf(1.0f, std::fmaxf(0.1f, percentage));
+    std::cout << "Generating cylinder " << numSteps << " x " << height << ", radius " << radius << " percent:"
+              << percentage << std::endl;
 
     // Perturbation for vertices.
     static std::default_random_engine e(123);
+    auto surfel_builder = new SurfelBuilder(e);
     static std::uniform_real_distribution<> dis(-0.15f, 0.15f);
 
     auto sg = std::make_shared<SurfelGraph>();
@@ -61,33 +65,34 @@ SurfelGraphPtr generate_cylinder(int height, int numSteps, float radius, float p
                     norm[0], norm[1], 0,
                     -norm[1], norm[0], 0;
             auto surfel = std::make_shared<Surfel>(
-                    Surfel("s_" + std::to_string(step) + "_" + std::to_string(z),
-                           {
-                                   {
-                                           {step, z, 0},
-                                           10.0f,
-                                           tran,
-                                           norm,
-                                           {sx, sy, sz},
-                                   }
-                           },
-                           {0.0f, 0.0f, 1.0f},
-                           {0, 0}));
+                    surfel_builder
+                            ->reset()
+                            ->with_id("s_" + std::to_string(step) + "_" + std::to_string(z))
+                            ->with_frame({step, z, 0},
+                                         10.0f,
+                                         norm,
+                                         {sx, sy, sz})
+                            ->with_tangent(0.0f, 0.0f, 1.0f)
+                            ->with_reference_lattice_offset(0, 0)
+                            ->build());
             auto node = sg->add_node(surfel);
             nodes[z * numSteps + step] = node;
         }
     }
 
+    delete surfel_builder;
+
     connectNodes(sg, nodes, numSteps, height);
     return sg;
 }
 
-SurfelGraphPtr generate_plane(int width, int height ) {
+SurfelGraphPtr generate_plane(int width, int height) {
     std::cout << "Generating plane " << width << " x " << height << "." << std::endl;
     SurfelGraphPtr graph = std::make_shared<SurfelGraph>();
     SurfelGraphNodePtr nodes[width * height];
 
     static std::default_random_engine e(123);
+    auto surfel_builder = new SurfelBuilder(e);
     static std::uniform_real_distribution<> dis(-0.4f, 0.4f);
 
     for (unsigned int x = 0; x < width; x++) {
@@ -98,18 +103,17 @@ SurfelGraphPtr generate_plane(int width, int height ) {
             auto sz = z - (height / 2.0f) + dis(e);
             Eigen::Vector3f norm{0, 1, 0};
 
-            auto surfel = std::make_shared<Surfel>(Surfel("s_" + std::to_string(x) + "_" + std::to_string(z),
-                                                          {
-                                                                  {
-                                                                          {x, z, 0},
-                                                                          10.0f,
-                                                                          Eigen::Matrix3f::Identity(),
-                                                                          norm,
-                                                                          {sx, sy, sz},
-                                                                  }
-                                                          },
-                                                          {1.0f, 0.0f, 0.0f},
-                                                          {0, 0}));
+            auto surfel = std::make_shared<Surfel>(
+                    surfel_builder
+                            ->reset()
+                            ->with_id("s_" + std::to_string(x) + "_" + std::to_string(z))
+                            ->with_frame({x, z, 0},
+                                         10.0f,
+                                         norm,
+                                         {sx, sy, sz})
+                            ->with_tangent(1.0f, 0.0f, 0.0f)
+                            ->with_reference_lattice_offset(0, 0)
+                            ->build());
             auto node = graph->add_node(surfel);
             nodes[z * width + x] = node;
         }

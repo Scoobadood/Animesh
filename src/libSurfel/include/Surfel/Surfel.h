@@ -14,17 +14,6 @@
 
 class Surfel {
 public:
-    Surfel(std::string id,
-           const std::vector<FrameData> &frames,
-           Eigen::Vector3f tangent = {1, 0, 0},
-           Eigen::Vector2f reference_lattice_offset = {0, 0}
-    );
-
-    Surfel(std::string id,
-           const std::vector<FrameData> &frames,
-           std::default_random_engine& random_engine
-    );
-
     inline const Eigen::Vector3f &tangent() const { return m_tangent; }
 
     inline void setTangent(const Eigen::Vector3f &tangent) { m_tangent = tangent; }
@@ -100,4 +89,12 @@ public:
     Eigen::Vector2f m_last_posy_correction;
 
     const FrameData &frame_data_for_frame(unsigned int frame) const;
+
+    // Use SurfelBuilder instances to construct this.
+    Surfel(std::string id,
+           const std::vector<FrameData> &frames,
+           Eigen::Vector3f tangent = {1, 0, 0},
+           Eigen::Vector2f reference_lattice_offset = {0, 0}
+    );
+    friend class SurfelBuilder;
 };

@@ -9,7 +9,7 @@
  * Construct one with the given properties.
  * @param properties
  */
-RoSyOptimiser::RoSyOptimiser(const Properties& properties)
+RoSyOptimiser::RoSyOptimiser(const Properties &properties)
         : Optimiser(properties) //
 {
     setup_termination_criteria(
@@ -19,6 +19,8 @@ RoSyOptimiser::RoSyOptimiser(const Properties& properties)
             "rosy-term-crit-max-iterations");
 
     m_damping_factor = m_properties.getFloatProperty("rosy-damping-factor");
+    m_weight_for_error = m_properties.getBooleanProperty("rosy-weight-for-error");
+    m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
 }
 
 /**
@@ -63,10 +65,11 @@ void
 RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
     using namespace Eigen;
 
+    static unsigned int iterations = 0;
+
     const auto &this_surfel_ptr = node->data();
     const auto &old_tangent = this_surfel_ptr->tangent();
     Vector3f new_tangent{old_tangent};
-    float weight = 0;
 
     // For each frame that this surfel appears in.
     for (const auto frame_index : this_surfel_ptr->frames()) {
@@ -85,7 +88,21 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         for (const auto &neighbour_node : neighbours_in_frame) {
             const auto &that_surfel_ptr = neighbour_node->data();
             auto edge = m_surfel_graph->edge(node, neighbour_node);
-            const auto w_ij = 1.0f;
+
+            float w_ij = 1.0f;
+            float w_ji = 1.0f;
+            if( m_weight_for_error) {
+                const auto total_smoothness = this_surfel_ptr->rosy_smoothness() + that_surfel_ptr->rosy_smoothness();
+                if (total_smoothness != 0) {
+                    float delta =
+                            (this_surfel_ptr->rosy_smoothness() - that_surfel_ptr->rosy_smoothness()) / (float)total_smoothness;
+                    // If delta > 0 we want to weight ij less than ji
+                    delta *= (iterations / m_weight_for_error_steps);
+                    delta = std::fminf(0.9f, std::fmaxf(-0.9f, delta));
+                    w_ij -= delta;
+                    w_ji += delta;
+                }
+            }
 
             Vector3f neighbour_tan_in_surfel_space, neighbour_norm_in_surfel_space;
             this_surfel_ptr->transform_surfel_via_frame(that_surfel_ptr, frame_index,
@@ -97,14 +114,12 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             new_tangent = average_rosy_vectors(
                     new_tangent,
                     Vector3f::UnitY(),
-                    weight,
+                    w_ij,
                     neighbour_tan_in_surfel_space,
                     neighbour_norm_in_surfel_space,
-                    w_ij,
+                    w_ji,
                     target_k,
                     source_k);
-
-            weight += w_ij;
 
             // Store ks
             edge->set_k_ij(frame_index, target_k);
@@ -112,7 +127,11 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         }
     }
 
-    if( m_damping_factor > 0 ) {
+    if( m_weight_for_error) {
+        ++iterations;
+    }
+
+    if (m_damping_factor > 0) {
         new_tangent = (m_damping_factor * old_tangent) + ((1.0f - m_damping_factor) * new_tangent);
         new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY(), true);
     }

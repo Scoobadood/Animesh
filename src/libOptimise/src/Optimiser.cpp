@@ -25,9 +25,7 @@ Optimiser::Optimiser(Properties properties)
         , m_num_frames{0} //
         , m_last_smoothness{0.0f} //
         , m_state{UNINITIALISED} //
-{
-//    m_random_engine = std::default_random_engine{123};
-}
+{}
 
 unsigned short
 Optimiser::read_termination_criteria(const std::string &termination_criteria_property) {
@@ -88,6 +86,12 @@ Optimiser::setup_ssa() {
 
         case SSA_SELECT_WORST_100:
             m_node_selection_function = std::bind(&Optimiser::ssa_select_worst_100, this);
+            break;
+
+        case SSA_SELECT_WORST_PERCENTAGE:
+            auto ssa_percentage = m_properties.getIntProperty(get_ssa_percentage_property_name());
+            m_ssa_percentage = std::min<unsigned int>(std::max<unsigned int>(0, ssa_percentage), 100);
+            m_node_selection_function = std::bind(&Optimiser::ssa_select_worst_percentage, this);
             break;
     }
 }
@@ -310,6 +314,30 @@ Optimiser::ssa_select_worst_100() const {
     }
     return selected_nodes;
 }
+
+std::vector<SurfelGraphNodePtr>
+Optimiser::ssa_select_worst_percentage() const {
+    using namespace std;
+
+    vector<SurfelGraphNodePtr> selected_nodes;
+    for (const auto &n : m_surfel_graph->nodes()) {
+        selected_nodes.push_back(n);
+    }
+    // Sort worst to best
+    stable_sort(begin(selected_nodes),
+                end(selected_nodes),
+                [this](const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) {
+                    return compare_worst_first(l, r);
+                });
+
+    // Required nodes
+    auto required_nodes = (unsigned int) std::roundf(((float)(m_surfel_graph->num_nodes()) * m_ssa_percentage) / 100);
+    if (selected_nodes.size() > required_nodes) {
+        selected_nodes.resize(required_nodes);
+    }
+    return selected_nodes;
+}
+
 
 
 /**

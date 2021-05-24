@@ -4,10 +4,44 @@
 #include <memory>
 
 void TestUtilities::SetUp() {
+    std::default_random_engine re{123};
+    m_surfel_builder = new SurfelBuilder(re);
+    s1 = std::make_shared<Surfel>(
+            m_surfel_builder
+                    ->with_id("id1")
+                    ->with_frame(test_pixel_frame_2, 10.0f, Eigen::Matrix3f::Identity(),
+                                 Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero())
+                    ->with_frame(test_pixel, 10.0f, Eigen::Matrix3f::Identity(),
+                                 Eigen::Vector3f::Zero(), Eigen::Vector3f::Zero())
+                    ->with_tangent(1.0, 0.0, 0.0)
+                    ->with_reference_lattice_offset(1.0, 0.0)
+                    ->build());
 
+    s1_neighbour = std::make_shared<Surfel>(
+            m_surfel_builder
+                    ->reset()
+                    ->with_id("id2")
+                    ->with_frame(test_pixel_up, 10.0f,
+                                 Eigen::Matrix3f::Identity(),
+                                 Eigen::Vector3f::Zero(),
+                                 Eigen::Vector3f::Zero())
+                    ->with_tangent(1.0, 0.0, 0.0)
+                    ->with_reference_lattice_offset(1.0, 0.0)
+                    ->build());
+    s1_not_neighbour = std::make_shared<Surfel>(
+            m_surfel_builder
+                    ->reset()
+                    ->with_id("id3")
+                    ->with_frame(test_pixel_far_away, 10.0f, Eigen::Matrix3f::Identity(), Eigen::Vector3f::Zero(),
+                                 Eigen::Vector3f::Zero())
+                    ->with_tangent(1.0, 0.0, 0.0)
+                    ->with_reference_lattice_offset(1.0, 0.0)
+                    ->build());
 }
 
-void TestUtilities::TearDown() {}
+void TestUtilities::TearDown() {
+    delete m_surfel_builder;
+}
 
 /*
  * Test pixels in all 8 neighbourhoods are 8 connected under 8 connected ness
@@ -117,23 +151,15 @@ TEST_F(TestUtilities, 4_connected_PIFs_4_far_away_is_not_neighbour) {
 
 // Test Surfel adjacency
 TEST_F(TestUtilities, neighburing_surfels_are_found) {
-    EXPECT_TRUE(are_neighbours(
-            std::make_shared<Surfel>(s1),
-            std::make_shared<Surfel>(s1_neighbour),
-            true));
+    EXPECT_TRUE(are_neighbours(s1, s1_neighbour, true));
 }
 
 TEST_F(TestUtilities, non_neighburing_surfels_are_found) {
-    EXPECT_FALSE(are_neighbours(
-            std::make_shared<Surfel>(s1),
-            std::make_shared<Surfel>(s1_not_neighbour),
-            true));
+    EXPECT_FALSE(are_neighbours(s1, s1_not_neighbour, true));
 }
 
 TEST_F(TestUtilities, populate_surfel_neighbours) {
-    std::vector<std::shared_ptr<Surfel>> surfels{
-            std::make_shared<Surfel>(s1),
-            std::make_shared<Surfel>(s1_neighbour)};
+    std::vector<std::shared_ptr<Surfel>> surfels{s1, s1_neighbour};
     auto graph = graph_from_surfels(surfels, true);
 
     auto n1 = graph->nodes().at(0);
@@ -149,9 +175,7 @@ TEST_F(TestUtilities, populate_surfel_neighbours) {
 
 TEST_F(TestUtilities, fail_to_populate_surfel_neighbours) {
 
-    std::vector<std::shared_ptr<Surfel>> surfels{
-            std::make_shared<Surfel>(s1),
-            std::make_shared<Surfel>(s1_not_neighbour)};
+    std::vector<std::shared_ptr<Surfel>> surfels{s1, s1_not_neighbour};
     auto graph = graph_from_surfels(surfels, true);
 
     auto n1 = graph->nodes().at(0);

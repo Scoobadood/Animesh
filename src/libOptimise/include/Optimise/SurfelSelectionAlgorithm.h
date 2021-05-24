@@ -9,12 +9,14 @@
 
 enum SurfelSelectionAlgorithm {
     SSA_SELECT_ALL_IN_RANDOM_ORDER,
-    SSA_SELECT_WORST_100
+    SSA_SELECT_WORST_100,
+    SSA_SELECT_WORST_PERCENTAGE
 };
 
 const static std::map<std::string, SurfelSelectionAlgorithm> map{
         {"select-all-in-random-order", SSA_SELECT_ALL_IN_RANDOM_ORDER},
-        {"select-worst-100", SSA_SELECT_WORST_100}
+        {"select-worst-100", SSA_SELECT_WORST_100},
+        {"select-worst-percentage", SSA_SELECT_WORST_PERCENTAGE},
 };
 
 static SurfelSelectionAlgorithm with_name( const std::string& algorithm_name ) {
@@ -24,8 +26,3 @@ static SurfelSelectionAlgorithm with_name( const std::string& algorithm_name ) {
     }
     throw std::runtime_error("Unknown surfel selection algorithm " + algorithm_name);
 }
-
-
-//    static const char *SSA_SELECT_ALL_IN_RANDOM_ORDER = "select-all-in-random-order";
-//    static const char *SSA_SELECT_WORST_100 = "select-worst-100";
-

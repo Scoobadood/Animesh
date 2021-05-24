@@ -10,46 +10,59 @@
 #include <memory>
 #include <fstream>
 
-void TestSurfel::SetUp() {}
+void TestSurfel::SetUp() {
+    std::default_random_engine re{123};
+    m_surfel_builder = new SurfelBuilder(re);
+}
 
-void TestSurfel::TearDown() {}
+void TestSurfel::TearDown() {
+    delete m_surfel_builder;
+}
 
 void TestSurfelIO::SetUp() {
     using namespace std;
 
+    std::default_random_engine re{123};
+    m_surfel_builder = new SurfelBuilder(re);
     surfel_graph = make_shared<SurfelGraph>();
     Eigen::Matrix3f transform;
     transform << 1.1f, 2.2f, 3.3f,
             4.4f, 5.5f, 6.6f,
             7.7f, 8.8f, 9.9f;
-    const auto s1 = make_shared<Surfel>("a",
-                                        std::vector<FrameData>{
-                                                {
-                                                        {1, 1, 1}, // pif
-                                                        1.1f, // depth
-                                                        transform,
-                                                        {1.1f, 2.2f, 3.3f}, // norm
-                                                        {1.1f, 2.2f, 3.3f} //pos
-                                                }
-                                        },
-                                        Eigen::Vector3f{1.0f, 0.0f, 0.0f},
-                                        Eigen::Vector2f{1.5f, 2.5f}
-    );
+
+    m_surfel_builder
+            ->reset()
+            ->with_id("a")
+            ->with_frame({
+                                 {1, 1, 1}, // pif
+                                 1.1f, // depth
+                                 transform,
+                                 {1.1f, 2.2f, 3.3f}, // norm
+                                 {1.1f, 2.2f, 3.3f} //pos
+                         }
+            )
+            ->with_tangent(1.0f, 0.0f, 0.0f)
+            ->with_reference_lattice_offset(0.15f, 0.25f);
+    const auto s1 = make_shared<Surfel>(m_surfel_builder->build());
     s1->set_rosy_smoothness(0);
     s1->set_posy_smoothness(0);
-    const auto s2 = make_shared<Surfel>("b",
-                                        std::vector<FrameData>{
-                                                {
-                                                        {1, 1, 1}, // pif
-                                                        1.1f, // depth
-                                                        transform,
-                                                        {1.1f, 2.2f, 3.3f}, // norm
-                                                        {1.1f, 2.2f, 3.3f} //pos
-                                                }
-                                        },
-                                        Eigen::Vector3f{0.707f, 0, 0.707f},
-                                        Eigen::Vector2f{5.5f, 6.5f}
-    );
+
+    m_surfel_builder
+            ->reset()
+            ->with_id("b")
+            ->with_frame({
+                                 {1, 1, 1}, // pif
+                                 1.1f, // depth
+                                 transform,
+                                 {1.1f, 2.2f, 3.3f}, // norm
+                                 {1.1f, 2.2f, 3.3f} //pos
+                         }
+            )
+            ->with_tangent(
+                    M_SQRT1_2, 0, M_SQRT1_2)
+            ->with_reference_lattice_offset(0.35f, 0.45f);
+    const auto s2 = make_shared<Surfel>(m_surfel_builder->build());
+
     s2->set_rosy_smoothness(0);
     s2->set_posy_smoothness(0);
     const auto &sn1 = surfel_graph->add_node(s1);
@@ -57,7 +70,9 @@ void TestSurfelIO::SetUp() {
     surfel_graph->add_edge(sn1, sn2, 1.0);
 }
 
-void TestSurfelIO::TearDown() {}
+void TestSurfelIO::TearDown() {
+    delete m_surfel_builder;
+}
 
 bool compare_files(const std::string &p1, const std::string &p2) {
     using namespace std;

@@ -13,6 +13,7 @@
 #include "Surfel_Compute.h"
 #include "PixelInFrame.h"
 #include "Surfel.h"
+#include "SurfelBuilder.h"
 #include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
@@ -33,29 +34,6 @@
  *     Init the random tangent direction vector (perp to normal)
  */
 
-
-/**
- * Generate a random float in the range [0, 1)
- */
-float
-random_zero_to_one() {
-    static std::default_random_engine e(123);
-    static std::uniform_real_distribution<> dis(0, 1); // range 0 - 1
-    return dis(e);
-}
-
-/**
- * Randomize the tangents of the vec topr of Surfels.
- * Tangents will be set to a radius of the unit circle in the xy plane
- */
-void
-randomize_tangents(std::vector<std::shared_ptr<Surfel>> &surfels) {
-    for (auto &surfel : surfels) {
-        float xc = random_zero_to_one();
-        float yc = sqrt(1.0f - (xc * xc));
-        surfel->setTangent(Eigen::Vector3f{xc, 0.0f, yc});
-    }
-}
 
 /**
  * Return true if the two pixel in frames are neighbours.
@@ -217,43 +195,25 @@ filter_pifs_with_normals(const std::vector<PixelInFrame> &corresponding_pifs,
     return pifs_with_normals;
 }
 
-std::string
-generate_uuid() {
-    using namespace std;
-
-    static random_device dev;
-    static mt19937 rng(dev());
-
-    uniform_int_distribution<int> dist(0, 15);
-
-    const char *v = "0123456789abcdef";
-    const bool dash[] = {false, false, false, false, false, false, false, false};
-
-    string res;
-    for (bool i : dash) {
-        if (i) res += "-";
-        res += v[dist(rng)];
-        res += v[dist(rng)];
-    }
-    return res;
-}
 
 /**
  * Actually build a Surfel from the source data.
  */
 std::shared_ptr<Surfel>
-generate_surfel(const std::vector<PixelInFrame> &corresponding_pifs,
+generate_surfel(SurfelBuilder *surfel_builder,
+                const std::vector<PixelInFrame> &corresponding_pifs,
                 const std::vector<DepthMap> &depth_maps_by_frame,
                 const std::map<PixelInFrame, Eigen::Vector3f> &coordinates_by_pif) {
     using namespace std;
 
     assert(!corresponding_pifs.empty());
 
-    return make_shared<Surfel>(
-            generate_uuid(),
-            populate_frame_data(corresponding_pifs, depth_maps_by_frame, coordinates_by_pif),
-            Eigen::Vector3f::Zero(),
-            Eigen::Vector2f::Zero());
+    auto frame_data = populate_frame_data(corresponding_pifs, depth_maps_by_frame, coordinates_by_pif);
+    for (const auto &fd : frame_data) {
+        surfel_builder->with_frame(fd);
+    }
+    auto surfel = make_shared<Surfel>(surfel_builder->build());
+    return surfel;
 }
 
 
@@ -277,6 +237,8 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
 
     vector<shared_ptr<Surfel>> surfels;
 
+    std::default_random_engine random_engine{123};
+    auto surfel_builder = new SurfelBuilder(random_engine);
     int count = 0;
     int target = correspondences.size();
     // Iterate over each correspondence and generate a surfel.
@@ -292,12 +254,9 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
             continue;
         }
 
-        auto surfel = generate_surfel(pifs_with_normals, depth_maps, coordinates_by_pif);
+        auto surfel = generate_surfel(surfel_builder, pifs_with_normals, depth_maps, coordinates_by_pif);
         surfels.push_back(surfel);
     }
-
-    // Initialise tangents to random, legal values.
-    randomize_tangents(surfels);
 
     // Sort neighbours and frames
     for (auto &s : surfels) {

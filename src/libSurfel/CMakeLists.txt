@@ -5,6 +5,7 @@ add_library(
 		src/PixelInFrame.cpp include/Surfel/PixelInFrame.h
 		src/FrameData.cpp include/Surfel/FrameData.h
 		src/Surfel_Compute.cpp include/Surfel/Surfel_Compute.h
+		src/SurfelBuilder.cpp include/Surfel/SurfelBuilder.h
 		src/Surfel_IO.cpp include/Surfel/Surfel_IO.h
 )
 

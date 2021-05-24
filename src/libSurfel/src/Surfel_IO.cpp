@@ -1,5 +1,6 @@
 
 #include "Surfel_IO.h"
+#include "SurfelBuilder.h"
 #include "Surfel.h"
 
 #include <GeomFileUtils/io_utils.h>
@@ -7,7 +8,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 #include "SurfelGraph.h"
 /*
@@ -97,10 +97,15 @@ load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) 
     map<string, vector<string>> neighbours_of_surfel_by_id;
     map<string, SurfelGraphNodePtr> graph_node_by_id;
 
+    std::default_random_engine random_engine{123};
+    auto surfel_builder = new SurfelBuilder(random_engine);
     for (unsigned int sIdx = 0; sIdx < num_surfels; ++sIdx) {
         string surfel_id = read_string(file);
+        surfel_builder
+                ->reset()
+                ->with_id(surfel_id);
+
         unsigned int num_frames = read_unsigned_int(file);
-        vector<FrameData> frames;
         for (unsigned int fdIdx = 0; fdIdx < num_frames; ++fdIdx) {
             FrameData fd;
 
@@ -124,7 +129,7 @@ load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) 
             // Position
             fd.position = read_vector_3f(file);
 
-            frames.push_back(fd);
+            surfel_builder->with_frame(fd);
         }
 
         unsigned int num_neighbours = read_unsigned_int(file);
@@ -135,9 +140,13 @@ load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) 
         }
 
         const auto tangent = read_vector_3f(file);
-        const auto closest_mesh_vertex_offset = read_vector_2f(file);
+        surfel_builder->with_tangent(tangent);
 
-        auto surfel_ptr = make_shared<Surfel>(surfel_id, frames, tangent, closest_mesh_vertex_offset);
+        const auto closest_mesh_vertex_offset = read_vector_2f(file);
+        surfel_builder->with_reference_lattice_offset(closest_mesh_vertex_offset);
+
+        auto surfel_ptr = make_shared<Surfel>(surfel_builder->build());
+
         const auto rosy_smooth = read_smoothness
                                  ? read_float(file)
                                  : 0.0f;
@@ -150,6 +159,7 @@ load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) 
         neighbours_of_surfel_by_id.emplace(surfel_id, neighbours);
         graph_node_by_id.emplace(surfel_id, graph_node);
     }
+    delete surfel_builder;
     file.close();
 
     // Populate neighbours

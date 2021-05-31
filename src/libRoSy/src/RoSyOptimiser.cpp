@@ -84,6 +84,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
 
         // For each neighbour j in frame ...
+        float w_sum = 1.0f;
         const auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);
         for (const auto &neighbour_node : neighbours_in_frame) {
             const auto &that_surfel_ptr = neighbour_node->data();
@@ -114,12 +115,13 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             new_tangent = average_rosy_vectors(
                     new_tangent,
                     Vector3f::UnitY(),
-                    w_ij,
+                    w_sum,
                     neighbour_tan_in_surfel_space,
                     neighbour_norm_in_surfel_space,
                     w_ji,
                     target_k,
                     source_k);
+            w_sum += w_ij;
 
             // Store ks
             edge->set_k_ij(frame_index, target_k);

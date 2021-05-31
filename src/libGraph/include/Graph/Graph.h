@@ -136,8 +136,8 @@ namespace animesh {
                     // For an undirected graph, remove the reverse edge too
                     m_edges.erase(make_pair(neighbour, node));
                     // And remove node from adjacency of neighbour
-                    auto neighbour_neghbours = m_adjacency.at(neighbour);
-                    neighbour_neghbours.erase(std::remove(begin(neighbour_neghbours), end(neighbour_neghbours), node), end(neighbour_neghbours));
+                    auto & neighbour_neighbours = m_adjacency.at(neighbour);
+                    neighbour_neighbours.erase(std::remove(begin(neighbour_neighbours), end(neighbour_neighbours), node), end(neighbour_neighbours));
                 }
             }
             m_adjacency.erase(node);

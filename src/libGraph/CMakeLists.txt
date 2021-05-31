@@ -3,6 +3,7 @@ add_library(
 		src/Path.cpp
 		include/Graph/Graph.h
 		include/Graph/GraphSimplifier.h
+		include/Graph/GraphNodeSimplifier.h
 		include/Graph/Path.h
 		src/Path.cpp)
 
@@ -24,6 +25,7 @@ add_executable(
 		"tests/main.cpp"
 		"tests/TestGraph.cpp"
 		"tests/TestGraphSimplifier.cpp"
+		"tests/TestGraphNodeSimplifier.cpp"
 		"tests/TestGraphCycles.cpp"
 		${CMAKE_BINARY_DIR}/graph_test_data/cube.obj
 		${CMAKE_BINARY_DIR}/graph_test_data/cloth2_1.obj

@@ -4,11 +4,16 @@
 #include <Graph/Graph.h>
 
 class TestGraph : public ::testing::Test {
+
 public:
-    animesh::Graph<std::string, float>::GraphNode * gn1;
-    animesh::Graph<std::string, float>::GraphNode * gn2;
-    animesh::Graph<std::string, float> graph{true}; // directed
-    animesh::Graph<std::string, float> undirected_graph; // undirected
+    using GraphPtr = std::shared_ptr<typename animesh::Graph<std::string, float>>;
+    using GraphNode = typename animesh::Graph<std::string, float>::GraphNode;
+    using GraphNodePtr = std::shared_ptr<typename animesh::Graph<std::string, float>::GraphNode>;
+
+    GraphNodePtr gn1;
+    GraphNodePtr gn2;
+    GraphPtr graph; // directed
+    GraphPtr undirected_graph; // undirected
 
 	void SetUp( );
 	void TearDown( );

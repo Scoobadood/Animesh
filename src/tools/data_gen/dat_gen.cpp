@@ -84,8 +84,7 @@ void loadMesh(const std::string &filename,
     using namespace std;
     using namespace Eigen;
 
-    animesh::ObjFileParser parser;
-    pair<vector<Eigen::Vector3f>, vector<pair<vector<std::size_t>, Vector3f>>> object_data = parser.parse_file_raw_with_normals(
+    pair<vector<Eigen::Vector3f>, vector<pair<vector<std::size_t>, Vector3f>>> object_data = animesh::ObjFileParser::parse_file_raw_with_normals(
             filename);
 
     unsigned int numVertices = object_data.first.size();
@@ -97,9 +96,9 @@ void loadMesh(const std::string &filename,
 
     for (int i = 0; i < numVertices; ++i) {
         (*cpuVertices)[i] = cl_float3{
-                object_data.first[i].x(),
+                {object_data.first[i].x(),
                 object_data.first[i].y(),
-                object_data.first[i].z()};
+                object_data.first[i].z()}};
     }
     for (int i = 0; i < numFaces; ++i) {
         pair<vector<std::size_t>, Vector3f> face_data = object_data.second[i];
@@ -107,14 +106,14 @@ void loadMesh(const std::string &filename,
         Vector3f face_normal = face_data.second;
 
         (*cpuFaces)[i] = cl_int3{
-                (int) face_vertex_indices[0],
+                {(int) face_vertex_indices[0],
                 (int) face_vertex_indices[1],
-                (int) face_vertex_indices[2]};
+                (int) face_vertex_indices[2]}};
 
         (*cpuFaceNormals)[i] = cl_float3{
-                face_normal.x(),
+                {face_normal.x(),
                 face_normal.y(),
-                face_normal.z()};
+                face_normal.z()}};
     }
     *pNumVertices = numVertices;
     *pNumFaces = numFaces;

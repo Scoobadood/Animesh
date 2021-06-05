@@ -36,6 +36,12 @@ protected:
 
     SurfelGraphPtr m_surfel_graph;
 
+    // Randomise the order that neighbours are processed.
+    bool m_randomise_neighour_order;
+
+    std::default_random_engine m_random_engine;
+
+
 private:
     // Termination criteria
     static const unsigned short TC_ABSOLUTE = 1 << 0;
@@ -94,7 +100,6 @@ private:
     OptimisationResult m_result;
     unsigned int m_num_iterations;
     unsigned int m_num_frames;
-    std::default_random_engine m_random_engine;
 
     // Error and convergence
     float m_last_smoothness;

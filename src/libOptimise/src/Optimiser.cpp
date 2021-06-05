@@ -4,10 +4,12 @@
 
 #include "Optimiser.h"
 
+#include <random>
 #include <sstream>
 #include <utility>
 #include <numeric>      // iota
 #include <random>       // default_random_engine initialisation
+#include <algorithm>    // random_shuffle
 #include <sys/stat.h>
 #include <spdlog/spdlog.h>
 #include <SurfelSelectionAlgorithm.h>

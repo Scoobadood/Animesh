@@ -21,6 +21,8 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties)
     m_damping_factor = m_properties.getFloatProperty("rosy-damping-factor");
     m_weight_for_error = m_properties.getBooleanProperty("rosy-weight-for-error");
     m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
+    m_randomise_neighour_order = m_properties.getBooleanProperty("rosy-randomise-neighbour-order");
+
 }
 
 /**
@@ -84,8 +86,15 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
 
         // For each neighbour j in frame ...
-        float w_sum = 1.0f;
-        const auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);
+        float w_sum = 0.0f;
+        auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);
+        // Optionally randomise the order
+        if(m_randomise_neighour_order) {
+            std::shuffle(begin(neighbours_in_frame),
+                         end(neighbours_in_frame),
+                         m_random_engine);
+        }
+
         for (const auto &neighbour_node : neighbours_in_frame) {
             const auto &that_surfel_ptr = neighbour_node->data();
             auto edge = m_surfel_graph->edge(node, neighbour_node);

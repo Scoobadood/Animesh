@@ -205,8 +205,7 @@ TEST_F(TestGraphNodeSimplifier, CollapseMiddleNode) {
     using namespace animesh;
 
     vector<const GraphNodePtr> removed;
-    GraphNodeSimplifier<string, float> s{concat_nodes, concat_edges};
-    s.collapse_node(graph_ptr, m_node_c, removed);
+    m_simplifier->collapse_node(graph_ptr, m_node_c, removed);
 
     ASSERT_EQ(graph_ptr->num_nodes(), 4);
     ASSERT_EQ(graph_ptr->num_edges(), 2);
@@ -220,27 +219,29 @@ TEST_F(TestGraphNodeSimplifier, CollapseEndNode) {
     using namespace std;
     using namespace animesh;
 
-    GraphNodeSimplifier<string, float> s{};
-    s.collapse_node(graph_ptr, m_node_a, concat_nodes, 1.0f);
+    vector<const GraphNodePtr> removed;
+    m_simplifier->collapse_node(graph_ptr, m_node_a, removed);
 
     ASSERT_EQ(graph_ptr->num_nodes(), 5);
     ASSERT_EQ(graph_ptr->num_edges(), 3);
 
     std::vector<std::string> expected{"c", "d", "e", "x", "ba"};
     assertContainsInAnyOrder(graph_ptr->nodes(), expected);
+    assertContainsInAnyOrder(removed, vector<string>{"a", "b"});
 }
 
 TEST_F(TestGraphNodeSimplifier, CollapseOrphanNode) {
     using namespace std;
     using namespace animesh;
 
-    GraphNodeSimplifier<string, float> s{};
-    s.collapse_node(graph_ptr, m_node_x, concat_nodes, 1.0f);
+    vector<const GraphNodePtr> removed;
+    m_simplifier->collapse_node(graph_ptr, m_node_x, removed);
 
     ASSERT_EQ(graph_ptr->num_nodes(), 6);
     ASSERT_EQ(graph_ptr->num_edges(), 4);
 
     std::vector<std::string> expected{"a", "b", "c", "d", "e", "x"};
     assertContainsInAnyOrder(graph_ptr->nodes(), expected);
+    ASSERT_EQ(removed.size(), 0);
 }
 

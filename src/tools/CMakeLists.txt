@@ -110,3 +110,18 @@ target_link_libraries(
 		Surfel
 		FileUtils
 )
+add_executable(
+		surfel_scaler
+		surfel_scalar.cpp
+)
+target_include_directories(
+		surfel_scaler
+		PUBLIC
+		../third_party/include
+)
+
+target_link_libraries(
+		surfel_scaler
+		Surfel
+		FileUtils
+)

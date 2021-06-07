@@ -40,7 +40,6 @@ PoSyOptimiser::trace_smoothing(const SurfelGraphPtr &surfel_graph) const {
     spdlog::default_logger_raw()->set_level(old_level);
 }
 
-
 float
 PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_ptr,
                                                  size_t frame_index,
@@ -122,6 +121,10 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
     return frame_smoothness;
 }
 
+/**
+ * Comparator that sorts two SurfelGRaphNodePtrs based on the smoothness
+ * with the largest smoothness first.
+ */
 bool
 PoSyOptimiser::compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const {
     return l->data()->posy_smoothness() > r->data()->posy_smoothness();

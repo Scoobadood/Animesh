@@ -94,3 +94,19 @@ target_link_libraries(
 		gen_unsmoothed_rosy_graph
 		Surfel
 )
+
+add_executable(
+		surfel_bin_to_txt
+		surfel_bin_to_txt.cpp
+)
+target_include_directories(
+		surfel_bin_to_txt
+		PUBLIC
+		../third_party/include
+)
+
+target_link_libraries(
+		surfel_bin_to_txt
+		Surfel
+		FileUtils
+)

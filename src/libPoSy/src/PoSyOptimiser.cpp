@@ -168,11 +168,15 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         float sum_w = 0.0f;
         Vector3f new_lattice_point = reference_lattice_point;
 
+        auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);
+        // Optionally randomise the order
+        if(m_randomise_neighour_order) {
+            std::shuffle(begin(neighbours_in_frame),
+                         end(neighbours_in_frame),
+                         m_random_engine);
+        }
         // For each neighbour j ...
-        for (const auto &neighbour_node : m_surfel_graph->neighbours(node)) {
-            if (!neighbour_node->data()->is_in_frame(frame_index)) {
-                continue;
-            }
+        for (const auto &neighbour_node : neighbours_in_frame) {
             Eigen::Vector3f nbr_vertex, nbr_lattice_point, nbr_normal, nbr_tangent, nbr_orth_tangent;
             neighbour_node->data()->get_all_data_for_surfel_in_frame(
                     frame_index,

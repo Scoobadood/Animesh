@@ -7,11 +7,6 @@
 #include <tuple>
 #include <spdlog/spdlog.h>
 
-
-/**
- * Given a point in space and a point on the lattice, return the coordinates of the
- * four surrounding lattice points in 3-space.
- */
 /**
  * Given a point in space, a normal, tangent vector and rho (lattice spacing) compute the 4 nearest vertices on the lattice
  */

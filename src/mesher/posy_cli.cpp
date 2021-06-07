@@ -35,7 +35,8 @@ int main(int argc, char *argv[]) {
     string output_file_name = properties.getProperty("posy-output-file");
 
     PoSyOptimiser poSyOptimiser{properties};
-    auto surfel_graph = load_surfel_graph_from_file(input_file_name);
+    bool read_smoothness = properties.getBooleanProperty("posy-file-read-smoothness");
+    auto surfel_graph = load_surfel_graph_from_file(input_file_name, read_smoothness);
     poSyOptimiser.set_data(surfel_graph);
 
     auto start_time = std::chrono::system_clock::now();

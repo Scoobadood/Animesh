@@ -296,10 +296,8 @@ posy_gl_widget::generateTexture() {
     unsigned int colour;
     for (int x = 0; x < 500; ++x) {
         for (int y = 0; y < 500; ++y) {
-            if (x == 0 || x == 1 || y == 0 || y == 1) {
+            if (x < 20 || y < 20 ) {
                 colour = 0xFF942C20;
-            } else if (x % 100 == 0 || y % 100 == 0) {
-                colour = 0xFF5B8A8C;
             } else {
                 colour = 0xFFFFFFFF;
             }

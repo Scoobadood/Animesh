@@ -158,7 +158,7 @@ find_fan_start(
 void
 rlo_to_uv(const Eigen::Vector2f& rlo, float& u, float& v, float rho) {
     u = ((rlo[0] <= 0.0f ? 0.0f : 1.0f) - rlo[0]) / rho;
-    v = ((rlo[1] <= 0.0f ? 0.0f : 1.0f) - rlo[1])/ rho;
+    v = ((rlo[1] <= 0.0f ? 0.0f : 1.0f) - rlo[1]) / rho;
 }
 /**
  * For each vertex in the frame, extract a triangle fan that connects it to its

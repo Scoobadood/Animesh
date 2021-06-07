@@ -30,8 +30,8 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
     const auto diff = point - lattice_point;
 
     const auto base = lattice_point +
-            (tangent * std::floorf(diff.dot(tangent) * inv_rho) * rho) +
-            (orth_tangent * std::floorf(diff.dot(orth_tangent) * inv_rho) * rho);
+                      (tangent * std::floorf(diff.dot(tangent) * inv_rho) * rho) +
+                      (orth_tangent * std::floorf(diff.dot(orth_tangent) * inv_rho) * rho);
 
     for (int u = 0; u <= 1; ++u) {
         for (int v = 0; v <= 1; ++v) {
@@ -112,8 +112,8 @@ translate_4(const Eigen::Vector3f &p,
 }
 
 /**
- * Compute the midpoint between two points on planes defined by normal vectors
- * n_i and n_j. The midpoint is forced to lie on the line of intersection of the planes.
+ * Compute a position qij that minimizes the distance to vertices vi and vj while being located
+ * in their respective tangent planes.
  * @param v_i Point on first plane.
  * @param n_i Normal of first plane.
  * @param v_j Point on second plane.
@@ -126,17 +126,18 @@ Eigen::Vector3f compute_qij(
         const Eigen::Vector3f &v_j,
         const Eigen::Vector3f &n_j
 ) {
-    const auto nivi = n_i.dot(v_i);
-    const auto nivj = n_i.dot(v_j);
-    const auto njvi = n_j.dot(v_i);
-    const auto njvj = n_j.dot(v_j);
-    const auto ninj = n_i.dot(n_j);
-    const auto denom = 1.0f / (1.0f - ninj * ninj + 1e-4f);
+    const double ni_dot_vi = n_i[0] * v_i[0] + n_i[1] * v_i[1] + n_i[2] * v_i[2];
+    const double ni_dot_vj = n_i[0] * v_j[0] + n_i[1] * v_j[1] + n_i[2] * v_j[2];
+    const double nj_dot_vi = n_j[0] * v_i[0] + n_j[1] * v_i[1] + n_j[2] * v_i[2];
+    const double nj_dot_vj = n_j[0] * v_j[0] + n_j[1] * v_j[1] + n_j[2] * v_j[2];
 
-    const auto lambda_i = 2.0f * (nivj - nivi - ninj * (njvi - njvj)) * denom;
-    const auto lambda_j = 2.0f * (njvi - njvj - ninj * (nivj - nivi)) * denom;
+    const double ni_dot_nj = n_i[0] * n_j[0] + n_i[1] * n_j[1] + n_i[2] * n_j[2];
+    const double denom = 1.0 / (1.0 - ni_dot_nj * ni_dot_nj + 1e-8);
 
-    const auto q_ij = ((v_i + v_j) * 0.5f) - (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25f);
+    const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) * denom;
+    const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) * denom;
+
+    const auto q_ij = ((v_i + v_j) * 0.5) - (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
     return q_ij;
 }
 

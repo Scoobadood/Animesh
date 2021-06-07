@@ -13,9 +13,12 @@ void TestPoSyOptimiser::SetUp() {
 
     m_properties = Properties{
             map<string, string>{
-                    {"rho",                        "1.5"},
-                    {"convergence-threshold",      "0.01"},
-                    {"surfel-selection-algorithm", "select-all-in-random-order"}
+                    {"rho",                                "1.5"},
+                    {"posy-termination-criteria",          "relative"},
+                    {"posy-term-crit-relative-smoothness", "0.01"},
+                    {"posy-surfel-selection-algorithm",    "select-all-in-random-order"},
+                    {"trace-smoothing",                    "false"},
+                    {"diagnose_dodgy_deltas",              "true"}
             }
     };
 }

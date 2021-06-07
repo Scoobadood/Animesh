@@ -3,6 +3,8 @@
 #include <Surfel/SurfelGraph.h>
 #include <gmock/gmock.h>
 
+const float EPSILON = 1e-4;
+
 void TestPoSy::SetUp() {
     std::default_random_engine re{123};
     m_surfel_builder = new SurfelBuilder(re);
@@ -86,47 +88,7 @@ TEST_F(TestPoSy, TestTspWithNotUnitSpacing) {
     expect_vector_equality(p_prime, {1, 3.5, 6});
 }
 
-TEST_F(TestPoSy, TestQijOnIntersectionOfPlanes1) {
-    using namespace std;
 
-    auto qij = compute_qij(
-            {1, 0, 0},  // Point on XZ plane
-            {0, 1, 0},
-            {0, 1, 0}, // Point on YZ plane
-            {1, 0, 0}
-    );
-    EXPECT_NEAR(qij[0], 0.0f, 1e-4);
-    EXPECT_NEAR(qij[2], 0.0f, 1e-4);
-    EXPECT_NEAR(qij[1], 0.0f, 1e-4);
-}
-
-TEST_F(TestPoSy, TestQijOnIntersectionOfPlanes2) {
-    using namespace std;
-
-    auto qij = compute_qij(
-            {1, 0, 1}, // Point on XZ plane
-            {0, 1, 0},
-            {0, 1, 1}, // Point on YZ plane
-            {1, 0, 0}
-    );
-    EXPECT_NEAR(qij[0], 0, 1e-4);
-    EXPECT_NEAR(qij[2], 1, 1e-4);
-    EXPECT_NEAR(qij[1], 0, 1e-4);
-}
-
-TEST_F(TestPoSy, TestQijOnIntersectionOfPlanes3) {
-    using namespace std;
-
-    auto qij = compute_qij(
-            {2, 2, 0},  // Point on XY plane
-            {0, 0, 1},
-            {-1, 2, 0}, // Point on YZ plane
-            {0, 0, 1}
-    );
-    EXPECT_NEAR(qij[0], 0.5, 1e-4);
-    EXPECT_NEAR(qij[1], 2, 1e-4);
-    EXPECT_NEAR(qij[2], 0, 1e-4);
-}
 /*********************************************************************************
  **
  **                  Test compute_lattice_neighbours
@@ -255,7 +217,6 @@ TEST_F(TestPoSy, RoundingSamePointInNegativeSpace) {
             1.0f);
     expect_vector_equality(r, x);
 }
-
 
 TEST_F(TestPoSy, RoundingPositiveFractionalValuesToOrigin) {
     Eigen::Vector3f x{1.25, 2, 3.5};

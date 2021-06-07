@@ -28,7 +28,7 @@ private:
     }
 
     const std::string &get_ssa_percentage_property_name() const override {
-        static const std::string SSA_PERCENTAGE_PROPERTY_NAME = "posy-ssa_percentage";
+        static const std::string SSA_PERCENTAGE_PROPERTY_NAME = "posy-ssa-percentage";
         return SSA_PERCENTAGE_PROPERTY_NAME;
     }
 

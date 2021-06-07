@@ -141,10 +141,24 @@ find_fan_start(
            : (tentative_start_index + 1) % ordered_indices.size();
 }
 
+
+/**
+ * RLO is the ref lattice offset. Its coords are in the range [-rho/2 , rho/2)
+ * with 0 being a lattice intersection.
+ * UV are texture coordinates. The bottom left corner of the texture is the 'centre'
+ * of a lattice. We need to convert from RLO to UV such that:
+ * -rho/2 --> 1/2
+ * -rho/4 --> 3/4
+ * -rho/1000 --> 0.999
+ * 0 --> 0
+ * rho/1000 --> 0.001
+ * rho/4 --> 1/4
+ * rho/2 --> 1/2
+ */
 void
-rlo_to_uv(const Eigen::Vector2f& rlo, float& u, float& v) {
-    u = (rlo[0] <= 0.0f ? 0.0f : 1.0f) - rlo[0];
-    v = (rlo[1] <= 0.0f ? 0.0f : 1.0f) - rlo[1];
+rlo_to_uv(const Eigen::Vector2f& rlo, float& u, float& v, float rho) {
+    u = ((rlo[0] <= 0.0f ? 0.0f : 1.0f) - rlo[0]) / rho;
+    v = ((rlo[1] <= 0.0f ? 0.0f : 1.0f) - rlo[1])/ rho;
 }
 /**
  * For each vertex in the frame, extract a triangle fan that connects it to its
@@ -159,7 +173,8 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
                                  unsigned int frame,
                                  std::vector<float> &triangle_fans,
                                  std::vector<float> &triangle_uvs,
-                                 std::vector<unsigned int> &fan_sizes) {
+                                 std::vector<unsigned int> &fan_sizes,
+                                 float rho) {
     using namespace std;
 
     for (const auto &node : graphPtr->nodes()) {
@@ -174,8 +189,8 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
         }
 
         // Get all metadata for main vertex
-        Eigen::Vector3f vertex, normal, tangent, t2, reference_lattice_vertex;
-        surfel->get_all_data_for_surfel_in_frame(frame, vertex, tangent, t2, normal, reference_lattice_vertex);
+        Eigen::Vector3f vertex, normal, tangent, orth_tangent, reference_lattice_vertex;
+        surfel->get_all_data_for_surfel_in_frame(frame, vertex, tangent, orth_tangent, normal, reference_lattice_vertex);
 
         // Extract vertex coordinates for frame
         vector<Eigen::Vector3f> neighbour_coords;
@@ -190,10 +205,11 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
                 vertex,
                 normal,
                 tangent,
-                t2,
+                orth_tangent,
                 neighbour_coords
         );
 
+        // Find the start of the fan such that all triangles are correct
         auto start_index = find_fan_start(
                 vertex,
                 normal,
@@ -211,7 +227,7 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
         auto rlo = node->data()->reference_lattice_offset();
         // Intersection is at (0,0) in texture coords
         float u,v;
-        rlo_to_uv(rlo, u, v);
+        rlo_to_uv(rlo, u, v, rho);
         triangle_uvs.push_back(u);
         triangle_uvs.push_back(v);
 
@@ -227,7 +243,7 @@ void extract_triangles_for_frame(const SurfelGraphPtr &graphPtr,
             // Compute u and v components of (v1-vertex)
             const auto r = v1 - vertex;
             const auto uv1 = r.dot(tangent);
-            const auto uv2 = r.dot(t2);
+            const auto uv2 = r.dot(orth_tangent);
             triangle_uvs.push_back(u + uv1);
             triangle_uvs.push_back(v + uv2);
 
@@ -344,5 +360,5 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
 
     extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, splat_sizes, uvs, m_rho,
                             m_splat_scale_factor);
-    extract_triangles_for_frame(graphPtr, m_frame, triangle_fans, triangle_uvs, fan_sizes);
+    extract_triangles_for_frame(graphPtr, m_frame, triangle_fans, triangle_uvs, fan_sizes, m_rho);
 }

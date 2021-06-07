@@ -165,7 +165,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                 normal,
                 reference_lattice_point);
 
-        float sum_w = 0.0f;
+        float sum_w = 1.0f;
         Vector3f new_lattice_point = reference_lattice_point;
 
         auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);

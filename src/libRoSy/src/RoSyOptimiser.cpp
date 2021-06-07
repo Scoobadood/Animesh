@@ -5,6 +5,8 @@
 
 #include <Eigen/Core>
 
+const float WORST_SMOOTHNESS = 45.0f * 45.0f;
+
 /**
  * Construct one with the given properties.
  * @param properties
@@ -50,7 +52,7 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
         // Compute the error between this surfel in this frame and the neighbour in this frame.
         auto vec_pair = best_rosy_vector_pair(tangent, normal, nbr_tangent, normal);
         float theta = degrees_angle_between_vectors(vec_pair.first, vec_pair.second);
-        frame_smoothness += (theta * theta) / (45.0*45.0);
+        frame_smoothness += (theta * theta) / WORST_SMOOTHNESS;
     }
 
     num_neighbours = neighbours_in_frame.size();

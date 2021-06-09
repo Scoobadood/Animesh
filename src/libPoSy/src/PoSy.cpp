@@ -25,12 +25,12 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
     const auto diff = point - lattice_point;
 
     const auto base = lattice_point +
-                      (tangent * std::floorf(diff.dot(tangent) * inv_rho) * rho) +
-                      (orth_tangent * std::floorf(diff.dot(orth_tangent) * inv_rho) * rho);
+                      (tangent * std::floorf(tangent.dot(diff) * inv_rho) * rho) +
+                      (orth_tangent * std::floorf(orth_tangent.dot(diff) * inv_rho) * rho);
 
     for (int u = 0; u <= 1; ++u) {
         for (int v = 0; v <= 1; ++v) {
-            neighbours.emplace_back(base + (u * tangent * rho) + (v * orth_tangent * rho));
+            neighbours.emplace_back(base + (((u * tangent) + (v * orth_tangent)) * rho));
         }
     }
 
@@ -39,29 +39,29 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
 
 /**
  * Given a regular grid with orientation tangent_u,
- * position gridPosition and n, the following operation rounds a
+ * position gridPosition and normal, the following operation rounds a
  * position roundPosition′ to the nearest lattice point.
  * @param gridPosition
  * @param roundPosition
  * @param tangent_u
  * @param tangent_v
- * @param n
+ * @param normal
  * @param rho
  * @return
  */
 Eigen::Vector3f
-round_4(const Eigen::Vector3f &n,
-        const Eigen::Vector3f &o,
-        const Eigen::Vector3f &p,
-        const Eigen::Vector3f &q,
+round_4(const Eigen::Vector3f &normal,
+        const Eigen::Vector3f &tangent,
+        const Eigen::Vector3f &lattice_point,
+        const Eigen::Vector3f &vertex,
         float rho) {
     const auto inv_rho = 1.0f / rho;
 
-    const auto o_prime = n.cross(o);
-    const auto diff = (q - p);
-    return p
-           + o * (std::roundf(diff.dot(o) * inv_rho) * rho)
-           + o_prime * (std::roundf(diff.dot(o_prime) * inv_rho) * rho);
+    const auto orth_tangent = normal.cross(tangent);
+    const auto diff = (vertex - lattice_point);
+    return lattice_point
+           + tangent * (std::roundf(diff.dot(tangent) * inv_rho) * rho)
+           + orth_tangent * (std::roundf(diff.dot(orth_tangent) * inv_rho) * rho);
 }
 
 Eigen::Vector3f
@@ -109,31 +109,46 @@ translate_4(const Eigen::Vector3f &p,
 /**
  * Compute a position qij that minimizes the distance to vertices vi and vj while being located
  * in their respective tangent planes.
+ * So:
+ * Minimize |x - v_i|^2 + |x - v_j|^2, where
+ * dot(n_i, x) == dot(n_i, v_i)
+ * dot(n_j, x) == dot(n_j, v_j)
+ *
+ * -> Lagrange multipliers, set derivative = 0
+ *  Use first 3 equalities to write x in terms of
+ *  lambda_1 and lambda_2. Substitute that into the last
+ *  two equations and solve for the lambdas. Finally,
+ *  add a small epsilon term to avoid issues when n1=n2.
  * @param v_i Point on first plane.
  * @param n_i Normal of first plane.
  * @param v_j Point on second plane.
  * @param n_j Nrmal of second plane.
  * @return
  */
-Eigen::Vector3f compute_qij(
+Eigen::Vector3f
+compute_qij(
         const Eigen::Vector3f &v_i,
         const Eigen::Vector3f &n_i,
         const Eigen::Vector3f &v_j,
         const Eigen::Vector3f &n_j
 ) {
-    const double ni_dot_vi = n_i[0] * v_i[0] + n_i[1] * v_i[1] + n_i[2] * v_i[2];
-    const double ni_dot_vj = n_i[0] * v_j[0] + n_i[1] * v_j[1] + n_i[2] * v_j[2];
-    const double nj_dot_vi = n_j[0] * v_i[0] + n_j[1] * v_i[1] + n_j[2] * v_i[2];
-    const double nj_dot_vj = n_j[0] * v_j[0] + n_j[1] * v_j[1] + n_j[2] * v_j[2];
+    const double ni_dot_vi = n_i.dot(v_i);
+    const double ni_dot_vj = n_i.dot(v_j);
+    const double nj_dot_vi = n_j.dot(v_i);
+    const double nj_dot_vj = n_j.dot(v_j);
+    const double ni_dot_nj = n_i.dot(n_j);
 
-    const double ni_dot_nj = n_i[0] * n_j[0] + n_i[1] * n_j[1] + n_i[2] * n_j[2];
-    const double denom = 1.0 / (1.0 - ni_dot_nj * ni_dot_nj + 1e-8);
 
-    const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) * denom;
-    const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) * denom;
-
-    const auto q_ij = ((v_i + v_j) * 0.5) - (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
-    return q_ij;
+    // If planes are parallel, pick the midpoint
+    const double denom = 1.0 - (ni_dot_nj * ni_dot_nj);
+    Eigen::Vector3f q = (v_i + v_j) * 0.5;
+    if( abs(denom) > 1e-4) {
+        const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) / denom;
+        const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) / denom;
+        q -= (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
+    }
+    // It's possible that q_ij is not in the plane defined by n_i so correct for that
+    return q;
 }
 
 void
@@ -177,7 +192,6 @@ compute_t_ij(
         }
     }
 }
-
 
 /**
  *

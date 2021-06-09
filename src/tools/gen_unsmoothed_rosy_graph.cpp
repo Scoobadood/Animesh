@@ -39,6 +39,7 @@ struct Args {
     bool m_perturb_position;
     bool m_open_cylinder;
     bool m_double_neighbours;
+    bool m_spherical_poles;
     std::string m_output_file_name;
 };
 
@@ -282,14 +283,15 @@ SurfelGraphPtr generate_sphere(const Args &args) {
             node_index++;
         }
     }
-    addSurfel("s_top", {0, 0, radius}, {0, 0, 1},
-              graph,
-              nodes, node_index);
-    node_index++;
-    addSurfel("s_bot", {0, 0, -radius}, {0, 0, -1},
-              graph,
-              nodes, node_index);
-
+    if( args.m_spherical_poles) {
+        addSurfel("s_top", {0, 0, radius}, {0, 0, 1},
+                  graph,
+                  nodes, node_index);
+        node_index++;
+        addSurfel("s_bot", {0, 0, -radius}, {0, 0, -1},
+                  graph,
+                  nodes, node_index);
+    }
     for (unsigned int ring = 0; ring < rings - 1; ++ring) {
         for (unsigned int seg = 0; seg < segments; ++seg) {
             auto from_index = ring * segments + seg;
@@ -347,15 +349,17 @@ SurfelGraphPtr generate_sphere(const Args &args) {
         }
     }
 
-    // Connect top
-    for (unsigned int seg = 0; seg < segments; ++seg) {
-        graph->add_edge(nodes[(rings - 1) * segments], nodes[seg], SurfelGraphEdge{1});
+    if( args.m_spherical_poles) {
+        // Connect top
+        for (unsigned int seg = 0; seg < segments; ++seg) {
+            graph->add_edge(nodes[(rings - 1) * segments], nodes[seg], SurfelGraphEdge{1});
+        }
+        // Connect bottom
+        for (unsigned int seg = 0; seg < segments; ++seg) {
+            graph->add_edge(nodes[(rings - 1) * segments + 1], nodes[((rings - 2) * segments) + seg],
+                            SurfelGraphEdge{1});
+        }
     }
-    // Connect bottom
-    for (unsigned int seg = 0; seg < segments; ++seg) {
-        graph->add_edge(nodes[(rings - 1) * segments + 1], nodes[((rings - 2) * segments) + seg], SurfelGraphEdge{1});
-    }
-
     return graph;
 }
 
@@ -383,21 +387,21 @@ Args parseArguments(int argc, char *argv[]) {
 
     TCLAP::ValueArg<unsigned int> segments("s",
                                            "segments",
-                                           "Number of segments in sphere",
+                                           "Number of segments",
                                            false,
                                            9,
                                            "int", cmd);
 
     TCLAP::ValueArg<unsigned int> rings("g",
                                         "rings",
-                                        "Number of rings in sphere",
+                                        "Number of rings",
                                         false,
                                         9,
                                         "int", cmd);
 
     TCLAP::ValueArg<float> radius("r",
                                   "radius",
-                                  "Radius of sphere",
+                                  "Radius",
                                   false,
                                   5.0,
                                   "float", cmd);
@@ -413,6 +417,7 @@ Args parseArguments(int argc, char *argv[]) {
     TCLAP::SwitchArg perturbOrientation("o", "perturb_orientation", "Move orientation fied around", cmd, false);
     TCLAP::SwitchArg cut("x", "cut", "If set, do not close cylinder", cmd, false);
     TCLAP::SwitchArg dbl("2", "double", "If set, double the neighbours", cmd, false);
+    TCLAP::SwitchArg poles("P", "exclude_poles", "If set, don't render poles of sphere", cmd, false);
 
     // Parse the argv array.
     cmd.parse(argc, argv);
@@ -420,6 +425,7 @@ Args parseArguments(int argc, char *argv[]) {
     Args args{};
     args.m_height = height.getValue();
     args.m_width = width.getValue();
+    args.m_spherical_poles = poles.getValue();
     args.m_perturb_position = perturbPosition.getValue();
     args.m_perturb_orientation = perturbOrientation.getValue();
     args.m_open_cylinder = cut.getValue();

@@ -18,6 +18,7 @@ void TestPoSyOptimiser::SetUp() {
                     {"posy-term-crit-relative-smoothness", "0.01"},
                     {"posy-surfel-selection-algorithm",    "select-all-in-random-order"},
                     {"trace-smoothing",                    "false"},
+                    {"posy-randomise-neighbour-order",     "false"},
                     {"diagnose_dodgy_deltas",              "true"}
             }
     };

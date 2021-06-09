@@ -72,9 +72,16 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
                 nbr_reference_lattice_vertex);
 
         // Compute q_ij ... the midpoint on the intersection of the tangent planes
-        const auto q_ij = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
-        const auto Q_ij = compute_lattice_neighbours(reference_lattice_vertex, q_ij, tangent, orth_tangent, m_rho);
-        const auto Q_ji = compute_lattice_neighbours(nbr_reference_lattice_vertex, q_ij, nbr_tangent, nbr_orth_tangent,
+        const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
+        const auto Q_ij = compute_lattice_neighbours(reference_lattice_vertex,
+                                                     q,
+                                                     tangent,
+                                                     orth_tangent,
+                                                     m_rho);
+        const auto Q_ji = compute_lattice_neighbours(nbr_reference_lattice_vertex,
+                                                     q,
+                                                     nbr_tangent,
+                                                     nbr_orth_tangent,
                                                      m_rho);
 
         const auto closest_pair = find_closest_points(Q_ij, Q_ji);
@@ -90,12 +97,14 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
                              neighbour_node->data()->id());
                 spdlog::warn("v_i = [{:3}, {:3}, {:3}]", vertex[0], vertex[1], vertex[2]);
                 spdlog::warn("tan_i = [{:3}, {:3}, {:3}]", tangent[0], tangent[1], tangent[2]);
-                spdlog::warn("tan_j = [{:3}, {:3}, {:3}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
                 spdlog::warn("otan_i = [{:3}, {:3}, {:3}]", orth_tangent[0], orth_tangent[1], orth_tangent[2]);
+                spdlog::warn("n_i = [{:3f}, {:3f}, {:3f}]", normal[0], normal[1], normal[2]);
+                spdlog::warn("v_j = [{:3}, {:3}, {:3}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
+                spdlog::warn("tan_j = [{:3}, {:3}, {:3}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
                 spdlog::warn("otan_j = [{:3}, {:3}, {:3}]", nbr_orth_tangent[0], nbr_orth_tangent[1],
                              nbr_orth_tangent[2]);
-                spdlog::warn("v_j = [{:3}, {:3}, {:3}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
-                spdlog::warn("q_ij = [{:3f}, {:3f}, {:3f}]", q_ij[0], q_ij[1], q_ij[2]);
+                spdlog::warn("n_j = [{:3f}, {:3f}, {:3f}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
+                spdlog::warn("q_ij = [{:3f}, {:3f}, {:3f}]", q[0], q[1], q[2]);
                 spdlog::warn("Qij = [{:3f}, {:3f}, {:3f};", Q_ij[0][0], Q_ij[0][1], Q_ij[0][2]);
                 spdlog::warn("       {:3f}, {:3f}, {:3f};", Q_ij[1][0], Q_ij[1][1], Q_ij[1][2]);
                 spdlog::warn("       {:3f}, {:3f}, {:3f};", Q_ij[3][0], Q_ij[3][1], Q_ij[3][2]);
@@ -106,14 +115,12 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
                 spdlog::warn("       {:3f}, {:3f}, {:3f};", Q_ji[3][0], Q_ji[3][1], Q_ji[3][2]);
                 spdlog::warn("       {:3f}, {:3f}, {:3f};", Q_ji[2][0], Q_ji[2][1], Q_ji[2][2]);
                 spdlog::warn("       {:3f}, {:3f}, {:3f}]", Q_ji[0][0], Q_ji[0][1], Q_ji[0][2]);
-                spdlog::warn("n_i = [{:3f}, {:3f}, {:3f}]", normal[0], normal[1], normal[2]);
-                spdlog::warn("n_j = [{:3f}, {:3f}, {:3f}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
                 spdlog::warn("cl_i = [{:3f}, {:3f}, {:3f}]", cp_i[0], cp_i[1], cp_i[2]);
                 spdlog::warn("cl_j = [{:3f}, {:3f}, {:3f}]", cp_j[0], cp_j[1], cp_j[2]);
 
                 // Do some checking
                 spdlog::warn("n_i . (Q_i3 - Q_i1) is {:4}", normal.dot(Q_ij[3] - Q_ij[1]));
-                spdlog::warn("n_j . (Q_j3 - Q_j1) is {:4}", normal.dot(Q_ji[3] - Q_ji[1]));
+                spdlog::warn("n_j . (Q_j3 - Q_j1) is {:4}", nbr_normal.dot(Q_ji[3] - Q_ji[1]));
             }
         }
         frame_smoothness += delta;
@@ -171,7 +178,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
         auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);
         // Optionally randomise the order
-        if(m_randomise_neighour_order) {
+        if (m_randomise_neighour_order) {
             std::shuffle(begin(neighbours_in_frame),
                          end(neighbours_in_frame),
                          m_random_engine);
@@ -190,9 +197,18 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             float w_ij = 1.0f;
 
             // Compute q_ij and thus Q_ij and Q_ji
-            const auto q_ij = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
-            const auto Q_ij = compute_lattice_neighbours(new_lattice_point, q_ij, tangent, orth_tangent, m_rho);
-            const auto Q_ji = compute_lattice_neighbours(nbr_lattice_point, q_ij, nbr_tangent, nbr_orth_tangent, m_rho);
+            const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
+            const auto Q_ij = compute_lattice_neighbours(new_lattice_point,
+                                                         q,
+                                                         tangent,
+                                                         orth_tangent,
+                                                         m_rho);
+            const auto Q_ji = compute_lattice_neighbours(nbr_lattice_point,
+                                                         q,
+                                                         nbr_tangent,
+                                                         nbr_orth_tangent,
+                                                         m_rho);
+
             const auto closest_points = find_closest_points(Q_ij, Q_ji);
 
             new_lattice_point = sum_w * closest_points.first + w_ij * closest_points.second;
@@ -200,6 +216,8 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             new_lattice_point = new_lattice_point * (1.0f / sum_w);
             new_lattice_point -= normal.dot(new_lattice_point - vertex) * normal; // Back to plane
         } // End of neighbours
+
+        // Get nearest lattice point to the source vertex
         new_lattice_point = round_4(normal, tangent, new_lattice_point, vertex, m_rho);
         const auto ref_offset = compute_ref_offset(new_lattice_point, vertex, tangent, orth_tangent);
         this_surfel_ptr->set_reference_lattice_offset(ref_offset);

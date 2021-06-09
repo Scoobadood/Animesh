@@ -12,15 +12,15 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
         float rho);
 
 /**
-* Given a regular grid with basis vectors o, o_prime,
-* a lattice position p and q, a position possibly not on the lattice,
-* The following operation rounds q to the nearest lattice point.
+* Given a regular grid with basis vectors tangent, o_prime,
+* a lattice position lattice_point and vertex, a position possibly not on the lattice,
+* The following operation rounds vertex to the nearest lattice point.
 */
 Eigen::Vector3f
-round_4(const Eigen::Vector3f &n,
-        const Eigen::Vector3f &o,
-        const Eigen::Vector3f &p,
-        const Eigen::Vector3f &q,
+round_4(const Eigen::Vector3f &normal,
+        const Eigen::Vector3f &tangent,
+        const Eigen::Vector3f &lattice_point,
+        const Eigen::Vector3f &vertex,
         float rho);
 
 Eigen::Vector3f
@@ -49,7 +49,8 @@ translate_4(const Eigen::Vector3f &p,
  * @param n_j Nrmal of second plane.
  * @return
  */
-Eigen::Vector3f compute_qij(
+Eigen::Vector3f
+compute_qij(
         const Eigen::Vector3f &v_i,
         const Eigen::Vector3f &n_i,
         const Eigen::Vector3f &v_j,

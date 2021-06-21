@@ -22,6 +22,7 @@ std::default_random_engine defaultRandomEngine{123};
 
 const int DEFAULT_WIDTH = 10;
 const int DEFAULT_HEIGHT = 10;
+const int DEFAULT_DEPTH = 10;
 struct Args {
     enum type {
         PLANAR,
@@ -32,6 +33,7 @@ struct Args {
     type m_type;
     unsigned int m_width;
     unsigned int m_height;
+    unsigned int m_depth;
     unsigned int m_rings;
     unsigned int m_segments;
     float m_radius;
@@ -233,6 +235,167 @@ void addSurfel(const std::string &name,
 /*
 *
  */
+SurfelGraphPtr generate_sphere_from_cube(const Args &args) {
+    const auto width = args.m_width;
+    const auto height = args.m_height;
+    const auto depth = args.m_depth;
+
+    spdlog::info("Generating cube sphere width: {}, height: {}, depth: {}",
+                 width, height, depth);
+
+    SurfelGraphPtr graph = std::make_shared<SurfelGraph>();
+
+    const auto w2 = width / 2.0f;
+    const auto h2 = height / 2.0f;
+    const auto d2 = depth / 2.0f;
+
+    const auto radius = sqrtf(w2 * w2 + h2 * h2 + d2 * d2);
+    // Generate Top and Bottom face nodes
+    {
+        SurfelGraphNodePtr nodes[(width - 1) * (depth - 1) * 2];
+        int node_index = 0;
+        for (auto vy = -h2; vy <= h2; vy += h2) {
+            for (auto z = 0; z < depth - 1; ++z) {
+                for (auto x = 0; x < width - 1; ++x) {
+                    auto vx = x - w2;
+                    auto vz = z - d2;
+                    Eigen::Vector3f vec{vx, vy, vz};
+                    auto norm = vec.normalized();
+                    Eigen::Vector3f node = norm * radius;
+                    auto name = "s_" + std::to_string(vx) + "_" + std::to_string(vy) + "_" + std::to_string(vz);
+                    addSurfel(name, node, norm, graph, nodes, node_index);
+
+                    long from_node_index = node_index;
+                    long to_node_index;
+
+                    if (x > 0) {
+                        to_node_index = from_node_index - 1;
+                        graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+                    }
+                    if (z > 0) {
+                        if (x > 0) {
+                            to_node_index = from_node_index - width - 1;
+                            graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+                        }
+                        to_node_index = from_node_index - width;
+                        graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+                        if (x < width - 2) {
+                            to_node_index = from_node_index - width + 1;
+                            graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+                        }
+                    }
+                }
+                node_index++;
+            }
+        }
+    }
+
+//    {
+//        // Front and Back
+//        SurfelGraphNodePtr nodes[(width + 1) * (height + 1) * 2];
+//        int node_index = 0;
+//
+//        for (auto y = 0; y < height; ++y) {
+//            for (auto x = 0; x < width; ++x) {
+//                auto vx = x - w2;
+//                auto vy = y - h2;
+//                auto vz = 0 - d2;
+//                Eigen::Vector3f vec{vx, vy, vz};
+//                auto norm = vec.normalized();
+//                Eigen::Vector3f node = norm * radius;
+//                auto name = "s_" + std::to_string(vx) + "_" + std::to_string(vy) + "_" + std::to_string(vz);
+//                addSurfel(name, node, norm, graph, nodes, node_index++);
+//
+//                vz = d2;
+//                vec.z() = vz;
+//                norm = vec.normalized();
+//                node = norm * radius;
+//                name = "s_" + std::to_string(vx) + "_" + std::to_string(vy) + "_" + std::to_string(vz);
+//                addSurfel(name, node, norm, graph, nodes, node_index++);
+//
+//
+//                long from_node_index = node_index - 1;
+//                long to_node_index;
+//
+//                if (x > 0) {
+//                    to_node_index = from_node_index - 2;
+//                    graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                    graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                }
+//                if (y > 0) {
+//                    if (x > 0) {
+//                        to_node_index = from_node_index - width - 2;
+//                        graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                        graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                    }
+//                    to_node_index = from_node_index - width;
+//                    graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                    graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                    if (x < width - 1) {
+//                        to_node_index = from_node_index - width + 2;
+//                        graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                        graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
+//    {
+//        // Left and Right
+//        SurfelGraphNodePtr nodes[(height + 1) * (depth + 1) * 2];
+//        int node_index = 0;
+//
+//        for (auto z = 0; z < depth; ++z) {
+//            for (auto y = 0; y < height; ++y) {
+//                auto vx = 0 - w2;
+//                auto vy = y - h2;
+//                auto vz = z - d2;
+//                Eigen::Vector3f vec{vx, vy, vz};
+//                auto norm = vec.normalized();
+//                Eigen::Vector3f node = norm * radius;
+//                auto name = "s_" + std::to_string(vx) + "_" + std::to_string(vy) + "_" + std::to_string(vz);
+//                addSurfel(name, node, norm, graph, nodes, node_index++);
+//
+//                vx = w2;
+//                vec.x() = vx;
+//                norm = vec.normalized();
+//                node = norm * radius;
+//                name = "s_" + std::to_string(vx) + "_" + std::to_string(vy) + "_" + std::to_string(vz);
+//                addSurfel(name, node, norm, graph, nodes, node_index++);
+//
+//                long from_node_index = node_index - 1;
+//                long to_node_index;
+//                if (y > 0) {
+//                    to_node_index = from_node_index - 2;
+//                    graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                    graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                }
+//                if (z > 0) {
+//                    if (y > 0) {
+//                        to_node_index = from_node_index - height - 2;
+//                        graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                        graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                    }
+//                    to_node_index = from_node_index - height;
+//                    graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                    graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                    if (y < height - 1) {
+//                        to_node_index = from_node_index - height + 2;
+//                        graph->add_edge(nodes[from_node_index], nodes[to_node_index], SurfelGraphEdge{1});
+//                        graph->add_edge(nodes[from_node_index - 1], nodes[to_node_index - 1], SurfelGraphEdge{1});
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+    return graph;
+}
+
+/*
+*
+ */
 SurfelGraphPtr generate_sphere(const Args &args) {
     const auto radius = args.m_radius;
     const auto segments = args.m_segments;
@@ -274,16 +437,18 @@ SurfelGraphPtr generate_sphere(const Args &args) {
             Eigen::Vector3f pos{sx, sy, sz};
             const auto norm = pos.normalized();
 
-            auto psi = 0.0f;
             if (args.m_perturb_orientation) {
-                psi = o_dis(defaultRandomEngine);
+                auto name = "s_" + std::to_string(ring) + "_" + std::to_string(seg);
+                addSurfel(name, pos, norm, graph, nodes, node_index);
+            } else {
+                Eigen::Vector3f tan = norm.cross(Eigen::Vector3f{0, 0, 1});
+                addSurfel("s_" + std::to_string(ring) + "_" + std::to_string(seg),
+                          pos, norm, tan, graph, nodes, node_index);
             }
-            auto name = "s_" + std::to_string(ring) + "_" + std::to_string(seg);
-            addSurfel(name, pos, norm, graph, nodes, node_index);
             node_index++;
         }
     }
-    if( args.m_spherical_poles) {
+    if (args.m_spherical_poles) {
         addSurfel("s_top", {0, 0, radius}, {0, 0, 1},
                   graph,
                   nodes, node_index);
@@ -349,7 +514,7 @@ SurfelGraphPtr generate_sphere(const Args &args) {
         }
     }
 
-    if( args.m_spherical_poles) {
+    if (args.m_spherical_poles) {
         // Connect top
         for (unsigned int seg = 0; seg < segments; ++seg) {
             graph->add_edge(nodes[(rings - 1) * segments], nodes[seg], SurfelGraphEdge{1});
@@ -384,6 +549,12 @@ Args parseArguments(int argc, char *argv[]) {
                                          false,
                                          DEFAULT_HEIGHT,
                                          "int", cmd);
+    TCLAP::ValueArg<unsigned int> depth("d",
+                                        "depth",
+                                        "Depth of cube",
+                                        false,
+                                        DEFAULT_DEPTH,
+                                        "int", cmd);
 
     TCLAP::ValueArg<unsigned int> segments("s",
                                            "segments",
@@ -425,6 +596,7 @@ Args parseArguments(int argc, char *argv[]) {
     Args args{};
     args.m_height = height.getValue();
     args.m_width = width.getValue();
+    args.m_depth = depth.getValue();
     args.m_spherical_poles = poles.getValue();
     args.m_perturb_position = perturbPosition.getValue();
     args.m_perturb_orientation = perturbOrientation.getValue();
@@ -483,7 +655,7 @@ generate_cylinder(const Args &args) {
             };
             Eigen::Vector3f norm = Eigen::Vector3f{pos[0], pos[1], 0}.normalized();
             // If we have orientation perturbation, allow surfels to generate their own tans
-            if( args.m_perturb_orientation) {
+            if (args.m_perturb_orientation) {
                 addSurfel("s_" + std::to_string(r) + "_" + std::to_string(s),
                           pos, norm, graph, nodes, node_index);
             } else {
@@ -529,7 +701,8 @@ int main(int argc, char *argv[]) {
             break;
 
         case Args::SPHERICAL:
-            graph = generate_sphere(args);
+            graph = generate_sphere_from_cube(args);
+            //graph = generate_sphere(args);
             break;
 
         case Args::CYLINDRICAL:

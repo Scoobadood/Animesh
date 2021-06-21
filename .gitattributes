@@ -187,3 +187,4 @@
 *.cppcheck filter=lfs diff=lfs merge=lfs -text
 *.natvis filter=lfs diff=lfs merge=lfs -text
 *.glsl filter=lfs diff=lfs merge=lfs -text
+*.graph filter=lfs diff=lfs merge=lfs -text

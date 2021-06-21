@@ -110,6 +110,7 @@ target_link_libraries(
 		Surfel
 		FileUtils
 )
+
 add_executable(
 		surfel_scaler
 		surfel_scalar.cpp
@@ -125,3 +126,21 @@ target_link_libraries(
 		Surfel
 		FileUtils
 )
+
+# Convert an OBJ file to a Surfel graph
+add_executable(
+		obj_to_graph
+		obj_to_graph.h obj_to_graph.cpp
+)
+target_include_directories(
+		obj_to_graph
+		PUBLIC
+		../third_party/include
+)
+target_link_libraries(
+		obj_to_graph
+		Surfel
+		FileUtils
+		GeomFileUtils
+)
+

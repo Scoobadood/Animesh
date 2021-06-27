@@ -2,7 +2,7 @@
 #include "ObjFileParser.h"
 
 #include <FileUtils/FileUtils.h>
-
+#include <Eigen/Geometry>
 #include <Geom/Geom.h>
 #include <iostream>
 #include <map>
@@ -75,9 +75,14 @@ handle_face_line(
         // Form is int/int/int
         vector<string> terms = split(tokens[idx], '/');
         int v_idx = stoi(terms[0]) - 1;
-        int vn_idx = stoi(terms[2]) - 1;
-        face_vertex_idx.push_back(v_idx);
+        int vn_idx;
+        if (terms.size() > 1) {
+            vn_idx= stoi(terms[2]) - 1;
+        } else {
+            vn_idx = v_idx;
+        }
         face_normal_idx.push_back(vn_idx);
+        face_vertex_idx.push_back(v_idx);
         verts.emplace_back(v_idx, vn_idx);
         idx++;
     }
@@ -109,8 +114,55 @@ read_data(const std::string &file_name,
             handle_face_line(line, face_vertex_indices, face_normal_indices, faces);
         }
     });
+
+    // If no normals specified in the file, we must generate them
+    // We can do this using a cross product on each face
+    if( given_normals.empty() ) {
+        for( size_t i = 0; i < given_vertices.size(); ++i ) {
+            given_normals.emplace_back(0, 0, 0);
+        }
+
+        // Compute a face normal and assign to each node of the face
+        for (const auto & face : faces ) {
+            assert( face.size() >= 3 );
+            const auto & v1 = given_vertices[face[0].first];
+            const auto & v2 = given_vertices[face[1].first];
+            const auto & v3 = given_vertices[face[2].first];
+            Vector3f n = (v2 - v1).cross(v3 - v1);
+
+            given_normals[face[0].first] = n;
+            given_normals[face[1].first] = n;
+            given_normals[face[2].first] = n;
+        }
+    }
 }
 
+void
+read_data(const std::string &file_name,
+          std::vector<Eigen::Vector3f> &given_vertices,
+          std::vector<Eigen::Vector3f> &given_normals,
+          std::vector<std::size_t> &face_vertex_indices,
+          std::vector<std::size_t> &face_normal_indices,
+          std::vector<std::vector<std::pair<std::size_t, std::size_t>>> &faces) {
+    using namespace std;
+    using namespace Eigen;
+
+
+    process_file_by_lines(file_name, [&](const string &line) {
+        if (line[0] == 'v') {
+            // Normals
+            if (line[1] == 'n') {
+                handle_normal_line(line, given_normals);
+            }
+                // Vertices
+            else {
+                handle_vertex_line(line, given_vertices);
+            }
+        } else if (line[0] == 'f') {
+            handle_face_line(line, face_vertex_indices, face_normal_indices, faces);
+        }
+    });
+}
 
 /**
  * Given a set of all face indices and face normal indices

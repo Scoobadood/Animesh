@@ -9,6 +9,7 @@
 #include <QKeyEvent>
 #include <QWheelEvent>
 #include <QObject>
+#include <QMatrix4x4>
 
 class ArcBall : public QObject {
 public:
@@ -20,11 +21,7 @@ public:
 
     void pan(float dx, float dy);
 
-    void modelViewMatrix(float[16]);
-
-    bool modelViewMatrixHasChanged() const {
-        return m_modelViewMatrixIsDirty;
-    }
+    void get_model_view_matrix(float mat[16]);
 
 private:
     const float ROTATE_FACTOR = 300.0f;
@@ -42,6 +39,8 @@ private:
     QVector3D getCameraPosition() const;
 
     QVector3D toCartesian() const;
+
+    QMatrix4x4 m_model_view_matrix;
 
 protected:
     bool eventFilter(QObject *o, QEvent *e) override;

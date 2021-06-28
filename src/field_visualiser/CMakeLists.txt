@@ -11,30 +11,40 @@ find_package(OpenGL REQUIRED)
 
 set(PROJECT_SOURCES
 		main.cpp
-		posy_visualiser_window.cpp
-		posy_visualiser_window.h
+		field_gl_widget.h
+		field_gl_widget.cpp
+		field_visualiser_window.cpp
+		field_visualiser_window.h
+		field_visualiser_window.ui
+
 		posy_gl_widget.cpp
 		posy_gl_widget.h
 		posy_surfel_graph_geometry_extractor.cpp
 		posy_surfel_graph_geometry_extractor.h
-		posy_visualiser_window.ui
+
+		rosy_gl_widget.cpp
+		rosy_gl_widget.h
+		rosy_surfel_graph_geometry_extractor.h
+		rosy_surfel_graph_geometry_extractor.cpp
 		)
 
-add_executable(posy_visualiser
+add_executable(field_visualiser
 		${PROJECT_SOURCES}
 		)
 
 target_include_directories(
-		posy_visualiser
+		field_visualiser
 		PUBLIC
 		${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(posy_visualiser
+target_link_libraries(
+		field_visualiser
 		PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
 		${OPENGL_LIBRARIES}
 		Qt5::Widgets
 		Qt5::OpenGL
-		Surfel
 		ArcBall
-		)
+		Properties
+		Surfel
+)

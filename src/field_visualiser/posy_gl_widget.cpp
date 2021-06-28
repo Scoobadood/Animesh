@@ -3,25 +3,14 @@
 #include <vector>
 #include <QColor>
 #include <QImage>
-#include <Surfel/SurfelGraph.h>
 
-const float DEG2RAD = (3.14159265f / 180.0f);
-
-posy_gl_widget::posy_gl_widget(
-        QWidget *parent, Qt::WindowFlags f) :
-        QOpenGLWidget{parent, f} //
-        , m_fov{60} //
-        , m_zNear{0.5f} //
-        , m_zFar{50.0f} //
-        , m_aspectRatio{1.0f} //
-        , m_projectionMatrixIsDirty{true} //
+posy_gl_widget::posy_gl_widget(QWidget *parent, Qt::WindowFlags f) //
+        : field_gl_widget{parent, f} //
         , m_render_quads{true} //
         , m_render_textures{false} //
         , m_render_triangle_fans{false} //
         , m_rho{1.0f} //
 {
-    m_arcBall = new ArcBall();
-    installEventFilter(m_arcBall);
     setFocus();
     // Dummy data
     setPoSyData(
@@ -52,9 +41,10 @@ posy_gl_widget::posy_gl_widget(
             std::vector<float>{0.0f, 0.0f}
     );
 }
+
 void
-posy_gl_widget::preRender(float & oldLineWidth) const {
-    if( m_render_textures) {
+posy_gl_widget::preRender(float &oldLineWidth) const {
+    if (m_render_textures) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glEnable(GL_TEXTURE_2D);
         m_texture->bind();
@@ -68,7 +58,7 @@ posy_gl_widget::preRender(float & oldLineWidth) const {
 
 void
 posy_gl_widget::postRender(float oldLineWidth) const {
-    if( m_render_textures) {
+    if (m_render_textures) {
         m_texture->release();
         glDisable(GL_TEXTURE_2D);
         checkGLError("unbind texture");
@@ -153,7 +143,7 @@ posy_gl_widget::maybeDrawTriangleFans() const {
         glBegin(GL_TRIANGLE_FAN);
 
         // Hub vertex then (fan_size+1) additional vertices
-        glColor4ub(255,255,255,255);
+        glColor4ub(255, 255, 255, 255);
         for (auto j = 0; j < fan_size; ++j) {
             glTexCoord2d(m_triangle_uvs.at((fan_index / 3) * 2 + 0),
                          m_triangle_uvs.at((fan_index / 3) * 2 + 1));
@@ -191,60 +181,7 @@ posy_gl_widget::drawPositions() const {
 }
 
 void
-posy_gl_widget::clear() {
-    glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    checkGLError("clear");
-}
-
-/**
- * If the ModelView matrix is dirty, update and reload it.
- */
-void
-posy_gl_widget::maybeUpdateModelViewMatrix() {
-    if (m_arcBall->modelViewMatrixHasChanged()) {
-        glMatrixMode(GL_MODELVIEW);
-        float m[16];
-        m_arcBall->modelViewMatrix(m);
-        glLoadMatrixf(m);
-    }
-    checkGLError("maybeUpdateModelViewMatrix");
-}
-
-/**
- * If the projection matrix is dirty, update and reload it.
- */
-void
-posy_gl_widget::maybeUpdateProjectionMatrix() const {
-    if (m_projectionMatrixIsDirty) {
-        const auto yMax = tan(m_fov * DEG2RAD * 0.5f);
-        const auto xMax = yMax * m_aspectRatio;
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glFrustum(-xMax, xMax, -yMax, yMax, m_zNear, m_zFar);
-    }
-    checkGLError("maybeUpdateProjectionMatrix");
-}
-
-/**
- * Resize the viewport when the window resizes.
- */
-void
-posy_gl_widget::resizeGL(int width, int height) {
-    glViewport(0, 0, width, height);
-    m_aspectRatio = (float) width / (float) height;
-    m_projectionMatrixIsDirty = true;
-}
-
-void
-posy_gl_widget::paintGL() {
-    clear();
-
-    maybeUpdateProjectionMatrix();
-
-    maybeUpdateModelViewMatrix();
-
+posy_gl_widget::do_paint() {
     drawPositions();
 
     maybeDrawQuads();
@@ -283,20 +220,13 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
     update();
 }
 
-void
-posy_gl_widget::checkGLError(const std::string &context) {
-    auto err = glGetError();
-    if (!err) return;
-    spdlog::error("{}: {} ", context, err);
-}
-
 QImage
 posy_gl_widget::generateTexture() {
     QImage img(500, 500, QImage::Format_ARGB32);
     unsigned int colour;
     for (int x = 0; x < 500; ++x) {
         for (int y = 0; y < 500; ++y) {
-            if (x < 20 || y < 20 ) {
+            if (x < 20 || y < 20) {
                 colour = 0xFF942C20;
             } else {
                 colour = 0xFFFFFFFF;
@@ -325,20 +255,3 @@ posy_gl_widget::initializeGL() {
     checkGLError("Generating texture");
 }
 
-void
-posy_gl_widget::setZFar(float zFar) {
-    if (m_zFar != zFar) {
-        m_zFar = zFar;
-        m_projectionMatrixIsDirty = true;
-        update();
-    }
-}
-
-void
-posy_gl_widget::setFov(float fov) {
-    if (m_fov != fov) {
-        m_fov = fov;
-        m_projectionMatrixIsDirty = true;
-        update();
-    }
-}

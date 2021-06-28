@@ -201,16 +201,17 @@ ArcBall::eventFilter(QObject *o, QEvent *e) {
 }
 
 void
-ArcBall::modelViewMatrix(float mat[16]) {
-    QMatrix4x4 matrix;
-    matrix.setToIdentity();
+ArcBall::get_model_view_matrix(float *mat) {
+    if( m_modelViewMatrixIsDirty) {
+        m_model_view_matrix.setToIdentity();
 
-    const auto pos = getCameraPosition();
-    matrix.lookAt(
-            pos,
-            m_target,
-            QVector3D(0.0f, m_up, 0.0f));
-    matrix.translate(-pos.x(), -pos.y(), -pos.z());
-    memcpy(mat, matrix.constData(), 16 * 4);
-    m_modelViewMatrixIsDirty = false;
+        const auto pos = getCameraPosition();
+        m_model_view_matrix.lookAt(
+                pos,
+                m_target,
+                QVector3D(0.0f, m_up, 0.0f));
+        m_model_view_matrix.translate(-pos.x(), -pos.y(), -pos.z());
+        m_modelViewMatrixIsDirty = false;
+    }
+    memcpy(mat, m_model_view_matrix.constData(), 16 * sizeof(float));
 }

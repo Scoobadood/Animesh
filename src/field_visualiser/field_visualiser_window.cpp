@@ -48,7 +48,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
         ui->rosytGLWidget->update();
         ui->posyGLWidget->update();
     });
-    m_timer->start(100);
+    m_timer->start(10);
 }
 
 field_visualiser_window::~field_visualiser_window() {

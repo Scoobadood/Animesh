@@ -183,8 +183,6 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
     m_colours.insert(m_colours.begin(), colours.begin(), colours.end());
     m_normalScaleFactor = normal_scale_factor;
-
-    update();
 }
 
 void
@@ -197,7 +195,6 @@ void
 rosy_gl_widget::renderNormals( bool shouldRender) {
     if( m_renderNormals != shouldRender) {
         m_renderNormals = shouldRender;
-        update();
     }
 }
 
@@ -205,7 +202,6 @@ void
 rosy_gl_widget::renderMainTangents( bool shouldRender) {
     if( m_renderMainTangents != shouldRender) {
         m_renderMainTangents = shouldRender;
-        update();
     }
 }
 
@@ -213,7 +209,6 @@ void
 rosy_gl_widget::renderOtherTangents( bool shouldRender) {
     if( m_renderOtherTangents != shouldRender) {
         m_renderOtherTangents = shouldRender;
-        update();
     }
 }
 
@@ -221,6 +216,5 @@ void
 rosy_gl_widget::renderErrorColours( bool shouldRender) {
     if( m_renderErrorColours != shouldRender) {
         m_renderErrorColours = shouldRender;
-        update();
     }
 }

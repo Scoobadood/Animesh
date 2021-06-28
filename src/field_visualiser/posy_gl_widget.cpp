@@ -216,8 +216,6 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
     m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
     m_splat_sizes.insert(m_splat_sizes.begin(), splat_sizes.begin(), splat_sizes.end());
     m_uvs.insert(m_uvs.begin(), uvs.begin(), uvs.end());
-
-    update();
 }
 
 QImage

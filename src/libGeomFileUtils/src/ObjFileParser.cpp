@@ -137,33 +137,6 @@ read_data(const std::string &file_name,
     }
 }
 
-void
-read_data(const std::string &file_name,
-          std::vector<Eigen::Vector3f> &given_vertices,
-          std::vector<Eigen::Vector3f> &given_normals,
-          std::vector<std::size_t> &face_vertex_indices,
-          std::vector<std::size_t> &face_normal_indices,
-          std::vector<std::vector<std::pair<std::size_t, std::size_t>>> &faces) {
-    using namespace std;
-    using namespace Eigen;
-
-
-    process_file_by_lines(file_name, [&](const string &line) {
-        if (line[0] == 'v') {
-            // Normals
-            if (line[1] == 'n') {
-                handle_normal_line(line, given_normals);
-            }
-                // Vertices
-            else {
-                handle_vertex_line(line, given_vertices);
-            }
-        } else if (line[0] == 'f') {
-            handle_face_line(line, face_vertex_indices, face_normal_indices, faces);
-        }
-    });
-}
-
 /**
  * Given a set of all face indices and face normal indices
  * Compute the mean vertex normals for each given vertex by

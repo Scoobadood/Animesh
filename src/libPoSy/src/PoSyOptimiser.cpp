@@ -188,10 +188,15 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
     // For each frame this surfel is in...
     for (const auto frame_index : this_surfel_ptr->frames()) {
-
         // Get the parameters for this vertex -> notably normal, tangent, orth tangent and relative UV
         Eigen::Vector3f vertex, normal, tangent;
         this_surfel_ptr->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+
+        // Get the reference point which is assumed at k_ij = 0
+        Vector3f ref_lattice_point =
+                vertex +
+                (tangent * new_ref_lat_off.x()) +
+                ((normal.cross(tangent)) * new_ref_lat_off.y());
 
         float sum_w = 1.0f;
 
@@ -209,15 +214,17 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             const auto &edge = m_surfel_graph->edge(node, neighbour_node);
             const auto k_ij = edge->k_ij(frame_index);
             const auto k_ji = edge->k_ji(frame_index);
+            spdlog::debug("   k_ij {}, k_ji {}", k_ij, k_ji);
 
-            // TODO: Consider working with the 'closest_point' and translating this to and from
-            // offsets at the start and end of each neighbour.
 
             // Get same parms for neighbouur
             Eigen::Vector3f nbr_vertex, nbr_normal, nbr_tangent;
             neighbour_node->data()->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent,
                                                                         nbr_normal);
             auto nbr_ref_lat_off = neighbour_node->data()->reference_lattice_offset();
+            Vector3f nbr_ref_lattice_point = nbr_vertex +
+                                             (nbr_tangent * nbr_ref_lat_off.x()) +
+                                             ((nbr_normal.cross(nbr_tangent)) * nbr_ref_lat_off.y());
 
             float w_ij = 1.0f;
 
@@ -229,22 +236,14 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             const auto &orth_tangent = normal.cross(oriented_tangent);
             const auto &nbr_orth_tangent = nbr_normal.cross(nbr_oriented_tangent);
 
-            // Compute lattice points for this node and neighbour
-            Eigen::Vector3f nearest_lattice_point = vertex +
-                                                    new_ref_lat_off.x() * oriented_tangent +
-                                                    new_ref_lat_off.y() * orth_tangent;
-            const auto nbr_nearest_lattice_point = nbr_vertex +
-                                                   nbr_ref_lat_off.x() * nbr_oriented_tangent +
-                                                   nbr_ref_lat_off.y() * nbr_orth_tangent;
-
             // Compute q_ij and thus Q_ij and Q_ji
             const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
-            const auto Q_ij = compute_lattice_neighbours(nearest_lattice_point,
+            const auto Q_ij = compute_lattice_neighbours(ref_lattice_point,
                                                          q,
                                                          oriented_tangent,
                                                          orth_tangent,
                                                          m_rho);
-            const auto Q_ji = compute_lattice_neighbours(nbr_nearest_lattice_point,
+            const auto Q_ji = compute_lattice_neighbours(nbr_ref_lattice_point,
                                                          q,
                                                          nbr_oriented_tangent,
                                                          nbr_orth_tangent,
@@ -254,12 +253,14 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             const auto closest_points = find_closest_points(Q_ij, Q_ji);
 
             // Compute t_ij and t_ji
-            const auto dxyz_ij = (closest_points.first - nearest_lattice_point);
+            const auto dxyz_ij = (closest_points.first - ref_lattice_point);
             const auto t_ij_0 = dxyz_ij.dot(oriented_tangent);
             const auto t_ij_1 = dxyz_ij.dot(orth_tangent);
-            const auto dxyz_ji = (closest_points.second - nbr_nearest_lattice_point);
+
+            const auto dxyz_ji = (closest_points.second - nbr_ref_lattice_point);
             const auto t_ji_0 = dxyz_ji.dot(nbr_oriented_tangent);
             const auto t_ji_1 = dxyz_ji.dot(nbr_orth_tangent);
+
             if (t_ij_0 < 0.9 && t_ij_0 > 0.1) {
                 spdlog::warn("t_ij_0 out of range {}", t_ij_0);
             }
@@ -278,17 +279,14 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             edge->set_t_ji(frame_index, std::round(t_ji_0), std::round(t_ji_1));
 
             // Compute the weighted mean closest point
-            Vector3f new_lattice_point = sum_w * closest_points.first + w_ij * closest_points.second;
+            ref_lattice_point = sum_w * closest_points.first + w_ij * closest_points.second;
             sum_w += w_ij;
-            new_lattice_point = new_lattice_point * (1.0f / sum_w);
-            new_lattice_point -= normal.dot(new_lattice_point - vertex) * normal; // Back to plane
-
-            // TODO: Iterate again with nearest lattice point
-
-            nearest_lattice_point = round_4(normal, oriented_tangent, new_lattice_point, vertex, m_rho);
-            new_ref_lat_off = compute_ref_offset(nearest_lattice_point, vertex, tangent, orth_tangent);
-            spdlog::info("  Next iteration ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
+            ref_lattice_point = ref_lattice_point * (1.0f / sum_w);
+            ref_lattice_point -= normal.dot(ref_lattice_point - vertex) * normal; // Back to plane
         } // End of neighbours
+        ref_lattice_point = round_4(normal, tangent, ref_lattice_point, vertex, m_rho);
+        new_ref_lat_off = compute_ref_offset(ref_lattice_point, vertex, tangent, normal.cross(tangent));
+        spdlog::info("  Next iteration ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
         this_surfel_ptr->set_reference_lattice_offset(new_ref_lat_off);
     } // End of frames
 }

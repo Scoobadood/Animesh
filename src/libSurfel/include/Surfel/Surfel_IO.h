@@ -7,16 +7,28 @@
 #include <string>
 #include <memory>
 
+const unsigned int FLAG_SMOOTHNESS = (1 << 1);
+const unsigned int FLAG_EDGES = (1 << 0);
+
 /**
  * Save surfel data as binary file to disk
  */
 void
 save_surfel_graph_to_file(const std::string& file_name,
-                          const SurfelGraphPtr& surfel_graph);
+                          const SurfelGraphPtr& surfel_graph,
+                          bool save_smoothness = false,
+                          bool save_edges = false
+                          );
 
 /**
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness = true);
+load_surfel_graph_from_file(const std::string &file_name);
+
+/**
+ * Load surfel data from binary file
+ */
+SurfelGraphPtr
+load_surfel_graph_from_file(const std::string &file_name, unsigned short& flags);
 

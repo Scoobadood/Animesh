@@ -32,8 +32,7 @@ int main(int argc, char *argv[]) {
     string output_file_name = properties.getProperty("rosy-output-file");
 
     RoSyOptimiser roSyOptimiser{properties};
-    bool read_smoothness = properties.getBooleanProperty("rosy-file-read-smoothness");
-    auto surfel_graph = load_surfel_graph_from_file(input_file_name, read_smoothness);
+    auto surfel_graph = load_surfel_graph_from_file(input_file_name);
     info("Loaded from {}", input_file_name);
 
     roSyOptimiser.set_data(surfel_graph);
@@ -52,7 +51,7 @@ int main(int argc, char *argv[]) {
     info("Total time {}s ({:02d}:{:02d})", elapsed_time, mins, secs);
     info("Iterations : {}", iterations);
 
-    save_surfel_graph_to_file(output_file_name, surfel_graph);
+    save_surfel_graph_to_file(output_file_name, surfel_graph, true, true);
     info("Saved to {}", output_file_name);
 
     return 0;

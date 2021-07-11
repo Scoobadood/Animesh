@@ -67,14 +67,22 @@ public:
                                           Eigen::Vector3f &normal,
                                           Eigen::Vector3f &closest_mesh_vertex) const;
 
+    void get_all_data_for_surfel_in_frame(unsigned int frame_idx,
+                                          Eigen::Vector3f &vertex,
+                                          Eigen::Vector3f &tangent,
+                                          Eigen::Vector3f &orth_tangent,
+                                          Eigen::Vector3f &normal,
+                                          Eigen::Vector3f &closest_mesh_vertex,
+                                          unsigned short k_ij) const;
+
     static std::map<std::string, std::shared_ptr<Surfel>> m_surfel_by_id;
 
-    void transform_surfel_via_frame( const std::shared_ptr<Surfel>& that_surfel_ptr,
-                                     unsigned int frame_index,
-                                     Eigen::Vector3f& transformed_other_norm,
-                                     Eigen::Vector3f& transformed_other_tan)  const;
+    void transform_surfel_via_frame(const std::shared_ptr<Surfel> &that_surfel_ptr,
+                                    unsigned int frame_index,
+                                    Eigen::Vector3f &transformed_other_norm,
+                                    Eigen::Vector3f &transformed_other_tan) const;
 
-        private:
+private:
 
 //    static std::shared_ptr<Surfel> surfel_for_id(const std::string &id);
 
@@ -96,5 +104,6 @@ public:
            Eigen::Vector3f tangent = {1, 0, 0},
            Eigen::Vector2f reference_lattice_offset = {0, 0}
     );
+
     friend class SurfelBuilder;
 };

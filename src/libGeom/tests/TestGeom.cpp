@@ -3,6 +3,17 @@
 #include <Eigen/Geometry>
 #include <iostream>
 
+
+
+#define EXPECT_THROW_WITH_MESSAGE(stmt, etype, whatstring) EXPECT_THROW( \
+        try { \
+            stmt; \
+        } catch (const etype& ex) { \
+            EXPECT_EQ(std::string(ex.what()), whatstring); \
+            throw; \
+        } \
+    , etype)
+
 void TestGeom::SetUp( ) {
     using namespace Eigen;
 
@@ -141,14 +152,14 @@ TEST_F( TestGeom, Vector2VectorShouldFailAssertIfFirstVector0 ) {
     using namespace Eigen;
 
     ASSERT_DEATH(vector_to_vector_rotation( Vector3f::Zero(), vec_0_1_0 ),
-            "(v1\\.norm\\( \\) >= EPSILON && v2\\.norm\\( \\) >= EPSILON)");
+            "(v1\\.norm\\(\\) >= EPSILON && v2\\.norm\\(\\) >= EPSILON)");
 }
 
 TEST_F( TestGeom, Vector2VectorShouldFailAssertIfSecondVector0 ) {
     using namespace Eigen;
 
     ASSERT_DEATH(vector_to_vector_rotation( vec_0_1_0, Vector3f::Zero() ),
-            "(v1\\.norm\\( \\) >= EPSILON && v2\\.norm\\( \\) >= EPSILON)");
+            "(v1\\.norm\\(\\) >= EPSILON && v2\\.norm\\(\\) >= EPSILON)");
 }
 
 TEST_F( TestGeom, RotateVectorsAlignXToY ) {
@@ -536,6 +547,22 @@ TEST_F( TestGeom, Angle_Between_Vectors_180) {
     EXPECT_FLOAT_EQ(actual, expected);
 }
 
+TEST_F( TestGeom, Angle_Between_Parallel_Vectors) {
+    Eigen::Vector3f v1{-0.859163403f, 0.0, 0.511701465};
+    Eigen::Vector3f v2{-0.859163403f, 0.0, 0.511701465};
+    auto actual = degrees_angle_between_vectors(v1, v2);
+    float expected = 0.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
+TEST_F( TestGeom, Angle_Between_Opposing_Vectors) {
+    Eigen::Vector3f v1{-0.859163403f, 0.0, 0.511701465};
+    Eigen::Vector3f v2{0.859163403f, 0.0, -0.511701465};
+    auto actual = degrees_angle_between_vectors(v1, v2);
+    float expected = 180.0f;
+    EXPECT_FLOAT_EQ(actual, expected);
+}
+
 TEST_F( TestGeom, Angle_Between_Vectors_135_2) {
     auto actual = degrees_angle_between_vectors(vec_0_0_1, vec_0_m1_m1);
     float expected = 135.0f;
@@ -553,6 +580,267 @@ TEST_F( TestGeom, Angle_Between_Vectors_45_2) {
     float expected = 45.0f;
     EXPECT_FLOAT_EQ(actual, expected);
 }
+
+TEST_F(TestGeom, ZeroLengthVectorsShouldThrow) {
+    Eigen::Vector3f v1{0.1f, 0.2f, 0.3f};
+    Eigen::Vector3f v2{0.0f, 0.0f, 0.0f};
+
+    EXPECT_THROW_WITH_MESSAGE(
+            degrees_angle_between_vectors(v1, v2),
+            std::invalid_argument,
+            "Vector may not be zero length"
+    );
+}
+
+
+TEST_F(TestGeom, IdenticalVectorsShouldReturnZero) {
+    Eigen::Vector3f v1{ 0.1f, 0.2f, 0.3f };
+    Eigen::Vector3f v2{ 0.1f, 0.2f, 0.3f };
+
+    float expected = 0.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+//
+// Z Plane
+//
+
+// 45 Degrees
+TEST_F(TestGeom, Test45DegreesShouldReturn_45) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 1.0f, 1.0f, 0.0f };
+
+    float expected = 45.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 90 Degrees
+TEST_F(TestGeom, Test90DegreesShouldReturn_90) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 0.0f, 3.0f, 0.0f };
+
+    float expected = 90.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 135 Degrees
+TEST_F(TestGeom, Test135DegreesShouldReturn_135) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ -1.0f, 1.0f, 0.0f };
+
+    float expected = 135.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 180 Degrees
+TEST_F(TestGeom, Test180DegreesShouldReturn_180) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ -2.0f, 0.0f, 0.0f };
+
+    float expected = 180.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+
+// 225 Degrees
+TEST_F(TestGeom, Test225DegreesShouldReturn_135) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ -1.0f, -1.0f, 0.0f };
+
+    float expected = 135.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 270 Degrees
+TEST_F(TestGeom, Test270DegreesShouldReturn_90) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 0.0f, -1.0f, 0.0f };
+
+    float expected = 90.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 315 Degrees
+TEST_F(TestGeom, Test315DegreesShouldReturn_45) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 1.0f, -1.0f, 0.0f };
+
+    float expected = 45.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 360 Degrees
+TEST_F(TestGeom, Test360DegreesShouldReturnZero) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 2.0f, 0.0f, 0.0f };
+
+    float expected = 0.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+
+//
+// XZ Plane
+//
+
+// 45 Degrees
+TEST_F(TestGeom, Test45DegreesInYPlaneShouldReturn_45) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 1.0f, 0.0f, 1.0f };
+
+    float expected = 45.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 90 Degrees
+TEST_F(TestGeom, Test90DegreesInYPlaneShouldReturn_90) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 0.0f, 0.0f, 3.0f };
+
+    float expected = 90.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 135 Degrees
+TEST_F(TestGeom, Test135DegreesInYPlaneShouldReturn_135) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ -1.0f, 0.0f, 1.0f };
+
+    float expected = 135.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+
+// 225 Degrees
+TEST_F(TestGeom, Test225DegreesInYPlaneShouldReturn_135) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ -1.0f, 0.0f, -1.0f };
+
+    float expected = 135.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 270 Degrees
+TEST_F(TestGeom, Test270DegreesInYPlaneShouldReturn_90) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 0.0f, 0.0f, -1.0f };
+
+    float expected = 90.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 315 Degrees
+TEST_F(TestGeom, Test315DegreesInYPlaneShouldReturn_45) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 1.0f, 0.0f, -1.0f };
+
+    float expected = 45.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+
+//
+// YZ Plane
+//
+
+// 45 Degrees
+TEST_F(TestGeom, Test45DegreesInXPlaneShouldReturn_45) {
+    Eigen::Vector3f v1{ 0.0f, 0.0f, 2.0f };
+    Eigen::Vector3f v2{ 0.0f, 1.0f, 1.0f };
+
+    float expected = 45.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 135 Degrees
+TEST_F(TestGeom, Test135DegreesInXPlaneShouldReturn_135) {
+    Eigen::Vector3f v1{ 0.0f, 0.0f, 2.0f };
+    Eigen::Vector3f v2{ 0.0f, 1.0f, -1.0f };
+
+    float expected = 135.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 180 Degrees
+TEST_F(TestGeom, Test180DegreesInXPlaneShouldReturn_180) {
+    Eigen::Vector3f v1{ 0.0f, 0.0f, 2.0f };
+    Eigen::Vector3f v2{ 0.0f, 0.0f, -2.0f };
+
+    float expected = 180.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+
+// 225 Degrees
+TEST_F(TestGeom, Test225DegreesInXPlaneShouldReturn_135) {
+    Eigen::Vector3f v1{ 0.0f, 0.0f, 2.0f };
+    Eigen::Vector3f v2{ 0.0f, -1.0f, -1.0f };
+
+    float expected = 135.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+
+// 315 Degrees
+TEST_F(TestGeom, Test315DegreesInXPlaneShouldReturn_45) {
+    Eigen::Vector3f v1{ 0.0f, 0.0f, 2.0f };
+    Eigen::Vector3f v2{ 0.0f, -1.0f, 1.0f };
+
+    float expected = 45.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
+// 360 Degrees
+TEST_F(TestGeom, Test360DegreesInXPlaneShouldReturnZero) {
+    Eigen::Vector3f v1{ 2.0f, 0.0f, 0.0f };
+    Eigen::Vector3f v2{ 2.0f, 0.0f, 0.0f };
+
+    float expected = 0.0f;
+    float actual   = degrees_angle_between_vectors(v1, v2);
+
+    EXPECT_FLOAT_EQ( expected, actual );
+}
+
 
 TEST_F( TestGeom, CentroidOfNoFloatsThrows) {
     std::vector<float> emptyVector;

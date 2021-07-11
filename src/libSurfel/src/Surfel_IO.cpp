@@ -10,6 +10,7 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 #include "SurfelGraph.h"
+
 /*
 	********************************************************************************
 	**																			  **
@@ -18,19 +19,36 @@
 	********************************************************************************
 */
 
+static const unsigned short FLAGS_MARKER = 0xa9f1; // f1a9 = flag
+
 /**
  * Save surfel data as binary file to disk
  */
 void
 save_surfel_graph_to_file(const std::string &file_name,
-                          const SurfelGraphPtr &surfel_graph) {
+                          const SurfelGraphPtr &surfel_graph,
+                          bool save_smoothness,
+                          bool save_edges
+) {
     using namespace std;
     using namespace spdlog;
 
-    info("Saving {:d} surfels from graph to file {:s}", surfel_graph->num_nodes(), file_name);
+    info("Saving {:d} surfels from graph to file {:s} {:s} {:s}",
+         surfel_graph->num_nodes(), file_name,
+         save_smoothness ? "WITH_SMOOTHNESS" : "",
+         save_edges ? "WITH_EDGES" : ""
+    );
 
     ofstream file{file_name, ios::out | ios::binary};
+
     // Count
+    if (save_smoothness || save_edges) {
+        write_unsigned_short(file, FLAGS_MARKER);
+        unsigned short flags =
+                (save_smoothness ? FLAG_SMOOTHNESS : 0)
+                | (save_edges ? FLAG_EDGES : 0);
+        write_unsigned_short(file, flags);
+    }
     write_unsigned_int(file, surfel_graph->num_nodes());
     for (auto const &surfel : surfel_graph->nodes()) {
         // ID
@@ -69,8 +87,35 @@ save_surfel_graph_to_file(const std::string &file_name,
         }
         write_vector_3f(file, surfel->data()->tangent());
         write_vector_2f(file, surfel->data()->reference_lattice_offset());
-        write_float(file, surfel->data()->rosy_smoothness());
-        write_float(file, surfel->data()->posy_smoothness());
+        if (save_smoothness) {
+            write_float(file, surfel->data()->rosy_smoothness());
+            write_float(file, surfel->data()->posy_smoothness());
+        }
+    }
+
+    if (save_edges) {
+        unsigned int written_edges = 0;
+        write_unsigned_int(file, surfel_graph->num_edges());
+        for (const auto &edge : surfel_graph->edges()) {
+            write_string(file, edge.from()->data()->id());
+            write_string(file, edge.to()->data()->id());
+            write_float(file, edge.data()->weight());
+
+            const auto kv = edge.data()->k_values();
+            write_size_t(file, kv);
+            for (auto kvi = 0; kvi < kv; ++kvi) {
+                write_unsigned_short(file, edge.data()->k_ij(kvi));
+                write_unsigned_short(file, edge.data()->k_ji(kvi));
+            }
+            const auto tv = edge.data()->t_values();
+            write_size_t(file, tv);
+            for (auto tvi = 0; tvi < tv; ++tvi) {
+                write_vector_2i(file, edge.data()->t_ij(tvi));
+                write_vector_2i(file, edge.data()->t_ji(tvi));
+            }
+            written_edges++;
+        }
+        spdlog::info("Wrote {} edges", written_edges);
     }
     file.close();
     info(" done.");
@@ -80,19 +125,42 @@ save_surfel_graph_to_file(const std::string &file_name,
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) {
+load_surfel_graph_from_file(const std::string &file_name) {
+    unsigned short flags;
+    return load_surfel_graph_from_file(file_name, flags);
+}
+
+
+/**
+ * Load surfel data from binary file
+ */
+SurfelGraphPtr
+load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags) {
     using namespace std;
     using namespace spdlog;
 
     info("Loading surfel graph from file {:s}", file_name);
-
     SurfelGraphPtr graph = make_shared<SurfelGraph>(false);
     ifstream file{file_name, ios::in | ios::binary};
     if (file.fail()) {
         throw runtime_error("Error reading file " + file_name);
     }
 
-    unsigned int num_surfels = read_unsigned_int(file);
+
+    unsigned int num_surfels;
+    bool read_edges = false;
+    bool read_smoothness = false;
+    unsigned short flag_marker = read_unsigned_short(file);
+    if (flag_marker == FLAGS_MARKER) {
+        flags = read_unsigned_short(file);
+        read_edges = ((flags & FLAG_EDGES) == FLAG_EDGES);
+        read_smoothness = ((flags & FLAG_SMOOTHNESS) == FLAG_SMOOTHNESS);
+    } else {
+        flags = 0;
+        file.seekg(-sizeof(unsigned short), ios_base::cur);
+    }
+    num_surfels = read_unsigned_int(file);
+
     info("  loading {:d} surfels", num_surfels);
     map<string, vector<string>> neighbours_of_surfel_by_id;
     map<string, SurfelGraphNodePtr> graph_node_by_id;
@@ -160,16 +228,56 @@ load_surfel_graph_from_file(const std::string &file_name, bool read_smoothness) 
         graph_node_by_id.emplace(surfel_id, graph_node);
     }
     delete surfel_builder;
-    file.close();
 
-    // Populate neighbours
-    for (auto &graph_node : graph->nodes()) {
-        const auto &neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id());
-        for (const auto &neighbour_id : neighbour_ids) {
-            const auto neighbour_node = graph_node_by_id.at(neighbour_id);
-            graph->add_edge(graph_node, neighbour_node, 1.0);
+    if (read_edges) {
+        const auto num_edges = read_unsigned_int(file);
+        info("  loading {:d} edges", num_edges);
+
+        for (auto edge_index = 0; edge_index < num_edges; ++edge_index) {
+            const auto from_node_id = read_string(file);
+            auto from_node = graph_node_by_id.at(from_node_id);
+
+            const auto to_node_id = read_string(file);
+            auto to_node = graph_node_by_id.at(to_node_id);
+
+            const auto weight = read_float(file);
+            SurfelGraphEdge edge{weight};
+
+            const auto kv = read_size_t(file);
+            for (auto kvi = 0; kvi < kv; ++kvi) {
+                edge.set_k_ij(kvi, read_unsigned_short(file));
+                edge.set_k_ji(kvi, read_unsigned_short(file));
+            }
+            const auto tv = read_size_t(file);
+            for (auto tvi = 0; tvi < tv; ++tvi) {
+                edge.set_t_ij(tvi, read_int(file), read_int(file));
+                edge.set_t_ji(tvi, read_int(file), read_int(file));
+            }
+            graph->add_edge(from_node, to_node, edge);
+            spdlog::debug("Added edge {} from {} to {}", edge_index, from_node->data()->id(), to_node->data()->id());
+        }
+    } else {
+        info("  generating edges");
+
+        // Generate edges
+        for (auto &graph_node : graph->nodes()) {
+            const auto &neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id());
+            for (const auto &neighbour_id : neighbour_ids) {
+                const auto neighbour_node = graph_node_by_id.at(neighbour_id);
+                // DEBUG
+                info("    Generating edge from node ids {:s} to {:s}, node pointers {:p}, {:p}, shared pointers {:p} {:p}",
+                     graph_node->data()->id(),
+                     neighbour_node->data()->id(),
+                     fmt::ptr(graph_node.get()),
+                     fmt::ptr(neighbour_node.get()),
+                     fmt::ptr(graph_node),
+                     fmt::ptr(neighbour_node)
+                );
+                graph->add_edge(graph_node, neighbour_node, SurfelGraphEdge{1.0});
+            }
         }
     }
+    file.close();
 
     info(" done.");
     return graph;

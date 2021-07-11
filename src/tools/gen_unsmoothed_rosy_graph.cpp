@@ -164,6 +164,7 @@ SurfelGraphPtr generate_plane(const Args &args) {
                     0.0f,
                     (float) (z - ((height - 1) / 2.0) + (args.m_perturb_position ? p_dis(defaultRandomEngine) : 0.0))
             };
+            pos = pos * 0.1;
             sb->with_frame({x, z, 0},
                            10.0f,
                            Eigen::Matrix3f::Identity(),

@@ -40,7 +40,7 @@ namespace animesh {
             /**
             * Set the data in the node
             */
-            inline void set_data(const NodeData & data) { m_data = data;}
+            inline void set_data(const NodeData &data) { m_data = data; }
 
         private:
             /** The data held in this node */
@@ -60,9 +60,9 @@ namespace animesh {
             Edge(const std::shared_ptr<GraphNode> from_node,
                  const std::shared_ptr<GraphNode> to_node,
                  const std::shared_ptr<EdgeData> edge_data)
-                 : m_from_node{from_node},
-                m_to_node{to_node},
-                m_edge_data{edge_data} { } ;
+                    : m_from_node{from_node},
+                      m_to_node{to_node},
+                      m_edge_data{edge_data} {};
 
             std::shared_ptr<GraphNode> from() const { return m_from_node; }
 
@@ -94,7 +94,7 @@ namespace animesh {
          * @param node_data
          * @return
          */
-        static std::shared_ptr<GraphNode> make_node( const NodeData& node_data) {
+        static std::shared_ptr<GraphNode> make_node(const NodeData &node_data) {
             return std::make_shared<GraphNode>(node_data);
         }
 
@@ -112,7 +112,7 @@ namespace animesh {
         * Add a node for the given data.
         * @param data The data to be added.
         */
-        void add_node(const std::shared_ptr<GraphNode>& node) {
+        void add_node(const std::shared_ptr<GraphNode> &node) {
             using namespace std;
             assert(node != nullptr);
 
@@ -127,17 +127,19 @@ namespace animesh {
         /**
          * Remove the given node (and any incident edges)
          */
-        void remove_node(const std::shared_ptr<GraphNode>& node) {
+        void remove_node(const std::shared_ptr<GraphNode> &node) {
             const auto neighbours = m_adjacency.at(node);
-            for( const auto& neighbour : neighbours) {
+            for (const auto &neighbour : neighbours) {
                 // Remove the forward edge
                 m_edges.erase(make_pair(node, neighbour));
-                if( !m_is_directed) {
+                if (!m_is_directed) {
                     // For an undirected graph, remove the reverse edge too
                     m_edges.erase(make_pair(neighbour, node));
                     // And remove node from adjacency of neighbour
-                    auto & neighbour_neighbours = m_adjacency.at(neighbour);
-                    neighbour_neighbours.erase(std::remove(begin(neighbour_neighbours), end(neighbour_neighbours), node), end(neighbour_neighbours));
+                    auto &neighbour_neighbours = m_adjacency.at(neighbour);
+                    neighbour_neighbours.erase(
+                            std::remove(begin(neighbour_neighbours), end(neighbour_neighbours), node),
+                            end(neighbour_neighbours));
                 }
             }
             m_adjacency.erase(node);
@@ -145,14 +147,16 @@ namespace animesh {
 
         /**
          * Add an edge to the graph connecting two existing nodes.
+         * For undirected graphs, this also adds the inverse edge.
          */
-        void add_edge(const std::shared_ptr<GraphNode>& from_node,
-                      const std::shared_ptr<GraphNode>& to_node,
+        void add_edge(const std::shared_ptr<GraphNode> &from_node,
+                      const std::shared_ptr<GraphNode> &to_node,
                       const EdgeData &edge_data) {
             using namespace std;
 
             if (has_edge(from_node, to_node)) {
-                spdlog::debug("Ignoring attempt to add duplicate edge from {:p} to {:p}", fmt::ptr(from_node), fmt::ptr(to_node));
+                spdlog::debug("Ignoring attempt to add duplicate edge from {:p} to {:p}", fmt::ptr(from_node),
+                              fmt::ptr(to_node));
                 return;
             }
 
@@ -170,22 +174,25 @@ namespace animesh {
         * remove only an edge from from_node to to_node.
         * <p/>
         */
-        void remove_edge(const std::shared_ptr<GraphNode>& from_node,
-                         const std::shared_ptr<GraphNode>& to_node) {
+        void remove_edge(const std::shared_ptr<GraphNode> &from_node,
+                         const std::shared_ptr<GraphNode> &to_node) {
             using namespace std;
 
             if (!has_edge(from_node, to_node)) {
-                spdlog::error("Ignoring attempt to remove non-existent edge from {:x} to {:x}", fmt::ptr(from_node), fmt::ptr(to_node));
+                spdlog::error("Ignoring attempt to remove non-existent edge from {:x} to {:x}", fmt::ptr(from_node),
+                              fmt::ptr(to_node));
                 return;
             }
             auto from_neighbours = m_adjacency.at(from_node);
-            from_neighbours.erase(std::remove(begin(from_neighbours), end(from_neighbours), to_node), end(from_neighbours));
-            m_edges.erase(make_pair(from_node, to_node));
+            from_neighbours.erase(std::remove(begin(from_neighbours), end(from_neighbours), to_node),
+                                  end(from_neighbours));
+            m_edges.erase({from_node, to_node});
 
             if (!m_is_directed) {
                 auto to_neighbours = m_adjacency.at(to_node);
-                to_neighbours.erase(std::remove(begin(to_neighbours), end(to_neighbours), from_node), end(to_neighbours));
-                m_edges.erase(make_pair(to_node, from_node));
+                to_neighbours.erase(std::remove(begin(to_neighbours), end(to_neighbours), from_node),
+                                    end(to_neighbours));
+                m_edges.erase({to_node, from_node});
             }
         }
 
@@ -238,29 +245,27 @@ namespace animesh {
         }
 
         /**
-         * Return the edge from from_nbode to to_node
+         * Return the edge from from_node to to_node
          */
-         std::shared_ptr<EdgeData>&
-                 edge(const std::shared_ptr<GraphNode>& from_node,
-                 const std::shared_ptr<GraphNode>& to_node) {
-             return m_edges.at(std::make_pair(from_node, to_node));
-         }
+        std::shared_ptr<EdgeData> &
+        edge(const std::shared_ptr<GraphNode> &from_node,
+             const std::shared_ptr<GraphNode> &to_node) {
+            return m_edges.at(std::make_pair(from_node, to_node));
+        }
 
         /**
         * @return the number of edges in this graph
         */
         size_t num_edges() const {
-            return (m_is_directed)
-                   ? m_edges.size()
-                   : m_edges.size() / 2;
+            return m_edges.size();
         }
 
         /**
         * @return a vector of the neighbours of a given node
         */
-        std::vector<std::shared_ptr<GraphNode>> neighbours(const std::shared_ptr<GraphNode>& node) const {
+        std::vector<std::shared_ptr<GraphNode>> neighbours(const std::shared_ptr<GraphNode> &node) const {
             using namespace std;
-            assert( node != nullptr);
+            assert(node != nullptr);
 
             vector<shared_ptr<GraphNode>> neighbours;
             for (const auto &n : m_adjacency.at(node)) {
@@ -274,10 +279,9 @@ namespace animesh {
         * this will return true if there is an edge from node 2 to node 1.
         */
         bool has_edge(const std::shared_ptr<GraphNode> &node_a,
-                      const std::shared_ptr<GraphNode>& node_b) const {
+                      const std::shared_ptr<GraphNode> &node_b) const {
             using namespace std;
-
-            return (m_edges.count(make_pair(node_a, node_b)) != 0 );
+            return (m_edges.count({node_a, node_b}) != 0);
         }
 
         /**

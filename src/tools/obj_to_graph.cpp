@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (const auto &adj : adjacency) {
-        graph.add_edge(nodes[adj.first], nodes[adj.second], 1);
+        graph.add_edge(nodes[adj.first], nodes[adj.second], SurfelGraphEdge{1.0});
     }
 
     save_surfel_graph_to_file(outfile_name, make_shared<SurfelGraph>(graph));

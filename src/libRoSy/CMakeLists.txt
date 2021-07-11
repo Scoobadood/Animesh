@@ -24,7 +24,6 @@ target_link_libraries(
 add_executable(
 		testRoSy
 		tests/main.cpp
-		tests/TestAngleBetweenVectors.cpp
 		tests/TestMinimiseKL.cpp tests/TestMinimiseKL.h
 		tests/TestVectorRotation.cpp tests/TestVectorRotation.h
 		tests/GtestUtility.h)

@@ -2,13 +2,10 @@
 #include <PoSy/PoSyOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/Surfel_IO.h>
-#include <Surfel/SurfelGraph.h>
 
 #include "spdlog/cfg/env.h"
 #include <string>
 #include <chrono>
-#include <iostream>
-#include <iomanip>
 
 
 /**
@@ -35,8 +32,7 @@ int main(int argc, char *argv[]) {
     string output_file_name = properties.getProperty("posy-output-file");
 
     PoSyOptimiser poSyOptimiser{properties};
-    bool read_smoothness = properties.getBooleanProperty("posy-file-read-smoothness");
-    auto surfel_graph = load_surfel_graph_from_file(input_file_name, read_smoothness);
+    auto surfel_graph = load_surfel_graph_from_file(input_file_name);
     poSyOptimiser.set_data(surfel_graph);
 
     auto start_time = std::chrono::system_clock::now();
@@ -56,7 +52,7 @@ int main(int argc, char *argv[]) {
     info("Total time {}s ({02d}:{02d})", elapsed_time, mins, secs);
     info("Total iterations : {}", last_level_iterations);
 
-    save_surfel_graph_to_file(output_file_name, surfel_graph);
+    save_surfel_graph_to_file(output_file_name, surfel_graph, true, true);
     info("Saved to {}", output_file_name);
 
     return 0;

@@ -6,7 +6,7 @@ void TestMinimiseKL::SetUp( ) {}
 void TestMinimiseKL::TearDown() {}
 
 /*
- * Test the function to return k,l that minimise the inter vectr angle
+ * Test the function to return k,l that minimise the inter vector angle
  */
 /* ********************************************************************************
  * ** Test computing the smallest rotations

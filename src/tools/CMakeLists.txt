@@ -144,3 +144,5 @@ target_link_libraries(
 		GeomFileUtils
 )
 
+add_subdirectory(field_visualiser)
+add_subdirectory(quadulator)

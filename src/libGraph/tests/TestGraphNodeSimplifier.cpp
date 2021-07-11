@@ -208,11 +208,13 @@ TEST_F(TestGraphNodeSimplifier, CollapseMiddleNode) {
     m_simplifier->collapse_node(graph_ptr, m_node_c, removed);
 
     ASSERT_EQ(graph_ptr->num_nodes(), 4);
-    ASSERT_EQ(graph_ptr->num_edges(), 2);
+    ASSERT_EQ(graph_ptr->num_edges(), 4); // ab, ba, de, ed
 
     std::vector<std::string> expected{"a", "e", "x", "bdc"};
     assertContainsInAnyOrder(graph_ptr->nodes(), expected);
     assertContainsInAnyOrder(removed, vector<string>{"b", "c", "d"});
+
+    ASSERT_EQ(removed.size(), 3);
 }
 
 TEST_F(TestGraphNodeSimplifier, CollapseEndNode) {
@@ -223,11 +225,13 @@ TEST_F(TestGraphNodeSimplifier, CollapseEndNode) {
     m_simplifier->collapse_node(graph_ptr, m_node_a, removed);
 
     ASSERT_EQ(graph_ptr->num_nodes(), 5);
-    ASSERT_EQ(graph_ptr->num_edges(), 3);
+    ASSERT_EQ(graph_ptr->num_edges(), 6); // bc,cd,de,cb,dc,ed
 
     std::vector<std::string> expected{"c", "d", "e", "x", "ba"};
     assertContainsInAnyOrder(graph_ptr->nodes(), expected);
     assertContainsInAnyOrder(removed, vector<string>{"a", "b"});
+
+    ASSERT_EQ(removed.size(), 2);
 }
 
 TEST_F(TestGraphNodeSimplifier, CollapseOrphanNode) {
@@ -238,10 +242,10 @@ TEST_F(TestGraphNodeSimplifier, CollapseOrphanNode) {
     m_simplifier->collapse_node(graph_ptr, m_node_x, removed);
 
     ASSERT_EQ(graph_ptr->num_nodes(), 6);
-    ASSERT_EQ(graph_ptr->num_edges(), 4);
+    ASSERT_EQ(graph_ptr->num_edges(), 8); // ab,bc,cd,de,ed,dc,cb,ba
 
     std::vector<std::string> expected{"a", "b", "c", "d", "e", "x"};
     assertContainsInAnyOrder(graph_ptr->nodes(), expected);
-    ASSERT_EQ(removed.size(), 0);
+    ASSERT_EQ(removed.size(), 1);
 }
 

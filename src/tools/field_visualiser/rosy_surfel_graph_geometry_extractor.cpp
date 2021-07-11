@@ -52,7 +52,6 @@ void extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
                               : 0.0f;
     for (float error : errors) {
         auto err = error * error_scale_factor;
-        spdlog::info(err);
         colours.push_back(err); // red
         colours.push_back(1.0f - err); // grn
         colours.push_back(0.0f); // blu

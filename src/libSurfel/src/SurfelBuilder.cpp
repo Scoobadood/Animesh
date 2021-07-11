@@ -47,12 +47,6 @@ SurfelBuilder *SurfelBuilder::with_tangent(float x, float y, float z) {
 }
 
 SurfelBuilder *SurfelBuilder::with_reference_lattice_offset(const Eigen::Vector2f &reference_lattice_offset) {
-    assert(
-            (reference_lattice_offset.x() >= -0.5f) &&
-            (reference_lattice_offset.y() >= -0.5f) &&
-            (reference_lattice_offset.x() < 0.5f) &&
-            (reference_lattice_offset.y() < 0.5f));
-
     m_reference_lattice_offset = reference_lattice_offset;
     m_reference_lattice_offset_set = true;
     return this;

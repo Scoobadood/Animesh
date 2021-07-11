@@ -7,7 +7,7 @@
 
 int main(int argc, const char *argv[]) {
     std::string in_file = argv[1];
-    auto s = load_surfel_graph_from_file(in_file, false);
+    auto s = load_surfel_graph_from_file(in_file);
 
     std::string out_file;
     if (argc == 3) {

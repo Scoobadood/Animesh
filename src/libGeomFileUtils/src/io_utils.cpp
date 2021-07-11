@@ -15,6 +15,22 @@ write_unsigned_int( std::ofstream& file, unsigned int value ) {
 }
 
 /**
+ * Write an int (32 bits)
+ */
+void
+write_int( std::ofstream& file, int value ) {
+    file.write( (const char *)&value, sizeof( int ) );
+}
+
+/**
+ * Write an unsigned short (16 bits)
+ */
+void
+write_unsigned_short( std::ofstream& file, unsigned short value ) {
+    file.write( (const char *)&value, sizeof( unsigned short ) );
+}
+
+/**
  * Write a float
  */
 void
@@ -48,10 +64,32 @@ write_vector_2f( std::ofstream& file, const Eigen::Vector2f& vector ) {
     write_float(file, vector.x());
     write_float(file, vector.y());
 }
+/*
+ * Write a 2D int vector
+ */
+void
+write_vector_2i( std::ofstream& file, const Eigen::Vector2i& vector ) {
+    write_int(file, vector.x());
+    write_int(file, vector.y());
+}
+
+int
+read_int( std::ifstream& file ) {
+    int i;
+    file.read( (char *)&i, sizeof(i) );
+    return i;
+}
 
 unsigned int
 read_unsigned_int( std::ifstream& file ) {
     unsigned int i;
+    file.read( (char *)&i, sizeof(i) );
+    return i;
+}
+
+unsigned short
+read_unsigned_short( std::ifstream& file ) {
+    unsigned short i;
     file.read( (char *)&i, sizeof(i) );
     return i;
 }
@@ -87,6 +125,14 @@ read_float( std::ifstream& file ) {
     return value;
 }
 
+
+Eigen::Vector2i
+read_vector_2i( std::ifstream& file ) {
+    int x, y;
+    file.read( (char *)&x, sizeof(int) );
+    file.read( (char *)&y, sizeof(int) );
+    return Eigen::Vector2i{x, y};
+}
 
 Eigen::Vector2f
 read_vector_2f( std::ifstream& file ) {

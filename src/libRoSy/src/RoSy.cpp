@@ -18,58 +18,53 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3
 }
 
 /**
-* @param target_vector The vector we're trying to match.
-* @param target_normal The normal about which to rotate it.
-* @param target_k The number of rotations required for the match (output).
-* @param source_vector The vector we're matching to the target.
-* @param source_normal The normal about which to rotate it.
-* @param source_k The number of rotations required for the match (output).
+* @param o_i The vector we're trying to match.
+* @param n_i The normal about which to rotate it.
+* @param k_ij The number of rotations required for the match (output).
+* @param o_j The vector we're matching to the target.
+* @param n_j The normal about which to rotate it.
+* @param k_ji The number of rotations required for the match (output).
 * @return the best fitting vector (i.e. best multiple of PI/2 + angle)
 */
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
-best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3f &target_normal, unsigned short &target_k,
-                      const Eigen::Vector3f &source_vector, const Eigen::Vector3f &source_normal, unsigned short &source_k) {
+best_rosy_vector_pair(const Eigen::Vector3f &o_i, const Eigen::Vector3f &n_i, unsigned short &k_ij,
+                      const Eigen::Vector3f &o_j, const Eigen::Vector3f &n_j, unsigned short &k_ji) {
     using namespace Eigen;
+    using namespace std;
 
-    if (!is_unit_vector(source_normal)) {
-        throw std::invalid_argument("Normal must be unit vector");
+    if (!is_unit_vector(n_j)) {
+        throw invalid_argument("Normal must be unit vector");
     }
-    if (!is_unit_vector(target_normal)) {
-        throw std::invalid_argument("Normal must be unit vector");
+    if (!is_unit_vector(n_i)) {
+        throw invalid_argument("Normal must be unit vector");
     }
-    if (is_zero_vector(source_vector)) {
-        throw std::invalid_argument("Vector may not be zero length");
+    if (is_zero_vector(o_j)) {
+        throw invalid_argument("Vector may not be zero length");
     }
-    if (is_zero_vector(target_vector)) {
-        throw std::invalid_argument("Vector may not be zero length");
+    if (is_zero_vector(o_i)) {
+        throw invalid_argument("Vector may not be zero length");
     }
 
-    // We'll compare 0 and 90 degree rotations of each vector
-    const Vector3f target_candidates[2] = {target_vector, target_normal.cross(target_vector)};
-    const Vector3f source_candidates[2] = {source_vector, source_normal.cross(source_vector)};
+    k_ij = k_ji = 0;
+    float best_theta = INFINITY;
+    Vector3f best_o_i{o_i};
+    Vector3f best_o_j{o_j};
+    for(int test_k_ij =0; test_k_ij < 4; ++ test_k_ij) {
+        const auto &test_o_i = vector_by_rotating_around_n(o_i, n_i, test_k_ij);
+        for (int test_k_ji = 0; test_k_ji < 4; ++test_k_ji) {
+            const auto &test_o_j = vector_by_rotating_around_n(o_j, n_j, test_k_ji);
 
-
-    float best_dot_product = -std::numeric_limits<float>::infinity();;
-    unsigned short best_target_idx = 0;
-    unsigned short best_source_idx = 0;
-
-    for (unsigned short i = 0; i < 2; ++i) {
-        for (unsigned short j = 0; j < 2; ++j) {
-
-            float dp = std::abs(target_candidates[i].dot(source_candidates[j]));
-            if (dp > best_dot_product) {
-                best_dot_product = dp;
-                best_target_idx = i;
-                best_source_idx = j;
+            const auto theta = degrees_angle_between_vectors(test_o_i, test_o_j);
+            if (theta < best_theta) {
+                best_theta = theta;
+                best_o_j = test_o_j;
+                best_o_i = test_o_i;
+                k_ij = test_k_ij;
+                k_ji = test_k_ji;
             }
         }
     }
-
-    const float dp = target_candidates[best_target_idx].dot(source_candidates[best_source_idx]);
-    target_k = best_target_idx;
-    source_k = (dp >= 0.0f) ? best_source_idx : best_source_idx + 2;
-    return std::make_pair(target_candidates[best_target_idx],
-                          source_candidates[best_source_idx] * std::copysign(1.0f, dp));
+    return {best_o_i, best_o_j};
 }
 
 /**

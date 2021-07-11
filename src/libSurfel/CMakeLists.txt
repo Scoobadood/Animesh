@@ -7,6 +7,7 @@ add_library(
 		src/Surfel_Compute.cpp include/Surfel/Surfel_Compute.h
 		src/SurfelBuilder.cpp include/Surfel/SurfelBuilder.h
 		src/Surfel_IO.cpp include/Surfel/Surfel_IO.h
+		src/SurfelGraph.cpp include/Surfel/SurfelGraph.h
 )
 
 # Define headers for this library. PUBLIC headers are used for
@@ -37,6 +38,7 @@ add_executable(
 		tests/main.cpp
 		tests/TestSurfel.h tests/TestSurfel.cpp
 		${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph.bin
+		${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph_smooth.bin
 )
 
 target_link_libraries(
@@ -47,10 +49,15 @@ target_link_libraries(
 )
 
 add_custom_command(
-		OUTPUT ${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph.bin
-		COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_data ${CMAKE_BINARY_DIR}/surfel_test_data
+		OUTPUT
+			${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph.bin
+			${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph_smooth.bin
+		COMMAND
+			${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_data ${CMAKE_BINARY_DIR}/surfel_test_data
 		COMMENT "Copying surfel test data."
-		DEPENDS tests/test_data/gold_graph.bin
+		DEPENDS
+			tests/test_data/gold_graph.bin
+			tests/test_data/gold_graph_smooth.bin
 )
 
 add_test(

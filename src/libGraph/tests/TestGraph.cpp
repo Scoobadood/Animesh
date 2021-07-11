@@ -101,11 +101,11 @@ TEST_F(TestGraph, DGAddShouldIncreaseEdgeCount) {
     EXPECT_EQ( graph->num_edges(), 1 );
 }
 
-TEST_F(TestGraph, UGAddShouldIncreaseEdgeCount) {
+TEST_F(TestGraph, UGAddShouldIncreaseEdgeCountByTwo) {
     auto n1 = undirected_graph->add_node( "a" );
     auto n2 = undirected_graph->add_node( "b" );
     undirected_graph->add_edge(n1, n2, 1.0f);
-    EXPECT_EQ( undirected_graph->num_edges(), 1 );
+    EXPECT_EQ( undirected_graph->num_edges(), 2 );
 }
 
 TEST_F(TestGraph, DGAddDuplicateEdgeShouldNotIncreaseEdgeCount) {
@@ -216,7 +216,7 @@ TEST_F(TestGraph, RemoveNodeOnlyRemovesIncidentEdges ) {
     undirected_graph->add_edge( a, c, 1.0 );
     undirected_graph->add_edge( b, c, 1.0 );
 
-    EXPECT_EQ(3, undirected_graph->num_edges());
+    EXPECT_EQ(6, undirected_graph->num_edges());
     EXPECT_TRUE(undirected_graph->has_edge(a, b));
     EXPECT_TRUE(undirected_graph->has_edge(b, a));
     EXPECT_TRUE(undirected_graph->has_edge(a, c));
@@ -225,7 +225,7 @@ TEST_F(TestGraph, RemoveNodeOnlyRemovesIncidentEdges ) {
     EXPECT_TRUE(undirected_graph->has_edge(c, b));
 
     undirected_graph->remove_node(b);
-    EXPECT_EQ(1, undirected_graph->num_edges());
+    EXPECT_EQ(2, undirected_graph->num_edges());
     EXPECT_TRUE(undirected_graph->has_edge(a, c));
     EXPECT_TRUE(undirected_graph->has_edge(c, a));
 }
@@ -248,7 +248,7 @@ TEST_F(TestGraph, RemoveNodeRemovesItAsTargetForEdges ) {
 
     undirected_graph->remove_node(node_a);
     EXPECT_EQ(undirected_graph->num_nodes(), 2);
-    EXPECT_EQ(undirected_graph->num_edges(), 1);
+    EXPECT_EQ(undirected_graph->num_edges(), 2); //b->c, c->b
 
     undirected_graph->remove_node(node_c);
     EXPECT_EQ(undirected_graph->num_nodes(), 1);

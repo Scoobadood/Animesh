@@ -19,19 +19,19 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector,
                       const Eigen::Vector3f &source_normal);
 
 /**
-* @param target_vector The vector we're trying to match.
-* @param target_normal The normal about which to rotate it.
-* @param target_k The number of rotations required for the match (output).
-* @param source_vector The vector we're matching to the target.
-* @param source_normal The normal about which to rotate it.
-* @param source_k The number of rotations required for the match (output).
+* @param o_i The vector we're trying to match.
+* @param n_i The normal about which to rotate it.
+* @param k_ij The number of rotations required for the match (output).
+* @param o_j The vector we're matching to the target.
+* @param n_j The normal about which to rotate it.
+* @param k_ji The number of rotations required for the match (output).
 * @return the best fitting vector (i.e. best multiple of PI/2 + angle)
 */
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
-best_rosy_vector_pair(const Eigen::Vector3f &target_vector,
-                      const Eigen::Vector3f &target_normal, unsigned short &target_k,
-                      const Eigen::Vector3f &source_vector,
-                      const Eigen::Vector3f &source_normal, unsigned short &source_k);
+best_rosy_vector_pair(const Eigen::Vector3f &o_i,
+                      const Eigen::Vector3f &n_i, unsigned short &k_ij,
+                      const Eigen::Vector3f &o_j,
+                      const Eigen::Vector3f &n_j, unsigned short &k_ji);
 
 /**
  * Combine two tangent vectors with weighting

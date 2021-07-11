@@ -14,7 +14,7 @@ private:
     bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;
 
     float compute_node_smoothness_for_frame(
-            const SurfelGraphNodePtr &node_ptr,
+            const SurfelGraphNodePtr &this_node,
             size_t frame_index,
             unsigned int &num_neighbours) const override;
 
@@ -28,7 +28,7 @@ private:
         return SSA_PERCENTAGE_PROPERTY_NAME;
     }
 
-    void optimise_node(const SurfelGraphNodePtr &node) override;
+    void optimise_node(const SurfelGraphNodePtr &this_node) override;
 
     float m_damping_factor;
     bool m_weight_for_error;

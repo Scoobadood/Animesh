@@ -38,16 +38,17 @@ PointNormal::PointNormal(const Eigen::Vector3f &point, const Eigen::Vector3f &no
  */
 float degrees_angle_between_vectors(const Eigen::Vector3f &v1, const Eigen::Vector3f &v2) {
     using namespace Eigen;
+    using namespace std;
+
     if (is_zero_vector(v1) || is_zero_vector(v2)) {
-        throw std::invalid_argument("Vector may not be zero length");
+        throw invalid_argument("Vector may not be zero length");
     }
     if (are_parallel(v1, v2)) {
         return 0.0f;
     }
-
-    auto dp = v1.dot(v2);
-    auto mod_len = v1.norm() * v2.norm();
-    return std::acos(std::min(1.0f, dp / mod_len)) * 180 / M_PI;
+    // angle = atan2(norm(cross(a,b)), dot(a,b))
+    auto a1 = atan2((v1.cross(v2)).norm(), v1.dot(v2))*(180.0 / M_PI);
+    return (float)a1;
 }
 
 

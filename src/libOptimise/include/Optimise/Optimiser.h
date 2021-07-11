@@ -23,10 +23,6 @@ protected:
             const std::string &absolute_smoothness_property,
             const std::string &max_iterations_property);
 
-    std::vector<SurfelGraphNodePtr> get_node_neighbours_in_frame(
-            const SurfelGraphNodePtr &node_ptr,
-            unsigned int frame_index) const;
-
     virtual void trace_smoothing(const SurfelGraphPtr &graph) const {};
 
     virtual const std::string &get_ssa_property_name() const = 0;

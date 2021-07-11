@@ -6,7 +6,9 @@
 
 #include <spdlog/spdlog.h>
 #include <PoSy.h>
+#include <Geom/Geom.h>
 #include <Eigen/Geometry>
+#include <Surfel/SurfelGraph.h>
 
 PoSyOptimiser::PoSyOptimiser(const Properties &properties)
         : Optimiser{properties} //
@@ -47,40 +49,59 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
                                                  unsigned int &num_neighbours) const {
     float frame_smoothness = 0.0f;
 
-    Eigen::Vector3f vertex, reference_lattice_vertex, normal, tangent, orth_tangent;
-    node_ptr->data()->get_all_data_for_surfel_in_frame(
-            frame_index,
-            vertex,
-            tangent,
-            orth_tangent,
-            normal,
-            reference_lattice_vertex
-    );
-
-    const auto neighbours_in_frame = get_node_neighbours_in_frame(node_ptr, frame_index);
+    const auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, node_ptr, frame_index);
 
     // For each neighbour...
     for (const auto &neighbour_node : neighbours_in_frame) {
 
-        Eigen::Vector3f nbr_vertex, nbr_reference_lattice_vertex, nbr_normal, nbr_tangent, nbr_orth_tangent;
-        neighbour_node->data()->get_all_data_for_surfel_in_frame(
+        Eigen::Vector3f vertex, normal, tangent;
+        node_ptr->data()->get_vertex_tangent_normal_for_frame(
+                frame_index,
+                vertex,
+                tangent,
+                normal
+        );
+
+        Eigen::Vector3f nbr_vertex, nbr_normal, nbr_tangent;
+        neighbour_node->data()->get_vertex_tangent_normal_for_frame(
                 frame_index,
                 nbr_vertex,
                 nbr_tangent,
-                nbr_orth_tangent,
-                nbr_normal,
-                nbr_reference_lattice_vertex);
+                nbr_normal);
+
+        // Get edge data
+        const auto &edge = m_surfel_graph->edge(node_ptr, neighbour_node);
+        const auto k_ij = edge->k_ij(frame_index);
+        const auto k_ji = edge->k_ji(frame_index);
+
+        // Orient tangents appropriately for frame based on k_ij and k_ji
+        const auto &oriented_tangent = vector_by_rotating_around_n(tangent, normal, k_ij);
+        const auto &nbr_oriented_tangent = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
+
+        // Compute orth tangents
+        const auto &orth_tangent = normal.cross(oriented_tangent);
+        const auto &nbr_orth_tangent = nbr_normal.cross(nbr_oriented_tangent);
+
+        // Compute lattice points for this node and neighbour
+        Eigen::Vector3f nearest_lattice_point = vertex +
+                                                node_ptr->data()->reference_lattice_offset().x() * oriented_tangent +
+                                                node_ptr->data()->reference_lattice_offset().y() * orth_tangent;
+        const auto nbr_nearest_lattice_point = nbr_vertex +
+                                               neighbour_node->data()->reference_lattice_offset().x() *
+                                               nbr_oriented_tangent +
+                                               neighbour_node->data()->reference_lattice_offset().y() *
+                                               nbr_orth_tangent;
 
         // Compute q_ij ... the midpoint on the intersection of the tangent planes
         const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
-        const auto Q_ij = compute_lattice_neighbours(reference_lattice_vertex,
+        const auto Q_ij = compute_lattice_neighbours(nearest_lattice_point,
                                                      q,
-                                                     tangent,
+                                                     oriented_tangent,
                                                      orth_tangent,
                                                      m_rho);
-        const auto Q_ji = compute_lattice_neighbours(nbr_reference_lattice_vertex,
+        const auto Q_ji = compute_lattice_neighbours(nbr_nearest_lattice_point,
                                                      q,
-                                                     nbr_tangent,
+                                                     nbr_oriented_tangent,
                                                      nbr_orth_tangent,
                                                      m_rho);
 
@@ -162,21 +183,19 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
     const auto &this_surfel_ptr = node->data();
 
+    auto new_ref_lat_off = this_surfel_ptr->reference_lattice_offset();
+    spdlog::info("Original ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
+
     // For each frame this surfel is in...
     for (const auto frame_index : this_surfel_ptr->frames()) {
-        Eigen::Vector3f vertex, reference_lattice_point, normal, tangent, orth_tangent;
-        this_surfel_ptr->get_all_data_for_surfel_in_frame(
-                frame_index,
-                vertex,
-                tangent,
-                orth_tangent,
-                normal,
-                reference_lattice_point);
+
+        // Get the parameters for this vertex -> notably normal, tangent, orth tangent and relative UV
+        Eigen::Vector3f vertex, normal, tangent;
+        this_surfel_ptr->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
 
         float sum_w = 1.0f;
-        Vector3f new_lattice_point = reference_lattice_point;
 
-        auto neighbours_in_frame = get_node_neighbours_in_frame(node, frame_index);
+        auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, node, frame_index);
         // Optionally randomise the order
         if (m_randomise_neighour_order) {
             std::shuffle(begin(neighbours_in_frame),
@@ -185,41 +204,91 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         }
         // For each neighbour j ...
         for (const auto &neighbour_node : neighbours_in_frame) {
-            Eigen::Vector3f nbr_vertex, nbr_lattice_point, nbr_normal, nbr_tangent, nbr_orth_tangent;
-            neighbour_node->data()->get_all_data_for_surfel_in_frame(
-                    frame_index,
-                    nbr_vertex,
-                    nbr_tangent,
-                    nbr_orth_tangent,
-                    nbr_normal,
-                    nbr_lattice_point);
+
+            // Get edge data
+            const auto &edge = m_surfel_graph->edge(node, neighbour_node);
+            const auto k_ij = edge->k_ij(frame_index);
+            const auto k_ji = edge->k_ji(frame_index);
+
+            // TODO: Consider working with the 'closest_point' and translating this to and from
+            // offsets at the start and end of each neighbour.
+
+            // Get same parms for neighbouur
+            Eigen::Vector3f nbr_vertex, nbr_normal, nbr_tangent;
+            neighbour_node->data()->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent,
+                                                                        nbr_normal);
+            auto nbr_ref_lat_off = neighbour_node->data()->reference_lattice_offset();
 
             float w_ij = 1.0f;
 
+            // Orient tangents appropriately for frame based on k_ij and k_ji
+            const auto &oriented_tangent = vector_by_rotating_around_n(tangent, normal, k_ij);
+            const auto &nbr_oriented_tangent = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
+
+            // Compute orth tangents
+            const auto &orth_tangent = normal.cross(oriented_tangent);
+            const auto &nbr_orth_tangent = nbr_normal.cross(nbr_oriented_tangent);
+
+            // Compute lattice points for this node and neighbour
+            Eigen::Vector3f nearest_lattice_point = vertex +
+                                                    new_ref_lat_off.x() * oriented_tangent +
+                                                    new_ref_lat_off.y() * orth_tangent;
+            const auto nbr_nearest_lattice_point = nbr_vertex +
+                                                   nbr_ref_lat_off.x() * nbr_oriented_tangent +
+                                                   nbr_ref_lat_off.y() * nbr_orth_tangent;
+
             // Compute q_ij and thus Q_ij and Q_ji
             const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
-            const auto Q_ij = compute_lattice_neighbours(new_lattice_point,
+            const auto Q_ij = compute_lattice_neighbours(nearest_lattice_point,
                                                          q,
-                                                         tangent,
+                                                         oriented_tangent,
                                                          orth_tangent,
                                                          m_rho);
-            const auto Q_ji = compute_lattice_neighbours(nbr_lattice_point,
+            const auto Q_ji = compute_lattice_neighbours(nbr_nearest_lattice_point,
                                                          q,
-                                                         nbr_tangent,
+                                                         nbr_oriented_tangent,
                                                          nbr_orth_tangent,
                                                          m_rho);
 
+            // Get the closest points adjacent to q in both tangent planes
             const auto closest_points = find_closest_points(Q_ij, Q_ji);
 
-            new_lattice_point = sum_w * closest_points.first + w_ij * closest_points.second;
+            // Compute t_ij and t_ji
+            const auto dxyz_ij = (closest_points.first - nearest_lattice_point);
+            const auto t_ij_0 = dxyz_ij.dot(oriented_tangent);
+            const auto t_ij_1 = dxyz_ij.dot(orth_tangent);
+            const auto dxyz_ji = (closest_points.second - nbr_nearest_lattice_point);
+            const auto t_ji_0 = dxyz_ji.dot(nbr_oriented_tangent);
+            const auto t_ji_1 = dxyz_ji.dot(nbr_orth_tangent);
+            if (t_ij_0 < 0.9 && t_ij_0 > 0.1) {
+                spdlog::warn("t_ij_0 out of range {}", t_ij_0);
+            }
+            if (t_ij_1 < 0.9 && t_ij_1 > 0.1) {
+                spdlog::warn("t_ij_1 out of range {}", t_ij_1);
+            }
+            if (t_ji_0 < 0.9 && t_ji_0 > 0.1) {
+                spdlog::warn("t_ji_0 out of range {}", t_ji_0);
+            }
+            if (t_ji_1 < 0.9 && t_ji_1 > 0.1) {
+                spdlog::warn("t_ji_1 out of range {}", t_ji_1);
+            }
+
+            // Stash these to edge
+            edge->set_t_ij(frame_index, std::round(t_ij_0), std::round(t_ij_1));
+            edge->set_t_ji(frame_index, std::round(t_ji_0), std::round(t_ji_1));
+
+            // Compute the weighted mean closest point
+            Vector3f new_lattice_point = sum_w * closest_points.first + w_ij * closest_points.second;
             sum_w += w_ij;
             new_lattice_point = new_lattice_point * (1.0f / sum_w);
             new_lattice_point -= normal.dot(new_lattice_point - vertex) * normal; // Back to plane
-        } // End of neighbours
 
-        // Get nearest lattice point to the source vertex
-        new_lattice_point = round_4(normal, tangent, new_lattice_point, vertex, m_rho);
-        const auto ref_offset = compute_ref_offset(new_lattice_point, vertex, tangent, orth_tangent);
-        this_surfel_ptr->set_reference_lattice_offset(ref_offset);
+            // TODO: Iterate again with nearest lattice point
+
+            nearest_lattice_point = round_4(normal, oriented_tangent, new_lattice_point, vertex, m_rho);
+            new_ref_lat_off = compute_ref_offset(nearest_lattice_point, vertex, tangent, orth_tangent);
+            spdlog::info("  Next iteration ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
+        } // End of neighbours
+        this_surfel_ptr->set_reference_lattice_offset(new_ref_lat_off);
     } // End of frames
 }

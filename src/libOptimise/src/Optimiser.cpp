@@ -339,42 +339,9 @@ Optimiser::ssa_select_worst_percentage() const {
     return selected_nodes;
 }
 
-
-
-/**
- * @param surfel_graph The graph.
- * @return the number of frames spanned by this graph.
- */
-unsigned int
-Optimiser::count_number_of_frames(const SurfelGraphPtr &surfel_graph) {
-    // Compute the number of frames
-    unsigned int max_frame_id = 0;
-    for (const auto &n : surfel_graph->nodes()) {
-        for (const auto &fd : n->data()->frame_data()) {
-            if (fd.pixel_in_frame.frame > max_frame_id) {
-                max_frame_id = fd.pixel_in_frame.frame;
-            }
-        }
-    }
-    return max_frame_id + 1;
-}
-
 void
 Optimiser::set_data(const SurfelGraphPtr &surfel_graph) {
     m_surfel_graph = surfel_graph;
     m_state = INITIALISED;
-    m_num_frames = count_number_of_frames(surfel_graph);
+    m_num_frames = get_num_frames(surfel_graph);
 }
-
-std::vector<SurfelGraphNodePtr>
-Optimiser::get_node_neighbours_in_frame(const SurfelGraphNodePtr &node_ptr, unsigned int frame_index) const {
-    std::vector<SurfelGraphNodePtr> neighbours_in_frame;
-    for (const auto &neighbour_node : m_surfel_graph->neighbours(node_ptr)) {
-        if (neighbour_node->data()->is_in_frame(frame_index)) {
-            neighbours_in_frame.emplace_back(neighbour_node);
-        }
-    }
-    return neighbours_in_frame;
-}
-
-

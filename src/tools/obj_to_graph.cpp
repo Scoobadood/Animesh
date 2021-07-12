@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
     }
     string infile_name = argv[1];
     string outfile_name = argv[2];
+    float scale_factor = 0.2f;
 
     cout << "Parsing " << infile_name << endl;
     auto results = animesh::ObjFileParser::parse_file(infile_name, true);
@@ -47,7 +48,7 @@ int main(int argc, char *argv[]) {
                 ->with_frame(PixelInFrame{1, 1, 0},
                              10,
                              point_with_normal->normal(),
-                             point_with_normal->point())
+                             point_with_normal->point() * scale_factor)
                 ->build();
         auto node = graph.add_node(make_shared<Surfel>(surfel));
         nodes.push_back(node);

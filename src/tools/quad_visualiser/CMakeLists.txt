@@ -39,5 +39,6 @@ target_link_libraries(
 		ArcBall
 		Graph
 		Properties
+		Quad
 		Surfel
 )

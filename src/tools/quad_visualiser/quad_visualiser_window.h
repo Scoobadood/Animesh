@@ -3,15 +3,10 @@
 #include <QMainWindow>
 #include <Graph/Graph.h>
 #include <Eigen/Core>
+#include <Quad/Quad.h>
 #include <Properties/Properties.h>
 #include <ArcBall/ArcBall.h>
 #include <QTimer>
-
-typedef enum {
-    EDGE_TYPE_RED = 1,
-    EDGE_TYPE_BLU
-} EdgeType;
-
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class quad_visualiser_window; }

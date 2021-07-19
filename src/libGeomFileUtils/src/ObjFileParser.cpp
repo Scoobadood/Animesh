@@ -10,8 +10,6 @@
 using animesh::ObjFileParser;
 using animesh::PointNormal;
 
-const float EPSILON = 1e-4;
-
 template<typename Out>
 void split(const std::string &s, char delim, Out result) {
     std::stringstream ss(s);
@@ -312,7 +310,7 @@ ObjFileParser::parse_file(const std::string &file_name, bool with_adjacency, boo
 /**
  * Parse an OBJ file and return only points and faces
  * @param file_name The name of the file.
- * @return A pair of vectros containing the points and face vertex indices.
+ * @return A pair of vectors containing the points and face vertex indices.
  */
 std::pair<std::vector<Eigen::Vector3f>, std::vector<std::vector<std::size_t>>>
 ObjFileParser::parse_file_raw(const std::string &file_name) {
@@ -371,7 +369,10 @@ ObjFileParser::parse_file_raw_with_normals(const std::string &file_name) {
             // Sum normals
             face_normal = face_normal + given_normals[face_vertex.second];
         }
-        face_normal /= face_vertices.size();
+        float divisor = face_vertices.empty()
+                ? 1.0f
+                : (float)face_vertices.size();
+        face_normal /= divisor;
 
         output_face_data.emplace_back(face_vertex_data, face_normal);
     }

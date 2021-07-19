@@ -188,16 +188,13 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
     // For each frame this surfel is in...
     for (const auto frame_index : this_surfel_ptr->frames()) {
-        // Get the parameters for this vertex -> notably normal, tangent, orth tangent and relative UV
         Eigen::Vector3f vertex, normal, tangent;
         this_surfel_ptr->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
 
         // Get the reference point which is assumed at k_ij = 0
-        Vector3f ref_lattice_point =
-                vertex +
-                (tangent * new_ref_lat_off.x()) +
-                ((normal.cross(tangent)) * new_ref_lat_off.y());
-
+        Vector3f ref_lattice_point = vertex +
+                                     (tangent * new_ref_lat_off[0]) +
+                                     ((normal.cross(tangent)) * new_ref_lat_off[1]);
         float sum_w = 1.0f;
 
         auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, node, frame_index);
@@ -210,21 +207,20 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         // For each neighbour j ...
         for (const auto &neighbour_node : neighbours_in_frame) {
 
-            // Get edge data
-            const auto &edge = m_surfel_graph->edge(node, neighbour_node);
-            const auto k_ij = edge->k_ij(frame_index);
-            const auto k_ji = edge->k_ji(frame_index);
-            spdlog::debug("   k_ij {}, k_ji {}", k_ij, k_ji);
-
-
             // Get same parms for neighbouur
             Eigen::Vector3f nbr_vertex, nbr_normal, nbr_tangent;
             neighbour_node->data()->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent,
                                                                         nbr_normal);
             auto nbr_ref_lat_off = neighbour_node->data()->reference_lattice_offset();
             Vector3f nbr_ref_lattice_point = nbr_vertex +
-                                             (nbr_tangent * nbr_ref_lat_off.x()) +
-                                             ((nbr_normal.cross(nbr_tangent)) * nbr_ref_lat_off.y());
+                                             (nbr_tangent * nbr_ref_lat_off[0]) +
+                                             ((nbr_normal.cross(nbr_tangent)) * nbr_ref_lat_off[1]);
+
+            // Get edge data
+            const auto &edge = m_surfel_graph->edge(node, neighbour_node);
+            const auto k_ij = edge->k_ij(frame_index);
+            const auto k_ji = edge->k_ji(frame_index);
+            spdlog::debug("   k_ij {}, k_ji {}", k_ij, k_ji);
 
             float w_ij = 1.0f;
 

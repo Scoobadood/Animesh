@@ -11,7 +11,7 @@
  * Given a point in space, a normal, tangent vector and rho (lattice spacing) compute the 4 nearest vertices on the lattice
  */
 std::vector<Eigen::Vector3f> compute_lattice_neighbours(
-        const Eigen::Vector3f &lattice_point,
+        const Eigen::Vector3f &lattice_origin,
         const Eigen::Vector3f &point,
         const Eigen::Vector3f &tangent,
         const Eigen::Vector3f &orth_tangent,
@@ -22,17 +22,16 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
     const auto inv_rho = 1.0f / rho;
     vector<Vector3f> neighbours;
 
-    const auto diff = point - lattice_point;
+    const auto diff = point - lattice_origin;
 
-    const auto base = lattice_point +
+    const auto base = lattice_origin +
                       (tangent * std::floorf(tangent.dot(diff) * inv_rho) * rho) +
                       (orth_tangent * std::floorf(orth_tangent.dot(diff) * inv_rho) * rho);
 
-    for (int u = 0; u <= 1; ++u) {
-        for (int v = 0; v <= 1; ++v) {
-            neighbours.emplace_back(base + (((u * tangent) + (v * orth_tangent)) * rho));
-        }
-    }
+    neighbours.emplace_back(base);
+    neighbours.emplace_back(base + (tangent * rho));
+    neighbours.emplace_back(base + (orth_tangent * rho));
+    neighbours.emplace_back(base + ((tangent + orth_tangent) * rho));
 
     return neighbours;
 }
@@ -142,7 +141,7 @@ compute_qij(
     // If planes are parallel, pick the midpoint
     const double denom = 1.0 - (ni_dot_nj * ni_dot_nj);
     Eigen::Vector3f q = (v_i + v_j) * 0.5;
-    if( abs(denom) > 1e-4) {
+    if (abs(denom) > 1e-4) {
         const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) / denom;
         const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) / denom;
         q -= (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
@@ -225,4 +224,113 @@ find_closest_points(const std::vector<Eigen::Vector3f> &points_a, const std::vec
         }
     }
     return std::make_pair(best_pa, best_pb);
+}
+
+
+std::pair<Eigen::Vector2i, Eigen::Vector2i>
+best_posy_offset(const Eigen::Vector3f &this_vertex,
+                 const Eigen::Vector3f &this_tangent,
+                 const Eigen::Vector3f &this_normal,
+                 const Eigen::Vector2f &this_offset,
+                 const Eigen::Vector3f &that_vertex,
+                 const Eigen::Vector3f &that_tangent,
+                 const Eigen::Vector3f &that_normal,
+                 const Eigen::Vector2f &that_offset,
+                 float rho
+) {
+    using namespace std;
+    using namespace Eigen;
+
+    // Compute orth tangents
+    const auto this_orth_tangent = this_normal.cross(this_tangent);
+    const auto that_orth_tangent = that_normal.cross(that_tangent);
+
+    const auto this_lattice_vertex = this_vertex +
+                                     this_offset[0] * this_tangent +
+                                     this_offset[1] * this_orth_tangent;
+    const auto that_lattice_vertex = that_vertex +
+                                     that_offset[0] * that_tangent +
+                                     that_offset[1] * that_orth_tangent;
+
+    // Compute q_ij and thus Q_ij and Q_ji
+    const auto q = compute_qij(this_vertex, this_normal, that_vertex, that_normal);
+    const auto Q_ij = compute_lattice_neighbours(this_lattice_vertex,
+                                                 q,
+                                                 this_tangent,
+                                                 this_orth_tangent,
+                                                 rho);
+    const auto Q_ji = compute_lattice_neighbours(that_lattice_vertex,
+                                                 q,
+                                                 that_tangent,
+                                                 that_orth_tangent,
+                                                 rho);
+
+    // Get the closest points adjacent to q in both tangent planes
+    const auto closest_points = find_closest_points(Q_ij, Q_ji);
+
+    // Compute t_ij and t_ji
+    const auto dxyz_ij = (closest_points.first - this_lattice_vertex);
+    const auto t_ij_0 = dxyz_ij.dot(this_tangent);
+    const auto t_ij_1 = dxyz_ij.dot(this_orth_tangent);
+
+    const auto dxyz_ji = (closest_points.second - that_lattice_vertex);
+    const auto t_ji_0 = dxyz_ji.dot(that_tangent);
+    const auto t_ji_1 = dxyz_ji.dot(that_orth_tangent);
+
+    return make_pair(Vector2i{t_ij_0, t_ij_1}, Vector2i{t_ji_0, t_ji_1});
+}
+
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+best_posy_offset_vertices(const Eigen::Vector3f &this_vertex,
+                          const Eigen::Vector3f &this_tangent,
+                          const Eigen::Vector3f &this_normal,
+                          const Eigen::Vector2f &this_offset,
+                          Eigen::Vector2i &t_ij,
+                          const Eigen::Vector3f &that_vertex,
+                          const Eigen::Vector3f &that_tangent,
+                          const Eigen::Vector3f &that_normal,
+                          const Eigen::Vector2f &that_offset,
+                          Eigen::Vector2i &t_ji,
+                          float rho
+) {
+    using namespace std;
+    using namespace Eigen;
+
+// Compute orth tangents
+    const auto this_orth_tangent = this_normal.cross(this_tangent);
+    const auto that_orth_tangent = that_normal.cross(that_tangent);
+
+    const auto this_lattice_vertex = this_vertex +
+                                     this_offset[0] * this_tangent +
+                                     this_offset[1] * this_orth_tangent;
+    const auto that_lattice_vertex = that_vertex +
+                                     that_offset[0] * that_tangent +
+                                     that_offset[1] * that_orth_tangent;
+
+// Compute q_ij and thus Q_ij and Q_ji
+    const auto q = compute_qij(this_vertex, this_normal, that_vertex, that_normal);
+    const auto Q_ij = compute_lattice_neighbours(this_lattice_vertex,
+                                                 q,
+                                                 this_tangent,
+                                                 this_orth_tangent,
+                                                 rho);
+    const auto Q_ji = compute_lattice_neighbours(that_lattice_vertex,
+                                                 q,
+                                                 that_tangent,
+                                                 that_orth_tangent,
+                                                 rho);
+
+// Get the closest points adjacent to q in both tangent planes
+    const auto closest_points = find_closest_points(Q_ij, Q_ji);
+
+// Compute t_ij and t_ji
+    const auto dxyz_ij = (closest_points.first - this_lattice_vertex);
+    t_ij = {round(dxyz_ij.dot(this_tangent)), round(dxyz_ij.dot(this_orth_tangent))};
+
+    const auto dxyz_ji = (closest_points.second - that_lattice_vertex);
+    t_ji = {round(dxyz_ji.dot(that_tangent)), round(dxyz_ji.dot(that_orth_tangent))};
+
+    return make_pair(
+            this_vertex + (t_ij[0] * this_tangent) + (t_ij[1] * this_orth_tangent),
+            that_vertex + (t_ji[0] * that_tangent) + (t_ji[1] * that_orth_tangent));
 }

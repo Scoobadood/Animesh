@@ -5,7 +5,7 @@
  * Given a point in space, a normal, tangent vector and rho (lattice spacing) compute the 8 nearest vertices on the lattice
  */
 std::vector<Eigen::Vector3f> compute_lattice_neighbours(
-        const Eigen::Vector3f &lattice_point,
+        const Eigen::Vector3f &lattice_origin,
         const Eigen::Vector3f &point,
         const Eigen::Vector3f &tangent,
         const Eigen::Vector3f &orth_tangent,
@@ -84,3 +84,29 @@ Eigen::Vector3f rotate_pj_into_n(
 
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 find_closest_points(const std::vector<Eigen::Vector3f> &points_a, const std::vector<Eigen::Vector3f> &points_b);
+
+std::pair<Eigen::Vector2i, Eigen::Vector2i>
+best_posy_offset(const Eigen::Vector3f &this_vertex,
+                 const Eigen::Vector3f &this_tangent,
+                 const Eigen::Vector3f &this_normal,
+                 const Eigen::Vector2f &this_offset,
+                 const Eigen::Vector3f &that_vertex,
+                 const Eigen::Vector3f &that_tangent,
+                 const Eigen::Vector3f &that_normal,
+                 const Eigen::Vector2f &that_offset,
+                 float rho
+);
+
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+best_posy_offset_vertices(const Eigen::Vector3f &this_vertex,
+                          const Eigen::Vector3f &this_tangent,
+                          const Eigen::Vector3f &this_normal,
+                          const Eigen::Vector2f &this_offset,
+                          Eigen::Vector2i& t_ij,
+                          const Eigen::Vector3f &that_vertex,
+                          const Eigen::Vector3f &that_tangent,
+                          const Eigen::Vector3f &that_normal,
+                          const Eigen::Vector2f &that_offset,
+                          Eigen::Vector2i& t_ji,
+                          float rho
+);

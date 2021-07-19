@@ -9,6 +9,8 @@
 #include <Geom/Geom.h>
 #include <Eigen/Geometry>
 #include <Surfel/SurfelGraph.h>
+#include <RoSy/RoSy.h>
+
 
 PoSyOptimiser::PoSyOptimiser(const Properties &properties)
         : Optimiser{properties} //
@@ -25,22 +27,27 @@ PoSyOptimiser::PoSyOptimiser(const Properties &properties)
 
 void
 PoSyOptimiser::trace_smoothing(const SurfelGraphPtr &surfel_graph) const {
-    const auto old_level = spdlog::default_logger_raw()->level();
-    spdlog::default_logger_raw()->set_level(spdlog::level::trace);
-    spdlog::debug("Round completed.");
+    spdlog::trace("Round completed.");
     for (const auto &n : surfel_graph->nodes()) {
-        Eigen::Vector3f p, no, t, t1, v;
+        Eigen::Vector3f vertex, tangent, normal;
         if (n->data()->is_in_frame(0)) {
-            n->data()->get_all_data_for_surfel_in_frame(0, v, t, t1, no, p);
-            spdlog::trace("  p : ({:3f}, {:3f}, {:3f}),  d : ({:3f}, {:3f}),   s : {:3f}",
-                          p[0], p[1], p[2],
+            const auto & ref_lat_offset = n->data()->reference_lattice_offset();
+            n->data()->get_vertex_tangent_normal_for_frame(0, vertex, tangent, normal);
+
+            const auto ref_lat_vertex = vertex
+                    + (ref_lat_offset[0] * tangent)
+                    + (ref_lat_offset[1] * (normal.cross(tangent)));
+
+            spdlog::trace("  p : ({:6.3f}, {:6.3f}, {:6.3f}),  d : ({:6.3f}, {:6.3f}), nl : ({:6.3f}, {:6.3f}, {:6.3f})",
+                          vertex[0], vertex[1], vertex[2],
                           n->data()->posy_correction()[0],
                           n->data()->posy_correction()[1],
-                          n->data()->posy_smoothness()
+                          ref_lat_vertex[0],
+                          ref_lat_vertex[1],
+                          ref_lat_vertex[2]
             );
         }
     }
-    spdlog::default_logger_raw()->set_level(old_level);
 }
 
 float
@@ -184,7 +191,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
     const auto &this_surfel_ptr = node->data();
 
     auto new_ref_lat_off = this_surfel_ptr->reference_lattice_offset();
-    spdlog::info("Original ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
+    spdlog::debug("Original ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
 
     // For each frame this surfel is in...
     for (const auto frame_index : this_surfel_ptr->frames()) {
@@ -221,7 +228,6 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             const auto k_ij = edge->k_ij(frame_index);
             const auto k_ji = edge->k_ji(frame_index);
             spdlog::debug("   k_ij {}, k_ji {}", k_ij, k_ji);
-
             float w_ij = 1.0f;
 
             // Orient tangents appropriately for frame based on k_ij and k_ji
@@ -271,18 +277,39 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             }
 
             // Stash these to edge
-            edge->set_t_ij(frame_index, std::round(t_ij_0), std::round(t_ij_1));
-            edge->set_t_ji(frame_index, std::round(t_ji_0), std::round(t_ji_1));
+            edge->set_t_ij(frame_index, (int)std::round(t_ij_0), (int)std::round(t_ij_1));
+            edge->set_t_ji(frame_index, (int)std::round(t_ji_0), (int)std::round(t_ji_1));
 
             // Compute the weighted mean closest point
             ref_lattice_point = sum_w * closest_points.first + w_ij * closest_points.second;
             sum_w += w_ij;
             ref_lattice_point = ref_lattice_point * (1.0f / sum_w);
-            ref_lattice_point -= normal.dot(ref_lattice_point - vertex) * normal; // Back to plane
+//            ref_lattice_point -= normal.dot(ref_lattice_point - vertex) * normal; // Back to plane
         } // End of neighbours
+
+        // Convert back to a reference lattice offset in the k_ij = 0 space
         ref_lattice_point = round_4(normal, tangent, ref_lattice_point, vertex, m_rho);
+        auto old_ref_lat_off = new_ref_lat_off;
         new_ref_lat_off = compute_ref_offset(ref_lattice_point, vertex, tangent, normal.cross(tangent));
-        spdlog::info("  Next iteration ({}, {})", new_ref_lat_off.x(), new_ref_lat_off.y());
+        auto delta = new_ref_lat_off - old_ref_lat_off;
+        auto delta_length = delta.norm();
+        spdlog::debug("  Next iteration ({}, {})  moved by ({}, {}) [{}]",
+                     new_ref_lat_off.x(), new_ref_lat_off.y(),
+                     delta.x(), delta.y(),
+                     delta_length);
         this_surfel_ptr->set_reference_lattice_offset(new_ref_lat_off);
     } // End of frames
+}
+
+void
+PoSyOptimiser::loaded_graph() {
+    if( !m_properties.hasProperty("posy-offset-intialisation")) {
+        return;
+    }
+
+    std::vector<float> initialisation_vector = m_properties.getListOfFloatProperty("posy-offset-intialisation");
+    for ( auto & node : m_surfel_graph->nodes() ) {
+        auto & offset =  node->data()->reference_lattice_offset();
+        node->data()->set_reference_lattice_offset({initialisation_vector[0],initialisation_vector[1]});
+    }
 }

@@ -34,6 +34,8 @@ private:
 
     void optimise_node(const SurfelGraphNodePtr &node) override;
     void trace_smoothing(const SurfelGraphPtr &surfel_graph) const override;
+    void loaded_graph() override;
+
 
     float m_rho;
 };

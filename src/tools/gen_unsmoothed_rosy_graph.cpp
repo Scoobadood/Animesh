@@ -164,7 +164,7 @@ SurfelGraphPtr generate_plane(const Args &args) {
                     0.0f,
                     (float) (z - ((height - 1) / 2.0) + (args.m_perturb_position ? p_dis(defaultRandomEngine) : 0.0))
             };
-            pos = pos * 0.1;
+            pos = pos * 0.3;
             sb->with_frame({x, z, 0},
                            10.0f,
                            Eigen::Matrix3f::Identity(),
@@ -652,7 +652,7 @@ generate_cylinder(const Args &args) {
             Eigen::Vector3f pos{
                     (float) radius * std::cosf(theta + positional_perturbation_xy),  //
                     (float) radius * std::sinf(theta + positional_perturbation_xy),
-                    (float) r - (rings / 2.0f) + positional_perturbation_z
+                    ((float) r - (rings / 2.0f) + positional_perturbation_z) / 5.0f
             };
             Eigen::Vector3f norm = Eigen::Vector3f{pos[0], pos[1], 0}.normalized();
             // If we have orientation perturbation, allow surfels to generate their own tans

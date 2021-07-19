@@ -211,15 +211,15 @@ Eigen::Vector3f rotate_pj_into_n(const Eigen::Vector3f &n_i,
 
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 find_closest_points(const std::vector<Eigen::Vector3f> &points_a, const std::vector<Eigen::Vector3f> &points_b) {
-    float best_dist = INFINITY;
+    float best_dist = std::numeric_limits<float>::infinity();
     Eigen::Vector3f best_pa, best_pb;
     for (const auto &p_a : points_a) {
         for (const auto &p_b : points_b) {
-            const auto dist = (p_b - p_a).squaredNorm();
-            if (dist < best_dist) {
+            const auto squared_dist = (p_b - p_a).squaredNorm();
+            if (squared_dist < best_dist) {
                 best_pa = p_a;
                 best_pb = p_b;
-                best_dist = dist;
+                best_dist = squared_dist;
             }
         }
     }

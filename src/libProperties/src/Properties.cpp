@@ -65,8 +65,6 @@ Properties::Properties(const std::map<std::string, std::string>& values) {
     property_map = values;
 }
 
-
-
 const std::string &Properties::getProperty(const std::string &key) const {
     using namespace std;
 
@@ -75,6 +73,30 @@ const std::string &Properties::getProperty(const std::string &key) const {
         return it->second;
     throw std::out_of_range("Property not found: " + key);
 }
+
+std::vector<float>
+Properties::getListOfFloatProperty(const std::string& key) const {
+    using namespace std;
+
+    vector<float> results;
+    string val = getProperty(key);
+    stringstream ss(val);
+    string item;
+    while (getline(ss, item, ',')) {
+        item = trim(item);
+        results.emplace_back(stof(item));
+    }
+    return results;
+}
+
+bool
+Properties::hasProperty(const std::string& key) const {
+    using namespace std;
+
+    auto it = property_map.find(key);
+    return (it != property_map.end());
+}
+
 
 int Properties::getIntProperty(const std::string &key) const {
     return std::stoi(getProperty(key));

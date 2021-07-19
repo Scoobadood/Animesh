@@ -18,6 +18,8 @@ public:
     int getIntProperty(const std::string& key) const;
     bool getBooleanProperty(const std::string& key) const;
     float getFloatProperty(const std::string& key) const;
+    std::vector<float> getListOfFloatProperty(const std::string& key) const;
+    bool hasProperty(const std::string& key) const;
 
 private:
     std::map<std::string, std::string> property_map;

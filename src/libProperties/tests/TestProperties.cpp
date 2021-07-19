@@ -170,3 +170,47 @@ TEST_F( TestProperties, InitialiseWithMapShouldWork) {
     EXPECT_EQ( p.getProperty("text"),"a string");
     EXPECT_EQ( p.getBooleanProperty("flag"),true);
 }
+
+TEST_F( TestProperties, HasPropertyReturnsTrueWhenItHasAProperty) {
+    std::map<std::string, std::string> props = {
+            {"rho", "1.0"},
+            {"text", "a string"},
+            {"flag", "true"}
+    };
+    Properties p{props};
+    EXPECT_TRUE( p.hasProperty("rho"));
+}
+
+TEST_F( TestProperties, HasPropertyReturnsFalseWhenItHasNoMatchingProperty) {
+    std::map<std::string, std::string> props = {
+            {"text", "a string"},
+            {"flag", "true"}
+    };
+    Properties p{props};
+    EXPECT_FALSE( p.hasProperty("rho"));
+}
+
+TEST_F( TestProperties, ListOfFloatsHandlesEmptyList) {
+    std::map<std::string, std::string> props = {
+            {"floats", ""},
+    };
+    Properties p{props};
+    EXPECT_TRUE( p.getListOfFloatProperty("floats").empty());
+}
+TEST_F( TestProperties, ListOfFloatsHandlesSingleItem) {
+    std::map<std::string, std::string> props = {
+            {"floats", "0.4"},
+    };
+    Properties p{props};
+    EXPECT_EQ( p.getListOfFloatProperty("floats").size(), 1);
+    EXPECT_EQ( p.getListOfFloatProperty("floats")[0], 0.4f);
+}
+TEST_F( TestProperties, ListOfFloatsHandlesMultipleItems) {
+    std::map<std::string, std::string> props = {
+            {"floats", "0.413 , 3.141"},
+    };
+    Properties p{props};
+    EXPECT_EQ( p.getListOfFloatProperty("floats").size(), 2);
+    EXPECT_EQ( p.getListOfFloatProperty("floats")[0], 0.413f);
+    EXPECT_EQ( p.getListOfFloatProperty("floats")[1], 3.141f);
+}

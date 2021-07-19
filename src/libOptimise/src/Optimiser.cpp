@@ -342,6 +342,7 @@ Optimiser::ssa_select_worst_percentage() const {
 void
 Optimiser::set_data(const SurfelGraphPtr &surfel_graph) {
     m_surfel_graph = surfel_graph;
-    m_state = INITIALISED;
     m_num_frames = get_num_frames(surfel_graph);
+    m_state = INITIALISED;
+    loaded_graph();
 }

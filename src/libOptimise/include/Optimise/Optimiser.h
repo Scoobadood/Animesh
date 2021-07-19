@@ -76,6 +76,9 @@ private:
             size_t frame_index,
             unsigned int &num_neighbours) const = 0;
 
+    /* Call back once a graph is loaded to provide an opportunity to play with it before smoothing starts */
+    virtual void loaded_graph() {};
+
     float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
 
     float compute_mean_smoothness() const;

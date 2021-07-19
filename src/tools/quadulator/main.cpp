@@ -15,6 +15,7 @@ struct Args {
     std::string in_file_name;
     std::string save_file_name;
     bool is_ascii;
+    float rho;
 };
 
 void save_ply_header(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>> &graph,
@@ -150,12 +151,14 @@ parse_args(int argc, char *argv[]) {
                                                   false,
                                                   "object.ply",
                                                   "outfile.ply");
-        cmd.add(outputFile);
 
+        cmd.add(outputFile);
+        ValueArg<float> rho("r", "rho", "Lattice spacing", false, 1.0f, "float");
+        cmd.add(rho);
 
         // Parse the argv array.
         cmd.parse(argc, argv);
-        return {inputFile.getValue(), outputFile.getValue(), ascii_ply.getValue()};
+        return {inputFile.getValue(), outputFile.getValue(), ascii_ply.getValue(), rho.getValue()};
     } catch (TCLAP::ArgException &e) { // catch any exceptions
         std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
         exit(-1);
@@ -173,7 +176,7 @@ int main(int argc, char *argv[]) {
 
     // Make an interim graph per frame
     for (auto frame_index = 0; frame_index < get_num_frames(graph); ++frame_index) {
-        auto out_graph = build_edge_graph(frame_index, graph);
+        auto out_graph = build_edge_graph(frame_index, graph, args.rho);
 
         save_as_ply(out_graph, args.save_file_name, !args.is_ascii);
     }

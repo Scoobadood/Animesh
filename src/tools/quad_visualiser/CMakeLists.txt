@@ -38,7 +38,9 @@ target_link_libraries(
 		Qt5::OpenGL
 		ArcBall
 		Graph
+		PoSy
 		Properties
 		Quad
+		RoSy
 		Surfel
 )

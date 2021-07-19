@@ -81,7 +81,7 @@ void quad_visualiser_window::fileOpenAction() {
                                                     tr("Open Graph"), "",
                                                     tr("Surfel Graph Files (*.bin);;All Files (*)"));
     const auto surfelGraphPtr = load_surfel_graph_from_file(fileName.toStdString());
-    GraphPtr graphPtr = build_edge_graph(0, surfelGraphPtr);
+    GraphPtr graphPtr = build_edge_graph(0, surfelGraphPtr,m_properties.getFloatProperty("rho"));
     set_graph(graphPtr);
 }
 

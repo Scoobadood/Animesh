@@ -15,5 +15,6 @@ typedef enum {
 std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>>
 build_edge_graph(
         int frame_index,
-        const SurfelGraphPtr &graph
+        const SurfelGraphPtr &graph,
+        float rho
 );

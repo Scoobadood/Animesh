@@ -14,14 +14,10 @@ target_include_directories(Quad
 		PRIVATE
 		include/Quad)
 
-target_link_libraries(Quad
+target_link_libraries(
+		Quad
+		PoSy
+		RoSy
 		Surfel
-		)
+)
 
-### Need Eigen3
-#find_package(Eigen3 REQUIRED)
-#include_directories(${EIGEN3_INCLUDE_DIR})
-#
-## Stash it
-#install(TARGETS testPoSy DESTINATION bin)
-#

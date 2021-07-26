@@ -29,6 +29,7 @@ private:
     }
 
     void optimise_node(const SurfelGraphNodePtr &this_node) override;
+    void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
 
     float m_damping_factor;
     bool m_weight_for_error;

@@ -312,3 +312,6 @@ PoSyOptimiser::loaded_graph() {
         node->data()->set_reference_lattice_offset({initialisation_vector[0],initialisation_vector[1]});
     }
 }
+void PoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const{
+    node->data()->set_posy_smoothness(smoothness);
+}

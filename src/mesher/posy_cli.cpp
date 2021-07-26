@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 
     auto mins = (int) elapsed_time / 60;
     auto secs = elapsed_time - (mins * 60);
-    info("Total time {}s ({02d}:{02d})", elapsed_time, mins, secs);
+    info("Total time {}s ({:02d}:{:02d})", elapsed_time, mins, secs);
     info("Total iterations : {}", last_level_iterations);
 
     save_surfel_graph_to_file(output_file_name, surfel_graph, true, true);

@@ -81,6 +81,8 @@ private:
 
     float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
 
+    virtual void store_mean_smoothness( SurfelGraphNodePtr node, float smoothness) const = 0;
+
     float compute_mean_smoothness() const;
 
     enum OptimisationResult {

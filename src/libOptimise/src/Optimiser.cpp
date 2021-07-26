@@ -25,7 +25,7 @@ Optimiser::Optimiser(Properties properties)
         , m_result{NOT_COMPLETE} //
         , m_num_iterations{0} //
         , m_num_frames{0} //
-        , m_last_smoothness{0.0f} //
+        , m_last_smoothness{std::numeric_limits<float>::infinity()} //
         , m_state{UNINITIALISED} //
 {}
 
@@ -131,6 +131,13 @@ Optimiser::check_cancellation(OptimisationResult &result) {
 
 bool
 Optimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult &result) const {
+    // Always bail if converged to 0
+    if( m_last_smoothness == 0 ) {
+        result = CONVERGED;
+        return true;
+    }
+
+    // Otherwise return early if we're not checking for convergence
     if ((m_termination_criteria & (TC_ABSOLUTE | TC_RELATIVE)) == 0) {
         return false;
     }
@@ -254,7 +261,6 @@ Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) cons
                                  ? 0
                                  : node_smoothness / (float) num_neighbours;
 
-    node_ptr->data()->set_rosy_smoothness(mean_smoothness);
     return mean_smoothness;
 }
 
@@ -262,7 +268,9 @@ float
 Optimiser::compute_mean_smoothness() const {
     float total_smoothness = 0.0f;
     for (const auto &n : m_surfel_graph->nodes()) {
-        total_smoothness += compute_mean_node_smoothness(n);
+        auto mean_smoothness = compute_mean_node_smoothness(n);
+        total_smoothness += mean_smoothness;
+        store_mean_smoothness(n, mean_smoothness);
     }
     return total_smoothness / (float) m_surfel_graph->num_nodes();
 }

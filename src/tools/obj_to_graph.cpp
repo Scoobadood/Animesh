@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     }
     string infile_name = argv[1];
     string outfile_name = argv[2];
-    float scale_factor = 0.2f;
+    float scale_factor = 1.0f;
 
     cout << "Parsing " << infile_name << endl;
     auto results = animesh::ObjFileParser::parse_file(infile_name, true);

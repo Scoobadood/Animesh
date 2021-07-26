@@ -174,3 +174,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
     auto vec_pair = best_rosy_vector_pair(new_tangent, Vector3f::UnitY(), old_tangent, Vector3f::UnitY());
     this_node->data()->set_rosy_correction(fmod(degrees_angle_between_vectors(vec_pair.first, vec_pair.second), 90.0f));
 }
+
+void RoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const{
+    node->data()->set_rosy_smoothness(smoothness);
+}

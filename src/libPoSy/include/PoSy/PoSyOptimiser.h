@@ -36,6 +36,9 @@ private:
     void trace_smoothing(const SurfelGraphPtr &surfel_graph) const override;
     void loaded_graph() override;
 
+    void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
+
+
 
     float m_rho;
 };

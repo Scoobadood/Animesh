@@ -229,7 +229,7 @@ TEST_F(TestSurfelIO, LoadFromTestFileWithEdges) {
 
 TEST_F(TestSurfelIO, SaveToTestFile) {
     std::string gold_file_name = "surfel_test_data/gold_graph.bin";
-    std::string tmp_file_name = std::tmpnam(nullptr);
+    std::string tmp_file_name = tmpnam(nullptr);
     save_surfel_graph_to_file(tmp_file_name, surfel_graph);
 
     // Open and compare to gold file

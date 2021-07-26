@@ -22,13 +22,32 @@ int main(int argc, char *argv[]) {
     using namespace std;
     using namespace Eigen;
 
-    if (argc < 3) {
-        cout << "Usage : \n\tobj_to_graph <obj_file> <graph_file>" << endl;
-        return -1;
-    }
-    string infile_name = argv[1];
-    string outfile_name = argv[2];
+    string infile_name;
+    string outfile_name;
     float scale_factor = 1.0f;
+
+    switch(argc)
+    {
+        case 3:
+            infile_name = argv[1];
+            outfile_name = argv[2];
+            break;
+
+        case 5:
+            if ((strcmp("-s", argv[1]) == 0) && (argc == 5)) {
+                scale_factor = std::stof(argv[2]);
+                infile_name = argv[3];
+                outfile_name = argv[4];
+            } else {
+                cout << "Usage : \n\tobj_to_graph [-s scale] <obj_file> <graph_file>" << endl;
+                return -1;
+            }
+            break;
+
+        default:
+            cout << "Usage : \n\tobj_to_graph [-s scale] <obj_file> <graph_file>" << endl;
+            return -1;
+    }
 
     cout << "Parsing " << infile_name << endl;
     auto results = animesh::ObjFileParser::parse_file(infile_name, true);
@@ -36,7 +55,7 @@ int main(int argc, char *argv[]) {
     auto adjacency = results.second;
 
     // Now generate the graph
-    cout << "Generating graph" << endl;
+    cout << "Generating graph (scale: " << scale_factor << ")" << endl;
     SurfelGraph graph;
     vector<SurfelGraphNodePtr> nodes;
     std::default_random_engine re(123);

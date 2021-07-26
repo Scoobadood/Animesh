@@ -83,3 +83,15 @@ build_edge_graph(
     }
     return out_graph;
 }
+
+std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>>
+collapse(int frame_index,
+        SurfelGraphPtr &graph,
+        float rho
+) {
+    for( const auto& edge : graph->edges()) {
+        // Collapse the blue edges
+        // For each edge, we will find the two vertices. We must align them. Each frame is currently a separate graph.
+        // Collapsing vertices meansadding new edges (inheriting their
+    }
+}

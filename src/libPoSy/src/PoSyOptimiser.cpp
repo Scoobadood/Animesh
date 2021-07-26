@@ -9,7 +9,6 @@
 #include <Geom/Geom.h>
 #include <Eigen/Geometry>
 #include <Surfel/SurfelGraph.h>
-#include <RoSy/RoSy.h>
 
 
 PoSyOptimiser::PoSyOptimiser(const Properties &properties)

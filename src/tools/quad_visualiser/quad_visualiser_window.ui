@@ -142,6 +142,13 @@
          </layout>
         </widget>
        </item>
+       <item>
+        <widget class="QPushButton" name="btnDecimate">
+         <property name="text">
+          <string>Decimate</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>

@@ -125,7 +125,7 @@ quad_gl_widget::maybe_draw_red_edges() const {
     glGetFloatv(GL_LINE_WIDTH, &old_line_width);
     glLineWidth(3.0f);
 
-    for (const auto& edge : m_red_edges) {
+    for (const auto &edge : m_red_edges) {
         unsigned int from_index = edge.first;
         unsigned int to_index = edge.second;
         glBegin(GL_LINES);
@@ -141,6 +141,7 @@ quad_gl_widget::maybe_draw_red_edges() const {
     }
     glLineWidth(old_line_width);
 }
+
 void
 quad_gl_widget::maybe_draw_blue_edges() const {
     if (!m_show_blue_edges) {
@@ -152,7 +153,7 @@ quad_gl_widget::maybe_draw_blue_edges() const {
     glGetFloatv(GL_LINE_WIDTH, &old_line_width);
     glLineWidth(3.0f);
 
-    for (const auto& edge : m_blue_edges) {
+    for (const auto &edge : m_blue_edges) {
         unsigned int from_index = edge.first;
         unsigned int to_index = edge.second;
         glBegin(GL_LINES);
@@ -168,36 +169,38 @@ quad_gl_widget::maybe_draw_blue_edges() const {
     }
     glLineWidth(old_line_width);
 }
-    void
-    quad_gl_widget::initializeGL() {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glFrontFace(GL_CW);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        checkGLError("Generating texture");
-    }
+void
+quad_gl_widget::initializeGL() {
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    void
-    quad_gl_widget::do_paint() {
-        drawVertices();
+    checkGLError("Generating texture");
+}
 
-        maybe_draw_red_edges();
-        maybe_draw_blue_edges();
-    }
+void
+quad_gl_widget::do_paint() {
+    drawVertices();
 
-    void
-    quad_gl_widget::setData(const std::vector<float> &vertices,
-                            const std::vector<std::pair<unsigned int, unsigned int>> &red_edges,
-                            const std::vector<std::pair<unsigned int, unsigned int>> &blue_edges
-    ) {
-        m_vertices.clear();
-        m_red_edges.clear();
-        m_blue_edges.clear();
+    maybe_draw_red_edges();
+    maybe_draw_blue_edges();
+}
 
-        m_vertices.insert(m_vertices.begin(), vertices.begin(), vertices.end());
-        m_red_edges.insert(m_red_edges.begin(), red_edges.begin(), red_edges.end());
-        m_blue_edges.insert(m_blue_edges.begin(), blue_edges.begin(), blue_edges.end());
-    }
+void
+quad_gl_widget::setData(const std::vector<float> &vertices,
+                        const std::vector<std::pair<unsigned int, unsigned int>> &red_edges,
+                        const std::vector<std::pair<unsigned int, unsigned int>> &blue_edges
+) {
+    m_vertices.clear();
+    m_red_edges.clear();
+    m_blue_edges.clear();
+
+    m_vertices.insert(m_vertices.begin(), vertices.begin(), vertices.end());
+    m_red_edges.insert(m_red_edges.begin(), red_edges.begin(), red_edges.end());
+    m_blue_edges.insert(m_blue_edges.begin(), blue_edges.begin(), blue_edges.end());
+    update();
+}

@@ -11,14 +11,14 @@
 namespace animesh {
 
 /**
- * A GraphSimplifier extracts a simpler Graph from a base Graph. Mappins between the
+ * A GraphEdgeSimplifier extracts a simpler Graph from a base Graph. Mappins between the
  * Simpler and base graphs are maintained by the returned GraphMapping which is able to 
  * propagate changes from the source graph to the target
  * 
  * The Graph is constructed over a set of Nodes and Edges
  */
     template<class NodeData, class EdgeData>
-    class GraphSimplifier {
+    class GraphEdgeSimplifier {
         using GraphNodePtr = std::shared_ptr<typename animesh::Graph<NodeData, EdgeData>::GraphNode>;
         using GraphNode = typename animesh::Graph<NodeData, EdgeData>::GraphNode;
         using Graph = typename animesh::Graph<NodeData, EdgeData>;
@@ -149,8 +149,8 @@ namespace animesh {
         /**
          * Construct with merge and propagate functions
          */
-        GraphSimplifier(std::function<NodeData(const NodeData &, const NodeData &)> node_merge_function,
-                        std::function<NodeData(const NodeData &, const NodeData &)> node_propagate_function) {
+        GraphEdgeSimplifier(std::function<NodeData(const NodeData &, const NodeData &)> node_merge_function,
+                            std::function<NodeData(const NodeData &, const NodeData &)> node_propagate_function) {
             m_node_merge_function = node_merge_function;
             m_node_propagate_function = node_propagate_function;
         }

@@ -155,7 +155,7 @@ namespace animesh {
             using namespace std;
 
             if (has_edge(from_node, to_node)) {
-                spdlog::debug("Ignoring attempt to add duplicate edge from {:p} to {:p}", fmt::ptr(from_node),
+                spdlog::debug("Ignoring attempt to add duplicate edge from {} to {}", fmt::ptr(from_node),
                               fmt::ptr(to_node));
                 return;
             }
@@ -179,7 +179,7 @@ namespace animesh {
             using namespace std;
 
             if (!has_edge(from_node, to_node)) {
-                spdlog::error("Ignoring attempt to remove non-existent edge from {:x} to {:x}", fmt::ptr(from_node),
+                spdlog::error("Ignoring attempt to remove non-existent edge from {} to {}", fmt::ptr(from_node),
                               fmt::ptr(to_node));
                 return;
             }
@@ -193,6 +193,63 @@ namespace animesh {
                 to_neighbours.erase(std::remove(begin(to_neighbours), end(to_neighbours), from_node),
                                     end(to_neighbours));
                 m_edges.erase({to_node, from_node});
+            }
+        }
+
+        /**
+         * Collapse an edge merging the two vertices that bound it into a single new vertex.
+         * This is done by creating a new blended vertex (using a callback provided bu the client)
+         * Adding this to the graph
+         * Connecting all neighbours of the old end points to this node using an edge blending function
+         * given by the user.
+         * Deleting the original edge
+         */
+         void
+         collapse_edge(const std::shared_ptr<GraphNode> first_node,
+                       const std::shared_ptr<GraphNode> second_node,
+                       std::function<NodeData(const NodeData&, const NodeData&)> node_merge_function,
+                       std::function<EdgeData(const NodeData&, const NodeData&, const EdgeData&)> edge_merge_function
+                       ) {
+            using namespace std;
+
+            if (m_is_directed) {
+                spdlog::error("Ignoring attempt to collapse edge in directed graph. Not yet implemented");
+            }
+            if (!has_edge(first_node, second_node)) {
+                spdlog::error("Ignoring attempt to collapse non-existent edge from {} to {}", fmt::ptr(first_node),
+                              fmt::ptr(second_node));
+                return;
+            }
+            // Undirected graph so we can short circuit here if there is only one incident edge for both
+            // nodes (and it's implicitly the other node)
+            auto to_first_neighbours = neighbours_with_edges_to(first_node);
+            auto to_second_neighbours = neighbours_with_edges_to(second_node);
+            if( to_first_neighbours.size() == 1 && to_second_neighbours.size() ==1 ) {
+                spdlog::debug("Collapsing edge from {} to {} short circuit, removing", fmt::ptr(first_node),
+                              fmt::ptr(second_node));
+                remove_edge(first_node, second_node);
+            }
+
+            // This will remove duplicates
+            to_first_neighbours.insert(to_second_neighbours.begin(), to_second_neighbours.end());
+
+            // Generate a new node with the use rdefined callback
+            auto new_node_data = node_merge_function(first_node->data(), second_node->data());
+            auto new_node = add_node(new_node_data);
+
+            // Delete the old nodes
+            remove_node(first_node);
+            remove_node(second_node);
+
+            // Add in new edges
+            for( const auto & node_edge : to_first_neighbours ) {
+                if( node_edge.first == first_node || node_edge.first == second_node ) {
+                    continue;
+                }
+                // Create a new edge from this node to the new node
+                auto new_edge_data = edge_merge_function(node_edge.first->data(), new_node_data, *(node_edge.second));
+
+                add_edge(node_edge.first, new_node, new_edge_data);
             }
         }
 
@@ -272,6 +329,45 @@ namespace animesh {
                 neighbours.push_back(n);
             }
             return neighbours;
+        }
+
+        /**
+         * @return a map of neighbours for the given node along with the accompanying edge data.
+         */
+        std::map<std::shared_ptr<GraphNode>, std::shared_ptr<EdgeData>>
+        neighbours_with_edges(const std::shared_ptr<GraphNode> &node, bool from_node) const {
+            using namespace std;
+            assert(node != nullptr);
+
+            map<shared_ptr<GraphNode>, shared_ptr<EdgeData>> neighbours_with_edges;
+
+            vector<shared_ptr<GraphNode>> neighbours;
+            for (const auto &n : m_adjacency.at(node)) {
+                // Find the edge
+                if( from_node) {
+                    auto edge = m_edges.at(std::make_pair(node, n));
+                    neighbours_with_edges.insert({node,edge});
+                } else {
+                    auto edge = m_edges.at(std::make_pair(n, node));
+                    neighbours_with_edges.insert({n,edge});
+                }
+            }
+            return neighbours_with_edges;
+        }
+        /**
+         * @return a map of neighbours for the given node along with the accompanying edge data.
+         */
+        std::map<std::shared_ptr<GraphNode>, std::shared_ptr<EdgeData>>
+        neighbours_with_edges_to(const std::shared_ptr<GraphNode> &node) const {
+            return neighbours_with_edges(node, false);
+        }
+
+        /**
+         * @return a map of neighbours for the given node along with the accompanying edge data.
+         */
+        std::map<std::shared_ptr<GraphNode>, std::shared_ptr<EdgeData>>
+        neighbours_with_edges_from(const std::shared_ptr<GraphNode> &node, bool from_node) const {
+            return neighbours_with_edges(node, true);
         }
 
         /**

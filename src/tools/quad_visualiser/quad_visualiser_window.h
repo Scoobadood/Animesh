@@ -20,9 +20,12 @@ public:
 
     ~quad_visualiser_window() override;
 
-    using GraphPtr = std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>>;
+    void set_graph(QuadGraphPtr graph_ptr);
 
-    void set_graph(const GraphPtr graph_ptr);
+    void collapse() {
+        ::collapse(0, m_graph_ptr, 1.0f);
+        extract_geometry();
+    }
 
 private slots:
 
@@ -35,7 +38,7 @@ private:
     QTimer * m_timer;
 
     Ui::quad_visualiser_window *ui;
-    GraphPtr m_graph_ptr;
+    QuadGraphPtr m_graph_ptr;
     Properties m_properties;
     void extract_geometry();
 };

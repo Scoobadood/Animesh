@@ -1,9 +1,9 @@
 #include "TestGraphSimplifier.h"
-#include "Graph/GraphSimplifier.h"
+#include "Graph/GraphEdgeSimplifier.h"
 #include "Graph/Graph.h"
 
-using GraphSimplifier = animesh::GraphSimplifier<std::string, float>;
-using GraphMapping = animesh::GraphSimplifier<std::string, float>::GraphMapping;
+using GraphSimplifier = animesh::GraphEdgeSimplifier<std::string, float>;
+using GraphMapping = animesh::GraphEdgeSimplifier<std::string, float>::GraphMapping;
 using GraphNode = animesh::Graph<std::string, float>::GraphNode;
 using Graph = animesh::Graph<std::string, float>;
 

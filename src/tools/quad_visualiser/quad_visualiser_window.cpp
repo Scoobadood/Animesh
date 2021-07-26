@@ -3,6 +3,7 @@
 #include <Surfel/Surfel_IO.h>
 #include <Quad/Quad.h>
 #include <QFileDialog>
+#include <QPushButton>
 #include <utility>
 #include <map>
 #include <memory>
@@ -22,6 +23,8 @@ quad_visualiser_window::quad_visualiser_window(Properties properties, QWidget *p
             ui->quadGLWidget, &quad_gl_widget::showBlueEdges);
     connect(ui->cbRed, &QCheckBox::toggled,
             ui->quadGLWidget, &quad_gl_widget::showRedEdges);
+    connect(ui->btnDecimate, &QPushButton::clicked,
+            this, &quad_visualiser_window::collapse);
 
     m_timer = new QTimer(this); //Create a timer
     m_timer->callOnTimeout([=](){
@@ -70,7 +73,7 @@ quad_visualiser_window::extract_geometry() {
 }
 
 void
-quad_visualiser_window::set_graph(const GraphPtr graph_ptr) {
+quad_visualiser_window::set_graph(const QuadGraphPtr graph_ptr) {
     m_graph_ptr = graph_ptr;
     extract_geometry();
 }
@@ -81,7 +84,7 @@ void quad_visualiser_window::fileOpenAction() {
                                                     tr("Open Graph"), "",
                                                     tr("Surfel Graph Files (*.bin);;All Files (*)"));
     const auto surfelGraphPtr = load_surfel_graph_from_file(fileName.toStdString());
-    GraphPtr graphPtr = build_edge_graph(0, surfelGraphPtr,m_properties.getFloatProperty("rho"));
+    QuadGraphPtr graphPtr = build_edge_graph(0, surfelGraphPtr,m_properties.getFloatProperty("rho"));
     set_graph(graphPtr);
 }
 

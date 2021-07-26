@@ -2,7 +2,7 @@ add_library(
 		Graph SHARED
 		src/Path.cpp
 		include/Graph/Graph.h
-		include/Graph/GraphSimplifier.h
+		include/Graph/GraphEdgeSimplifier.h
 		include/Graph/GraphNodeSimplifier.h
 		include/Graph/Path.h
 		src/Path.cpp)

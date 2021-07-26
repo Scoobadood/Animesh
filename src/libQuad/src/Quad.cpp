@@ -10,7 +10,7 @@
 #include <map>
 #include <Eigen/Geometry>
 
-std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>>
+QuadGraphPtr
 build_edge_graph(
         int frame_index,
         const SurfelGraphPtr &graph,
@@ -19,9 +19,9 @@ build_edge_graph(
     using namespace Eigen;
     using namespace std;
 
-    shared_ptr<animesh::Graph<Vector3f, EdgeType>> out_graph = make_shared<animesh::Graph<Vector3f, EdgeType>>(false);
+    QuadGraphPtr out_graph = make_shared<animesh::Graph<Vector3f, EdgeType>>(false);
 
-    map<string, shared_ptr<animesh::Graph<Vector3f, EdgeType>::GraphNode>> vertex_to_node;
+    map<string, QuadGraphNodePtr> vertex_to_node;
     for (const auto &source_node : graph->nodes()) {
         if (source_node->data()->is_in_frame(frame_index)) {
             Vector3f src_vertex, src_tangent, src_normal;
@@ -49,28 +49,32 @@ build_edge_graph(
 
 
                 Vector3f nbr_vertex, nbr_tangent, nbr_normal;
-                neighbour_node->data()->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
+                neighbour_node->data()->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent,
+                                                                            nbr_normal);
 
                 // Recompute all the things
                 auto best_rot = best_rosy_vector_pair(tangent, normal, nbr_tangent, nbr_normal);
-                auto best_shift = best_posy_offset(vertex, tangent, normal, source_node->data()->reference_lattice_offset(),
-                                                   nbr_vertex, nbr_tangent, nbr_normal, neighbour_node->data()->reference_lattice_offset(), rho);
+                auto best_shift = best_posy_offset(vertex, tangent, normal,
+                                                   source_node->data()->reference_lattice_offset(),
+                                                   nbr_vertex, nbr_tangent, nbr_normal,
+                                                   neighbour_node->data()->reference_lattice_offset(), rho);
 
                 const auto absDiff = (best_shift.first - best_shift.second).cwiseAbs();
-                if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1) ))
+                if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1)))
                     continue; /* Ignore longer-distance links and diagonal lines for quads */
 
                 if (absDiff.sum() != 0) {
-                    spdlog::info( "Adding red edge for t_ij:({},{}) , t_ji:({},{})",
+                    spdlog::info("Adding red edge for t_ij:({},{}) , t_ji:({},{})",
 //                                  t_ij.x(), t_ij.y(), t_ji.x(), t_ji.y());
-                                  best_shift.first.x(), best_shift.first.y(), best_shift.second.x(), best_shift.second.y());
+                                 best_shift.first.x(), best_shift.first.y(), best_shift.second.x(),
+                                 best_shift.second.y());
                     out_graph->add_edge(
                             vertex_to_node.at(source_node->data()->id()),
                             vertex_to_node.at(neighbour_node->data()->id()),
                             EDGE_TYPE_RED
                     );
                 }
-                // If t_ij == -t_ij then these are blue edges
+                    // If t_ij == -t_ij then these are blue edges
                 else {
                     out_graph->add_edge(
                             vertex_to_node.at(source_node->data()->id()),
@@ -84,14 +88,37 @@ build_edge_graph(
     return out_graph;
 }
 
-std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>>
+void
 collapse(int frame_index,
-        SurfelGraphPtr &graph,
-        float rho
+         QuadGraphPtr graph,
+         float rho
 ) {
-    for( const auto& edge : graph->edges()) {
+    using namespace std;
+
+    for (const auto &edge : graph->edges()) {
         // Collapse the blue edges
-        // For each edge, we will find the two vertices. We must align them. Each frame is currently a separate graph.
-        // Collapsing vertices meansadding new edges (inheriting their
+        if (*(edge.data()) == EDGE_TYPE_RED) {
+            continue;
+        }
+        auto from_node = edge.from();
+        auto to_node = edge.to();
+
+        graph->collapse_edge( //
+                from_node, //
+                to_node, //
+                [&]( //
+                        const Eigen::Vector3f& n1,
+                        const Eigen::Vector3f& n2) {
+                    return (n1 + n2) * 0.5;
+                }, //
+                [&]( //
+                        const Eigen::Vector3f& n1,
+                        const Eigen::Vector3f& n2,
+                        const EdgeType& e) {
+                    return e;
+                } //
+        );
     }
+
+
 }

@@ -265,7 +265,7 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
             for (const auto &neighbour_id : neighbour_ids) {
                 const auto neighbour_node = graph_node_by_id.at(neighbour_id);
                 // DEBUG
-                debug("    Generating edge from node ids {:s} to {:s}, node pointers {:p}, {:p}, shared pointers {:p} {:p}",
+                debug("    Generating edge from node ids {:s} to {:s}, node pointers {}, {}, shared pointers {} {}",
                      graph_node->data()->id(),
                      neighbour_node->data()->id(),
                      fmt::ptr(graph_node.get()),

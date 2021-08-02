@@ -52,7 +52,8 @@ PoSyOptimiser::trace_smoothing(const SurfelGraphPtr &surfel_graph) const {
 float
 PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_ptr,
                                                  size_t frame_index,
-                                                 unsigned int &num_neighbours) const {
+                                                 unsigned int &num_neighbours,
+                                                 bool is_first_run) const {
     float frame_smoothness = 0.0f;
 
     const auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, node_ptr, frame_index);

@@ -74,16 +74,17 @@ private:
     virtual float compute_node_smoothness_for_frame(
             const SurfelGraphNodePtr &node_ptr,
             size_t frame_index,
-            unsigned int &num_neighbours) const = 0;
+            unsigned int &num_neighbours,
+            bool is_first_run) const = 0;
 
     /* Call back once a graph is loaded to provide an opportunity to play with it before smoothing starts */
     virtual void loaded_graph() {};
 
-    float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
+    float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool is_first_run) const;
 
     virtual void store_mean_smoothness( SurfelGraphNodePtr node, float smoothness) const = 0;
 
-    float compute_mean_smoothness() const;
+    float compute_mean_smoothness(bool is_first_run = false) const;
 
     enum OptimisationResult {
         NOT_COMPLETE,

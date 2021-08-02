@@ -15,7 +15,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
   float rho = m_properties.getFloatProperty("rho");
   ui->posyGLWidget->setRho(rho);
   ui->posyGLWidget->set_arc_ball(m_arc_ball);
-  ui->rosytGLWidget->set_arc_ball(m_arc_ball);
+  ui->rosyGLWidget->set_arc_ball(m_arc_ball);
   ui->quadGLWidget->set_arc_ball(m_arc_ball);
 
   m_posy_geometry_extractor = new posy_surfel_graph_geometry_extractor(rho);
@@ -37,13 +37,13 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
   connect(ui->cbShowTriangleFans, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_triangle_fans);
 
   connect(ui->cbNormals, &QCheckBox::toggled,
-          ui->rosytGLWidget, &rosy_gl_widget::renderNormals);
+          ui->rosyGLWidget, &rosy_gl_widget::renderNormals);
   connect(ui->cbMainTangent, &QCheckBox::toggled,
-          ui->rosytGLWidget, &rosy_gl_widget::renderMainTangents);
+          ui->rosyGLWidget, &rosy_gl_widget::renderMainTangents);
   connect(ui->cbOtherTangents, &QCheckBox::toggled,
-          ui->rosytGLWidget, &rosy_gl_widget::renderOtherTangents);
+          ui->rosyGLWidget, &rosy_gl_widget::renderOtherTangents);
   connect(ui->cbErrorColours, &QCheckBox::toggled,
-          ui->rosytGLWidget, &rosy_gl_widget::renderErrorColours);
+          ui->rosyGLWidget, &rosy_gl_widget::renderErrorColours);
 
   connect(ui->cbBlue, &QCheckBox::toggled,
           ui->quadGLWidget, &quad_gl_widget::showBlueEdges);
@@ -57,7 +57,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
 
   m_timer = new QTimer(this); //Create a timer
   m_timer->callOnTimeout([=]() {
-    ui->rosytGLWidget->update();
+    ui->rosyGLWidget->update();
     ui->posyGLWidget->update();
     ui->quadGLWidget->update();
   });
@@ -110,7 +110,7 @@ field_visualiser_window::extract_geometry() {
       colours,
       scale_factor
   );
-  ui->rosytGLWidget->setRoSyData(positions, normals, tangents, colours, scale_factor);
+  ui->rosyGLWidget->setRoSyData(positions, normals, tangents, colours, scale_factor);
 
   std::vector<float> vertices;
   std::vector<std::pair<unsigned int, unsigned int>> red_edges;

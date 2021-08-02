@@ -73,6 +73,7 @@ ArcBall::getCameraPosition() const {
 QVector3D
 ArcBall::toCartesian() const {
     const auto vector = spherical_to_cartesian(m_radius, m_theta, m_phi);
+
     return {vector.x(), vector.y(), vector.z()};
 }
 
@@ -214,4 +215,45 @@ ArcBall::get_model_view_matrix(float *mat) {
         m_modelViewMatrixIsDirty = false;
     }
     memcpy(mat, m_model_view_matrix.constData(), 16 * sizeof(float));
+}
+
+QVector3D
+ArcBall::compute_ray_through_pixel(unsigned int pixel_x,
+                                   unsigned int pixel_y,
+                                   QVector2D field_of_view,
+                                   float focal_length,
+                                   int width,
+                                   int height) {
+  using namespace Eigen;
+
+  const auto camera_origin = getCameraPosition();
+
+  auto N = camera_origin-m_target;
+  const auto n = N.normalized();
+
+  // u is a vector that is perpendicular to the plane spanned by
+  // N and view up vector (cam->up), ie in the image plane and horizontal
+  auto U = QVector3D::crossProduct(QVector3D{0, m_up, 0}, n);
+  const auto u = U.normalized();
+
+  // v is a vector perpendicular to N and U, i.e vertical in image palne
+  const auto v = QVector3D::crossProduct(n,u);
+
+  const auto fov_rad = field_of_view * DEG2RAD;
+  double image_plane_height = 2 * tan(fov_rad.y() * 0.5f) * focal_length;
+  double image_plane_width = 2 * tan(fov_rad.x() * 0.5f) * focal_length;
+
+  const auto image_plane_centre = camera_origin - (n * focal_length);
+  const auto image_plane_origin = image_plane_centre - (u * image_plane_width * 0.5f) - (v * image_plane_height * 0.5f);
+
+  // Compute pixel dimensions in world units
+  const auto pixel_width = image_plane_width / width;
+  const auto pixel_height = image_plane_height / height;
+
+  // Construct a ray from the camera origin to the world coordinate
+  auto pixel_in_world = image_plane_origin
+      + ((pixel_x + 0.5) * pixel_width * u)
+      + ((pixel_y + 0.5) * pixel_height * v);
+
+  return  (pixel_in_world - camera_origin).normalized();
 }

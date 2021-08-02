@@ -13,45 +13,51 @@
 
 class ArcBall : public QObject {
 public:
-    ArcBall();
+  ArcBall();
 
-    void rotate(float dTheta, float dPhi);
+  void rotate(float dTheta, float dPhi);
 
-    void zoom(float distance);
+  void zoom(float distance);
 
-    void pan(float dx, float dy);
+  void pan(float dx, float dy);
 
-    void get_model_view_matrix(float mat[16]);
+  void get_model_view_matrix(float mat[16]);
 
+  QVector3D compute_ray_through_pixel(unsigned int pixel_x,
+                                     unsigned int pixel_y,
+                                     QVector2D field_of_view,
+                                     float focal_length,
+                                     int width,
+                                     int height);
 private:
-    const float ROTATE_FACTOR = 300.0f;
-    const float PAN_FACTOR = 0.01f;
-    const float ZOOM_FACTOR = 0.005f;
+  const float ROTATE_FACTOR = 300.0f;
+  const float PAN_FACTOR = 0.01f;
+  const float ZOOM_FACTOR = 0.005f;
 
-    float m_theta;
-    float m_phi;
-    float m_radius;
-    float m_up;
-    bool m_modelViewMatrixIsDirty;
-    QPoint m_lastPixelPosition;
-    QVector3D m_target;
+  float m_theta;
+  float m_phi;
+  float m_radius;
+  float m_up;
+  bool m_modelViewMatrixIsDirty;
+  QPoint m_lastPixelPosition;
+  QVector3D m_target;
 
-    QVector3D getCameraPosition() const;
+  QVector3D getCameraPosition() const;
 
-    QVector3D toCartesian() const;
+  QVector3D toCartesian() const;
 
-    QMatrix4x4 m_model_view_matrix;
+  QMatrix4x4 m_model_view_matrix;
 
 protected:
-    bool eventFilter(QObject *o, QEvent *e) override;
+  bool eventFilter(QObject *o, QEvent *e) override;
 
-    void mouseMoveEvent(QMouseEvent *e);
+  void mouseMoveEvent(QMouseEvent *e);
 
-    void mousePressEvent(QMouseEvent *e);
+  void mousePressEvent(QMouseEvent *e);
 
-    void mouseReleaseEvent(QMouseEvent *e);
+  void mouseReleaseEvent(QMouseEvent *e);
 
-    void keyPressEvent(QKeyEvent *e);
+  void keyPressEvent(QKeyEvent *e);
 
-    void wheelEvent(QWheelEvent *e);
+  void wheelEvent(QWheelEvent *e);
 };

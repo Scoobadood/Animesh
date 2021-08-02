@@ -31,6 +31,8 @@ set(PROJECT_SOURCES
 		quad_gl_widget.h
 		quad_geometry_extractor.cpp
 		quad_geometry_extractor.h
+
+		gl_tools.cpp gl_tools.h
 		)
 
 add_executable(field_visualiser

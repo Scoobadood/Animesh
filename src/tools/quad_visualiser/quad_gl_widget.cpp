@@ -204,3 +204,10 @@ quad_gl_widget::setData(const std::vector<float> &vertices,
     m_blue_edges.insert(m_blue_edges.begin(), blue_edges.begin(), blue_edges.end());
     update();
 }
+
+void
+quad_gl_widget::mouse_moved() {
+  // If mouse is near enough a point, display some info
+  // Project a ray into the view and intersect with points
+
+}

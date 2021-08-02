@@ -7,6 +7,7 @@
 
 #include <QOpenGLWidget>
 #include <ArcBall/ArcBall.h>
+#include "gl_tools.h"
 
 class quad_gl_widget : public QOpenGLWidget {
 Q_OBJECT
@@ -68,4 +69,6 @@ private:
     void drawVertices() const;
     void maybe_draw_red_edges() const;
     void maybe_draw_blue_edges() const;
+
+    void mouse_moved();
 };

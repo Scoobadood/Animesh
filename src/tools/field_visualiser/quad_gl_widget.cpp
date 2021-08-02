@@ -207,3 +207,5 @@ quad_gl_widget::setData(const std::vector<float> &vertices,
   m_blue_edges.insert(m_blue_edges.begin(), blue_edges.begin(), blue_edges.end());
   update();
 }
+
+

@@ -146,4 +146,3 @@ target_link_libraries(
 
 add_subdirectory(field_visualiser)
 add_subdirectory(quadulator)
-add_subdirectory(quad_visualiser)

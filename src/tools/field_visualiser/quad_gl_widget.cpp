@@ -8,13 +8,8 @@
 const float DEG2RAD = (3.14159265f / 180.0f);
 
 quad_gl_widget::quad_gl_widget(
-    QWidget *parent, Qt::WindowFlags f) :
-    QOpenGLWidget{parent, f} //
-    , m_fov{35} //
-    , m_zNear{0.005f} //
-    , m_zFar{1000.0f} //
-    , m_aspectRatio{1.0f} //
-    , m_projectionMatrixIsDirty{true} //
+    QWidget *parent, Qt::WindowFlags f) //
+    : field_gl_widget(parent, f) //
     , m_show_blue_edges{true} //
     , m_show_red_edges{true} //
 {
@@ -26,75 +21,6 @@ quad_gl_widget::quad_gl_widget(
   );
 }
 
-void
-quad_gl_widget::set_arc_ball(ArcBall *arc_ball) {
-  m_arcBall = arc_ball;
-  installEventFilter(arc_ball);
-}
-
-void
-quad_gl_widget::clear() {
-  glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
-  checkGLError("clear");
-}
-
-/**
- * If the ModelView matrix is dirty, update and reload it.
- */
-void
-quad_gl_widget::update_model_matrix() {
-  glMatrixMode(GL_MODELVIEW);
-  float m[16];
-  m_arcBall->get_model_view_matrix(m);
-  glLoadMatrixf(m);
-  checkGLError("update_model_matrix");
-}
-
-/**
- * If the projection matrix is dirty, update and reload it.
- */
-void
-quad_gl_widget::maybe_update_projection_matrix() const {
-  if (m_projectionMatrixIsDirty) {
-    const auto yMax = tan(m_fov * DEG2RAD * 0.5f);
-    const auto xMax = yMax * m_aspectRatio;
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glFrustum(-xMax, xMax, -yMax, yMax, m_zNear, m_zFar);
-  }
-  checkGLError("maybe_update_projection_matrix");
-}
-
-void
-quad_gl_widget::paintGL() {
-  clear();
-
-  maybe_update_projection_matrix();
-
-  update_model_matrix();
-
-  do_paint();
-}
-
-/**
- * Resize the viewport when the window resizes.
- */
-void
-quad_gl_widget::resizeGL(int width, int height) {
-  glViewport(0, 0, width, height);
-  m_aspectRatio = (float) width / (float) height;
-  m_projectionMatrixIsDirty = true;
-}
-
-void
-quad_gl_widget::checkGLError(const std::string &context) {
-  auto err = glGetError();
-  if (!err)
-    return;
-  spdlog::error("{}: {} ", context, err);
-}
 
 void
 quad_gl_widget::drawVertices() const {
@@ -208,4 +134,8 @@ quad_gl_widget::setData(const std::vector<float> &vertices,
   update();
 }
 
-
+void
+quad_gl_widget::mouse_moved(unsigned int pixel_x, unsigned int pixel_y) {
+  float distance = 0;
+  int item = find_closest_vertex(pixel_x, pixel_y, m_vertices, distance);
+}

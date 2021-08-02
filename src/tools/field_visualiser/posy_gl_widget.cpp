@@ -253,4 +253,3 @@ posy_gl_widget::initializeGL() {
   m_texture->setWrapMode(QOpenGLTexture::Repeat);
   checkGLError("Generating texture");
 }
-

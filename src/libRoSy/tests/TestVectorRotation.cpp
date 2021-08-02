@@ -22,7 +22,6 @@ TEST_F(TestVectorRotation, ZeroLengthOShouldThrow) {
 
 TEST_F(TestVectorRotation, NonUnitNormalShouldThrow) { 
     int k = 0;
-    
     try {
         vector_by_rotating_around_n(unit_x, vec_1_1_1, k);
         FAIL() << "Expected std::invalid_argument";

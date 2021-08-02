@@ -74,10 +74,16 @@ build_edge_graph(
 
     // Recompute all the things
     auto best_rot = best_rosy_vector_pair(tangent, normal, nbr_tangent, nbr_normal);
-    auto best_shift = best_posy_offset(vertex, tangent, normal,
+
+    auto best_shift = best_posy_offset(vertex, best_rot.first, normal,
                                        from_surfel->reference_lattice_offset(),
-                                       nbr_vertex, nbr_tangent, nbr_normal,
+                                       nbr_vertex, best_rot.second, nbr_normal,
                                        to_surfel->reference_lattice_offset(), rho);
+
+//    auto best_shift = best_posy_offset(vertex, tangent, normal,
+//                                       from_surfel->reference_lattice_offset(),
+//                                       nbr_vertex, nbr_tangent, nbr_normal,
+//                                       to_surfel->reference_lattice_offset(), rho);
 
     const auto absDiff = (best_shift.first - best_shift.second).cwiseAbs();
     if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1)))

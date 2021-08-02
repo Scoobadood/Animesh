@@ -29,6 +29,9 @@ public:
                                      float focal_length,
                                      int width,
                                      int height);
+
+  QVector3D get_camera_origin() const;
+
 private:
   const float ROTATE_FACTOR = 300.0f;
   const float PAN_FACTOR = 0.01f;
@@ -41,8 +44,6 @@ private:
   bool m_modelViewMatrixIsDirty;
   QPoint m_lastPixelPosition;
   QVector3D m_target;
-
-  QVector3D getCameraPosition() const;
 
   QVector3D toCartesian() const;
 

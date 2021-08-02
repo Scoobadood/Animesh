@@ -30,6 +30,12 @@ protected:
 
     static void clear();
 
+
+  int
+  find_closest_vertex(unsigned int pixel_x,
+                      unsigned int pixel_y,
+                      std::vector<Eigen::Vector3f>& items,
+                      float& distance);
 private:
     ArcBall *m_arcBall;
 

@@ -3,6 +3,8 @@
 //
 
 #include <spdlog/spdlog.h>
+#include <Eigen/Core>
+#include <Geom/Geom.h>
 #include "field_gl_widget.h"
 
 const float DEG2RAD = (3.14159265f / 180.0f);
@@ -86,4 +88,28 @@ field_gl_widget::checkGLError(const std::string &context) {
     auto err = glGetError();
     if (!err) return;
     spdlog::error("{}: {} ", context, err);
+}
+
+int
+field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y, std::vector<Eigen::Vector3f>& items, float& distance) {
+  float focal_length = 1;
+  const auto r = m_arcBall->compute_ray_through_pixel(pixel_x, pixel_y, QVector2D{m_fov, m_fov}, focal_length, width(), height());
+  Eigen::Vector3f ray{r.x(), r.y(), r.z()};
+  spdlog::info("   Ray {:f}, {:f}, {:f}", ray.x(), ray.y(), ray.z());
+
+  const auto co = m_arcBall->get_camera_origin();
+  Eigen::Vector3f camera_origin{co.x(), co.y(), co.z()};
+
+  distance = std::numeric_limits<float>::max();
+  int closest_idx = -1;
+  int idx = 0;
+  for( const auto & pt : items ) {
+    auto dist = distance_from_point_to_line(pt, camera_origin, ray);
+    if(dist < distance) {
+      distance = dist;
+      closest_idx = idx;
+    }
+    ++idx;
+  }
+  return closest_idx;
 }

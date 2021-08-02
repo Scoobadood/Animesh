@@ -56,7 +56,7 @@ ArcBall::zoom(float distance) {
 
 void
 ArcBall::pan(float dx, float dy) {
-    const auto lookDirection = (m_target - getCameraPosition()).normalized();
+    const auto lookDirection = (m_target - get_camera_origin()).normalized();
     const auto worldUp = QVector3D(0.0f, m_up, 0.0f);
     const auto right = QVector3D::crossProduct(lookDirection, worldUp);
     const auto up = QVector3D::crossProduct(lookDirection, right);
@@ -66,7 +66,7 @@ ArcBall::pan(float dx, float dy) {
 }
 
 QVector3D
-ArcBall::getCameraPosition() const {
+ArcBall::get_camera_origin() const {
     return m_target + toCartesian();
 }
 
@@ -206,7 +206,7 @@ ArcBall::get_model_view_matrix(float *mat) {
     if( m_modelViewMatrixIsDirty) {
         m_model_view_matrix.setToIdentity();
 
-        const auto pos = getCameraPosition();
+        const auto pos = get_camera_origin();
         m_model_view_matrix.lookAt(
                 pos,
                 m_target,
@@ -226,7 +226,7 @@ ArcBall::compute_ray_through_pixel(unsigned int pixel_x,
                                    int height) {
   using namespace Eigen;
 
-  const auto camera_origin = getCameraPosition();
+  const auto camera_origin = get_camera_origin();
 
   auto N = camera_origin-m_target;
   const auto n = N.normalized();

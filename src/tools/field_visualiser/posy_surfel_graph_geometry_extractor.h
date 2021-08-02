@@ -5,8 +5,9 @@
 #pragma once
 
 #include <Surfel/SurfelGraph.h>
+#include "geometry_extractor.h"
 
-class posy_surfel_graph_geometry_extractor {
+class posy_surfel_graph_geometry_extractor : public geometry_extractor {
 public:
     explicit posy_surfel_graph_geometry_extractor(float rho);
 
@@ -21,12 +22,6 @@ public:
                           std::vector<float> &uvs
     ) const;
 
-    inline void set_frame(int frame) {
-        if (m_frame != frame) {
-            m_frame = frame;
-        }
-    }
-
     // aim for 0.5f to 1.5f
     inline void set_splat_scale_factor(float splat_scale_factor) {
         splat_scale_factor = std::fminf(1.5f, std::fmaxf(0.5f, splat_scale_factor));
@@ -35,12 +30,7 @@ public:
         }
     }
 
-    inline int get_frame() const {
-        return m_frame;
-    }
-
 private:
-    int m_frame;
     float m_rho;
     float m_splat_scale_factor;
 };

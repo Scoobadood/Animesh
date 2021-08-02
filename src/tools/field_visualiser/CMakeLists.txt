@@ -26,6 +26,11 @@ set(PROJECT_SOURCES
 		rosy_gl_widget.h
 		rosy_surfel_graph_geometry_extractor.h
 		rosy_surfel_graph_geometry_extractor.cpp
+
+		quad_gl_widget.cpp
+		quad_gl_widget.h
+		quad_geometry_extractor.cpp
+		quad_geometry_extractor.h
 		)
 
 add_executable(field_visualiser
@@ -46,5 +51,6 @@ target_link_libraries(
 		Qt5::OpenGL
 		ArcBall
 		Properties
+		Quad
 		Surfel
 )

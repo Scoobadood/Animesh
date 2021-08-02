@@ -59,7 +59,7 @@
          <property name="sizePolicy">
           <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
            <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
+           <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="title">
@@ -108,11 +108,66 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="gbRoSy">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>RoSy</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QCheckBox" name="cbNormals">
+            <property name="text">
+             <string>Normals</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbMainTangent">
+            <property name="text">
+             <string>Tangents</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbOtherTangents">
+            <property name="text">
+             <string>Other Tangents</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbErrorColours">
+            <property name="text">
+             <string>Error Colours</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QGroupBox" name="gbPosy">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
            <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
+           <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="title">
@@ -140,11 +195,11 @@
              <property name="bottomMargin">
               <number>1</number>
              </property>
-             <item>
+             <item alignment="Qt::AlignLeft">
               <widget class="QSlider" name="splatSizeSelector">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>80</horstretch>
+                 <horstretch>1</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
@@ -168,11 +223,11 @@
                </property>
               </widget>
              </item>
-             <item>
+             <item alignment="Qt::AlignRight">
               <widget class="QLabel" name="lblSplatSize">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                 <horstretch>20</horstretch>
+                 <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
@@ -233,21 +288,21 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="gbRoSy">
+        <widget class="QGroupBox" name="gbQuads">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
            <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
+           <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>RoSy</string>
+          <string>Quads</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <layout class="QVBoxLayout" name="verticalLayout_5">
           <item>
-           <widget class="QCheckBox" name="cbNormals">
+           <widget class="QCheckBox" name="cbRed">
             <property name="text">
-             <string>Normals</string>
+             <string>Red</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -255,29 +310,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="cbMainTangent">
+           <widget class="QCheckBox" name="cbBlue">
             <property name="text">
-             <string>Tangents</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="cbOtherTangents">
-            <property name="text">
-             <string>Other Tangents</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="cbErrorColours">
-            <property name="text">
-             <string>Error Colours</string>
+             <string>Blue</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -285,6 +320,13 @@
            </widget>
           </item>
          </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnDecimate">
+         <property name="text">
+          <string>Decimate</string>
+         </property>
         </widget>
        </item>
       </layout>
@@ -349,6 +391,16 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="quad_gl_widget" name="quadGLWidget">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>100</horstretch>
+           <verstretch>50</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -379,6 +431,11 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>quad_gl_widget</class>
+   <extends>QOpenGLWidget</extends>
+   <header location="global">quad_gl_widget.h</header>
+  </customwidget>
   <customwidget>
    <class>posy_gl_widget</class>
    <extends>QOpenGLWidget</extends>

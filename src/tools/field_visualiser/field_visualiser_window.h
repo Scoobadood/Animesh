@@ -8,6 +8,8 @@
 
 #include "posy_surfel_graph_geometry_extractor.h"
 #include "rosy_surfel_graph_geometry_extractor.h"
+#include "../../libQuad/include/Quad/Quad.h"
+#include "quad_geometry_extractor.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class field_visualiser_window; }
@@ -38,6 +40,6 @@ private:
     Properties m_properties;
     posy_surfel_graph_geometry_extractor *m_posy_geometry_extractor;
     rosy_surfel_graph_geometry_extractor *m_rosy_geometry_extractor;
-
+    quad_geometry_extractor * m_quad_geometry_extractor;
     void extract_geometry();
 };

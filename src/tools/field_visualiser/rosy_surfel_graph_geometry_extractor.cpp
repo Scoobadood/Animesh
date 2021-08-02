@@ -5,10 +5,6 @@
 #include "rosy_surfel_graph_geometry_extractor.h"
 #include <Geom/Geom.h>
 
-rosy_surfel_graph_geometry_extractor::rosy_surfel_graph_geometry_extractor() {
-    m_frame = 0;
-}
-
 void extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
                              unsigned int frame,
                              std::vector<float> &positions,
@@ -114,7 +110,7 @@ void rosy_surfel_graph_geometry_extractor::extract_geometry(
     normals.clear();
     colours.clear();
 
-    extract_lines_for_frame(graphPtr, m_frame, positions, tangents, normals, colours);
+    extract_lines_for_frame(graphPtr, get_frame(), positions, tangents, normals, colours);
     const auto model_scale = 1.0f;
     normal_scale = compute_normal_scale(graphPtr, model_scale);
     normal_scale = 0.4f;

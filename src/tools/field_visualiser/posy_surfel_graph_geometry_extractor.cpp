@@ -9,7 +9,7 @@
 #include <Eigen/Geometry>
 
 posy_surfel_graph_geometry_extractor::posy_surfel_graph_geometry_extractor(float rho)
-        : m_frame{0}, m_rho{rho} {
+        : m_rho{rho} {
 }
 
 void
@@ -358,7 +358,7 @@ void posy_surfel_graph_geometry_extractor::extract_geometry(
     splat_sizes.clear();
     uvs.clear();
 
-    extract_quads_for_frame(graphPtr, m_frame, positions, quads, normals, splat_sizes, uvs, m_rho,
+    extract_quads_for_frame(graphPtr, get_frame(), positions, quads, normals, splat_sizes, uvs, m_rho,
                             m_splat_scale_factor);
-    extract_triangles_for_frame(graphPtr, m_frame, triangle_fans, triangle_uvs, fan_sizes, m_rho);
+    extract_triangles_for_frame(graphPtr, get_frame(), triangle_fans, triangle_uvs, fan_sizes, m_rho);
 }

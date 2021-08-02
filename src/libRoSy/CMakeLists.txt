@@ -26,6 +26,7 @@ add_executable(
 		tests/main.cpp
 		tests/TestMinimiseKL.cpp tests/TestMinimiseKL.h
 		tests/TestVectorRotation.cpp tests/TestVectorRotation.h
+		tests/TestOptimiserSteps.cpp tests/TestOptimiserSteps.h
 		tests/GtestUtility.h)
 
 target_link_libraries(

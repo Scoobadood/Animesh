@@ -31,6 +31,8 @@ private slots:
 
     void frameChanged(int value);
 
+    void quad_vertex_selected(int i);
+
 private:
     ArcBall * m_arc_ball;
     QTimer * m_timer;

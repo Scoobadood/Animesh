@@ -12,15 +12,19 @@ typedef enum {
     EDGE_TYPE_BLU
 } EdgeType;
 
-using QuadGraph = animesh::Graph<Eigen::Vector3f, EdgeType>;
-using QuadGraphPtr = std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>>;
-using QuadGraphNodePtr = std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>::GraphNode>;
+struct QuadGraphVertex {
+  std::string surfel_id;
+  Eigen::Vector3f location;
+};
+using QuadGraph = animesh::Graph<QuadGraphVertex, EdgeType>;
+using QuadGraphPtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>>;
+using QuadGraphNodePtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>;
 
 QuadGraphPtr
 build_edge_graph(
-        int frame_index,
-        const SurfelGraphPtr &graph,
-        float rho
+    int frame_index,
+    const SurfelGraphPtr &graph,
+    float rho
 );
 
 void

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <Eigen/Core>
 #include <QOpenGLWidget>
 #include <ArcBall/ArcBall.h>
 
@@ -46,7 +47,11 @@ private:
   float m_zFar;
   float m_aspectRatio;
   bool m_projectionMatrixIsDirty;
-  void update_model_matrix();
+  float m_projection_matrix[16];
+  float m_model_view_matrix[16];
 
-  void maybe_update_projection_matrix() const;
+  void update_model_matrix();
+  Eigen::Vector3f ray_for_pixel(int pixel_x, int pixel_y);
+
+  void maybe_update_projection_matrix();
 };

@@ -16,14 +16,16 @@ public:
     , m_graph{nullptr} {}
 
   void extract_geometry(
-      const SurfelGraphPtr &graph_ptr,
       std::vector<float> &vertices,
-      std::vector<std::pair<unsigned int, unsigned int>> &red_edges,
-      std::vector<std::pair<unsigned int, unsigned int>> &blue_edges
+      std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &red_edges,
+      std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges
   );
 
   void set_graph(const SurfelGraphPtr &graph) {
-    m_graph = build_edge_graph(get_frame(), graph, m_rho);
+    using namespace std;
+    m_red_edges.clear();
+    m_blue_edges.clear();
+    m_graph = build_edge_graph(get_frame(), graph, m_rho );
   }
 
   void collapse() {
@@ -33,6 +35,9 @@ public:
 private:
   float m_rho;
   QuadGraphPtr m_graph;
+  std::vector<std::pair<std::string,std::string>> m_red_edges;
+  std::vector<std::pair<std::string,std::string>> m_blue_edges;
+
 };
 
 #endif //ANIMESH_TOOLS_FIELD_VISUALISER_QUAD_GEOMETRY_EXTRACTOR_H

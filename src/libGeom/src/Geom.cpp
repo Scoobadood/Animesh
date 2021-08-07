@@ -266,11 +266,14 @@ float distance_from_point_to_line(const Eigen::Vector3f &point, const Eigen::Vec
     // Compute vector from anchor to point
     const auto v = (point - anchor);
 
-    // Compute the area of the parallelogram formed by the v and the line
-    const auto area = v.cross(direction).norm();
+    const auto dist = v - (v.dot(direction)) * direction;
+    return dist.norm();
 
-    // Distance is given by dividing this by length of direction vector
-    return (area / direction.norm());
+//    // Compute the area of the parallelogram formed by the v and the line
+//    const auto area = v.cross(direction).norm();
+//
+//    // Distance is given by dividing this by length of direction vector
+//    return (area / direction.norm());
 }
 
 /**

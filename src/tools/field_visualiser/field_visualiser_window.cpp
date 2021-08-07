@@ -55,6 +55,13 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
         extract_geometry();
       });
 
+  connect(ui->quadGLWidget, &quad_gl_widget::vertex_selected, this, [&](int vi) {
+      ui->lblVertexId->setNum(vi);
+  });
+  connect(ui->quadGLWidget, &quad_gl_widget::other_vertex, this, [&](int vi) {
+    ui->lblOtherVertexId->setNum(vi);
+  });
+
   m_timer = new QTimer(this); //Create a timer
   m_timer->callOnTimeout([=]() {
     ui->rosyGLWidget->update();
@@ -113,9 +120,9 @@ field_visualiser_window::extract_geometry() {
   ui->rosyGLWidget->setRoSyData(positions, normals, tangents, colours, scale_factor);
 
   std::vector<float> vertices;
-  std::vector<std::pair<unsigned int, unsigned int>> red_edges;
-  std::vector<std::pair<unsigned int, unsigned int>> blue_edges;
-  m_quad_geometry_extractor->extract_geometry(m_graph_ptr, vertices, red_edges, blue_edges);
+  std::vector<std::pair<std::pair<std::string,unsigned int>, std::pair<std::string,unsigned int>>> red_edges;
+  std::vector<std::pair<std::pair<std::string,unsigned int>, std::pair<std::string,unsigned int>>> blue_edges;
+  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges);
   ui->quadGLWidget->setData(vertices, red_edges, blue_edges);
 }
 
@@ -138,4 +145,8 @@ void field_visualiser_window::frameChanged(int value) {
   m_rosy_geometry_extractor->set_frame(value);
   m_posy_geometry_extractor->set_frame(value);
   extract_geometry();
+}
+
+void field_visualiser_window::quad_vertex_selected(int i) {
+
 }

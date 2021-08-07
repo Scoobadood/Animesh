@@ -18,7 +18,7 @@ struct Args {
     float rho;
 };
 
-void save_ply_header(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>> &graph,
+void save_ply_header(const std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>> &graph,
                      const std::string &file_name,
                      bool binary = true,
                      bool little_endian = true) {
@@ -54,19 +54,19 @@ void save_ply_header(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeT
     output_file.close();
 }
 
-void save_ply_body_as_bin(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>> &graph,
+void save_ply_body_as_bin(const std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>> &graph,
                           const std::string &file_name) {
     using namespace std;
     using namespace Eigen;
 
     int vertex_index = 0;
     ofstream output_file{file_name, ios_base::app | ios::binary};
-    map<const shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>::GraphNode>, int> node_id_to_vertex_index;
+    map<const shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>, int> node_id_to_vertex_index;
     for (const auto &node : graph->nodes()) {
         node_id_to_vertex_index.insert({node, vertex_index});
-        float x = node->data().x();
-        float y = node->data().y();
-        float z = node->data().z();
+        float x = node->data().location[0];
+        float y = node->data().location[1];
+        float z = node->data().location[2];
         output_file.write(reinterpret_cast<char *>(&x), 4);
         output_file.write(reinterpret_cast<char *>(&y), 4);
         output_file.write(reinterpret_cast<char *>(&z), 4);
@@ -87,20 +87,20 @@ void save_ply_body_as_bin(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, 
     output_file.close();
 }
 
-void save_ply_body_as_ascii(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>> &graph,
+void save_ply_body_as_ascii(const std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>> &graph,
                             const std::string &file_name) {
     using namespace std;
     using namespace Eigen;
 
     ofstream output_file{file_name, ios_base::app};
-    map<const shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>::GraphNode>, int> node_id_to_vertex_index;
+    map<const shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>, int> node_id_to_vertex_index;
     int vertex_index = 0;
     for (const auto &node : graph->nodes()) {
         node_id_to_vertex_index.insert({node, vertex_index});
         output_file <<
-                    node->data().x() << " " <<
-                    node->data().y() << " " <<
-                    node->data().z() << endl;
+                    node->data().location[0] << " " <<
+                    node->data().location[1] << " " <<
+                    node->data().location[2] << endl;
         vertex_index++;
     }
     for (const auto &edge : graph->edges()) {
@@ -116,7 +116,7 @@ void save_ply_body_as_ascii(const std::shared_ptr<animesh::Graph<Eigen::Vector3f
     }
 }
 
-void save_as_ply(const std::shared_ptr<animesh::Graph<Eigen::Vector3f, EdgeType>> &graph,
+void save_as_ply(const std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>> &graph,
                  const std::string &file_name,
                  bool binary = true,
                  bool little_endian = true) {

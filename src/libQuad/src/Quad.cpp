@@ -20,57 +20,65 @@ build_edge_graph(
   using namespace std;
 
   // Make the output graph
-  QuadGraphPtr out_graph = make_shared<animesh::Graph<Vector3f, EdgeType>>(false);
+  QuadGraphPtr out_graph = make_shared<animesh::Graph<QuadGraphVertex, EdgeType>>(false);
 
-  // Output all lattice vertices and also map hem from surfel ID
+  // Output all lattice vertices and also map them from surfel ID
   map<string, QuadGraphNodePtr> vertex_to_node;
-  for (const auto &source_node : graph->nodes()) {
-    if (source_node->data()->is_in_frame(frame_index)) {
-      Vector3f src_vertex, src_tangent, src_normal;
-      Vector2f offset = source_node->data()->reference_lattice_offset();
-      source_node->data()->get_vertex_tangent_normal_for_frame(
-          frame_index, src_vertex, src_tangent, src_normal);
-      Vector3f src_closest_mesh_vertex = src_vertex +
-          (src_tangent * offset.x()) +
-          ((src_normal.cross(src_tangent)) * offset.y());
-      auto node = out_graph->add_node(src_closest_mesh_vertex);
-      vertex_to_node.insert({source_node->data()->id(), node});
-    }
-  }
 
   // Collect all edges and weed out duplicates.
   std::set<std::pair<std::string, std::string>> counted_edges;
   std::vector<SurfelGraph::Edge> edges;
   for (const auto &edge : graph->edges()) {
-    if (!edge.from()->data()->is_in_frame(frame_index)) {
+    auto &from_surfel = edge.from()->data();
+    auto &to_surfel = edge.to()->data();
+
+    if (!from_surfel->is_in_frame(frame_index)) {
       continue;
     }
-    if (!edge.to()->data()->is_in_frame(frame_index)) {
+    if (!to_surfel->is_in_frame(frame_index)) {
       continue;
     }
-    if (counted_edges.count({edge.from()->data()->id(), edge.to()->data()->id()}) > 0) {
+    if (counted_edges.count({from_surfel->id(), to_surfel->id()}) > 0) {
       continue;
     }
-    if (counted_edges.count({edge.to()->data()->id(), edge.from()->data()->id()}) > 0) {
+    if (counted_edges.count({to_surfel->id(), from_surfel->id()}) > 0) {
       continue;
     }
-    counted_edges.insert({edge.from()->data()->id(), edge.to()->data()->id()});
+    counted_edges.insert({from_surfel->id(), edge.to()->data()->id()});
     edges.push_back(edge);
+
+    // optionally insert both ends of this edge
+    Vector3f vertex, tangent, normal;
+    if (vertex_to_node.count(from_surfel->id()) == 0) {
+      auto offset = from_surfel->reference_lattice_offset();
+      from_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+      auto closest_mesh_vertex = vertex +
+          (tangent * offset.x()) +
+          ((normal.cross(tangent)) * offset.y());
+      auto node = out_graph->add_node({from_surfel->id(),closest_mesh_vertex});
+      vertex_to_node.insert({from_surfel->id(), node});
+    }
+    if (vertex_to_node.count(to_surfel->id()) == 0) {
+      auto offset = to_surfel->reference_lattice_offset();
+      to_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+      auto closest_mesh_vertex = vertex +
+          (tangent * offset.x()) +
+          ((normal.cross(tangent)) * offset.y());
+      auto node = out_graph->add_node({to_surfel->id(),closest_mesh_vertex});
+      vertex_to_node.insert({to_surfel->id(), node});
+    }
   }
 
   // So edges contains only edges in this frame and each only once
   for (const auto &edge : edges) {
-    const auto & from_surfel = edge.from()->data();
-    const auto & to_surfel = edge.to()->data();
+    const auto &from_surfel = edge.from()->data();
+    const auto &to_surfel = edge.to()->data();
 
     Vector3f vertex, tangent, normal;
     from_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
 
     Vector3f nbr_vertex, nbr_tangent, nbr_normal;
     to_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
-
-    const auto &t_ij = edge.data()->t_ij(frame_index);
-    const auto &t_ji = edge.data()->t_ji(frame_index);
 
     // Recompute all the things
     auto best_rot = best_rosy_vector_pair(tangent, normal, nbr_tangent, nbr_normal);
@@ -80,23 +88,22 @@ build_edge_graph(
                                        nbr_vertex, best_rot.second, nbr_normal,
                                        to_surfel->reference_lattice_offset(), rho);
 
-//    auto best_shift = best_posy_offset(vertex, tangent, normal,
-//                                       from_surfel->reference_lattice_offset(),
-//                                       nbr_vertex, nbr_tangent, nbr_normal,
-//                                       to_surfel->reference_lattice_offset(), rho);
-
     const auto absDiff = (best_shift.first - best_shift.second).cwiseAbs();
     if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1)))
       continue; /* Ignore longer-distance links and diagonal lines for quads */
 
+    spdlog::info("absdiff ({}, {})", absDiff[0], absDiff[1]);
     if (absDiff.sum() != 0) {
-      spdlog::info("Adding red edge for t_ij:({},{}) , t_ji:({},{})",
-//                                  t_ij.x(), t_ij.y(), t_ji.x(), t_ji.y());
-                   best_shift.first.x(), best_shift.first.y(), best_shift.second.x(),
+      spdlog::info("Adding red edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
+                   from_surfel->id(),
+                   to_surfel->id(),
+                   best_shift.first.x(),
+                   best_shift.first.y(),
+                   best_shift.second.x(),
                    best_shift.second.y());
       out_graph->add_edge(
-          vertex_to_node.at(edge.from()->data()->id()),
-          vertex_to_node.at(edge.to()->data()->id()),
+          vertex_to_node.at(from_surfel->id()),
+          vertex_to_node.at(to_surfel->id()),
           EDGE_TYPE_RED
       );
     }
@@ -131,13 +138,14 @@ collapse(int frame_index,
         from_node, //
         to_node, //
         [&]( //
-            const Eigen::Vector3f &n1,
-            const Eigen::Vector3f &n2) {
-          return (n1 + n2) * 0.5;
+            const QuadGraphVertex &n1,
+            const QuadGraphVertex &n2) {
+
+          return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
         }, //
         [&]( //
-            const Eigen::Vector3f &n1,
-            const Eigen::Vector3f &n2,
+            const QuadGraphVertex &n1,
+            const QuadGraphVertex &n2,
             const EdgeType &e) {
           return e;
         } //

@@ -43,17 +43,20 @@ private:
   std::vector<float> m_vertices;
   std::vector<std::pair<std::pair<std::string,unsigned int>, std::pair<std::string,unsigned int>>> m_red_edges;
   std::vector<std::pair<std::pair<std::string,unsigned int>, std::pair<std::string,unsigned int>>> m_blue_edges;
+  std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> m_all_edges;
 
   void drawVertices() const;
   void maybe_draw_red_edges() const;
   void maybe_draw_blue_edges() const;
+  void maybe_draw_selected_edge() const;
 
   void mouse_moved(unsigned int pixel_x, unsigned int pixel_y);
   void mouseMoveEvent(QMouseEvent *event) override;
 
   int m_selected_vertex = -1;
+  int m_selected_edge = -1;
 
 signals:
-  void vertex_selected(int v) const ;
-  void other_vertex(int v) const;
+  void vertex_selected(int v, std::string& text) const ;
+  void other_vertex(int v, std::string& text) const;
 };

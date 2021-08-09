@@ -29,12 +29,21 @@ protected:
   static void checkGLError(const std::string &context);
 
   static void clear();
+  int find_closest_edge(unsigned int pixel_x,
+                        unsigned int pixel_y,
+                        std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> &edges,
+                        float &distance);
+private:
   int find_closest_vertex(unsigned int pixel_x,
                           unsigned int pixel_y,
                           std::vector<float> &items, /// assumed XYZ triples
                           float &distance);
-private:
-  ArcBall *m_arcBall;
+  void get_ray_data(unsigned int pixel_x,
+                                unsigned int pixel_y,
+                                Eigen::Vector3f& camera_origin,
+                                Eigen::Vector3f& ray_direction);
+
+    ArcBall *m_arcBall;
 
   float m_fov;
   float m_zNear;

@@ -55,11 +55,13 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
         extract_geometry();
       });
 
-  connect(ui->quadGLWidget, &quad_gl_widget::vertex_selected, this, [&](int vi) {
+  connect(ui->quadGLWidget, &quad_gl_widget::vertex_selected, this, [&](int vi, std::string& text) {
       ui->lblVertexId->setNum(vi);
+      ui->lblVertexSurfId->setText(text.c_str());
   });
-  connect(ui->quadGLWidget, &quad_gl_widget::other_vertex, this, [&](int vi) {
+  connect(ui->quadGLWidget, &quad_gl_widget::other_vertex, this, [&](int vi, std::string& text) {
     ui->lblOtherVertexId->setNum(vi);
+    ui->lblOtherVertexSurfId->setText(text.c_str());
   });
 
   m_timer = new QTimer(this); //Create a timer

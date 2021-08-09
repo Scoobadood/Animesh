@@ -185,3 +185,9 @@ distance_from_point_to_point(
  */
 Eigen::Vector3f
 spherical_to_cartesian(float radius, float azimuth, float inclination );
+
+float
+distance_between_ray_and_line_segment(const Eigen::Vector3f &ray_origin,
+                                      const Eigen::Vector3f &ray_normal_direction,
+                                      const Eigen::Vector3f &p1,
+                                      const Eigen::Vector3f &p2);

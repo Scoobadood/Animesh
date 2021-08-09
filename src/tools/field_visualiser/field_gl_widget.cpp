@@ -203,29 +203,20 @@ glUnprojectf(float winx, float winy, float winz,
 
 Eigen::Vector3f
 field_gl_widget::ray_direction_for_pixel(int pixel_x, int pixel_y) {
-  makeCurrent();
-  GLint viewport[4];
-  glGetIntegerv(GL_VIEWPORT, viewport);
-//  viewport[0] = 0;
-//  viewport[1] = 0;
-  viewport[2] = width();
-  viewport[3] = height();
-
   QMatrix4x4 mv{m_model_view_matrix};
   QMatrix4x4 p{m_projection_matrix};
   auto mvp = mv * p;
   auto inv_mvp = mvp.inverted();
 
-  float ndc_x = (2.0f * (float)pixel_x / (float)viewport[2]) - 1.0f;
-  float ndc_y = 1.0f - (2.0f * (float)pixel_y / (float)viewport[3]);
-  float winZ = 0;
+  float ndc_x = (2.0f * (float) pixel_x / (float) width()) - 1.0f;
+  float ndc_y = 1.0f - (2.0f * (float) pixel_y / (float) height());
   QVector4D far_plane_point = QVector4D{ndc_x, ndc_y, 1.0f, 1.0f} * inv_mvp;
   QVector4D near_plane_point = QVector4D{ndc_x, ndc_y, 0.0f, 1.0f} * inv_mvp;
 
   float xyz_far[3]{far_plane_point[0] / far_plane_point[3],
                    far_plane_point[1] / far_plane_point[3],
                    far_plane_point[2] / far_plane_point[3]
-                   };
+  };
 
   float xyz_near[3]{near_plane_point[0] / near_plane_point[3],
                     near_plane_point[1] / near_plane_point[3],
@@ -236,21 +227,32 @@ field_gl_widget::ray_direction_for_pixel(int pixel_x, int pixel_y) {
   return (m_far_point - m_near_point).normalized();
 }
 
-int
-field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
-                                     std::vector<float> &items, float &distance) {
-  auto ray_direction = ray_direction_for_pixel(pixel_x, pixel_y);
-  spdlog::info( "ray_near = [{} {} {}];", m_near_point[0],  m_near_point[1],  m_near_point[2]);
-  spdlog::info( "ray_far = [{} {} {}];", m_far_point[0],  m_far_point[1],  m_far_point[2]);
+void
+field_gl_widget::get_ray_data(unsigned int pixel_x,
+                              unsigned int pixel_y,
+                              Eigen::Vector3f &camera_origin,
+                              Eigen::Vector3f &ray_direction) {
+  ray_direction = ray_direction_for_pixel(pixel_x, pixel_y);
+  spdlog::info("ray_near = [{} {} {}];", m_near_point[0], m_near_point[1], m_near_point[2]);
+  spdlog::info("ray_far = [{} {} {}];", m_far_point[0], m_far_point[1], m_far_point[2]);
   spdlog::info("ray_dirn = [{}, {}, {}];",
                ray_direction[0], ray_direction[1], ray_direction[2]
   );
-
   auto co = m_arcBall->get_camera_origin();
-  Eigen::Vector3f camera_origin{co[0], co[1], co[2]};
+  camera_origin = {co[0], co[1], co[2]};
   spdlog::info("cam_origin = [{}, {}, {}];",
                co[0], co[1], co[2]
   );
+}
+
+
+
+int
+field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
+                                     std::vector<float> &items, float &distance) {
+  using namespace Eigen;
+  Vector3f camera_origin, ray_direction;
+  get_ray_data(pixel_x, pixel_y, camera_origin, ray_direction);
 
   distance = std::numeric_limits<float>::max();
   int closest_idx = -1;
@@ -273,6 +275,32 @@ field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
     );
   }
   spdlog::info("];");
+  distance = std::sqrtf(distance);
+  return closest_idx;
+}
+
+int
+field_gl_widget::find_closest_edge(unsigned int pixel_x,
+                                   unsigned int pixel_y,
+                                   std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> &edges,
+                                   float &distance) {
+  using namespace Eigen;
+  Vector3f camera_origin, ray_direction;
+  get_ray_data(pixel_x, pixel_y, camera_origin, ray_direction);
+
+  distance = std::numeric_limits<float>::max();
+  int closest_idx = -1;
+  for (int idx = 0; idx < edges.size(); ++idx) {
+    auto first_end = edges[idx].first;
+    auto second_end = edges[idx].second;
+    auto dist2 = distance_between_ray_and_line_segment(
+        camera_origin, ray_direction,
+        first_end, second_end);
+    if (dist2 < distance) {
+      distance = dist2;
+      closest_idx = idx;
+    }
+  }
   distance = std::sqrtf(distance);
   return closest_idx;
 }

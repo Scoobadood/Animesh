@@ -22,3 +22,6 @@
 [submodule "java/AnimeshJ"]
 	path = java/AnimeshJ
 	url = https://github.com/Scoobadood/AnimeshJ.git
+[submodule "dependencies/cpd"]
+	path = dependencies/cpd
+	url = git@github.com:gadomski/cpd.git

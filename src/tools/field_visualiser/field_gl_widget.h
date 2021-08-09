@@ -29,16 +29,10 @@ protected:
   static void checkGLError(const std::string &context);
 
   static void clear();
-  int
-  find_closest_vertex(unsigned int pixel_x,
-                      unsigned int pixel_y,
-                      std::vector<QVector3D> &items,
-                      float &distance);
-  int
-  find_closest_vertex(unsigned int pixel_x,
-                      unsigned int pixel_y,
-                      std::vector<float> &items, /// assumed XYZ triples
-                      float &distance);
+  int find_closest_vertex(unsigned int pixel_x,
+                          unsigned int pixel_y,
+                          std::vector<float> &items, /// assumed XYZ triples
+                          float &distance);
 private:
   ArcBall *m_arcBall;
 

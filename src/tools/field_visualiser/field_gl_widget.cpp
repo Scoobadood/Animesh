@@ -116,14 +116,6 @@ field_gl_widget::checkGLError(const std::string &context) {
   spdlog::error("{}: {} ", context, err);
 }
 
-int
-field_gl_widget::find_closest_vertex(unsigned int pixel_x,
-                                     unsigned int pixel_y,
-                                     std::vector<QVector3D> &items,
-                                     float &distance) {
-  return -1;
-}
-
 bool
 glUnprojectf(float winx, float winy, float winz,
                  Eigen::Matrix4f &modelview,

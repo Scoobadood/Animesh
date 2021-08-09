@@ -208,8 +208,8 @@ field_gl_widget::ray_direction_for_pixel(int pixel_x, int pixel_y) {
   glGetIntegerv(GL_VIEWPORT, viewport);
 //  viewport[0] = 0;
 //  viewport[1] = 0;
-//  viewport[2] = width();
-//  viewport[3] = height();
+  viewport[2] = width();
+  viewport[3] = height();
 
   QMatrix4x4 mv{m_model_view_matrix};
   QMatrix4x4 p{m_projection_matrix};

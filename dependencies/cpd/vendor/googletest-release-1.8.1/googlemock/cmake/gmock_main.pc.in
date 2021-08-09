@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:540c09ea73d8c52303ea9982284c14408aad9755332c51f2b2b80130de4da1bc
-size 343
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@
+includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
+
+Name: gmock_main
+Description: GoogleMock (with main() function)
+Version: @PROJECT_VERSION@
+URL: https://github.com/google/googletest
+Libs: -L${libdir} -lgmock_main @CMAKE_THREAD_LIBS_INIT@
+Cflags: -I${includedir} @GTEST_HAS_PTHREAD_MACRO@ @CMAKE_THREAD_LIBS_INIT@

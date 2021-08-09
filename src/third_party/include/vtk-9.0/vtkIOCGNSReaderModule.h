@@ -1,3 +1,42 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7d84e0ee58f9ac00f4ce65960c2e1e1b354efbc212abc948ccd2e27f01412473
-size 1220
+
+#ifndef VTKIOCGNSREADER_EXPORT_H
+#define VTKIOCGNSREADER_EXPORT_H
+
+#ifdef VTKIOCGNSREADER_STATIC_DEFINE
+#  define VTKIOCGNSREADER_EXPORT
+#  define VTKIOCGNSREADER_NO_EXPORT
+#else
+#  ifndef VTKIOCGNSREADER_EXPORT
+#    ifdef IOCGNSReader_EXPORTS
+        /* We are building this library */
+#      define VTKIOCGNSREADER_EXPORT __attribute__((visibility("default")))
+#    else
+        /* We are using this library */
+#      define VTKIOCGNSREADER_EXPORT __attribute__((visibility("default")))
+#    endif
+#  endif
+
+#  ifndef VTKIOCGNSREADER_NO_EXPORT
+#    define VTKIOCGNSREADER_NO_EXPORT __attribute__((visibility("hidden")))
+#  endif
+#endif
+
+#ifndef VTKIOCGNSREADER_DEPRECATED
+#  define VTKIOCGNSREADER_DEPRECATED __attribute__ ((__deprecated__))
+#endif
+
+#ifndef VTKIOCGNSREADER_DEPRECATED_EXPORT
+#  define VTKIOCGNSREADER_DEPRECATED_EXPORT VTKIOCGNSREADER_EXPORT VTKIOCGNSREADER_DEPRECATED
+#endif
+
+#ifndef VTKIOCGNSREADER_DEPRECATED_NO_EXPORT
+#  define VTKIOCGNSREADER_DEPRECATED_NO_EXPORT VTKIOCGNSREADER_NO_EXPORT VTKIOCGNSREADER_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKIOCGNSREADER_NO_DEPRECATED
+#    define VTKIOCGNSREADER_NO_DEPRECATED
+#  endif
+#endif
+
+#endif /* VTKIOCGNSREADER_EXPORT_H */

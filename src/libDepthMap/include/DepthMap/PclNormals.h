@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6fa92e1dfc7a220b9330b9080b4b5726729540eeb6abdcdb1cefe05d6a2dd43c
-size 431
+//
+// Created by Dave Durbin on 7/3/20.
+//
+
+#ifndef ANIMESH_PCLNORMALS_H
+#define ANIMESH_PCLNORMALS_H
+
+#include <vector>
+#include <DepthMap/Normals.h>
+#include <DepthMap/DepthMap.h>
+#include <Camera/Camera.h>
+
+/**
+ * Compute normal using estinate of normal to plane tangent to surface
+ */
+
+std::vector<std::vector<NormalWithType>>
+compute_normals_with_pcl(DepthMap* depth_map, const Camera& camera);
+
+#endif //ANIMESH_PCLNORMALS_H

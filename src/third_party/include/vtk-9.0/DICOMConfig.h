@@ -1,3 +1,62 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f21fdb5031da8cd5c610f89ebc7c6be3bc6e55420119be77ab5c170da3883a1e
-size 1292
+/*=========================================================================
+
+  Program:   DICOMParser
+  Module:    DICOMConfig.h
+  Language:  C++
+
+  Copyright (c) 2003 Matt Turek
+  All rights reserved.
+  See Copyright.txt for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+#ifndef __DICOM_CONFIG_H_
+#define __DICOM_CONFIG_H_
+
+//
+// CMake Hook
+//
+#include "DICOMCMakeConfig.h"
+
+//
+// BEGIN Toolkit (ITK,VTK, etc) specific
+//
+#ifdef vtkDICOMParser_EXPORTS
+#define DICOM_EXPORT_SYMBOLS
+#endif
+//
+// END toolkit (ITK, VTK, etc) specific
+//
+#define dicom_stl std
+
+#ifdef DICOM_ANSI_STDLIB
+#define dicom_stream std
+
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#else
+#define dicom_stream
+
+#include <fstream.h>
+#include <iomanip.h>
+#include <iostream.h>
+#endif
+
+#ifdef DICOM_DLL
+#ifdef DICOMParser_EXPORTS
+#define DICOM_EXPORT __declspec(dllexport)
+#define DICOM_EXPIMP_TEMPLATE
+#else
+#define DICOM_EXPORT __declspec(dllimport)
+#define DICOM_EXPIMP_TEMPLATE extern
+#endif
+#else
+#define DICOM_EXPORT
+#endif
+
+#endif // __DICOM_CONFIG_H_

@@ -1,3 +1,42 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3c155ea01e3f1f5e6a2218a7808fda47600dc2b35a740054ca79f100d4aa2b7a
-size 1316
+
+#ifndef VTKINTERACTIONIMAGE_EXPORT_H
+#define VTKINTERACTIONIMAGE_EXPORT_H
+
+#ifdef VTKINTERACTIONIMAGE_STATIC_DEFINE
+#  define VTKINTERACTIONIMAGE_EXPORT
+#  define VTKINTERACTIONIMAGE_NO_EXPORT
+#else
+#  ifndef VTKINTERACTIONIMAGE_EXPORT
+#    ifdef InteractionImage_EXPORTS
+        /* We are building this library */
+#      define VTKINTERACTIONIMAGE_EXPORT __attribute__((visibility("default")))
+#    else
+        /* We are using this library */
+#      define VTKINTERACTIONIMAGE_EXPORT __attribute__((visibility("default")))
+#    endif
+#  endif
+
+#  ifndef VTKINTERACTIONIMAGE_NO_EXPORT
+#    define VTKINTERACTIONIMAGE_NO_EXPORT __attribute__((visibility("hidden")))
+#  endif
+#endif
+
+#ifndef VTKINTERACTIONIMAGE_DEPRECATED
+#  define VTKINTERACTIONIMAGE_DEPRECATED __attribute__ ((__deprecated__))
+#endif
+
+#ifndef VTKINTERACTIONIMAGE_DEPRECATED_EXPORT
+#  define VTKINTERACTIONIMAGE_DEPRECATED_EXPORT VTKINTERACTIONIMAGE_EXPORT VTKINTERACTIONIMAGE_DEPRECATED
+#endif
+
+#ifndef VTKINTERACTIONIMAGE_DEPRECATED_NO_EXPORT
+#  define VTKINTERACTIONIMAGE_DEPRECATED_NO_EXPORT VTKINTERACTIONIMAGE_NO_EXPORT VTKINTERACTIONIMAGE_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKINTERACTIONIMAGE_NO_DEPRECATED
+#    define VTKINTERACTIONIMAGE_NO_DEPRECATED
+#  endif
+#endif
+
+#endif /* VTKINTERACTIONIMAGE_EXPORT_H */

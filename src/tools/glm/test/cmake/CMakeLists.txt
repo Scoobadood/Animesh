@@ -1,3 +1,8 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:82ab30f4ede6f2491b31c35c7f35fe537ca6b577fbb202e650ef66e958f381dd
-size 195
+cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+project(test_find_glm)
+
+find_package(glm REQUIRED)
+
+add_executable(test_find_glm test_find_glm.cpp)
+target_link_libraries(test_find_glm glm::glm)
+

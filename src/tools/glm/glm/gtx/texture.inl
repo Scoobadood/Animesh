@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4d51eabc2274f45c8815185e9e2cb02c18793516f3a5153da7d27434d28ebec7
-size 309
+/// @ref gtx_texture
+
+namespace glm
+{
+	template <length_t L, typename T, qualifier Q>
+	inline T levels(vec<L, T, Q> const& Extent)
+	{
+		return glm::log2(compMax(Extent)) + static_cast<T>(1);
+	}
+
+	template <typename T>
+	inline T levels(T Extent)
+	{
+		return vec<1, T, defaultp>(Extent).x;
+	}
+}//namespace glm
+

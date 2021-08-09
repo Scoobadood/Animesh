@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d808dbcee0074cf3a276d1d762e89da6a3ee1ab9f85f024f2359e7f3b070904a
-size 379
+/// @ref gtx_log_base
+
+namespace glm
+{
+	template<typename genType>
+	GLM_FUNC_QUALIFIER genType log(genType const& x, genType const& base)
+	{
+		return glm::log(x) / glm::log(base);
+	}
+
+	template<length_t L, typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER vec<L, T, Q> log(vec<L, T, Q> const& x, vec<L, T, Q> const& base)
+	{
+		return glm::log(x) / glm::log(base);
+	}
+}//namespace glm

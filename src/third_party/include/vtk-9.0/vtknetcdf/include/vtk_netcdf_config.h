@@ -1,3 +1,10 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2b8e536f493769a21b6797e529edeb12a93dd31afa2685f8ae17f0dd0243cfe8
-size 212
+#ifndef vtk_netcdf_config_h
+#define vtk_netcdf_config_h
+
+/* Define if this is a shared build */
+#define BUILD_SHARED_LIBS
+#if defined( BUILD_SHARED_LIBS ) && defined( _WIN32 )
+#  define DLL_NETCDF
+#endif
+
+#endif

@@ -1,3 +1,53 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:42f1899edd4af1a9adba70cf1dbef90e1582aed96153cef821e4dc3519aa0519
-size 1548
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+#ifndef vtkOpenGLHelper_h
+#define vtkOpenGLHelper_h
+
+#include "vtkRenderingOpenGL2Module.h" // for export macro
+#include "vtkTimeStamp.h"
+
+class vtkOpenGLIndexBufferObject;
+class vtkOpenGLShaderCache;
+class vtkOpenGLVertexArrayObject;
+class vtkShaderProgram;
+class vtkWindow;
+
+// Store the shaders, program, and ibo in a common place
+// as they are used together frequently.  This is just
+// a convenience class.
+class VTKRENDERINGOPENGL2_EXPORT vtkOpenGLHelper
+{
+public:
+  vtkShaderProgram* Program;
+  vtkTimeStamp ShaderSourceTime;
+  vtkOpenGLVertexArrayObject* VAO;
+  vtkTimeStamp AttributeUpdateTime;
+  int PrimitiveType;
+  unsigned int ShaderChangeValue;
+
+  vtkOpenGLIndexBufferObject* IBO;
+
+  vtkOpenGLHelper();
+  ~vtkOpenGLHelper();
+  void ReleaseGraphicsResources(vtkWindow* win);
+
+private:
+  vtkOpenGLHelper(const vtkOpenGLHelper&) = delete;
+  vtkOpenGLHelper& operator=(const vtkOpenGLHelper&) = delete;
+};
+
+#endif // vtkOpenGLHelper_h
+
+// VTK-HeaderTest-Exclude: vtkOpenGLHelper.h

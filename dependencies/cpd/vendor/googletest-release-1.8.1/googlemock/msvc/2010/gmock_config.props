@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:12b9c300b2dae3372bd73ffbd071ff24997879ba7b7c75f43e324bc093309870
-size 697
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="UserMacros">
+    <GTestDir>../../../googletest</GTestDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(GTestDir)/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="GTestDir">
+      <Value>$(GTestDir)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

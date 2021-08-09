@@ -1,3 +1,42 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1474445dd998e42a9cac5d279624af38eee70a5e8530420d8d86920d64186197
-size 1196
+
+#ifndef VTKRENDERINGQT_EXPORT_H
+#define VTKRENDERINGQT_EXPORT_H
+
+#ifdef VTKRENDERINGQT_STATIC_DEFINE
+#  define VTKRENDERINGQT_EXPORT
+#  define VTKRENDERINGQT_NO_EXPORT
+#else
+#  ifndef VTKRENDERINGQT_EXPORT
+#    ifdef RenderingQt_EXPORTS
+        /* We are building this library */
+#      define VTKRENDERINGQT_EXPORT __attribute__((visibility("default")))
+#    else
+        /* We are using this library */
+#      define VTKRENDERINGQT_EXPORT __attribute__((visibility("default")))
+#    endif
+#  endif
+
+#  ifndef VTKRENDERINGQT_NO_EXPORT
+#    define VTKRENDERINGQT_NO_EXPORT __attribute__((visibility("hidden")))
+#  endif
+#endif
+
+#ifndef VTKRENDERINGQT_DEPRECATED
+#  define VTKRENDERINGQT_DEPRECATED __attribute__ ((__deprecated__))
+#endif
+
+#ifndef VTKRENDERINGQT_DEPRECATED_EXPORT
+#  define VTKRENDERINGQT_DEPRECATED_EXPORT VTKRENDERINGQT_EXPORT VTKRENDERINGQT_DEPRECATED
+#endif
+
+#ifndef VTKRENDERINGQT_DEPRECATED_NO_EXPORT
+#  define VTKRENDERINGQT_DEPRECATED_NO_EXPORT VTKRENDERINGQT_NO_EXPORT VTKRENDERINGQT_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKRENDERINGQT_NO_DEPRECATED
+#    define VTKRENDERINGQT_NO_DEPRECATED
+#  endif
+#endif
+
+#endif /* VTKRENDERINGQT_EXPORT_H */

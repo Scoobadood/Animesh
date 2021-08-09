@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:25322b142711bfe009dbe978cf3269acc5dbab22d92c33f99c67bd6a2a8223b6
-size 373
+//
+// Created by Dave Durbin on 2019-07-06.
+//
+#pragma once
+
+#ifndef ANIMESH_TYPES_H
+#define ANIMESH_TYPES_H
+
+#include <string>
+#include <Eigen/Core>
+
+
+
+struct NormalTangent {
+    Eigen::Vector3f normal;
+    Eigen::Vector3f tangent;
+
+    NormalTangent(Eigen::Vector3f n, Eigen::Vector3f t) : normal{std::move(n)}, tangent{std::move(t)} {
+    }
+};
+
+#endif //ANIMESH_TYPES_H

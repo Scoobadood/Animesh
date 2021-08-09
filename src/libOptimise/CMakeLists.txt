@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f02a69b4e93cb0eabb308fe70b4483a79350e2e7f99ddf5411255bda3f8a00f7
-size 518
+add_library(Optimise STATIC
+		src/SurfelSelectionAlgorithm.cpp include/Optimise/SurfelSelectionAlgorithm.h
+		src/Optimiser.cpp include/Optimise/Optimiser.h
+		)
+
+
+# Define headers for this library. PUBLIC headers are used for
+# compiling the library, and will be added to consumers' build
+# paths.
+target_include_directories(Optimise
+		PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+		PRIVATE
+		include/Optimise
+		)
+
+target_link_libraries(Optimise
+		Properties
+		Surfel
+)

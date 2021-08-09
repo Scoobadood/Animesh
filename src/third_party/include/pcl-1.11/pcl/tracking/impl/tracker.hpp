@@ -1,3 +1,41 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9f69edc2cbeae89c0a40eb86a12dcb1615e7d28f13f5f00f359d1d4b19782ed3
-size 851
+#ifndef PCL_TRACKING_IMPL_TRACKER_H_
+#define PCL_TRACKING_IMPL_TRACKER_H_
+
+#include <pcl/tracking/tracker.h>
+
+namespace pcl {
+namespace tracking {
+template <typename PointInT, typename StateT>
+bool
+Tracker<PointInT, StateT>::initCompute()
+{
+  if (!PCLBase<PointInT>::initCompute()) {
+    PCL_ERROR("[pcl::%s::initCompute] PCLBase::Init failed.\n", getClassName().c_str());
+    return (false);
+  }
+
+  // If the dataset is empty, just return
+  if (input_->points.empty()) {
+    PCL_ERROR("[pcl::%s::compute] input_ is empty!\n", getClassName().c_str());
+    // Cleanup
+    deinitCompute();
+    return (false);
+  }
+
+  return (true);
+}
+
+template <typename PointInT, typename StateT>
+void
+Tracker<PointInT, StateT>::compute()
+{
+  if (!initCompute())
+    return;
+
+  computeTracking();
+  deinitCompute();
+}
+} // namespace tracking
+} // namespace pcl
+
+#endif

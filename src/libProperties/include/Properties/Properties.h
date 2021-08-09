@@ -1,3 +1,28 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4908d7955a9095b7fdf0c0e487e7213a21ea129d301bddc869868b734d176eb5
-size 790
+//
+// Created by Dave Durbin on 2019-08-11.
+//
+
+#ifndef ANIMESH_PROPERTIES_H
+#define ANIMESH_PROPERTIES_H
+
+#include <map>
+#include <string>
+
+class Properties {
+public:
+    Properties()= default;
+    explicit Properties(const std::string& file_name );
+    explicit Properties(const std::map<std::string, std::string>& values);
+
+    const std::string& getProperty(const std::string& key) const;
+    int getIntProperty(const std::string& key) const;
+    bool getBooleanProperty(const std::string& key) const;
+    float getFloatProperty(const std::string& key) const;
+    std::vector<float> getListOfFloatProperty(const std::string& key) const;
+    bool hasProperty(const std::string& key) const;
+
+private:
+    std::map<std::string, std::string> property_map;
+};
+
+#endif //ANIMESH_PROPERTIES_H

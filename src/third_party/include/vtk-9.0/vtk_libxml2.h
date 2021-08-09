@@ -1,3 +1,40 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4b68e1c5ee1ca0764e1b0963b37e64d3ec113abe79730ed857521ba6a097b39c
-size 1317
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtk_libxml2.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+#ifndef vtk_libxml2_h
+#define vtk_libxml2_h
+
+/* Use the libxml2 library configured for VTK.  */
+#define VTK_MODULE_USE_EXTERNAL_vtklibxml2 0
+
+/* #undef LIBXML_STATIC */
+
+/* Macro to help include a header file from the libxml2 configured for
+   VTK.  Since libxml2 has many public header files we cannot just
+   include them all here.  Instead user code can include this header
+   first and then use the macro to construct the name of the desired
+   header:
+
+   #include "vtk_libxml2.h"
+   #include VTKLIBXML2_HEADER(xmlstring.h)
+*/
+#if VTK_MODULE_USE_EXTERNAL_vtklibxml2
+#define VTKLIBXML2_HEADER(x)  <libxml/x>
+#else
+#define VTKLIBXML2_HEADER(x)  <vtklibxml2/include/libxml/x>
+#endif
+
+#include VTKLIBXML2_HEADER(xmlversion.h)
+
+#endif

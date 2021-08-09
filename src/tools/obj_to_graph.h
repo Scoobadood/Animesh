@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:eda3286aa45b8c22edd8735d8b348b32f05276ba2fe34872c63d39e212f2722e
-size 174
+//
+// Created by Dave Durbin (Old) on 21/6/21.
+//
+
+#ifndef ANIMESH_OBJ_TO_GRAPH_H
+#define ANIMESH_OBJ_TO_GRAPH_H
+
+
+class obj_to_graph {
+
+};
+
+
+#endif //ANIMESH_OBJ_TO_GRAPH_H

@@ -1,3 +1,55 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3543819c18a8448853cf1584044be0b162fdbe893c4dd155cc777a3700943691
-size 1673
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkMapper2D.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+/**
+ * @class   vtkMapper2D
+ * @brief   abstract class specifies interface for objects which render 2D actors
+ *
+ * vtkMapper2D is an abstract class which defines the interface for objects
+ * which render two dimensional actors (vtkActor2D).
+ *
+ * @sa
+ * vtkActor2D
+ */
+
+#ifndef vtkMapper2D_h
+#define vtkMapper2D_h
+
+#include "vtkAbstractMapper.h"
+#include "vtkRenderingCoreModule.h" // For export macro
+
+class vtkViewport;
+class vtkActor2D;
+
+class VTKRENDERINGCORE_EXPORT vtkMapper2D : public vtkAbstractMapper
+{
+public:
+  vtkTypeMacro(vtkMapper2D, vtkAbstractMapper);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  virtual void RenderOverlay(vtkViewport*, vtkActor2D*) {}
+  virtual void RenderOpaqueGeometry(vtkViewport*, vtkActor2D*) {}
+  virtual void RenderTranslucentPolygonalGeometry(vtkViewport*, vtkActor2D*) {}
+  virtual vtkTypeBool HasTranslucentPolygonalGeometry() { return 0; }
+
+protected:
+  vtkMapper2D() = default;
+  ~vtkMapper2D() override = default;
+
+private:
+  vtkMapper2D(const vtkMapper2D&) = delete;
+  void operator=(const vtkMapper2D&) = delete;
+};
+
+#endif

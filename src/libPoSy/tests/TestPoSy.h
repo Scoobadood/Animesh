@@ -1,3 +1,25 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:902e256536e61d52eea31713dc7712e23c40849875c4877d6ef2f0babfa6c10f
-size 617
+#pragma once
+
+#include <Eigen/Core>
+#include <vector>
+#include <Surfel/SurfelGraph.h>
+#include <Surfel/SurfelBuilder.h>
+#include "gtest/gtest.h"
+
+class TestPoSy : public ::testing::Test {
+public:
+	Eigen::Vector3f unit_x{1.0f, 0.0f, 0.0f };
+	Eigen::Vector3f unit_y{0.0f, 1.0f, 0.0f };
+	Eigen::Vector3f unit_z{0.0f, 0.0f, 1.0f };
+    Eigen::Vector3f origin{0.0f, 0.0f, 0.0f };
+
+    Eigen::Vector3f unit_yz{0.0f, M_SQRT1_2, M_SQRT1_2 };
+
+    Eigen::Vector3f vec_1_0_1{ 1.0f, 0.0f, 1.0f };
+
+	void SetUp( ) override;
+	void TearDown() override;
+    SurfelGraphPtr makeTestGraph();
+    SurfelBuilder * m_surfel_builder;
+};
+

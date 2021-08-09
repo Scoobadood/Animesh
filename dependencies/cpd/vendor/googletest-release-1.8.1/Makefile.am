@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ca9e057680718c329e6add4375c5c5a0ac1406928d9dd0511011f5a7c37c7c98
-size 315
+## Process this file with automake to produce Makefile.in
+ACLOCAL_AMFLAGS = -I m4
+
+AUTOMAKE_OPTIONS = foreign
+
+# Build . before src so that our all-local and clean-local hooks kicks in at
+# the right time.
+SUBDIRS = googletest googlemock
+
+EXTRA_DIST = \
+  BUILD.bazel \
+  CMakeLists.txt \
+  README.md \
+  WORKSPACE

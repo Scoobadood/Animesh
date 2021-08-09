@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fe78381daf2fc2538fb4067880e6150957011f6fb90de5472c4b5bd79a51a7a0
-size 284
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+if (@GTEST_HAS_PTHREAD@)
+  set(THREADS_PREFER_PTHREAD_FLAG @THREADS_PREFER_PTHREAD_FLAG@)
+  find_dependency(Threads)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake")
+check_required_components("@project_name@")

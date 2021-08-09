@@ -1,3 +1,175 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:cbb7a4d91d2780ba9d37d39aa10caf0c8b4da9545a28f3f0d1f05eab0650e537
-size 4348
+#include "TestMinimiseKL.h"
+#include <RoSy/RoSy.h>
+#include "GtestUtility.h"
+
+void TestMinimiseKL::SetUp( ) {}
+void TestMinimiseKL::TearDown() {}
+
+/*
+ * Test the function to return k,l that minimise the inter vector angle
+ */
+/* ********************************************************************************
+ * ** Test computing the smallest rotations
+ * ********************************************************************************/
+
+TEST_F( TestMinimiseKL, ShouldThrowIfN1IsNotUnitVector ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 0.0f, 2.0f, 3.0f };
+    Vector3f n1{ 1.0f, 1.0f, 0.0f };
+    Vector3f o2{ 0.0f, 2.0f, 3.0f };
+    Vector3f n2 = vec_1_0_0;
+
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Normal must be unit vector"
+    );
+}
+
+TEST_F( TestMinimiseKL, ShouldThrowIfO1IsZero ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 0.0f, 0.0f, 0.0f };
+    Vector3f n1 = vec_1_0_0;
+    Vector3f o2{ 0.0f, 2.0f, 3.0f };
+    Vector3f n2 = vec_1_0_0;
+
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Vector may not be zero length"
+    );
+}
+
+TEST_F( TestMinimiseKL, ShouldThrowIfN2IsNotUnitVector ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 0.0f, 2.0f, 3.0f };
+    Vector3f n1{ 1.0f, 1.0f, 0.0f };
+    Vector3f o2{ 0.0f, 2.0f, 3.0f };
+    Vector3f n2{ 1.0f, 1.0f, 0.0f };
+
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Normal must be unit vector"
+    );
+}
+
+TEST_F( TestMinimiseKL, ShouldThrowIfO2IsZero ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 0.0f, 2.0f, 3.0f };
+    Vector3f n1 = vec_1_0_0;
+    Vector3f o2{ 0.0f, 0.0f, 0.0f };
+    Vector3f n2 = vec_1_0_0;
+
+    EXPECT_THROW_WITH_MESSAGE(
+            best_rosy_vector_pair( o1, n1, o2, n2 ),
+            std::invalid_argument,
+            "Vector may not be zero length"
+    );
+}
+
+
+/* ***
+ * *
+ * */
+TEST_F( TestMinimiseKL, ShouldBe_0_0_For_0_DegreesCoplanar ) {
+    using namespace Eigen;
+
+    Vector3f o1 = vec_0_1_0;
+    Vector3f n1 = vec_1_0_0;
+    Vector3f o2 = vec_0_1_0;
+    Vector3f n2 = vec_1_0_0;
+
+    unsigned short actualK;
+    unsigned short actualL;
+
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 0;
+
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
+
+    EXPECT_EQ( expectedK, actualK );
+    EXPECT_EQ( expectedL, actualL );
+}
+
+TEST_F( TestMinimiseKL, ShouldBe_0_0_For_30_DegreesCoplanar ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 0.0f, sqrt( 3.0f ), 1.0f };
+    Vector3f n1 = vec_1_0_0;
+    Vector3f o2 = vec_0_1_0;
+    Vector3f n2 = vec_1_0_0;
+
+    unsigned short actualK;
+    unsigned short actualL;
+
+
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 0;
+
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
+
+    EXPECT_EQ( expectedK, actualK );
+    EXPECT_EQ( expectedL, actualL );
+    
+}
+
+TEST_F( TestMinimiseKL, ShouldBe_0_0_For_45_DegreesCoplanar ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 0.0f, 1.0f, 1.0f };
+    Vector3f n1 = vec_1_0_0;
+    Vector3f o2 = vec_0_1_0;
+    Vector3f n2 = vec_1_0_0;
+
+    unsigned short actualK;
+    unsigned short actualL;
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 0;
+
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
+
+    EXPECT_EQ( expectedK, actualK );
+    EXPECT_EQ( expectedL, actualL );
+    
+}
+
+
+TEST_F( TestMinimiseKL, ShouldBe_0_1_For_60_DegreesCoplanar ) {
+    using namespace Eigen;
+
+    Vector3f o1 = vec_0_1_R3;
+    Vector3f n1 = vec_1_0_0;
+    Vector3f o2 = vec_0_1_0;
+    Vector3f n2 = vec_1_0_0;
+
+    unsigned short actualK;
+    unsigned short actualL;
+    unsigned short expectedK = 0;
+    unsigned short expectedL = 1;
+
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
+
+    EXPECT_EQ( expectedK, actualK );
+    EXPECT_EQ( expectedL, actualL );
+    
+}
+
+TEST_F( TestMinimiseKL, SPROG ) {
+    using namespace Eigen;
+
+    Vector3f o1{ 1.0f, 0.5f, 0.0f };
+    Vector3f n1{ 0.0f, 0.0f, 1.0f };
+    Vector3f o2{ -0.5f, 1.0f, 0.0f };
+    Vector3f n2{ 0.0f, 1.0f, 0.0f };
+
+    unsigned short actualK;
+    unsigned short actualL;
+
+    best_rosy_vector_pair( o1, n1, o2, n2 );
+    best_rosy_vector_pair( o1, n1, actualK, o2, n2, actualL);
+}

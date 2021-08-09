@@ -1,3 +1,31 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d0abcd6ad3ee298c7b6195822d5b0330b9a7f87d82bda43768e8cd873009427f
-size 617
+#ifndef DIY_BLOCK_TRAITS_HPP
+#define DIY_BLOCK_TRAITS_HPP
+
+#include "traits.hpp"
+
+namespace diy
+{
+namespace detail
+{
+    template<class F>
+    struct block_traits
+    {
+        typedef typename std::remove_pointer<typename function_traits<F>::template arg<0>::type>::type type;
+    };
+
+    // matches block member functions
+    template<class Block, class R, class... Args>
+    struct block_traits<R(Block::*)(Args...)>
+    {
+        typedef Block type;
+    };
+
+    template<class Block, class R, class... Args>
+    struct block_traits<R(Block::*)(Args...) const>
+    {
+        typedef Block type;
+    };
+}
+}
+
+#endif

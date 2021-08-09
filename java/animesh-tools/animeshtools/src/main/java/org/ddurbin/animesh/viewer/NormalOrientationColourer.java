@@ -1,3 +1,41 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:aea1d0b4ffad45a1fa8f7e7cc302a93326561375c7179dd50f26f411734ccc5c
-size 1817
+package org.ddurbin.animesh.viewer;
+
+public class NormalOrientationColourer extends AbstractOrientationColourer {
+    public NormalOrientationColourer( float[] vertices) {
+        super(vertices);
+    }
+
+    public NormalOrientationColourer( float[] vertices, Colour primaryTangentColour, Colour secondaryTangentColour) {
+        super( vertices, primaryTangentColour, secondaryTangentColour);
+    }
+    /**
+     *
+     */
+    public float[] generateColoursForSurfels(int[] surfelIndices, boolean normalsEnabled, boolean tangentsEnabled, boolean principalTangentEnabled) {
+        int numSurfels = surfelIndices.length;
+        // Compute size of each item (surfel) in vertices
+        int verticesPerSurfel = (normalsEnabled ? Constants.VERTICES_FOR_NORMAL : 0) + (tangentsEnabled ? Constants.VERTICES_FOR_TANGENTS : 0);
+        int linesPerSurfel = verticesPerSurfel / 2;
+        if( verticesPerSurfel == 0 ) return new float[0];
+
+        float[] colours = new float[ verticesPerSurfel * numSurfels * Constants.NUM_COLOUR_PLANES];
+
+        for( int i=0; i<numSurfels; i++ ) {
+            Colour c = colourForSurfel(surfelIndices[i]);
+            int lineIndex = i * linesPerSurfel;
+            if(normalsEnabled) {
+                setLineColourAtIndex(colours, lineIndex++, c);
+            }
+            if( tangentsEnabled) {
+                if( principalTangentEnabled) {
+                    setLineColourAtIndex(colours, lineIndex++, primaryTangentColour);
+                } else {
+                    setLineColourAtIndex(colours, lineIndex++, secondaryTangentColour);
+                }
+                setLineColourAtIndex(colours, lineIndex++, secondaryTangentColour);
+                setLineColourAtIndex(colours, lineIndex++, secondaryTangentColour);
+            }
+        }
+        return colours;
+    }
+}

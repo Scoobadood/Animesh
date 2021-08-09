@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:cefff2feecb5434c0543191fbbb3cf4c0d48711a7c383f43b7c3b70de6f31edb
-size 258
+#!/usr/bin/env sh
+# Installs eigen to $HOME/local
+
+set -ex
+
+wget http://bitbucket.org/eigen/eigen/get/3.2.8.tar.gz
+tar xzf 3.2.8.tar.gz
+rm 3.2.8.tar.gz
+cd eigen-eigen-07105f7124f9
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/local
+make install

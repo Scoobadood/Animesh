@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fbe4d7c62fc00acf8fa62ca55d6d73d5754862304decb81ac016b0cf673ba7ae
-size 492
+/**
+ * Load and save correspondence data to file.
+ * Created by Dave Durbin on 2019-07-06.
+ */
+#pragma once
+
+#include <string>
+#include <vector>
+#include <Surfel/PixelInFrame.h>
+
+void
+load_correspondences_from_file(const std::string &file_name,
+                               std::vector<std::vector<PixelInFrame>> &correspondences);
+
+void
+save_correspondences_to_file(const std::string &file_name,
+                             const std::vector<std::vector<PixelInFrame>> &correspondences);

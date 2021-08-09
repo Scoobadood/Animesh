@@ -1,3 +1,47 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2fea0be5433d6514913ebc552ebc18813decc61773c0ae701998bb1c62bfa217
-size 1170
+#pragma once
+
+#include <QMainWindow>
+#include <Surfel/SurfelGraph.h>
+#include <Properties/Properties.h>
+#include <ArcBall/ArcBall.h>
+#include <QTimer>
+
+#include "posy_surfel_graph_geometry_extractor.h"
+#include "rosy_surfel_graph_geometry_extractor.h"
+#include "../../libQuad/include/Quad/Quad.h"
+#include "quad_geometry_extractor.h"
+
+QT_BEGIN_NAMESPACE
+namespace Ui { class field_visualiser_window; }
+QT_END_NAMESPACE
+
+class field_visualiser_window : public QMainWindow {
+Q_OBJECT
+
+public:
+    explicit field_visualiser_window(Properties properties, QWidget *parent = nullptr);
+
+    ~field_visualiser_window() override;
+
+    void set_graph(SurfelGraphPtr graph_ptr);
+
+private slots:
+
+    void fileOpenAction();
+
+    void frameChanged(int value);
+
+    void quad_vertex_selected(int i);
+
+private:
+    ArcBall * m_arc_ball;
+    QTimer * m_timer;
+
+    Ui::field_visualiser_window *ui;
+    SurfelGraphPtr m_graph_ptr;
+    Properties m_properties;
+    posy_surfel_graph_geometry_extractor *m_posy_geometry_extractor;
+    rosy_surfel_graph_geometry_extractor *m_rosy_geometry_extractor;
+    quad_geometry_extractor * m_quad_geometry_extractor;
+    void extract_geometry();
+};

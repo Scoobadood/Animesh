@@ -1,3 +1,9 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e87cf281ec45a557a83efcae747927eb1753f4d6af36a86ef96a6523da03b331
-size 392
+function(cpd_test name)
+    set(src ${name}.cpp)
+    set(target ${name}-test)
+    add_executable(${target} ${src})
+    set_target_properties(${target} PROPERTIES OUTPUT_NAME ${name})
+    add_test(NAME ${name} COMMAND ${target})
+    target_link_libraries(${target} PRIVATE Library-C++ ${ARGN} gtest_main)
+    target_include_directories(${target} PRIVATE "${PROJECT_BINARY_DIR}")
+endfunction()

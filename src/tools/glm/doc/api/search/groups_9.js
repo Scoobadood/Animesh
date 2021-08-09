@@ -1,3 +1,6 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:875545ca04cf63f4b0a6bce9844d828ee0dd53401e605e7cad0a47a991d778f0
-size 299
+var searchData=
+[
+  ['vector_20relational_20functions',['Vector Relational Functions',['../a00374.html',1,'']]],
+  ['vector_20types',['Vector types',['../a00281.html',1,'']]],
+  ['vector_20types_20with_20precision_20qualifiers',['Vector types with precision qualifiers',['../a00282.html',1,'']]]
+];

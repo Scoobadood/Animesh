@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:506631f177a5bc398ecb6116d2ef4f716bfd1d9de636c9f3c1096b6ebfe2545e
-size 732
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtk_exodusII.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+#ifndef vtk_exodusII_h
+#define vtk_exodusII_h
+
+/* Use the exodusII library configured for VTK.  */
+#include <vtkexodusII/include/exodusII.h>
+
+#endif

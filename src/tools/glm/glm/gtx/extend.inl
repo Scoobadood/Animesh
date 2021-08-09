@@ -1,3 +1,48 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1a3f37288fde064c4b46b4e8def1b397e3b2c8b6e80ec6a50ff8d9b58fb3c56f
-size 901
+/// @ref gtx_extend
+
+namespace glm
+{
+	template<typename genType>
+	GLM_FUNC_QUALIFIER genType extend
+	(
+		genType const& Origin,
+		genType const& Source,
+		genType const& Distance
+	)
+	{
+		return Origin + (Source - Origin) * Distance;
+	}
+
+	template<typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER vec<2, T, Q> extend
+	(
+		vec<2, T, Q> const& Origin,
+		vec<2, T, Q> const& Source,
+		T const& Distance
+	)
+	{
+		return Origin + (Source - Origin) * Distance;
+	}
+
+	template<typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER vec<3, T, Q> extend
+	(
+		vec<3, T, Q> const& Origin,
+		vec<3, T, Q> const& Source,
+		T const& Distance
+	)
+	{
+		return Origin + (Source - Origin) * Distance;
+	}
+
+	template<typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER vec<4, T, Q> extend
+	(
+		vec<4, T, Q> const& Origin,
+		vec<4, T, Q> const& Source,
+		T const& Distance
+	)
+	{
+		return Origin + (Source - Origin) * Distance;
+	}
+}//namespace glm

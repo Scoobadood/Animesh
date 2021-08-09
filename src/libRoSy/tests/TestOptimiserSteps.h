@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:69dc117a20c88a08f7a090721f8ff84624d476b8748b37092acb14aec8b2d6d0
-size 406
+//
+// Created by Dave Durbin (Old) on 2/8/21.
+//
+
+#ifndef ANIMESH_TESTOPTIMISERSTEPS_H
+#define ANIMESH_TESTOPTIMISERSTEPS_H
+
+#include "gtest/gtest.h"
+#include <Eigen/Core>
+
+class TestOptimiserSteps : public ::testing::Test {
+public:
+
+  Eigen::Vector3f vec_1_0_0{1.0f, 0.0f, 0.0f};
+  Eigen::Vector3f vec_0_1_0{0.0f, 1.0f, 0.0f};
+
+  void SetUp();
+  void TearDown();
+};
+
+#endif //ANIMESH_TESTOPTIMISERSTEPS_H

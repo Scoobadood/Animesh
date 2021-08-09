@@ -1,3 +1,34 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:185b94c2aebddeae7296a6acc0303d4dca65cb754cee25668dbf2995aa664151
-size 694
+//
+// Created by Dave Durbin (Old) on 12/7/21.
+//
+
+#pragma once
+
+#include <Surfel/SurfelGraph.h>
+#include <Eigen/Core>
+
+typedef enum {
+    EDGE_TYPE_RED = 1,
+    EDGE_TYPE_BLU
+} EdgeType;
+
+struct QuadGraphVertex {
+  std::string surfel_id;
+  Eigen::Vector3f location;
+};
+using QuadGraph = animesh::Graph<QuadGraphVertex, EdgeType>;
+using QuadGraphPtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>>;
+using QuadGraphNodePtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>;
+
+QuadGraphPtr
+build_edge_graph(
+    int frame_index,
+    const SurfelGraphPtr &graph,
+    float rho
+);
+
+void
+collapse(int frame_index,
+         QuadGraphPtr graph,
+         float rho
+);

@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f3cd45dd652d9b3c16f77c6adb44374eb31aeebbe883e59341eaed105dfc89f9
-size 164
+#ifndef GLM_FORCE_CXX_UNKNOWN
+#	define GLM_FORCE_CXX_UNKNOWN
+#endif
+
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+
+int main()
+{
+	int Error = 0;
+
+	return Error;
+}
+

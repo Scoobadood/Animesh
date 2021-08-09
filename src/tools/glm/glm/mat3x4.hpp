@@ -1,3 +1,8 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e2dacd780eabf7f38c4e1f2ec37ff6df37cdb5c14c25a07a695ab5e9952f080d
-size 223
+/// @ref core
+/// @file glm/mat3x4.hpp
+
+#pragma once
+#include "./ext/matrix_double3x4.hpp"
+#include "./ext/matrix_double3x4_precision.hpp"
+#include "./ext/matrix_float3x4.hpp"
+#include "./ext/matrix_float3x4_precision.hpp"

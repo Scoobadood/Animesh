@@ -1,3 +1,15 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f55836e56790f0b4a4fa37c0ae3f8ed80a5c430132c108bf635abaae65fe437d
-size 514
+#Multi Frame
+##Loading
+[x] Add an option to the main menu for add frame.
+[ ] This should invoke the PCL loader and call field->add_pointcloud
+[ ] Should only be enabled once there is a frame loaded
+
+##Display
+[x] Add a frame counter to the left hand view with spinner
+[x] Add a label
+[x] Set min and max based on frame count
+[x] Update field to return points based on current frame
+[x] Call this from visualisation code.
+
+##Test
+[x] Construct (separate code) a series of point clouds with increasingly sharp folds

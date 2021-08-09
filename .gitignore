@@ -1,3 +1,25 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2f30fd92ad06eae190179633b78b30787347280a212c8d9475d77d97bad00afc
-size 342
+.DS_Store
+
+bin/
+build/
+lib/
+src/cmake-build-debug/
+cmake-build-debug/
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+**/*.trace/
+
+reports/
+
+**/CMakeLists.txt.user
+build-QtMain-Desktop_Qt_5_12_0_clang_64bit-Default/
+build-src-Desktop_Qt_5_15_2_clang_64bit-Debug/
+
+**/*.class
+
+java/animesh-tools/animeshtools/target/
+java/All\ Src
+
+ext/
+odds/
+.idea/

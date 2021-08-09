@@ -1,3 +1,53 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:e9d6c1fc76003aa2ccb48b6d4c505014d57267ca00e44a7a16ebb00004b1ec98
-size 1541
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkOpenGLGL2PSExporter.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+/**
+ * @class   vtkOpenGLGL2PSExporter
+ * @brief   OpenGL2 implementation of GL2PS exporter.
+ *
+ *
+ * Implementation of vtkGL2PSExporter for the OpenGL2 backend.
+ */
+
+#ifndef vtkOpenGLGL2PSExporter_h
+#define vtkOpenGLGL2PSExporter_h
+
+#include "vtkGL2PSExporter.h"
+#include "vtkIOExportGL2PSModule.h" // For export macro
+
+class vtkImageData;
+
+class VTKIOEXPORTGL2PS_EXPORT vtkOpenGLGL2PSExporter : public vtkGL2PSExporter
+{
+public:
+  static vtkOpenGLGL2PSExporter* New();
+  vtkTypeMacro(vtkOpenGLGL2PSExporter, vtkGL2PSExporter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+
+protected:
+  vtkOpenGLGL2PSExporter();
+  ~vtkOpenGLGL2PSExporter() override;
+
+  void WriteData() override;
+
+  bool RasterizeBackground(vtkImageData* image);
+  bool CaptureVectorProps();
+
+private:
+  vtkOpenGLGL2PSExporter(const vtkOpenGLGL2PSExporter&) = delete;
+  void operator=(const vtkOpenGLGL2PSExporter&) = delete;
+};
+
+#endif // vtkOpenGLGL2PSExporter_h

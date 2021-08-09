@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:798e5f7aae06346a1c57fed7210dae16497a388fd7f641e237673210203427b6
-size 334
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
+
+int main()
+{
+	int Error(0);
+
+	glm::mat4 Matrix(1);
+
+	glm::vec3 Scale;
+	glm::quat Orientation;
+	glm::vec3 Translation;
+	glm::vec3 Skew(1);
+	glm::vec4 Perspective(1);
+
+	glm::decompose(Matrix, Scale, Orientation, Translation, Skew, Perspective);
+
+	return Error;
+}

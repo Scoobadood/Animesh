@@ -1,3 +1,38 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:155ff0101bf502e816705223005cd57b7554b2c3dd2b1f1ad553babb84751b1b
-size 541
+add_library(
+		Args SHARED
+		src/Args.cpp include/Args/Args.h
+)
+
+target_include_directories(
+		Args PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		PRIVATE
+		include/Args
+		../third_party/include
+)
+
+add_executable(
+		testArgs
+		tests/main.cpp
+		tests/TestArgs.cpp
+)
+
+target_link_libraries(
+		testArgs
+		Args
+		gtest
+		gmock
+)
+
+
+# Stash it
+install(
+		TARGETS testArgs
+		DESTINATION bin
+)
+
+add_test(
+		NAME TestElementZeroLengthVectorsShouldThrow
+		COMMAND testArgs --gtest_filter=TestElement.ZeroLengthVectorsShouldThrow
+)
+

@@ -1,3 +1,13 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fabf7b730fbad6dc3a66a0afd690e66a8f3555325cf573459262d4ce154ae4e6
-size 434
+# Check whether the requested PACKAGE_FIND_VERSION is compatible
+
+set(PACKAGE_VERSION 1.11.1.99)
+
+# Check whether the requested PACKAGE_FIND_VERSION is compatible
+if("${PACKAGE_VERSION}" VERSION_LESS "${PACKAGE_FIND_VERSION}")
+  set(PACKAGE_VERSION_COMPATIBLE FALSE)
+else()
+  set(PACKAGE_VERSION_COMPATIBLE TRUE)
+  if("${PACKAGE_VERSION}" VERSION_EQUAL "${PACKAGE_FIND_VERSION}")
+    set(PACKAGE_VERSION_EXACT TRUE)
+  endif()
+endif()

@@ -1,3 +1,27 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a939487e25d2d07b9063ab222f54dd8a4a37898b8a8b106f348230fe3ad494c0
-size 549
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+"settings":
+    {
+        "cmake":
+        {
+            "schemes":
+            [
+                {
+                    "name": "Debug",
+                    "build_folder": "${project_path}/build",
+                    "command_line_overrides":
+                    {
+                        "BUILD_SHARED_LIBS": true,
+                        "CMAKE_BUILD_TYPE": "Debug",
+                        "CMAKE_EXPORT_COMPILE_COMMANDS": true
+                    }
+                }
+            ]
+        }
+    }	
+}

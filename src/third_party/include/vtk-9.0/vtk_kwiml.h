@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4a3bb84b17f184f084e3b610ff53be70f415d53973e3c2ba83bbaf57cadf6c4d
-size 730
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtk_kwiml.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+#ifndef vtk_kwiml_h
+#define vtk_kwiml_h
+
+/* Use the KWIML library configured for VTK.  */
+#include "vtkkwiml/abi.h"
+#include "vtkkwiml/int.h"
+
+#endif

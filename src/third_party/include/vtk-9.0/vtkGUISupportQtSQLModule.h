@@ -1,3 +1,42 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7fbe5075f82263f7bc5eb00dd5799bb961785cf57c27d7a621f391fa5eedcc52
-size 1292
+
+#ifndef VTKGUISUPPORTQTSQL_EXPORT_H
+#define VTKGUISUPPORTQTSQL_EXPORT_H
+
+#ifdef VTKGUISUPPORTQTSQL_STATIC_DEFINE
+#  define VTKGUISUPPORTQTSQL_EXPORT
+#  define VTKGUISUPPORTQTSQL_NO_EXPORT
+#else
+#  ifndef VTKGUISUPPORTQTSQL_EXPORT
+#    ifdef GUISupportQtSQL_EXPORTS
+        /* We are building this library */
+#      define VTKGUISUPPORTQTSQL_EXPORT __attribute__((visibility("default")))
+#    else
+        /* We are using this library */
+#      define VTKGUISUPPORTQTSQL_EXPORT __attribute__((visibility("default")))
+#    endif
+#  endif
+
+#  ifndef VTKGUISUPPORTQTSQL_NO_EXPORT
+#    define VTKGUISUPPORTQTSQL_NO_EXPORT __attribute__((visibility("hidden")))
+#  endif
+#endif
+
+#ifndef VTKGUISUPPORTQTSQL_DEPRECATED
+#  define VTKGUISUPPORTQTSQL_DEPRECATED __attribute__ ((__deprecated__))
+#endif
+
+#ifndef VTKGUISUPPORTQTSQL_DEPRECATED_EXPORT
+#  define VTKGUISUPPORTQTSQL_DEPRECATED_EXPORT VTKGUISUPPORTQTSQL_EXPORT VTKGUISUPPORTQTSQL_DEPRECATED
+#endif
+
+#ifndef VTKGUISUPPORTQTSQL_DEPRECATED_NO_EXPORT
+#  define VTKGUISUPPORTQTSQL_DEPRECATED_NO_EXPORT VTKGUISUPPORTQTSQL_NO_EXPORT VTKGUISUPPORTQTSQL_DEPRECATED
+#endif
+
+#if 0 /* DEFINE_NO_DEPRECATED */
+#  ifndef VTKGUISUPPORTQTSQL_NO_DEPRECATED
+#    define VTKGUISUPPORTQTSQL_NO_DEPRECATED
+#  endif
+#endif
+
+#endif /* VTKGUISUPPORTQTSQL_EXPORT_H */

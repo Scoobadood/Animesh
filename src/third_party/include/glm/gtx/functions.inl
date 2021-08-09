@@ -1,3 +1,30 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3e35e0d59c17b4a2d4fd91ef7b90fd100160c972f571a458101b297f75d37a95
-size 773
+/// @ref gtx_functions
+
+#include "../exponential.hpp"
+
+namespace glm
+{
+	template<typename T>
+	GLM_FUNC_QUALIFIER T gauss
+	(
+		T x,
+		T ExpectedValue,
+		T StandardDeviation
+	)
+	{
+		return exp(-((x - ExpectedValue) * (x - ExpectedValue)) / (static_cast<T>(2) * StandardDeviation * StandardDeviation)) / (StandardDeviation * sqrt(static_cast<T>(6.28318530717958647692528676655900576)));
+	}
+
+	template<typename T, qualifier Q>
+	GLM_FUNC_QUALIFIER T gauss
+	(
+		vec<2, T, Q> const& Coord,
+		vec<2, T, Q> const& ExpectedValue,
+		vec<2, T, Q> const& StandardDeviation
+	)
+	{
+		vec<2, T, Q> const Squared = ((Coord - ExpectedValue) * (Coord - ExpectedValue)) / (static_cast<T>(2) * StandardDeviation * StandardDeviation);
+		return exp(-(Squared.x + Squared.y));
+	}
+}//namespace glm
+

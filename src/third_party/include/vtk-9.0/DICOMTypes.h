@@ -1,3 +1,27 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d57b39f07d6eab013ebd218f31eb0be3ba036759d077a54b6f106cbdcbae2f3f
-size 727
+
+/*=========================================================================
+
+  Program:   DICOMParser
+  Module:    DICOMTypes.h
+  Language:  C++
+
+  Copyright (c) 2003 Matt Turek
+  All rights reserved.
+  See Copyright.txt for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+
+#ifndef __DICOM_TYPES_H_
+#define __DICOM_TYPES_H_
+
+typedef unsigned short doublebyte;
+typedef int quadbyte;
+typedef unsigned short ushort;
+typedef unsigned long ulong;
+typedef unsigned int uint;
+
+#endif

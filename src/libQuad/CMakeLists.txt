@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:236ae53b320fce1d6645ba608506a12b5c0ac8522837de0ecd4574b5069887b3
-size 437
+add_library(Quad
+		SHARED
+		src/Quad.cpp include/Quad/Quad.h
+		)
+
+# Define headers for this library. PUBLIC headers are used for
+# compiling the library, and will be added to consumers' build
+# paths.
+target_include_directories(Quad
+		PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+		${EIGEN3_INCLUDE_DIR}
+		PRIVATE
+		include/Quad)
+
+target_link_libraries(
+		Quad
+		PoSy
+		RoSy
+		Surfel
+)
+

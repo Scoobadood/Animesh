@@ -1,3 +1,25 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a099d8883dedc68a1a8b20e97e5bcd4b7a2980870959048440cc9b1ae86a5344
-size 639
+
+#include <Surfel/SurfelGraph.h>
+#include <Surfel/Surfel_IO.h>
+#include <FileUtils/FileUtils.h>
+
+#include <fstream>
+
+int main(int argc, const char *argv[]) {
+    std::string in_file = argv[1];
+    auto s = load_surfel_graph_from_file(in_file);
+
+    std::string out_file;
+    if (argc == 3) {
+        out_file = argv[2];
+    } else {
+        auto name_and_extension = get_file_name_and_extension(in_file);
+        out_file = name_and_extension.first + "x3.bin";
+    }
+    for (auto& n : s->node_data()) {
+        for( auto& f : n->frame_data()) {
+            f.position *= 3.0f;
+        }
+    }
+    save_surfel_graph_to_file(out_file, s);
+}

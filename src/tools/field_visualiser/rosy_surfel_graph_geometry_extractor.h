@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:42ad036c060ca9d9b2a4070302f2d1f0cf08c3205021d6f07a20d1768c3c40c7
-size 548
+//
+// Created by Dave Durbin (Old) on 2/4/21.
+//
+
+#pragma once
+
+#include <Surfel/SurfelGraph.h>
+#include "geometry_extractor.h"
+
+class rosy_surfel_graph_geometry_extractor : public geometry_extractor {
+public:
+    void extract_geometry(const SurfelGraphPtr& graphPtr,
+                          std::vector<float>& positions,
+                          std::vector<float>& tangents,
+                          std::vector<float>& normals,
+                          std::vector<float>& colours,
+                          float& scale_factor) const;
+};

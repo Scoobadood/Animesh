@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d965db640d11d706ab6efdda84f3d1f34e9dddea060529af6563da4ed5ad1f54
-size 530
+/**
+ * Compute correspondences given a source directory.
+ * Created by Dave Durbin on 2019-07-06.
+ */
+
+#pragma once
+
+#include <vector>
+#include <Surfel/PixelInFrame.h>
+#include <DepthMap/DepthMap.h>
+#include <Camera/Camera.h>
+
+/**
+ * Compute the correspondences between pixels in cleaned depth maps
+ * Returns a vector or correspondences where each correspondence
+ * is a PixelInFrame
+ */
+std::vector<std::vector<PixelInFrame>>
+compute_correspondences(const std::vector<Camera> &cameras, const std::vector<DepthMap> &depth_maps);

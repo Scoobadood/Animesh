@@ -1,3 +1,30 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:5ca7f6d4b269ff8221d7d9057c1fa1299a0e1e5f5a742dc41533c1a6516451bc
-size 739
+//
+// Created by Dave Durbin on 26/3/20.
+//
+
+#include <iostream>
+
+#include <nanogui/nanogui.h>
+#include "animesh_screen.h"
+#include <spdlog/cfg/env.h>
+
+int main(int argc, char ** argv) {
+    using namespace std;
+    spdlog::cfg::load_env_levels();
+    try {
+        nanogui::init();
+        /* scoped variables */
+        {
+            nanogui::ref <animesh_screen> app = new animesh_screen(argc, argv);
+            app->drawAll();
+            app->setVisible(true);
+            nanogui::mainloop();
+        }
+        nanogui::shutdown();
+    } catch (const std::runtime_error &e) {
+        string error_msg = string("Caught a fatal error: ") + string(e.what());
+        cerr << error_msg << endl;
+        return -1;
+    }
+    return 0;
+}

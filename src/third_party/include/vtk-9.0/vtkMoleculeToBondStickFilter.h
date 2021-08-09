@@ -1,3 +1,48 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:93ce9c17d9cff7ab10f4a20c0fe072f438a79295d24d9a9cc8c8eb0a7910bec9
-size 1551
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkMoleculeToBondStickFilter.h
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+/**
+ * @class   vtkMoleculeToBondStickFilter
+ * @brief   Generate polydata with cylinders
+ * representing bonds
+ */
+
+#ifndef vtkMoleculeToBondStickFilter_h
+#define vtkMoleculeToBondStickFilter_h
+
+#include "vtkDomainsChemistryModule.h" // For export macro
+#include "vtkMoleculeToPolyDataFilter.h"
+
+class vtkMolecule;
+
+class VTKDOMAINSCHEMISTRY_EXPORT vtkMoleculeToBondStickFilter : public vtkMoleculeToPolyDataFilter
+{
+public:
+  vtkTypeMacro(vtkMoleculeToBondStickFilter, vtkMoleculeToPolyDataFilter);
+  void PrintSelf(ostream& os, vtkIndent indent) override;
+
+  static vtkMoleculeToBondStickFilter* New();
+
+protected:
+  vtkMoleculeToBondStickFilter();
+  ~vtkMoleculeToBondStickFilter() override;
+
+  int RequestData(vtkInformation*, vtkInformationVector**, vtkInformationVector*) override;
+
+private:
+  vtkMoleculeToBondStickFilter(const vtkMoleculeToBondStickFilter&) = delete;
+  void operator=(const vtkMoleculeToBondStickFilter&) = delete;
+};
+
+#endif

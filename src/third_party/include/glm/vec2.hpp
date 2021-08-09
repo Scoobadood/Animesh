@@ -1,3 +1,14 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:471ef34e19e825f694d4c021dd0a8705e5e148b6dee9ea651d8455ec49ecaa00
-size 437
+/// @ref core
+/// @file glm/vec2.hpp
+
+#pragma once
+#include "./ext/vector_bool2.hpp"
+#include "./ext/vector_bool2_precision.hpp"
+#include "./ext/vector_float2.hpp"
+#include "./ext/vector_float2_precision.hpp"
+#include "./ext/vector_double2.hpp"
+#include "./ext/vector_double2_precision.hpp"
+#include "./ext/vector_int2.hpp"
+#include "./ext/vector_int2_sized.hpp"
+#include "./ext/vector_uint2.hpp"
+#include "./ext/vector_uint2_sized.hpp"

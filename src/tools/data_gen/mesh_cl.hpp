@@ -1,3 +1,27 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:397794b9a1fe4a80ad5069ba13e90609632050a06d193c81030eee53c0fbe594
-size 459
+#pragma once
+
+#include <vector>
+#include <string>
+
+#ifdef __APPLE__
+#include "cl.hpp"
+#else
+// Linux OpenCL
+#include <CL/cl.hpp>
+#endif
+
+// Mesh classes
+struct Vertex {
+    cl_float3 position;
+    cl_float3 normal;
+};
+
+class Mesh {
+    public:
+        /*  Mesh Data  */
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+
+        /*  Functions  */
+        Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+};

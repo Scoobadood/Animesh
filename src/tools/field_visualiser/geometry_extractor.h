@@ -1,3 +1,24 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0e09488d2662ba33f0236fca7ac0c33e2d6428707e706b5b83a65938ac0d401c
-size 451
+//
+// Created by Dave Durbin (Old) on 2/8/21.
+//
+
+#ifndef ANIMESH_TOOLS_FIELD_VISUALISER_GEOMETRY_EXTRACTOR_H
+#define ANIMESH_TOOLS_FIELD_VISUALISER_GEOMETRY_EXTRACTOR_H
+
+class geometry_extractor {
+public:
+  inline void set_frame(int frame) {
+    if(m_frame != frame) {
+      m_frame = frame;
+    }
+  }
+
+  inline int get_frame() const {
+    return m_frame;
+  }
+
+private:
+  int m_frame;
+};
+
+#endif //ANIMESH_TOOLS_FIELD_VISUALISER_GEOMETRY_EXTRACTOR_H

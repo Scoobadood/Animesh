@@ -1,3 +1,21 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:86a2b71c56eba09ac80ca733009aeeeb241d1a5365e5297984760d5e39d901aa
-size 246
+set(
+		PROJECT_SOURCES
+		main.cpp
+)
+
+add_executable(
+		quadulator
+		${PROJECT_SOURCES}
+)
+
+target_include_directories(
+		quadulator
+		PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}
+		../../third_party/include
+)
+
+target_link_libraries(
+		quadulator
+		Quad
+)

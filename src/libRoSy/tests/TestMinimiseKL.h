@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f3a662afbf9c23eef580202893ce5893df244020e73e36509a2b2beaee43fa47
-size 414
+#pragma once
+
+#include <Eigen/Core>
+#include "gtest/gtest.h"
+
+class TestMinimiseKL : public ::testing::Test {
+public:
+	Eigen::Vector3f vec_1_0_0{ 1.0f, 0.0f, 0.0f };
+	Eigen::Vector3f vec_0_1_0{ 0.0f, 1.0f, 0.0f };
+	Eigen::Vector3f vec_0_0_1{ 0.0f, 0.0f, 1.0f };
+	Eigen::Vector3f vec_0_1_R3{ 0.0f, 1.0f, sqrt( 3.0f ) };
+	Eigen::Vector3f vec_0_R3_1{ 0.0f, sqrt( 3.0f ), 1.0f };
+
+	void SetUp( );
+	void TearDown();
+};

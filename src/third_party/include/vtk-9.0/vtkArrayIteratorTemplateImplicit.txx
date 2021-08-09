@@ -1,3 +1,25 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0e597a5aaf0d5f0378f2f06bef3e19f84d47a24317842742b63fa8959e943852
-size 986
+/*=========================================================================
+
+  Program:   Visualization Toolkit
+  Module:    vtkArrayIteratorTemplateImplicit.txx
+
+  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+  All rights reserved.
+  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     PURPOSE.  See the above copyright notice for more information.
+
+=========================================================================*/
+// This file is used to stop dependency tracking from including a
+// dependence on the .txx file from the .h file when implicit
+// instantiation is not needed.  It just includes the corresponding
+// .txx file, so only the name is important.
+
+#ifndef vtkArrayIteratorTemplateImplicit_txx
+#define vtkArrayIteratorTemplateImplicit_txx
+
+#include "vtkArrayIteratorTemplate.txx"
+
+#endif

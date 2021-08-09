@@ -1,3 +1,2 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9f9dfc7ab37eb3a10852506f736233ede120ae2a71a91c3a42813ac562999253
-size 48
+/// \namespace cpd
+/// Top-level cpd namespace.

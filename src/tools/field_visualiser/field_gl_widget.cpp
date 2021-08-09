@@ -18,6 +18,7 @@ field_gl_widget::field_gl_widget(
     , m_zFar{500.0f} //
     , m_aspectRatio{1.0f} //
     , m_projectionMatrixIsDirty{true} //
+    , m_render_mouse_ray{true} //
 {
   setFocus();
 }
@@ -196,7 +197,9 @@ field_gl_widget::ray_for_pixel(int pixel_x, int pixel_y) {
   glUnprojectf(winX, winY, 1.0f, mv, p, viewport, xyz_far);
   glUnprojectf(winX, winY, 0.0f, mv, p, viewport, xyz_near);
 
-  return {xyz_far[0] - xyz_near[0], xyz_far[1] - xyz_near[1], xyz_far[2] - xyz_near[2]};
+  m_near_point = {xyz_near[0], xyz_near[1], xyz_near[2] };
+  m_far_point = {xyz_far[0], xyz_far[1], xyz_far[2] };
+  return m_far_point - m_near_point;
 }
 
 int

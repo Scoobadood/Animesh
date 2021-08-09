@@ -42,8 +42,32 @@ field_gl_widget::clear() {
 void
 field_gl_widget::update_model_matrix() {
   glMatrixMode(GL_MODELVIEW);
-  m_arcBall->get_model_view_matrix(m_model_view_matrix);
-  glLoadMatrixf(m_model_view_matrix);
+  float xx[16];
+  m_arcBall->get_model_view_matrix(xx);
+
+  bool dirty = false;
+  for( int i=0; i<16; i++ ) {
+    if( m_model_view_matrix[i] != xx[i]) {
+      dirty = true;
+      break;
+    }
+  }
+  if( dirty ) {
+    for( int i=0; i<16; i++ ) {
+      m_model_view_matrix[i] = xx[i];
+    }
+    spdlog::info(
+        "\n{:4.2f} {:4.2f} {:4.2f} {:4.2f}"
+        "\n{:4.2f} {:4.2f} {:4.2f} {:4.2f}"
+        "\n{:4.2f} {:4.2f} {:4.2f} {:4.2f}"
+        "\n{:4.2f} {:4.2f} {:4.2f} {:4.2f}\n",
+        m_model_view_matrix[0], m_model_view_matrix[1], m_model_view_matrix[2], m_model_view_matrix[3],
+        m_model_view_matrix[4], m_model_view_matrix[5], m_model_view_matrix[6], m_model_view_matrix[7],
+        m_model_view_matrix[8], m_model_view_matrix[9], m_model_view_matrix[10], m_model_view_matrix[11],
+        m_model_view_matrix[12], m_model_view_matrix[13], m_model_view_matrix[14], m_model_view_matrix[15]
+    );
+    glLoadMatrixf(m_model_view_matrix);
+  }
   checkGLError("update_model_matrix");
 }
 
@@ -107,6 +131,9 @@ field_gl_widget::paintGL() {
 void
 field_gl_widget::resizeGL(int width, int height) {
   glViewport(0, 0, width, height);
+  spdlog::info("ResizeGL parms: ({}, {}) window: ({}, {})",
+               width, height, this->width(), this->height()
+  );
 
   m_aspectRatio = (float) width / (float) height;
   auto fovy_rad = m_fov * DEG2RAD;
@@ -149,44 +176,41 @@ field_gl_widget::checkGLError(const std::string &context) {
 
 bool
 glUnprojectf(float winx, float winy, float winz,
-             Eigen::Matrix4f &modelview,
-             Eigen::Matrix4f &projection,
-             int *viewport,
+             const QMatrix4x4& modelview,
+             const QMatrix4x4& projection,
+             const int *viewport,
              float *objectCoordinate) {
 
-  // Calculation for inverting a matrix, compute projection x modelview
-  // and store in A[16]
-  const auto A = modelview * projection;
-  const auto m = A.inverse();
-
   // Transformation of normalized coordinates between -1 and 1
-  Eigen::Vector4f in{
+  QVector4D in{
       (winx - (float) viewport[0]) / (float) viewport[2] * 2.0f - 1.0f,
       (winy - (float) viewport[1]) / (float) viewport[3] * 2.0f - 1.0f,
       2.0f * winz - 1.0f,
       1.0f};
 
-  Eigen::Vector4f out = m * in;
+  auto unprojected = in * projection.inverted();
+  auto out = unprojected * modelview.inverted();
+
   if (out[3] == 0.0)
     return false;
 
-  out[3] = 1.0f / out[3];
-  objectCoordinate[0] = out[0] * out[3];
-  objectCoordinate[1] = out[1] * out[3];
-  objectCoordinate[2] = out[2] * out[3];
+  auto scale = 1.0f / out[3];
+  objectCoordinate[0] = out[0] * scale;
+  objectCoordinate[1] = out[1] * scale;
+  objectCoordinate[2] = out[2] * scale;
   return true;
 }
 
 Eigen::Vector3f
 field_gl_widget::ray_for_pixel(int pixel_x, int pixel_y) {
+
+  makeCurrent();
   GLint viewport[4];
   glGetIntegerv(GL_VIEWPORT, viewport);// viewport will hold x,y,w,h
   spdlog::info("ray_for_pixel viewport : {},{}, {},{}", viewport[0], viewport[1], viewport[2], viewport[3]);
+
   viewport[2] = width();
   viewport[3] = height();
-  Eigen::Matrix4f mv{m_model_view_matrix};
-  Eigen::Matrix4f p{m_projection_matrix};
-
   GLfloat winX, winY;               // Holds Our X, Y and Z Coordinates
   winX = (float) pixel_x;                  // Holds The Mouse X Coordinate
   winY = (float) pixel_y;                  // Holds The Mouse Y Coordinate
@@ -194,11 +218,13 @@ field_gl_widget::ray_for_pixel(int pixel_x, int pixel_y) {
 
   float xyz_far[3];
   float xyz_near[3];
+  QMatrix4x4 mv{m_model_view_matrix};
+  QMatrix4x4 p{m_projection_matrix};
   glUnprojectf(winX, winY, 1.0f, mv, p, viewport, xyz_far);
   glUnprojectf(winX, winY, 0.0f, mv, p, viewport, xyz_near);
 
-  m_near_point = {xyz_near[0], xyz_near[1], xyz_near[2] };
-  m_far_point = {xyz_far[0], xyz_far[1], xyz_far[2] };
+  m_near_point = {xyz_near[0], xyz_near[1], xyz_near[2]};
+  m_far_point = {xyz_far[0], xyz_far[1], xyz_far[2]};
   return m_far_point - m_near_point;
 }
 

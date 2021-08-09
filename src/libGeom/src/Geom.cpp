@@ -438,16 +438,16 @@ distance_from_point_to_point(
 /**
  * Convert from polar to cartesian coordinates.
  *
- * @param theta Rotation in the XY plane. [0, pi)
- * @param phi Vertical rotation. [0, 2 * pi)
+ * @param azimuth Rotation in the XY plane. [-pi, pi]
+ * @param inclination Vertical rotation. [0 (up) , pi (down)]
  * @param radius Distance from the sphere centre. ( r >= 0)
  * @return X,Y Z coordinates.
  */
 Eigen::Vector3f
-spherical_to_cartesian(float radius, float theta, float phi) {
-    const auto x = radius * std::sinf(phi) * std::sinf(theta);
-    const auto y = radius * std::cosf(phi);
-    const auto z = radius * std::sinf(phi) * std::cosf(theta);
+spherical_to_cartesian(float radius, float azimuth, float inclination) {
+    const auto x = radius * std::cosf(azimuth) * std::sinf(inclination);
+    const auto y = radius * std::sinf(azimuth) * std::sinf(inclination);
+    const auto z = radius * std::cosf(inclination);
     return Eigen::Vector3f{x, y, z};
 }
 

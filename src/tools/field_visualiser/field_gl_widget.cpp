@@ -14,8 +14,8 @@ field_gl_widget::field_gl_widget(
     QWidget *parent, Qt::WindowFlags f) :
     QOpenGLWidget{parent, f} //
     , m_fov{35} //
-    , m_zNear{.1f} //
-    , m_zFar{500.0f} //
+    , m_zNear{.5f} //
+    , m_zFar{100.0f} //
     , m_aspectRatio{1.0f} //
     , m_projectionMatrixIsDirty{true} //
     , m_render_mouse_ray{true} //
@@ -46,14 +46,14 @@ field_gl_widget::update_model_matrix() {
   m_arcBall->get_model_view_matrix(xx);
 
   bool dirty = false;
-  for( int i=0; i<16; i++ ) {
-    if( m_model_view_matrix[i] != xx[i]) {
+  for (int i = 0; i < 16; i++) {
+    if (m_model_view_matrix[i] != xx[i]) {
       dirty = true;
       break;
     }
   }
-  if( dirty ) {
-    for( int i=0; i<16; i++ ) {
+  if (dirty) {
+    for (int i = 0; i < 16; i++) {
       m_model_view_matrix[i] = xx[i];
     }
     spdlog::info(
@@ -176,19 +176,19 @@ field_gl_widget::checkGLError(const std::string &context) {
 
 bool
 glUnprojectf(float winx, float winy, float winz,
-             const QMatrix4x4& modelview,
-             const QMatrix4x4& projection,
+             const QMatrix4x4 &modelview,
+             const QMatrix4x4 &projection,
              const int *viewport,
              float *objectCoordinate) {
 
   // Transformation of normalized coordinates between -1 and 1
-  QVector4D in{
+  QVector4D ndc{
       (winx - (float) viewport[0]) / (float) viewport[2] * 2.0f - 1.0f,
-      (winy - (float) viewport[1]) / (float) viewport[3] * 2.0f - 1.0f,
+      1.0f - ((winy - (float) viewport[1]) / (float) viewport[3] * 2.0f),
       2.0f * winz - 1.0f,
       1.0f};
 
-  auto unprojected = in * projection.inverted();
+  auto unprojected = ndc * projection.inverted();
   auto out = unprojected * modelview.inverted();
 
   if (out[3] == 0.0)
@@ -202,70 +202,77 @@ glUnprojectf(float winx, float winy, float winz,
 }
 
 Eigen::Vector3f
-field_gl_widget::ray_for_pixel(int pixel_x, int pixel_y) {
-
+field_gl_widget::ray_direction_for_pixel(int pixel_x, int pixel_y) {
   makeCurrent();
   GLint viewport[4];
-  glGetIntegerv(GL_VIEWPORT, viewport);// viewport will hold x,y,w,h
-  spdlog::info("ray_for_pixel viewport : {},{}, {},{}", viewport[0], viewport[1], viewport[2], viewport[3]);
+  glGetIntegerv(GL_VIEWPORT, viewport);
+//  viewport[0] = 0;
+//  viewport[1] = 0;
+//  viewport[2] = width();
+//  viewport[3] = height();
 
-  viewport[2] = width();
-  viewport[3] = height();
-  GLfloat winX, winY;               // Holds Our X, Y and Z Coordinates
-  winX = (float) pixel_x;                  // Holds The Mouse X Coordinate
-  winY = (float) pixel_y;                  // Holds The Mouse Y Coordinate
-  winY = (float) viewport[3] - winY;
-
-  float xyz_far[3];
-  float xyz_near[3];
   QMatrix4x4 mv{m_model_view_matrix};
   QMatrix4x4 p{m_projection_matrix};
-  glUnprojectf(winX, winY, 1.0f, mv, p, viewport, xyz_far);
-  glUnprojectf(winX, winY, 0.0f, mv, p, viewport, xyz_near);
+  auto mvp = mv * p;
+  auto inv_mvp = mvp.inverted();
 
+  float ndc_x = (2.0f * (float)pixel_x / (float)viewport[2]) - 1.0f;
+  float ndc_y = 1.0f - (2.0f * (float)pixel_y / (float)viewport[3]);
+  float winZ = 0;
+  QVector4D far_plane_point = QVector4D{ndc_x, ndc_y, 1.0f, 1.0f} * inv_mvp;
+  QVector4D near_plane_point = QVector4D{ndc_x, ndc_y, 0.0f, 1.0f} * inv_mvp;
+
+  float xyz_far[3]{far_plane_point[0] / far_plane_point[3],
+                   far_plane_point[1] / far_plane_point[3],
+                   far_plane_point[2] / far_plane_point[3]
+                   };
+
+  float xyz_near[3]{near_plane_point[0] / near_plane_point[3],
+                    near_plane_point[1] / near_plane_point[3],
+                    near_plane_point[2] / near_plane_point[3]
+  };
   m_near_point = {xyz_near[0], xyz_near[1], xyz_near[2]};
   m_far_point = {xyz_far[0], xyz_far[1], xyz_far[2]};
-  return m_far_point - m_near_point;
+  return (m_far_point - m_near_point).normalized();
 }
 
 int
 field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
                                      std::vector<float> &items, float &distance) {
-  spdlog::info("pixel {},{}", pixel_x, pixel_y);
-
-  float x = ((2.0f * (float) pixel_x) / (float) width()) - 1.0f;
-  float y = 1.0f - ((2.0f * (float) pixel_y) / (float) height());
-
-  Eigen::Vector4f ray_clip{x, y, -1.0f, 1.0f};
-  // Recover the projection matrix
-  Eigen::Matrix4f projection{m_projection_matrix};
-  Eigen::Vector4f ray_eye = projection.inverse() * ray_clip;
-  ray_eye[2] = -1.f;
-  ray_eye[3] = 0.0f;
-
-  Eigen::Matrix4f model_matrix{m_model_view_matrix};
-  auto ray_wor4 = model_matrix.inverse() * ray_eye;
-  Eigen::Vector3f ray_wor{ray_wor4[0], ray_wor4[1], ray_wor4[2]};
-
-  ray_wor.normalize();
-  spdlog::info("  ray_wor {},{},{}", ray_wor[0], ray_wor[1], ray_wor[2]);
-
-  auto ray_un = ray_for_pixel(pixel_x, pixel_y).normalized();
-  spdlog::info("  ray_un {},{},{}", ray_un[0], ray_un[1], ray_un[2]);
+  auto ray_direction = ray_direction_for_pixel(pixel_x, pixel_y);
+  spdlog::info( "ray_near = [{} {} {}];", m_near_point[0],  m_near_point[1],  m_near_point[2]);
+  spdlog::info( "ray_far = [{} {} {}];", m_far_point[0],  m_far_point[1],  m_far_point[2]);
+  spdlog::info("ray_dirn = [{}, {}, {}];",
+               ray_direction[0], ray_direction[1], ray_direction[2]
+  );
 
   auto co = m_arcBall->get_camera_origin();
   Eigen::Vector3f camera_origin{co[0], co[1], co[2]};
+  spdlog::info("cam_origin = [{}, {}, {}];",
+               co[0], co[1], co[2]
+  );
 
   distance = std::numeric_limits<float>::max();
   int closest_idx = -1;
+  spdlog::info("points = [ ...");
   for (int idx = 0; idx < items.size() / 3; ++idx) {
-    auto dist = distance_from_point_to_line(
-        {items[idx * 3], items[idx * 3 + 1], items[idx * 3 + 2]},
-        camera_origin, ray_un);
-    if (dist < distance) {
-      distance = dist;
+    const Eigen::Vector3f point{items[idx * 3 + 0],
+                                items[idx * 3 + 1],
+                                items[idx * 3 + 2]};
+    const auto point_vector = (point - camera_origin).normalized();
+    const auto point_vector_u = point_vector.dot(ray_direction) * ray_direction;
+    const auto point_vector_v = point_vector - point_vector_u;
+    auto dist2 = point_vector_v.squaredNorm();
+    if (dist2 < distance) {
+      distance = dist2;
       closest_idx = idx;
     }
+
+    spdlog::info("   {}, {}, {}, {}",
+                 point[0], point[1], point[2], std::sqrtf(dist2)
+    );
   }
+  spdlog::info("];");
+  distance = std::sqrtf(distance);
   return closest_idx;
 }

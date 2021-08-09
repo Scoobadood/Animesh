@@ -50,7 +50,7 @@ private:
   void maybe_render_mouse_ray();
 
   void update_model_matrix();
-  Eigen::Vector3f ray_for_pixel(int pixel_x, int pixel_y);
+  Eigen::Vector3f ray_direction_for_pixel(int pixel_x, int pixel_y);
 
   void maybe_update_projection_matrix();
 };

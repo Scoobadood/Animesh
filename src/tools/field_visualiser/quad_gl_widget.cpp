@@ -219,8 +219,7 @@ quad_gl_widget::mouseMoveEvent(QMouseEvent *event) {
     auto &first_surfel_name = edges[idx].first.first;
     auto &second_surfel_idx = edges[idx].second.second;
     auto &second_surfel_name = edges[idx].second.first;
-    emit vertex_selected(first_surfel_idx, first_surfel_name);
-    emit other_vertex(second_surfel_idx, second_surfel_name);
+    emit edge_selected(first_surfel_name,second_surfel_name);
   }
 //  m_selected_vertex = find_closest_vertex(event->x(), event->y(), m_vertices, distance);
 //  spdlog::info("Nearest vertex : {}, {}, {}",

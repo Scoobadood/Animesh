@@ -36,6 +36,7 @@ private slots:
 private:
     ArcBall * m_arc_ball;
     QTimer * m_timer;
+    std::map<std::pair<std::string,std::string>, std::shared_ptr<SurfelGraphEdge>>m_edge_from_node_names;
 
     Ui::field_visualiser_window *ui;
     SurfelGraphPtr m_graph_ptr;

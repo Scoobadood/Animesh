@@ -57,6 +57,5 @@ private:
   int m_selected_edge = -1;
 
 signals:
-  void vertex_selected(int v, std::string& text) const ;
-  void other_vertex(int v, std::string& text) const;
+  void edge_selected(std::string& from_name, std::string& to_name) const ;
 };

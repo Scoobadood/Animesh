@@ -44,6 +44,11 @@ private:
   float m_projection_matrix[16];
   float m_model_view_matrix[16];
 
+  Eigen::Vector3f m_near_point;
+  Eigen::Vector3f m_far_point;
+  bool m_render_mouse_ray;
+  void maybe_render_mouse_ray();
+
   void update_model_matrix();
   Eigen::Vector3f ray_for_pixel(int pixel_x, int pixel_y);
 

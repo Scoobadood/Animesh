@@ -59,6 +59,34 @@ field_gl_widget::maybe_update_projection_matrix() {
   }
 }
 
+void field_gl_widget::maybe_render_mouse_ray() {
+  if (!m_render_mouse_ray) {
+    return;
+  }
+  glColor4d(1.0, 0.0, 1.0, 1.0);
+
+  float old_line_width;
+  glGetFloatv(GL_LINE_WIDTH, &old_line_width);
+  glLineWidth(15.0f);
+
+  float old_point_size;
+  glGetFloatv(GL_POINT_SIZE, &old_point_size);
+  glPointSize(20.0f);
+
+  glBegin(GL_POINTS);
+  glVertex3f(m_near_point[0], m_near_point[1], m_near_point[2]);
+  glVertex3f(m_far_point[0], m_far_point[1], m_far_point[2]);
+  glEnd();
+  glBegin(GL_LINES);
+  glVertex3f(m_near_point[0], m_near_point[1], m_near_point[2]);
+  glVertex3f(m_far_point[0], m_far_point[1], m_far_point[2]);
+  glEnd();
+
+  checkGLError("maybe_render_mouse_ray");
+  glLineWidth(old_line_width);
+  glPointSize(old_point_size);
+}
+
 void
 field_gl_widget::paintGL() {
   clear();
@@ -66,6 +94,8 @@ field_gl_widget::paintGL() {
   maybe_update_projection_matrix();
 
   update_model_matrix();
+
+  maybe_render_mouse_ray();
 
   do_paint();
 }
@@ -118,10 +148,10 @@ field_gl_widget::checkGLError(const std::string &context) {
 
 bool
 glUnprojectf(float winx, float winy, float winz,
-                 Eigen::Matrix4f &modelview,
-                 Eigen::Matrix4f &projection,
-                 int *viewport,
-                 float *objectCoordinate) {
+             Eigen::Matrix4f &modelview,
+             Eigen::Matrix4f &projection,
+             int *viewport,
+             float *objectCoordinate) {
 
   // Calculation for inverting a matrix, compute projection x modelview
   // and store in A[16]
@@ -150,7 +180,7 @@ Eigen::Vector3f
 field_gl_widget::ray_for_pixel(int pixel_x, int pixel_y) {
   GLint viewport[4];
   glGetIntegerv(GL_VIEWPORT, viewport);// viewport will hold x,y,w,h
-  spdlog::info("ray_for_pixel viewport : {},{}, {},{}", viewport[0],viewport[1],viewport[2],viewport[3]);
+  spdlog::info("ray_for_pixel viewport : {},{}, {},{}", viewport[0], viewport[1], viewport[2], viewport[3]);
   viewport[2] = width();
   viewport[3] = height();
   Eigen::Matrix4f mv{m_model_view_matrix};
@@ -189,10 +219,10 @@ field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
   Eigen::Vector3f ray_wor{ray_wor4[0], ray_wor4[1], ray_wor4[2]};
 
   ray_wor.normalize();
-  spdlog::info("  ray_wor {},{},{}", ray_wor[0],  ray_wor[1], ray_wor[2]);
+  spdlog::info("  ray_wor {},{},{}", ray_wor[0], ray_wor[1], ray_wor[2]);
 
   auto ray_un = ray_for_pixel(pixel_x, pixel_y).normalized();
-  spdlog::info("  ray_un {},{},{}", ray_un[0],  ray_un[1], ray_un[2]);
+  spdlog::info("  ray_un {},{},{}", ray_un[0], ray_un[1], ray_un[2]);
 
   auto co = m_arcBall->get_camera_origin();
   Eigen::Vector3f camera_origin{co[0], co[1], co[2]};

@@ -86,6 +86,13 @@ quad_gl_widget::maybe_draw_selected_edge() const {
   if (m_selected_edge < 0) {
     return;
   }
+  if (m_selected_edge_is_red && !m_show_red_edges) {
+    return;
+  }
+  if (!m_selected_edge_is_red && !m_show_blue_edges) {
+    return;
+  }
+
   float old_line_width;
   glGetFloatv(GL_LINE_WIDTH, &old_line_width);
 
@@ -126,7 +133,7 @@ quad_gl_widget::maybe_draw_blue_edges() const {
                m_vertices.at(to_index * 3 + 2));
     glEnd();
 
-    checkGLError("maybe_draw_red_edges");
+    checkGLError("maybe_draw_blue_edges");
   }
   glLineWidth(old_line_width);
 }
@@ -159,6 +166,8 @@ quad_gl_widget::setData(const std::vector<float> &vertices,
                         const std::vector<std::pair<std::pair<std::string, unsigned int>,
                                                     std::pair<std::string, unsigned int>>> &blue_edges
 ) {
+  using namespace std;
+
   m_vertices.clear();
   m_red_edges.clear();
   m_blue_edges.clear();
@@ -168,7 +177,8 @@ quad_gl_widget::setData(const std::vector<float> &vertices,
   m_red_edges.insert(m_red_edges.begin(), red_edges.begin(), red_edges.end());
   m_blue_edges.insert(m_blue_edges.begin(), blue_edges.begin(), blue_edges.end());
   for (const auto &edge : red_edges) {
-    m_all_edges.emplace_back(std::make_pair<Eigen::Vector3f, Eigen::Vector3f>(
+
+    m_all_edges.emplace_back(make_pair<Eigen::Vector3f, Eigen::Vector3f>(
         {vertices[edge.first.second * 3 + 0],
          vertices[edge.first.second * 3 + 1],
          vertices[edge.first.second * 3 + 2]},
@@ -177,10 +187,8 @@ quad_gl_widget::setData(const std::vector<float> &vertices,
          vertices[edge.second.second * 3 + 2]}
     ));
   }
-  for (
-    const auto &edge
-      : blue_edges) {
-    m_all_edges.emplace_back(std::make_pair<Eigen::Vector3f, Eigen::Vector3f>(
+  for (const auto &edge: blue_edges) {
+    m_all_edges.emplace_back(make_pair<Eigen::Vector3f, Eigen::Vector3f>(
         {vertices[edge.first.second * 3 + 0],
          vertices[edge.first.second * 3 + 1],
          vertices[edge.first.second * 3 + 2]},
@@ -200,31 +208,39 @@ void
 quad_gl_widget::mouseMoveEvent(QMouseEvent *event) {
   float distance = 0;
   m_selected_edge = find_closest_edge(event->x(), event->y(), m_all_edges, distance);
-  if (m_selected_edge != -1) {
-    spdlog::info("Nearest edge : ({}, {}, {}) to ({} {} {})",
-                 m_all_edges[m_selected_edge].first[0],
-                 m_all_edges[m_selected_edge].first[1],
-                 m_all_edges[m_selected_edge].first[2],
-                 m_all_edges[m_selected_edge].second[0],
-                 m_all_edges[m_selected_edge].second[1],
-                 m_all_edges[m_selected_edge].second[2]);
-
-    unsigned int idx = m_selected_edge;
-    auto &edges = m_red_edges;
-    if (m_selected_edge >= m_red_edges.size()) {
-      idx = m_selected_edge - m_red_edges.size();
-      edges = m_blue_edges;
-    }
-    auto &first_surfel_idx = edges[idx].first.second;
-    auto &first_surfel_name = edges[idx].first.first;
-    auto &second_surfel_idx = edges[idx].second.second;
-    auto &second_surfel_name = edges[idx].second.first;
-    emit edge_selected(first_surfel_name,second_surfel_name);
+  if (m_selected_edge == -1) {
+    emit no_edge_selected();
+    return;
   }
-//  m_selected_vertex = find_closest_vertex(event->x(), event->y(), m_vertices, distance);
-//  spdlog::info("Nearest vertex : {}, {}, {}",
-//               m_vertices[m_selected_vertex * 3],
-//               m_vertices[m_selected_vertex * 3 + 1],
-//               m_vertices[m_selected_vertex * 3 + 2]);
-//  emit vertex_selected(m_selected_vertex);
+
+  if (m_selected_edge < m_red_edges.size() && !m_show_red_edges) {
+    emit no_edge_selected();
+    return;
+  }
+
+  if (m_selected_edge >= m_red_edges.size() && !m_show_blue_edges) {
+    emit no_edge_selected();
+    return;
+  }
+
+  m_selected_edge_is_red = m_selected_edge < m_red_edges.size();
+  spdlog::info("Nearest edge {} ({}): ({}, {}, {}) to ({} {} {})",
+               m_selected_edge,
+               m_selected_edge_is_red ? "red" : "blue",
+               m_all_edges[m_selected_edge].first[0],
+               m_all_edges[m_selected_edge].first[1],
+               m_all_edges[m_selected_edge].first[2],
+               m_all_edges[m_selected_edge].second[0],
+               m_all_edges[m_selected_edge].second[1],
+               m_all_edges[m_selected_edge].second[2]);
+
+  const auto &edge = m_selected_edge_is_red
+                     ? m_red_edges[m_selected_edge]
+                     : m_blue_edges[m_selected_edge - m_red_edges.size()];
+
+  const auto &first_surfel_idx = edge.first.second;
+  const auto &first_surfel_name = edge.first.first;
+  const auto &second_surfel_idx = edge.second.second;
+  const auto &second_surfel_name = edge.second.first;
+  emit edge_selected(first_surfel_name, second_surfel_name);
 }

@@ -55,7 +55,9 @@ private:
 
   int m_selected_vertex = -1;
   int m_selected_edge = -1;
+  bool m_selected_edge_is_red;
 
 signals:
-  void edge_selected(std::string& from_name, std::string& to_name) const ;
+  void edge_selected(const std::string& from_name, const std::string& to_name) const ;
+  void no_edge_selected() const ;
 };

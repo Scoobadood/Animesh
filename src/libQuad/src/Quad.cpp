@@ -10,6 +10,62 @@
 #include <map>
 #include <Eigen/Geometry>
 
+void
+maybe_insert_vertex_in_graph(
+    unsigned int frame_index,
+    std::map<std::string, QuadGraphNodePtr> &vertex_to_node,
+    const std::shared_ptr<Surfel> &surfel,
+    const QuadGraphPtr &out_graph
+) {
+  if (vertex_to_node.count(surfel->id()) == 0) {
+    auto offset = surfel->reference_lattice_offset();
+    Eigen::Vector3f vertex, tangent, normal;
+    surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+    auto closest_mesh_vertex = vertex +
+        (tangent * offset.x()) +
+        ((normal.cross(tangent)) * offset.y());
+    auto node = out_graph->add_node({surfel->id(), closest_mesh_vertex});
+    vertex_to_node.insert({surfel->id(), node});
+  }
+}
+
+// Collate the set of unique edges
+void collate_unique_edges(const SurfelGraphPtr &graph,
+                          unsigned int frame_index,
+                          std::map<std::string, QuadGraphNodePtr>& vertex_to_node,
+                          std::set<std::pair<std::string, std::string>>& counted_edges,
+                          std::vector<SurfelGraph::Edge>& edges,
+                          QuadGraphPtr out_graph
+
+) {
+  for (const auto &edge : graph->edges()) {
+    const auto &from_surfel = edge.from()->data();
+    const auto &to_surfel = edge.to()->data();
+
+    // skip edge if either vertex is not in frame
+    if (!from_surfel->is_in_frame(frame_index)) {
+      continue;
+    }
+    if (!to_surfel->is_in_frame(frame_index)) {
+      continue;
+    }
+    // Skip edge if we've seen it (or its inverse)
+    if (counted_edges.count({from_surfel->id(), to_surfel->id()}) > 0) {
+      continue;
+    }
+    if (counted_edges.count({to_surfel->id(), from_surfel->id()}) > 0) {
+      continue;
+    }
+    // Note that we've seen this edge
+    counted_edges.insert({from_surfel->id(), to_surfel->id()});
+    edges.push_back(edge);
+
+    // optionally insert both ends of this edge
+    maybe_insert_vertex_in_graph(frame_index, vertex_to_node, from_surfel, out_graph);
+    maybe_insert_vertex_in_graph(frame_index, vertex_to_node, to_surfel, out_graph);
+  }
+}
+
 QuadGraphPtr
 build_edge_graph(
     int frame_index,
@@ -21,58 +77,15 @@ build_edge_graph(
 
   // Make the output graph
   QuadGraphPtr out_graph = make_shared<animesh::Graph<QuadGraphVertex, EdgeType>>(false);
-
-  // Output all lattice vertices and also map them from surfel ID
   map<string, QuadGraphNodePtr> vertex_to_node;
+  set<pair<string, string>> counted_edges;
+  vector<SurfelGraph::Edge> edges;
+  collate_unique_edges(graph, frame_index, vertex_to_node, counted_edges, edges, out_graph);
 
-  // Collect all edges and weed out duplicates.
-  std::set<std::pair<std::string, std::string>> counted_edges;
-  std::vector<SurfelGraph::Edge> edges;
-  for (const auto &edge : graph->edges()) {
-    auto &from_surfel = edge.from()->data();
-    auto &to_surfel = edge.to()->data();
-
-    if (!from_surfel->is_in_frame(frame_index)) {
-      continue;
-    }
-    if (!to_surfel->is_in_frame(frame_index)) {
-      continue;
-    }
-    if (counted_edges.count({from_surfel->id(), to_surfel->id()}) > 0) {
-      continue;
-    }
-    if (counted_edges.count({to_surfel->id(), from_surfel->id()}) > 0) {
-      continue;
-    }
-    counted_edges.insert({from_surfel->id(), edge.to()->data()->id()});
-    edges.push_back(edge);
-
-    // optionally insert both ends of this edge
-    Vector3f vertex, tangent, normal;
-    if (vertex_to_node.count(from_surfel->id()) == 0) {
-      auto offset = from_surfel->reference_lattice_offset();
-      from_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
-      auto closest_mesh_vertex = vertex +
-          (tangent * offset.x()) +
-          ((normal.cross(tangent)) * offset.y());
-      auto node = out_graph->add_node({from_surfel->id(),closest_mesh_vertex});
-      vertex_to_node.insert({from_surfel->id(), node});
-    }
-    if (vertex_to_node.count(to_surfel->id()) == 0) {
-      auto offset = to_surfel->reference_lattice_offset();
-      to_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
-      auto closest_mesh_vertex = vertex +
-          (tangent * offset.x()) +
-          ((normal.cross(tangent)) * offset.y());
-      auto node = out_graph->add_node({to_surfel->id(),closest_mesh_vertex});
-      vertex_to_node.insert({to_surfel->id(), node});
-    }
-  }
-
-  // So edges contains only edges in this frame and each only once
+  // Now edges contains only edges in this frame and each only once
   for (const auto &edge : edges) {
-    const auto &from_surfel = edge.from()->data();
-    const auto &to_surfel = edge.to()->data();
+    const auto from_surfel = edge.from()->data();
+    const auto to_surfel = edge.to()->data();
 
     Vector3f vertex, tangent, normal;
     from_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
@@ -80,20 +93,35 @@ build_edge_graph(
     Vector3f nbr_vertex, nbr_tangent, nbr_normal;
     to_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
 
+    // TODO: Could just do the k_ij, t_ij thing here.
     // Recompute all the things
     auto best_rot = best_rosy_vector_pair(tangent, normal, nbr_tangent, nbr_normal);
-
+    //FIXME: The offset is only valid in the regular frame n'est-ce pas?
+    // Indeed this is true! So this best shift is wrong. So we should use t_ij and t_ji
     auto best_shift = best_posy_offset(vertex, best_rot.first, normal,
                                        from_surfel->reference_lattice_offset(),
                                        nbr_vertex, best_rot.second, nbr_normal,
                                        to_surfel->reference_lattice_offset(), rho);
 
-    const auto absDiff = (best_shift.first - best_shift.second).cwiseAbs();
-    if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1)))
-      continue; /* Ignore longer-distance links and diagonal lines for quads */
+    const int manhattanLength = (best_shift.first - best_shift.second).cwiseAbs().sum();
+    std::string colour;
+    if (manhattanLength == 0) {
+      // These are the same vertex
+      spdlog::info("Adding blue edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
+                   from_surfel->id(),
+                   to_surfel->id(),
+                   best_shift.first.x(),
+                   best_shift.first.y(),
+                   best_shift.second.x(),
+                   best_shift.second.y());
+      out_graph->add_edge(
+          vertex_to_node.at(from_surfel->id()),
+          vertex_to_node.at(to_surfel->id()),
+          EDGE_TYPE_BLU
+      );
 
-    spdlog::info("absdiff ({}, {})", absDiff[0], absDiff[1]);
-    if (absDiff.sum() != 0) {
+    } else if (manhattanLength == 1) {
+      // These are an edge
       spdlog::info("Adding red edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
                    from_surfel->id(),
                    to_surfel->id(),
@@ -105,14 +133,6 @@ build_edge_graph(
           vertex_to_node.at(from_surfel->id()),
           vertex_to_node.at(to_surfel->id()),
           EDGE_TYPE_RED
-      );
-    }
-      // If t_ij == -t_ij then these are blue edges
-    else {
-      out_graph->add_edge(
-          vertex_to_node.at(from_surfel->id()),
-          vertex_to_node.at(to_surfel->id()),
-          EDGE_TYPE_BLU
       );
     }
   }

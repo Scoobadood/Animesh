@@ -87,33 +87,22 @@ build_edge_graph(
     const auto from_surfel = edge.from()->data();
     const auto to_surfel = edge.to()->data();
 
-    Vector3f vertex, tangent, normal;
-    from_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+    const auto t_ij = edge.data()->t_ij(frame_index);
+    const auto t_ji = edge.data()->t_ji(frame_index);
+//    const auto k_ij = edge.data()->k_ij(frame_index);
+//    const auto k_ji = edge.data()->k_ji(frame_index);
 
-    Vector3f nbr_vertex, nbr_tangent, nbr_normal;
-    to_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
-
-    // TODO: Could just do the k_ij, t_ij thing here.
-    // Recompute all the things
-    auto best_rot = best_rosy_vector_pair(tangent, normal, nbr_tangent, nbr_normal);
-    //FIXME: The offset is only valid in the regular frame n'est-ce pas?
-    // Indeed this is true! So this best shift is wrong. So we should use t_ij and t_ji
-    auto best_shift = best_posy_offset(vertex, best_rot.first, normal,
-                                       from_surfel->reference_lattice_offset(),
-                                       nbr_vertex, best_rot.second, nbr_normal,
-                                       to_surfel->reference_lattice_offset(), rho);
-
-    const int manhattanLength = (best_shift.first - best_shift.second).cwiseAbs().sum();
+    const int manhattanLength = (t_ij - t_ji).cwiseAbs().sum();
     std::string colour;
     if (manhattanLength == 0) {
       // These are the same vertex
       spdlog::info("Adding blue edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
                    from_surfel->id(),
                    to_surfel->id(),
-                   best_shift.first.x(),
-                   best_shift.first.y(),
-                   best_shift.second.x(),
-                   best_shift.second.y());
+                   t_ij.x(),
+                   t_ij.y(),
+                   t_ji.x(),
+                   t_ji.y());
       out_graph->add_edge(
           vertex_to_node.at(from_surfel->id()),
           vertex_to_node.at(to_surfel->id()),
@@ -125,10 +114,10 @@ build_edge_graph(
       spdlog::info("Adding red edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
                    from_surfel->id(),
                    to_surfel->id(),
-                   best_shift.first.x(),
-                   best_shift.first.y(),
-                   best_shift.second.x(),
-                   best_shift.second.y());
+                   t_ij.x(),
+                   t_ij.y(),
+                   t_ji.x(),
+                   t_ji.y());
       out_graph->add_edge(
           vertex_to_node.at(from_surfel->id()),
           vertex_to_node.at(to_surfel->id()),

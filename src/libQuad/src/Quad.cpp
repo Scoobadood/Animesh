@@ -12,10 +12,10 @@
 
 void
 maybe_insert_node_in_graph( //
-    const std::shared_ptr<Surfel>& surfel_ptr, //
+    const std::shared_ptr<Surfel> &surfel_ptr, //
     unsigned int frame_index, //
-    const QuadGraphPtr& out_graph,
-    std::map<std::string, QuadGraphNodePtr>& out_nodes_by_surfel_id //
+    const QuadGraphPtr &out_graph,
+    std::map<std::string, QuadGraphNodePtr> &out_nodes_by_surfel_id //
 ) {
   using namespace Eigen;
   using namespace std;
@@ -80,50 +80,34 @@ build_edge_graph(
 
   // So edges contains only edges in this frame and each only once
   for (const auto &edge : edges) {
-    const auto &from_surfel = edge.from()->data();
-    const auto &to_surfel = edge.to()->data();
-
-    Vector3f vertex, tangent, normal;
-    from_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
-
-    Vector3f nbr_vertex, nbr_tangent, nbr_normal;
-    to_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
-
-    // Recompute all the things
     auto t_ij = edge.data()->t_ij(frame_index);
     auto t_ji = edge.data()->t_ji(frame_index);
 
-    const auto absDiff = (t_ij - t_ji).cwiseAbs();
-    if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1)))
-      continue; /* Ignore longer-distance links and diagonal lines for quads */
-
-    spdlog::info("absdiff ({}, {})", absDiff[0], absDiff[1]);
-    if (absDiff.sum() != 0) {
-      spdlog::info("Adding red edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
-                   from_surfel->id(),
-                   to_surfel->id(),
-                   t_ij[0], t_ij[1],
-                   t_ji[0], t_ji[1]);
-      out_graph->add_edge(
-          out_nodes_by_surfel_id.at(from_surfel->id()),
-          out_nodes_by_surfel_id.at(to_surfel->id()),
-          EDGE_TYPE_RED
-      );
-    }
-      // If t_ij == -t_ij then these are blue edges
-    else {
-      spdlog::info("Adding blue edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
-                   from_surfel->id(),
-                   to_surfel->id(),
+    const auto manhattanEdgeLength = (t_ij - t_ji).cwiseAbs().sum();
+    if (manhattanEdgeLength < 2) {
+      EdgeType type;
+      const auto &from_surfel_id = edge.from()->data()->id();
+      const auto &to_surfel_id = edge.to()->data()->id();
+      if (manhattanEdgeLength == 1) {
+        type = EDGE_TYPE_RED;
+      } else // manhattanEdgeLength == 0
+      {
+        type = EDGE_TYPE_BLU;
+      }
+      spdlog::info("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
+                   type == EDGE_TYPE_BLU ? "blue" : "red",
+                   from_surfel_id,
+                   to_surfel_id,
                    t_ij[0], t_ij[1],
                    t_ji[0], t_ji[1]);
 
       out_graph->add_edge(
-          out_nodes_by_surfel_id.at(from_surfel->id()),
-          out_nodes_by_surfel_id.at(to_surfel->id()),
-          EDGE_TYPE_BLU
+          out_nodes_by_surfel_id.at(from_surfel_id),
+          out_nodes_by_surfel_id.at(to_surfel_id),
+          type
       );
     }
+    // No edge added
   }
   return out_graph;
 }

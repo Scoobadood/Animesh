@@ -73,6 +73,18 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
     ui->lblEdgeKij->setNum(k_ij_0);
     ui->lblEdgeKji->setNum(k_ji_0);
   });
+  connect(ui->quadGLWidget, &quad_gl_widget::no_edge_selected,
+          this, [&]() {
+    using namespace std;
+
+    ui->lblEdgeVertex1->setText("-");
+    ui->lblEdgeVertex2->setText("-");
+    // Extract the edge data
+    ui->lblEdgeTij->setText("");
+    ui->lblEdgeTji->setText("");
+    ui->lblEdgeKij->setText("");
+    ui->lblEdgeKji->setText("");
+  });
 
   m_timer = new QTimer(this); //Create a timer
   m_timer->callOnTimeout([=]() {

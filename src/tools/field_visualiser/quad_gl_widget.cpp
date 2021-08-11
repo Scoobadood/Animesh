@@ -201,24 +201,35 @@ quad_gl_widget::mouseMoveEvent(QMouseEvent *event) {
   float distance = 0;
   m_selected_edge = find_closest_edge(event->x(), event->y(), m_all_edges, distance);
   if (m_selected_edge != -1) {
-    spdlog::info("Nearest edge : ({}, {}, {}) to ({} {} {})",
-                 m_all_edges[m_selected_edge].first[0],
-                 m_all_edges[m_selected_edge].first[1],
-                 m_all_edges[m_selected_edge].first[2],
-                 m_all_edges[m_selected_edge].second[0],
-                 m_all_edges[m_selected_edge].second[1],
-                 m_all_edges[m_selected_edge].second[2]);
-
-    unsigned int idx = m_selected_edge;
-    auto edges = &m_red_edges;
-    if (m_selected_edge >= m_red_edges.size()) {
-      idx = m_selected_edge - m_red_edges.size();
-      edges = &m_blue_edges;
+    if(( m_selected_edge < m_red_edges.size()) && m_show_red_edges ) {
+      auto &first_surfel_name = m_red_edges[m_selected_edge].first.first;
+      auto &second_surfel_name = m_red_edges[m_selected_edge].second.first;
+      spdlog::info("Nearest edge (red): ({}, {}, {}) to ({} {} {})",
+                   m_all_edges[m_selected_edge].first[0],
+                   m_all_edges[m_selected_edge].first[1],
+                   m_all_edges[m_selected_edge].first[2],
+                   m_all_edges[m_selected_edge].second[0],
+                   m_all_edges[m_selected_edge].second[1],
+                   m_all_edges[m_selected_edge].second[2]);
+      emit edge_selected(first_surfel_name,second_surfel_name);
+      return;
     }
-    auto &first_surfel_idx = (*edges)[idx].first.second;
-    auto &first_surfel_name = (*edges)[idx].first.first;
-    auto &second_surfel_idx = (*edges)[idx].second.second;
-    auto &second_surfel_name = (*edges)[idx].second.first;
-    emit edge_selected(first_surfel_name,second_surfel_name);
+
+    if(( m_selected_edge > m_red_edges.size()) && m_show_blue_edges ) {
+      auto &first_surfel_name = m_blue_edges[m_selected_edge - m_red_edges.size()].first.first;
+      auto &second_surfel_name = m_blue_edges[m_selected_edge - m_red_edges.size()].second.first;
+      spdlog::info("Nearest edge (blue): ({}, {}, {}) to ({} {} {})",
+                   m_all_edges[m_selected_edge].first[0],
+                   m_all_edges[m_selected_edge].first[1],
+                   m_all_edges[m_selected_edge].first[2],
+                   m_all_edges[m_selected_edge].second[0],
+                   m_all_edges[m_selected_edge].second[1],
+                   m_all_edges[m_selected_edge].second[2]);
+      emit edge_selected(first_surfel_name,second_surfel_name);
+      return;
+    }
+    m_selected_edge = -1;
   }
+  // No edge selected
+  emit no_edge_selected();
 }

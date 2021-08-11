@@ -57,5 +57,6 @@ private:
   int m_selected_edge = -1;
 
 signals:
+  void no_edge_selected() const ;
   void edge_selected(std::string& from_name, std::string& to_name) const ;
 };

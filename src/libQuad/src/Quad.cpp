@@ -90,14 +90,10 @@ build_edge_graph(
     to_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
 
     // Recompute all the things
-    auto best_rot = best_rosy_vector_pair(tangent, normal, nbr_tangent, nbr_normal);
+    auto t_ij = edge.data()->t_ij(frame_index);
+    auto t_ji = edge.data()->t_ji(frame_index);
 
-    auto best_shift = best_posy_offset(vertex, best_rot.first, normal,
-                                       from_surfel->reference_lattice_offset(),
-                                       nbr_vertex, best_rot.second, nbr_normal,
-                                       to_surfel->reference_lattice_offset(), rho);
-
-    const auto absDiff = (best_shift.first - best_shift.second).cwiseAbs();
+    const auto absDiff = (t_ij - t_ji).cwiseAbs();
     if (absDiff.maxCoeff() > 1 || (absDiff == Vector2i(1, 1)))
       continue; /* Ignore longer-distance links and diagonal lines for quads */
 
@@ -106,10 +102,8 @@ build_edge_graph(
       spdlog::info("Adding red edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
                    from_surfel->id(),
                    to_surfel->id(),
-                   best_shift.first.x(),
-                   best_shift.first.y(),
-                   best_shift.second.x(),
-                   best_shift.second.y());
+                   t_ij[0], t_ij[1],
+                   t_ji[0], t_ji[1]);
       out_graph->add_edge(
           out_nodes_by_surfel_id.at(from_surfel->id()),
           out_nodes_by_surfel_id.at(to_surfel->id()),
@@ -118,6 +112,12 @@ build_edge_graph(
     }
       // If t_ij == -t_ij then these are blue edges
     else {
+      spdlog::info("Adding blue edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
+                   from_surfel->id(),
+                   to_surfel->id(),
+                   t_ij[0], t_ij[1],
+                   t_ji[0], t_ji[1]);
+
       out_graph->add_edge(
           out_nodes_by_surfel_id.at(from_surfel->id()),
           out_nodes_by_surfel_id.at(to_surfel->id()),

@@ -86,21 +86,31 @@ quad_gl_widget::maybe_draw_selected_edge() const {
   if (m_selected_edge < 0) {
     return;
   }
+
+  auto edge = m_all_edges[m_selected_edge];
+  auto from_vertex = edge.first;
+  auto to_vertex = edge.second;
+
   float old_line_width;
   glGetFloatv(GL_LINE_WIDTH, &old_line_width);
-
-  glLineWidth(5.0f);
+  glLineWidth(7.0f);
   glColor4d(1.0, 1.0, 0.0, 1.0);
   glBegin(GL_LINES);
-  auto &edge = m_all_edges[m_selected_edge];
-  auto &from_vertex = edge.first;
-  auto &to_vertex = edge.second;
   glVertex3f(from_vertex[0], from_vertex[1], from_vertex[2]);
   glVertex3f(to_vertex[0], to_vertex[1], to_vertex[2]);
   glEnd();
+  glLineWidth(old_line_width);
+
+  float point_size;
+  glGetFloatv(GL_POINT_SIZE, &point_size);
+  glPointSize(10.0f);
+  glBegin(GL_POINTS);
+  glVertex3f(from_vertex[0], from_vertex[1], from_vertex[2]);
+  glVertex3f(to_vertex[0], to_vertex[1], to_vertex[2]);
+  glEnd();
+  glPointSize(point_size);
 
   checkGLError("maybe_draw_selected_edges");
-  glLineWidth(old_line_width);
 }
 
 void

@@ -210,21 +210,15 @@ quad_gl_widget::mouseMoveEvent(QMouseEvent *event) {
                  m_all_edges[m_selected_edge].second[2]);
 
     unsigned int idx = m_selected_edge;
-    auto &edges = m_red_edges;
+    auto edges = &m_red_edges;
     if (m_selected_edge >= m_red_edges.size()) {
       idx = m_selected_edge - m_red_edges.size();
-      edges = m_blue_edges;
+      edges = &m_blue_edges;
     }
-    auto &first_surfel_idx = edges[idx].first.second;
-    auto &first_surfel_name = edges[idx].first.first;
-    auto &second_surfel_idx = edges[idx].second.second;
-    auto &second_surfel_name = edges[idx].second.first;
+    auto &first_surfel_idx = (*edges)[idx].first.second;
+    auto &first_surfel_name = (*edges)[idx].first.first;
+    auto &second_surfel_idx = (*edges)[idx].second.second;
+    auto &second_surfel_name = (*edges)[idx].second.first;
     emit edge_selected(first_surfel_name,second_surfel_name);
   }
-//  m_selected_vertex = find_closest_vertex(event->x(), event->y(), m_vertices, distance);
-//  spdlog::info("Nearest vertex : {}, {}, {}",
-//               m_vertices[m_selected_vertex * 3],
-//               m_vertices[m_selected_vertex * 3 + 1],
-//               m_vertices[m_selected_vertex * 3 + 2]);
-//  emit vertex_selected(m_selected_vertex);
 }

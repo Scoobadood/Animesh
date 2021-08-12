@@ -263,19 +263,6 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
             const auto t_ji_0 = dxyz_ji.dot(nbr_tangent);
             const auto t_ji_1 = dxyz_ji.dot(nbr_normal.cross(nbr_tangent));
 
-            if (t_ij_0 < 0.9 && t_ij_0 > 0.1) {
-                spdlog::warn("t_ij_0 out of range {}", t_ij_0);
-            }
-            if (t_ij_1 < 0.9 && t_ij_1 > 0.1) {
-                spdlog::warn("t_ij_1 out of range {}", t_ij_1);
-            }
-            if (t_ji_0 < 0.9 && t_ji_0 > 0.1) {
-                spdlog::warn("t_ji_0 out of range {}", t_ji_0);
-            }
-            if (t_ji_1 < 0.9 && t_ji_1 > 0.1) {
-                spdlog::warn("t_ji_1 out of range {}", t_ji_1);
-            }
-
             // Stash these to edge
             edge->set_t_ij(frame_index, (int)std::round(t_ij_0), (int)std::round(t_ij_1));
             edge->set_t_ji(frame_index, (int)std::round(t_ji_0), (int)std::round(t_ji_1));

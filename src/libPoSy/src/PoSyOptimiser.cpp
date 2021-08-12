@@ -256,12 +256,12 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
             // Compute t_ij and t_ji
             const auto dxyz_ij = (closest_points.first - ref_lattice_point);
-            const auto t_ij_0 = dxyz_ij.dot(oriented_tangent);
-            const auto t_ij_1 = dxyz_ij.dot(orth_tangent);
+            const auto t_ij_0 = dxyz_ij.dot(tangent);
+            const auto t_ij_1 = dxyz_ij.dot(normal.cross(tangent));
 
             const auto dxyz_ji = (closest_points.second - nbr_ref_lattice_point);
-            const auto t_ji_0 = dxyz_ji.dot(nbr_oriented_tangent);
-            const auto t_ji_1 = dxyz_ji.dot(nbr_orth_tangent);
+            const auto t_ji_0 = dxyz_ji.dot(nbr_tangent);
+            const auto t_ji_1 = dxyz_ji.dot(nbr_normal.cross(nbr_tangent));
 
             if (t_ij_0 < 0.9 && t_ij_0 > 0.1) {
                 spdlog::warn("t_ij_0 out of range {}", t_ij_0);

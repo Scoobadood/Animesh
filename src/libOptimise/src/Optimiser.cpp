@@ -381,7 +381,7 @@ Optimiser::get_neighbours_of_node_in_frame(
   if (randomise_order) {
     std::shuffle(begin(neighbours_in_frame),
                  end(neighbours_in_frame),
-                 m_random_engine);
+                 const_cast<std::default_random_engine&>(m_random_engine));
   }
   return neighbours_in_frame;
 }

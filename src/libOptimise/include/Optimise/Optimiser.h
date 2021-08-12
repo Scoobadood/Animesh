@@ -37,6 +37,11 @@ protected:
 
     std::default_random_engine m_random_engine;
 
+    std::vector <SurfelGraphNodePtr> get_neighbours_of_node_in_frame(
+      const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node_ptr,
+      unsigned int frame_index,
+      bool randomise_order = false) const;
 
 private:
     // Termination criteria

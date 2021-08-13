@@ -29,6 +29,6 @@ build_edge_graph(
 
 void
 collapse(int frame_index,
-         QuadGraphPtr graph,
+         const QuadGraphPtr& graph,
          float rho
 );

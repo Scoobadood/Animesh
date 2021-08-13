@@ -5,7 +5,6 @@
 #include "Quad.h"
 
 #include <PoSy/PoSy.h>
-#include <RoSy/RoSy.h>
 #include <Surfel/SurfelGraph.h>
 #include <map>
 #include <Eigen/Geometry>
@@ -35,7 +34,11 @@ maybe_insert_node_in_graph( //
   auto lattice_position = vertex +
       (tangent * offset[0]) +
       ((normal.cross(tangent)) * offset[1]);
-  spdlog::info("Inserted node {} at ({}, {}, {})", surfel_id, lattice_position[0], lattice_position[1], lattice_position[2]  );
+  spdlog::info("Inserted node {} at ({}, {}, {})",
+               surfel_id,
+               lattice_position[0],
+               lattice_position[1],
+               lattice_position[2]);
 
   auto node = out_graph->add_node({surfel_id, lattice_position});
   out_nodes_by_surfel_id.insert({surfel_id, node});
@@ -52,7 +55,7 @@ build_edge_graph(
   using namespace std;
 
   // Make the output graph
-  QuadGraphPtr out_graph = make_shared<animesh::Graph<QuadGraphVertex, EdgeType>>(false);
+  QuadGraphPtr out_graph = make_shared<animesh::Graph<QuadGraphVertex, EdgeType>>(true);
 
   // Collect all edges, weeding out duplicates.
   map<pair<string, string>, SurfelGraph::Edge> included_edges;
@@ -75,22 +78,26 @@ build_edge_graph(
     // Otherwise add this to the list of edges we'll include in the graph
     included_edges.emplace(make_pair(from_id, to_id), edge);
   }
-  spdlog::info( "New graph has potential {} edges from old graph {}", included_edges.size(), graph->edges().size());
+  spdlog::info("New graph has potential {} edges from old graph {}", included_edges.size(), graph->edges().size());
 
   // For each edge in this list, insert the end vertices if not present, then add the edge.
   map<string, QuadGraphNodePtr> output_graph_nodes_by_surfel_id;
   for (const auto &edge_entry : included_edges) {
     const auto edge = edge_entry.second;
 
-    const auto from_node =
-        maybe_insert_node_in_graph(edge.from()->data(), frame_index, out_graph, output_graph_nodes_by_surfel_id);
-    const auto to_node =
-        maybe_insert_node_in_graph(edge.to()->data(), frame_index, out_graph, output_graph_nodes_by_surfel_id);
+    const auto from_node = maybe_insert_node_in_graph(edge.from()->data(), frame_index,
+                                                      out_graph, output_graph_nodes_by_surfel_id);
+    const auto to_node = maybe_insert_node_in_graph(edge.to()->data(), frame_index,
+                                                    out_graph, output_graph_nodes_by_surfel_id);
 
     auto t_ij = edge.data()->t_ij(frame_index);
     auto t_ji = edge.data()->t_ji(frame_index);
     const auto manhattanEdgeLength = (t_ij - t_ji).cwiseAbs().sum();
     if (manhattanEdgeLength >= 2) {
+      spdlog::info("Skipped edge from {} {}",
+                   edge.from()->data()->id(),
+                   edge.to()->data()->id()
+      );
       continue;
     }
 
@@ -112,7 +119,7 @@ build_edge_graph(
 
     out_graph->add_edge(from_node, to_node, type);
   }
-  spdlog::info( "New graph has actual {} edges", out_graph->edges().size());
+  spdlog::info("New graph has actual {} edges", out_graph->edges().size());
 
   // No edge added
   return out_graph;
@@ -120,7 +127,7 @@ build_edge_graph(
 
 void
 collapse(int frame_index,
-         const QuadGraphPtr& graph,
+         const QuadGraphPtr &graph,
          float rho
 ) {
   using namespace std;

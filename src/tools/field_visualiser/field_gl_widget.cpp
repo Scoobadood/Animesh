@@ -13,9 +13,9 @@ const float DEG2RAD = (3.14159265f / 180.0f);
 field_gl_widget::field_gl_widget(
     QWidget *parent, Qt::WindowFlags f) :
     QOpenGLWidget{parent, f} //
-    , m_fov{35} //
+    , m_fov{15} //
     , m_zNear{.5f} //
-    , m_zFar{100.0f} //
+    , m_zFar{50.0f} //
     , m_aspectRatio{1.0f} //
     , m_projectionMatrixIsDirty{true} //
     , m_render_mouse_ray{true} //

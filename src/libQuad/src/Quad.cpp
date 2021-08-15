@@ -110,12 +110,13 @@ build_edge_graph(
     {
       type = EDGE_TYPE_BLU;
     }
-    spdlog::info("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{})",
+    spdlog::info("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
                  type == EDGE_TYPE_BLU ? "blue" : "red",
                  from_surfel_id,
                  to_surfel_id,
                  t_ij[0], t_ij[1],
-                 t_ji[0], t_ji[1]);
+                 t_ji[0], t_ji[1],
+                 (from_node->data().location - to_node->data().location).norm());
 
     out_graph->add_edge(from_node, to_node, type);
   }

@@ -14,9 +14,9 @@
 const float DEG2RAD = (3.14159265f / 180.0f);
 const float TWO_PI = M_PI * 2.0f;
 
-ArcBall::ArcBall() :
-    m_theta{0.0f} //
-    , m_phi{0.0f} //
+ArcBall::ArcBall() //
+    : m_azimuth{0.0f} //
+    , m_inclination{M_PI} //
     , m_radius{1.0f} //
     , m_up{1.0f} //
     , m_modelViewMatrixIsDirty{true} //
@@ -24,24 +24,24 @@ ArcBall::ArcBall() :
 {}
 
 void
-ArcBall::rotate(float dTheta, float dPhi) {
+ArcBall::rotate(float d_azim, float d_incl) {
   if (m_up > 0.0f) {
-    m_theta += dTheta;
+    m_inclination += d_incl;
   } else {
-    m_theta -= dTheta;
+    m_inclination -= d_incl;
   }
 
-  m_phi += dPhi;
+  m_azimuth += d_azim;
 
   // Keep phi within -2PI to +2PI for easy 'up' comparison
-  if (m_phi > TWO_PI) {
-    m_phi -= TWO_PI;
-  } else if (m_phi < -TWO_PI) {
-    m_phi += TWO_PI;
+  if (m_azimuth > TWO_PI) {
+    m_azimuth -= TWO_PI;
+  } else if (m_azimuth < -TWO_PI) {
+    m_azimuth += TWO_PI;
   }
 
   // If phi is between 0 to PI or -PI to -2PI, make 'up' be positive Y, other wise make it negative Y
-  if ((m_phi > 0 && m_phi < M_PI) || (m_phi < -M_PI && m_phi > -TWO_PI)) {
+  if ((m_azimuth > 0 && m_azimuth < M_PI) || (m_azimuth < -M_PI && m_azimuth > -TWO_PI)) {
     m_up = 1.0f;
   } else {
     m_up = -1.0f;
@@ -51,7 +51,7 @@ ArcBall::rotate(float dTheta, float dPhi) {
 
 void
 ArcBall::zoom(float distance) {
-  m_radius = std::fminf(11.0f, std::fmaxf(0.0f, m_radius - distance));
+  m_radius = std::fminf(40.0f, std::fmaxf(1.0f, m_radius - distance));
   m_modelViewMatrixIsDirty = true;
 }
 
@@ -73,7 +73,7 @@ ArcBall::get_camera_origin() const {
 
 QVector3D
 ArcBall::toCartesian() const {
-  const auto vector = spherical_to_cartesian(m_radius, m_theta, m_phi);
+  const auto vector = spherical_to_cartesian(m_radius, m_azimuth, m_inclination);
 
   return {vector.x(), vector.y(), vector.z()};
 }
@@ -211,7 +211,7 @@ ArcBall::get_model_view_matrix(float *mat) {
         pos,
         m_target,
         QVector3D(0.0f, m_up, 0.0f));
-    m_model_view_matrix.translate(-pos.x(), -pos.y(), -pos.z());
+//    m_model_view_matrix.translate(-pos.x(), -pos.y(), -pos.z());
     m_modelViewMatrixIsDirty = false;
   }
   memcpy(mat, m_model_view_matrix.constData(), 16 * sizeof(float));

@@ -9,7 +9,7 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(OpenGL REQUIRED)
 
-set(PROJECT_SOURCES
+add_executable(field_visualiser
 		main.cpp
 		field_gl_widget.h
 		field_gl_widget.cpp
@@ -30,13 +30,7 @@ set(PROJECT_SOURCES
 		quad_gl_widget.cpp
 		quad_gl_widget.h
 		quad_geometry_extractor.cpp
-		quad_geometry_extractor.h
-
-		)
-
-add_executable(field_visualiser
-		${PROJECT_SOURCES}
-		)
+		quad_geometry_extractor.h		)
 
 target_include_directories(
 		field_visualiser

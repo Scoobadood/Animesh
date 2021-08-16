@@ -15,7 +15,7 @@ class ArcBall : public QObject {
 public:
   ArcBall();
 
-  void rotate(float dTheta, float dPhi);
+  void rotate(float d_azim, float d_incl);
 
   void zoom(float distance);
 
@@ -37,8 +37,8 @@ private:
   const float PAN_FACTOR = 0.01f;
   const float ZOOM_FACTOR = 0.005f;
 
-  float m_theta;
-  float m_phi;
+  float m_azimuth;
+  float m_inclination;
   float m_radius;
   float m_up;
   bool m_modelViewMatrixIsDirty;

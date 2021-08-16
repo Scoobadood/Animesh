@@ -124,7 +124,7 @@ Optimiser::check_cancellation(OptimisationResult &result) {
   if (!user_canceled_optimise()) {
     return false;
   }
-  spdlog::info( "Terminating because of cancellation");
+  spdlog::info("Terminating because of cancellation");
   result = CANCELLED;
   return true;
 }
@@ -133,7 +133,7 @@ bool
 Optimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult &result) const {
   // Always bail if converged to 0
   if (m_last_smoothness == 0) {
-    spdlog::info( "Terminating because m_last_smoothness is 0");
+    spdlog::info("Terminating because m_last_smoothness is 0");
     result = CONVERGED;
     return true;
   }
@@ -149,7 +149,7 @@ Optimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult 
   spdlog::info("Mean smoothness per node: {}, Improvement {}%", latest_smoothness, pct);
   // If it's 0 then we converged, regardless of whether we're checking for absolute smoothness or not.
   if (std::abs(latest_smoothness) < 1e-9) {
-    spdlog::info( "Terminating because latest_smoothness is practically 0");
+    spdlog::info("Terminating because latest_smoothness is practically 0");
     result = CONVERGED;
     return true;
   }
@@ -178,7 +178,7 @@ Optimiser::maybe_check_iterations(OptimisationResult &result) const {
   float latest_smoothness = compute_mean_smoothness();
   spdlog::info("Mean smoothness per node: {}", latest_smoothness);
   if (m_num_iterations >= m_term_crit_max_iterations) {
-    spdlog::info( "Terminating because we completed the specified number of iterations");
+    spdlog::info("Terminating because we completed the specified number of iterations");
     result = CONVERGED;
     return true;
   }
@@ -243,8 +243,7 @@ Optimiser::optimise_do_one_step() {
                    ? " not complete"
                    : m_result == CONVERGED
                      ? " converged"
-                     : " cancelled"
-                     , smoothness
+                     : " cancelled", smoothness
       );
       m_state = ENDING_OPTIMISATION;
     }
@@ -275,7 +274,7 @@ Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool
                                ? 0
                                : node_smoothness / (float) num_neighbours;
 
-  spdlog::debug(" mean_smoothness {:4.3f}",mean_smoothness);
+  spdlog::debug(" mean_smoothness {:4.3f}", mean_smoothness);
   return mean_smoothness;
 }
 
@@ -368,4 +367,21 @@ Optimiser::set_data(const SurfelGraphPtr &surfel_graph) {
   m_num_frames = get_num_frames(surfel_graph);
   m_state = INITIALISED;
   loaded_graph();
+}
+
+std::vector<SurfelGraphNodePtr>
+Optimiser::get_neighbours_of_node_in_frame(
+    const SurfelGraphPtr &graph,
+    const SurfelGraphNodePtr &node_ptr,
+    unsigned int frame_index,
+    bool randomise_order) const {
+
+  auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, node_ptr, frame_index);
+  // Optionally randomise the order
+  if (randomise_order) {
+    std::shuffle(begin(neighbours_in_frame),
+                 end(neighbours_in_frame),
+                 const_cast<std::default_random_engine&>(m_random_engine));
+  }
+  return neighbours_in_frame;
 }

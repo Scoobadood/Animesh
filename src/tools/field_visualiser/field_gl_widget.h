@@ -29,18 +29,21 @@ protected:
   static void checkGLError(const std::string &context);
 
   static void clear();
-  int
-  find_closest_vertex(unsigned int pixel_x,
-                      unsigned int pixel_y,
-                      std::vector<QVector3D> &items,
-                      float &distance);
-  int
-  find_closest_vertex(unsigned int pixel_x,
-                      unsigned int pixel_y,
-                      std::vector<float> &items, /// assumed XYZ triples
-                      float &distance);
+  int find_closest_edge(unsigned int pixel_x,
+                        unsigned int pixel_y,
+                        std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> &edges,
+                        float &distance);
 private:
-  ArcBall *m_arcBall;
+  int find_closest_vertex(unsigned int pixel_x,
+                          unsigned int pixel_y,
+                          std::vector<float> &items, /// assumed XYZ triples
+                          float &distance);
+  void get_ray_data(unsigned int pixel_x,
+                                unsigned int pixel_y,
+                                Eigen::Vector3f& camera_origin,
+                                Eigen::Vector3f& ray_direction);
+
+    ArcBall *m_arcBall;
 
   float m_fov;
   float m_zNear;
@@ -50,8 +53,13 @@ private:
   float m_projection_matrix[16];
   float m_model_view_matrix[16];
 
+  Eigen::Vector3f m_near_point;
+  Eigen::Vector3f m_far_point;
+  bool m_render_mouse_ray;
+  void maybe_render_mouse_ray();
+
   void update_model_matrix();
-  Eigen::Vector3f ray_for_pixel(int pixel_x, int pixel_y);
+  Eigen::Vector3f ray_direction_for_pixel(int pixel_x, int pixel_y);
 
   void maybe_update_projection_matrix();
 };

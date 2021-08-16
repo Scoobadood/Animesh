@@ -49,17 +49,43 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
           ui->quadGLWidget, &quad_gl_widget::showBlueEdges);
   connect(ui->cbRed, &QCheckBox::toggled,
           ui->quadGLWidget, &quad_gl_widget::showRedEdges);
+  connect(ui->cbAffinities, &QCheckBox::toggled,
+          ui->quadGLWidget, &quad_gl_widget::showVertexAffinities);
   connect(ui->btnDecimate, &QPushButton::clicked,
           this, [&]() {
         m_quad_geometry_extractor->collapse();
         extract_geometry();
       });
 
-  connect(ui->quadGLWidget, &quad_gl_widget::vertex_selected, this, [&](int vi) {
-      ui->lblVertexId->setNum(vi);
+  connect(ui->quadGLWidget, &quad_gl_widget::edge_selected, this, [&](std::string &from_name, std::string &to_name) {
+    using namespace std;
+
+    ui->lblEdgeVertex1->setText(from_name.c_str());
+    ui->lblEdgeVertex2->setText(to_name.c_str());
+    // Extract the edge data
+    auto edge = m_edge_from_node_names[{from_name, to_name}];
+    auto t_ij_0 = edge->t_ij(0);
+    auto t_ji_0 = edge->t_ji(0);
+    auto k_ij_0 = edge->k_ij(0);
+    auto k_ji_0 = edge->k_ji(0);
+    QString t_ij{(to_string(t_ij_0.x()) + ", " + to_string(t_ij_0.y())).c_str()};
+    QString t_ji{(to_string(t_ji_0.x()) + ", " + to_string(t_ji_0.y())).c_str()};
+    ui->lblEdgeTij->setText(t_ij);
+    ui->lblEdgeTji->setText(t_ji);
+    ui->lblEdgeKij->setNum(k_ij_0);
+    ui->lblEdgeKji->setNum(k_ji_0);
   });
-  connect(ui->quadGLWidget, &quad_gl_widget::other_vertex, this, [&](int vi) {
-    ui->lblOtherVertexId->setNum(vi);
+  connect(ui->quadGLWidget, &quad_gl_widget::no_edge_selected,
+          this, [&]() {
+    using namespace std;
+
+    ui->lblEdgeVertex1->setText("-");
+    ui->lblEdgeVertex2->setText("-");
+    // Extract the edge data
+    ui->lblEdgeTij->setText("");
+    ui->lblEdgeTji->setText("");
+    ui->lblEdgeKij->setText("");
+    ui->lblEdgeKji->setText("");
   });
 
   m_timer = new QTimer(this); //Create a timer
@@ -120,16 +146,27 @@ field_visualiser_window::extract_geometry() {
   ui->rosyGLWidget->setRoSyData(positions, normals, tangents, colours, scale_factor);
 
   std::vector<float> vertices;
-  std::vector<std::pair<std::pair<std::string,unsigned int>, std::pair<std::string,unsigned int>>> red_edges;
-  std::vector<std::pair<std::pair<std::string,unsigned int>, std::pair<std::string,unsigned int>>> blue_edges;
-  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges);
-  ui->quadGLWidget->setData(vertices, red_edges, blue_edges);
+  std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> red_edges;
+  std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> blue_edges;
+  std::vector<float> original_vertices;
+  std::vector<float>vertex_affinity;
+  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
+  ui->quadGLWidget->setData(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
 }
 
 void
 field_visualiser_window::set_graph(SurfelGraphPtr graph_ptr) {
+  using namespace std;
+
   m_graph_ptr = std::move(graph_ptr);
   m_quad_geometry_extractor->set_graph(m_graph_ptr);
+  for (auto &edge : m_graph_ptr->edges()) {
+    pair<string, string> key1 = {edge.from()->data()->id(), edge.to()->data()->id()};
+    pair<string, string> key2 = {edge.to()->data()->id(), edge.from()->data()->id()};
+
+    m_edge_from_node_names.emplace(key1, edge.data());
+    m_edge_from_node_names.emplace(key2, edge.data());
+  }
   extract_geometry();
 }
 

@@ -178,10 +178,17 @@ distance_from_point_to_point(
 /**
  * Convert from polar to cartesian coordinates.
  *
- * @param theta Rotation in the XY plane. [0, 2 * pi)
- * @param phi Vertical rotation. [0, pi)
+ * @param azimuth Rotation in the XY plane. [0, 2 * pi)
+ * @param inclination Vertical rotation. [0, pi)
  * @param radius Distance from the sphere centre.
  * @return X,Y Z coordinates.
  */
 Eigen::Vector3f
-spherical_to_cartesian(float radius, float theta, float phi );
+spherical_to_cartesian(float radius, float azimuth, float inclination );
+
+float
+distance_between_ray_and_line_segment(const Eigen::Vector3f &ray_origin,
+                                      const Eigen::Vector3f &ray_normal_direction,
+                                      const Eigen::Vector3f &p1,
+                                      const Eigen::Vector3f &p2,
+                                      float & t);

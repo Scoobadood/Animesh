@@ -8,8 +8,9 @@
 #include <Eigen/Core>
 
 typedef enum {
-    EDGE_TYPE_RED = 1,
-    EDGE_TYPE_BLU
+  EDGE_TYPE_NON = 0,
+  EDGE_TYPE_RED,
+  EDGE_TYPE_BLU
 } EdgeType;
 
 struct QuadGraphVertex {
@@ -29,6 +30,6 @@ build_edge_graph(
 
 void
 collapse(int frame_index,
-         const QuadGraphPtr& graph,
+         const QuadGraphPtr &graph,
          float rho
 );

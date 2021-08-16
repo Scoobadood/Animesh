@@ -95,15 +95,18 @@ void Surfel::get_all_data_for_surfel_in_frame(
     Eigen::Vector3f &orth_tangent,
     Eigen::Vector3f &normal,
     Eigen::Vector3f &closest_mesh_vertex,
-    unsigned short k_ij) const {
+    unsigned short k) const {
   get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
+  orth_tangent = normal.cross(tangent);
   // Closes mesh vertex is always computed without rotating the local frame.
   closest_mesh_vertex = vertex +
       (m_reference_lattice_offset[0] * tangent) +
-      (m_reference_lattice_offset[1] * normal.cross(orth_tangent));
-  if (k_ij != 0) {
-    tangent = vector_by_rotating_around_n(tangent, normal, k_ij);
+      (m_reference_lattice_offset[1] * orth_tangent);
+
+  if (k == 0) {
+    return;
   }
+  tangent = vector_by_rotating_around_n(tangent, normal, k);
   orth_tangent = normal.cross(tangent);
 }
 

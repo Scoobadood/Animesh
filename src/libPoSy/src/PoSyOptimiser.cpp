@@ -357,7 +357,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                                                    nbr_lattice_vertex,
                                                    k_ji);
 
-//      if (curr_surfel->id() == WATCH_NODE) {
+      if (curr_surfel->id() == WATCH_NODE) {
         spdlog::info("{}-->{}:: p_i =[{:0.3f}, {:0.3f}, {:0.3f}]",
                      curr_surfel->id(), nbr_surfel->id(),
                      vertex[0], vertex[1], vertex[2]);
@@ -375,7 +375,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                      curr_lattice_vertex[0], curr_lattice_vertex[1], curr_lattice_vertex[2]);
         spdlog::info("            :: nbr_lp =[{:0.3f}, {:0.3f}, {:0.3f}]",
                      nbr_lattice_vertex[0], nbr_lattice_vertex[1], nbr_lattice_vertex[2]);
-//      }
+      }
       if ((curr_lattice_vertex - vertex).norm() > 0.707) {
         spdlog::error("Problem with surfel {}, curr_lattic_vertex ({}, {}, {}) is TOO far from vertex ({}, {}, {}).",
                       curr_surfel->id(),
@@ -403,7 +403,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                                                          i_vecs, j_vecs
       );
 
-//      if (curr_surfel->id() == WATCH_NODE) {
+      if (curr_surfel->id() == WATCH_NODE) {
         spdlog::info("            :: Q_i =[[{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[0][0], i_vecs[0][1], i_vecs[0][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[1][0], i_vecs[1][1], i_vecs[1][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[3][0], i_vecs[3][1], i_vecs[3][2]);
@@ -414,7 +414,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[3][0], j_vecs[3][1], j_vecs[3][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[2][0], j_vecs[2][1], j_vecs[2][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]]", j_vecs[0][0], j_vecs[0][1], j_vecs[0][2]);
-//      }
+      }
 
       edge->set_t_ij(frame_index, t_ij_pair.first[0], t_ij_pair.first[1]);
       edge->set_t_ji(frame_index, t_ij_pair.second[0], t_ij_pair.second[1]);
@@ -426,7 +426,11 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
       curr_lattice_vertex = curr_lattice_vertex * (1.0f / sum_w);
       // Push back to tangent plane.
       curr_lattice_vertex -= normal.dot(curr_lattice_vertex - vertex) * normal;
-//      if (curr_surfel->id() == WATCH_NODE) {
+
+      // Make sure this is actually the closest lattice vertex by doing the rounding thing
+      curr_lattice_vertex = round_4(n, t, curr_lattice_vertex, v, m_rho);
+
+      if (curr_surfel->id() == WATCH_NODE) {
         spdlog::info("            :: midpoint =[{}, {}, {}]",
                      midpoint[0], midpoint[1], midpoint[2]);
         spdlog::info("            :: cp_i =[{}, {}, {}]",
@@ -439,10 +443,10 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                      curr_lattice_vertex[0], curr_lattice_vertex[1], curr_lattice_vertex[2],
                      (curr_lattice_vertex - old_lattice_vertex).norm()
                      );
-//      }
+      }
     } // End of neighbours
     // Pick the closest estimated lattice vertex based on CLV
-    curr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
+//    curr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
     curr_lattice_vertex = round_4(n, t, curr_lattice_vertex, v, m_rho);
     // Convert back to an offset at k=0
     const auto diff = curr_lattice_vertex - v;
@@ -454,10 +458,10 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                     curr_lattice_offset[1]);
     }
     curr_surfel->set_reference_lattice_offset(curr_lattice_offset);
-//    if (curr_surfel->id() == WATCH_NODE) {
+    if (curr_surfel->id() == WATCH_NODE) {
       spdlog::info("            :: clo =[{}, {}]",
                    curr_lattice_offset[0], curr_lattice_offset[1]);
-//    }
+    }
   } // End of frames
 }
 

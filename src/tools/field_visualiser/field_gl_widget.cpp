@@ -15,10 +15,10 @@ field_gl_widget::field_gl_widget(
     QOpenGLWidget{parent, f} //
     , m_fov{15} //
     , m_zNear{.5f} //
-    , m_zFar{50.0f} //
+    , m_zFar{1000.0f} //
     , m_aspectRatio{1.0f} //
     , m_projectionMatrixIsDirty{true} //
-    , m_render_mouse_ray{true} //
+    , m_render_mouse_ray{false} //
 {
   setFocus();
 }

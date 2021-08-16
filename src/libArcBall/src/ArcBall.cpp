@@ -51,7 +51,7 @@ ArcBall::rotate(float d_azim, float d_incl) {
 
 void
 ArcBall::zoom(float distance) {
-  m_radius = std::fminf(11.0f, std::fmaxf(1.0f, m_radius - distance));
+  m_radius = std::fminf(40.0f, std::fmaxf(1.0f, m_radius - distance));
   m_modelViewMatrixIsDirty = true;
 }
 

@@ -293,10 +293,11 @@ field_gl_widget::find_closest_edge(unsigned int pixel_x,
   for (int idx = 0; idx < edges.size(); ++idx) {
     auto first_end = edges[idx].first;
     auto second_end = edges[idx].second;
+    float t;
     auto dist2 = distance_between_ray_and_line_segment(
         camera_origin, ray_direction,
-        first_end, second_end);
-    if (dist2 < distance) {
+        first_end, second_end, t);
+    if (t >= 0 && t <= 1.0 && dist2 < distance) {
       distance = dist2;
       closest_idx = idx;
     }

@@ -18,13 +18,16 @@ public:
   void extract_geometry(
       std::vector<float> &vertices,
       std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &red_edges,
-      std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges
+      std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges,
+      std::vector<float>& original_vertex,
+      std::vector<float>& vertex_affinity
   );
 
   void set_graph(const SurfelGraphPtr &graph) {
     using namespace std;
     m_red_edges.clear();
     m_blue_edges.clear();
+    m_surfel_graph = graph;
     m_graph = build_edge_graph(get_frame(), graph, m_rho );
   }
 
@@ -35,6 +38,7 @@ public:
 private:
   float m_rho;
   QuadGraphPtr m_graph;
+  SurfelGraphPtr m_surfel_graph;
   std::vector<std::pair<std::string,std::string>> m_red_edges;
   std::vector<std::pair<std::string,std::string>> m_blue_edges;
 

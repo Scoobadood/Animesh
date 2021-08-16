@@ -10,7 +10,7 @@
 #include <Eigen/Geometry>
 #include <Surfel/SurfelGraph.h>
 
-const std::string WATCH_NODE = "s_3_4";
+const std::string WATCH_NODE = "s_3_0";
 
 PoSyOptimiser::PoSyOptimiser(const Properties &properties)
     : Optimiser{properties} //
@@ -225,11 +225,12 @@ compute_tij_pair(
   for (int i = 0; i < 4; ++i) {
     Vector3f o0t = origin
         + (tangent * ((i & 1) + base_lattice_offset[0]) +
-        orth_tangent * (((i & 2) >> 1) + base_lattice_offset[1]))
-        * scale;
+            orth_tangent * (((i & 2) >> 1) + base_lattice_offset[1]))
+            * scale;
     for (int j = 0; j < 4; ++j) {
       Vector3f o1t = nbr_origin
-          + (nbr_tangent * ((j & 1) + nbr_base_lattice_offset[0]) + nbr_orth_tangent * (((j & 2) >> 1) + nbr_base_lattice_offset[1]))
+          + (nbr_tangent * ((j & 1) + nbr_base_lattice_offset[0])
+              + nbr_orth_tangent * (((j & 2) >> 1) + nbr_base_lattice_offset[1]))
               * scale;
       float cost = (o0t - o1t).squaredNorm();
 
@@ -323,7 +324,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         curr_lattice_offset[0] * t +
         curr_lattice_offset[1] * (n.cross(t));
 
-      // Consider every neighbour in this frame
+    // Consider every neighbour in this frame
     const auto neighbours_in_frame = get_neighbours_of_node_in_frame(m_surfel_graph, node,
                                                                      frame_index, m_randomise_neighour_order);
     float sum_w = 1.0f;
@@ -356,9 +357,9 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                                                    nbr_lattice_vertex,
                                                    k_ji);
 
-      if (curr_surfel->id() == WATCH_NODE) {
+//      if (curr_surfel->id() == WATCH_NODE) {
         spdlog::info("{}-->{}:: p_i =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     node->data()->id(), nbr_node->data()->id(),
+                     curr_surfel->id(), nbr_surfel->id(),
                      vertex[0], vertex[1], vertex[2]);
         spdlog::info("            :: t_i =[{:0.3f}, {:0.3f}, {:0.3f}]",
                      tangent[0], tangent[1], tangent[2]);
@@ -374,6 +375,17 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                      curr_lattice_vertex[0], curr_lattice_vertex[1], curr_lattice_vertex[2]);
         spdlog::info("            :: nbr_lp =[{:0.3f}, {:0.3f}, {:0.3f}]",
                      nbr_lattice_vertex[0], nbr_lattice_vertex[1], nbr_lattice_vertex[2]);
+//      }
+      if ((curr_lattice_vertex - vertex).norm() > 0.707) {
+        spdlog::error("Problem with surfel {}, curr_lattic_vertex ({}, {}, {}) is TOO far from vertex ({}, {}, {}).",
+                      curr_surfel->id(),
+                      curr_lattice_vertex[0],
+                      curr_lattice_vertex[1],
+                      curr_lattice_vertex[2],
+                      vertex[0],
+                      vertex[1],
+                      vertex[2]
+        );
       }
       // Compute the midpoint
       const auto midpoint = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
@@ -391,7 +403,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                                                          i_vecs, j_vecs
       );
 
-      if (curr_surfel->id() == WATCH_NODE) {
+//      if (curr_surfel->id() == WATCH_NODE) {
         spdlog::info("            :: Q_i =[[{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[0][0], i_vecs[0][1], i_vecs[0][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[1][0], i_vecs[1][1], i_vecs[1][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[3][0], i_vecs[3][1], i_vecs[3][2]);
@@ -402,17 +414,19 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[3][0], j_vecs[3][1], j_vecs[3][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[2][0], j_vecs[2][1], j_vecs[2][2]);
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]]", j_vecs[0][0], j_vecs[0][1], j_vecs[0][2]);
-      }
+//      }
 
       edge->set_t_ij(frame_index, t_ij_pair.first[0], t_ij_pair.first[1]);
       edge->set_t_ji(frame_index, t_ij_pair.second[0], t_ij_pair.second[1]);
 
       // Compute the weighted mean closest point
-      curr_lattice_vertex = sum_w * closest_points.first + w_ij * closest_points.second;
+      auto old_lattice_vertex = curr_lattice_vertex;
+      curr_lattice_vertex = (sum_w * closest_points.first) + (w_ij * closest_points.second);
       sum_w += w_ij;
       curr_lattice_vertex = curr_lattice_vertex * (1.0f / sum_w);
-
-      if (curr_surfel->id() == WATCH_NODE) {
+      // Push back to tangent plane.
+      curr_lattice_vertex -= normal.dot(curr_lattice_vertex - vertex) * normal;
+//      if (curr_surfel->id() == WATCH_NODE) {
         spdlog::info("            :: midpoint =[{}, {}, {}]",
                      midpoint[0], midpoint[1], midpoint[2]);
         spdlog::info("            :: cp_i =[{}, {}, {}]",
@@ -421,7 +435,11 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                      closest_points.second[0], closest_points.second[1], closest_points.second[2]);
         spdlog::info("            :: t_ij=[{}, {}], t_ji =[{}, {}]",
                      t_ij_pair.first[0], t_ij_pair.first[1], t_ij_pair.second[0], t_ij_pair.second[1]);
-      }
+        spdlog::info("            :: new_curr_lp=({}, {},{}). Moved by {}",
+                     curr_lattice_vertex[0], curr_lattice_vertex[1], curr_lattice_vertex[2],
+                     (curr_lattice_vertex - old_lattice_vertex).norm()
+                     );
+//      }
     } // End of neighbours
     // Pick the closest estimated lattice vertex based on CLV
     curr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
@@ -436,10 +454,10 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                     curr_lattice_offset[1]);
     }
     curr_surfel->set_reference_lattice_offset(curr_lattice_offset);
-    if (curr_surfel->id() == WATCH_NODE) {
+//    if (curr_surfel->id() == WATCH_NODE) {
       spdlog::info("            :: clo =[{}, {}]",
                    curr_lattice_offset[0], curr_lattice_offset[1]);
-    }
+//    }
   } // End of frames
 }
 

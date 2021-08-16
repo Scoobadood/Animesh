@@ -49,6 +49,8 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
           ui->quadGLWidget, &quad_gl_widget::showBlueEdges);
   connect(ui->cbRed, &QCheckBox::toggled,
           ui->quadGLWidget, &quad_gl_widget::showRedEdges);
+  connect(ui->cbAffinities, &QCheckBox::toggled,
+          ui->quadGLWidget, &quad_gl_widget::showVertexAffinities);
   connect(ui->btnDecimate, &QPushButton::clicked,
           this, [&]() {
         m_quad_geometry_extractor->collapse();
@@ -146,8 +148,10 @@ field_visualiser_window::extract_geometry() {
   std::vector<float> vertices;
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> red_edges;
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> blue_edges;
-  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges);
-  ui->quadGLWidget->setData(vertices, red_edges, blue_edges);
+  std::vector<float> original_vertices;
+  std::vector<float>vertex_affinity;
+  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
+  ui->quadGLWidget->setData(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
 }
 
 void

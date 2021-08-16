@@ -10,13 +10,18 @@ void
 quad_geometry_extractor::extract_geometry(
     std::vector<float> &vertices,
     std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &red_edges,
-    std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges
-    ) {
+    std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges,
+    std::vector<float> &original_vertex,
+    std::vector<float> &vertex_affinity
+) {
   using namespace std;
 
   vertices.clear();
   red_edges.clear();
   blue_edges.clear();
+  original_vertex.clear();
+  vertex_affinity.clear();
+
   if ( m_graph == nullptr) {
     return;
   }
@@ -47,5 +52,16 @@ quad_geometry_extractor::extract_geometry(
               make_pair(edge.from()->data().surfel_id, from),
               make_pair(edge.to()->data().surfel_id, to)));
     }
+  }
+  for( const auto & node : m_surfel_graph->nodes()) {
+    Eigen::Vector3f v, t, n;
+    node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
+    original_vertex.emplace_back(v[0]);
+    original_vertex.emplace_back(v[1]);
+    original_vertex.emplace_back(v[2]);
+    auto vi = node_id_to_vertex_index[node->data()->id()];
+    vertex_affinity.emplace_back(vertices[vi * 3 + 0]);
+    vertex_affinity.emplace_back(vertices[vi * 3 + 1]);
+    vertex_affinity.emplace_back(vertices[vi * 3 + 2]);
   }
 }

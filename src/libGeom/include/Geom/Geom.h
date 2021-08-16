@@ -190,4 +190,5 @@ float
 distance_between_ray_and_line_segment(const Eigen::Vector3f &ray_origin,
                                       const Eigen::Vector3f &ray_normal_direction,
                                       const Eigen::Vector3f &p1,
-                                      const Eigen::Vector3f &p2);
+                                      const Eigen::Vector3f &p2,
+                                      float & t);

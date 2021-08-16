@@ -500,7 +500,8 @@ float
 distance_between_ray_and_line_segment(const Eigen::Vector3f &ray_origin,
                            const Eigen::Vector3f &ray_normal_direction,
                            const Eigen::Vector3f &p1,
-                           const Eigen::Vector3f &p2) {
+                           const Eigen::Vector3f &p2,
+                           float & t) {
   auto segment_direction = (p2 - p1).normalized();
 
   float a = ray_normal_direction.dot(ray_normal_direction);
@@ -514,13 +515,13 @@ distance_between_ray_and_line_segment(const Eigen::Vector3f &ray_origin,
     float c = ray_normal_direction.dot(r);
     float f = segment_direction.dot(r);
     float s = (b * f - c * e) / d;
-    float t = (a * f - c * b) / d;
+    t = (a * f - c * b) / d;
     auto closest_point_ray = ray_origin + ray_normal_direction * s;
     t = std::fminf(1.0f, std::fmaxf(0.0f, t) );
     auto closest_point_segment = p1 + segment_direction * t;
     return (closest_point_ray - closest_point_segment).squaredNorm();
   }
-  // LInes are parallel so return distance between an arbitrary point not even necessarily on the segment.
+  // Lines are parallel so return distance between an arbitrary point not even necessarily on the segment.
   auto p = (p1 - ray_origin);
   auto q = p.dot(ray_normal_direction) * ray_normal_direction;
   auto z = p - q;

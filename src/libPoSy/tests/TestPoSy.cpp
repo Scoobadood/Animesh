@@ -3,8 +3,6 @@
 #include <Surfel/SurfelGraph.h>
 #include <gmock/gmock.h>
 
-const float EPSILON = 1e-4;
-
 void TestPoSy::SetUp() {
     std::default_random_engine re{123};
     m_surfel_builder = new SurfelBuilder(re);

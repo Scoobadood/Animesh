@@ -19,7 +19,7 @@ maybe_insert_node_in_graph( //
   using namespace Eigen;
   using namespace std;
 
-  const string& surfel_id = surfel_ptr->id();
+  const string &surfel_id = surfel_ptr->id();
 
   // If it's in our output map, return early with the map's value
   const auto found_iter = out_nodes_by_surfel_id.find(surfel_id);
@@ -71,8 +71,8 @@ get_unique_edges_in_frame(const SurfelGraphPtr graph, int frame_index) {
   return included_edges;
 }
 
-EdgeType compute_edge_type(const Eigen::Vector2i& t_ij,
-                           const Eigen::Vector2i& t_ji) {
+EdgeType compute_edge_type(const Eigen::Vector2i &t_ij,
+                           const Eigen::Vector2i &t_ji) {
   const auto manhattanEdgeLength = (t_ij - t_ji).cwiseAbs().sum();
   if (manhattanEdgeLength >= 2) {
     return EDGE_TYPE_NON;
@@ -117,7 +117,7 @@ build_edge_graph(
     auto t_ij = edge.data()->t_ij(frame_index);
     auto t_ji = edge.data()->t_ji(frame_index);
     EdgeType edgeType = compute_edge_type(t_ij, t_ji);
-    if(edgeType == EDGE_TYPE_NON) {
+    if (edgeType == EDGE_TYPE_NON) {
       spdlog::info("Skipped edge from {} {}",
                    from_surfel_ptr->id(),
                    to_surfel_ptr->id()
@@ -156,21 +156,40 @@ collapse(int frame_index,
     auto from_node = edge.from();
     auto to_node = edge.to();
 
-    graph->collapse_edge( //
-        from_node, //
-        to_node, //
-        [&]( //
-            const QuadGraphVertex &n1,
-            const QuadGraphVertex &n2) {
+    if (graph->has_edge(from_node, to_node)) {
+      graph->collapse_edge( //
+          from_node, //
+          to_node, //
+          [&]( //
+              const QuadGraphVertex &n1,
+              const QuadGraphVertex &n2) {
 
-          return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
-        }, //
-        [&]( //
-            const QuadGraphVertex &n1,
-            const QuadGraphVertex &n2,
-            const EdgeType &e) {
-          return e;
-        } //
-    );
+            return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
+          }, //
+          [&]( //
+              const QuadGraphVertex &n1,
+              const QuadGraphVertex &n2,
+              const EdgeType &e) {
+            return e;
+          } //
+      );
+    } else {
+      graph->collapse_edge( //
+          to_node, //
+          from_node, //
+          [&]( //
+              const QuadGraphVertex &n1,
+              const QuadGraphVertex &n2) {
+
+            return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
+          }, //
+          [&]( //
+              const QuadGraphVertex &n1,
+              const QuadGraphVertex &n2,
+              const EdgeType &e) {
+            return e;
+          } //
+      );
+    }
   }
 }

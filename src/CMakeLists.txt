@@ -10,6 +10,7 @@ set(GIT_VERSION_STRING "git version 2.20.1 (Apple Git-117)")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG_COVERAGE "-g -O0 -Wall -fprofile-arcs -ftest-coverage")
 set(CMAKE_CXX_FLAGS "")
 
 # Tell cmake where to find VCG modules

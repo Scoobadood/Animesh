@@ -196,22 +196,6 @@ TEST_F(TestGraphCycles, SphereCycleCountIs100) {
     EXPECT_EQ(100, sphere10x10.cycles().size());
 }
 
-TEST_F(TestGraphCycles, SphereFaceCycleCountIs92) {
-    // Load the sphere
-    animesh::Graph<animesh::PointNormal::Ptr, int> sphere10x10;
-    sphere10x10 = setup_object("graph_test_data/sphere10x10.obj", true);
-
-    EXPECT_EQ(92, sphere10x10.cycles().size());
-}
-
-TEST_F(TestGraphCycles, SphereFaceCycleCountIs22) {
-    // Load the sphere
-    animesh::Graph<animesh::PointNormal::Ptr, int> sphere5x5;
-    sphere5x5 = setup_object("graph_test_data/sphere.obj", true);
-
-    EXPECT_EQ(22, sphere5x5.cycles().size());
-}
-
 // 0,1,2,3,0     0,1,5,4,0
 // 0,3,7,4,0     6,2,3,7,6
 // 6,2,1,5,6     6,7,4,5,6
@@ -241,12 +225,12 @@ TEST_F(TestGraphCycles, ClothPlaneCycleCountIs256) {
 
 // 16x16 faces
 // But each cycle covers 4 faces
-// Should be 64 cyles
-TEST_F(TestGraphCycles, ClothPlaneFaceCycleCountIs256) {
+// Should be 15x15 cyles
+TEST_F(TestGraphCycles, ClothPlaneFaceCycleCountIs225) {
     animesh::Graph<animesh::PointNormal::Ptr, int> cloth = setup_object("graph_test_data/cloth2_1.obj", true);
 
     auto actual_cycles = cloth.cycles();
-    EXPECT_EQ(64, actual_cycles.size());
+    EXPECT_EQ(225, actual_cycles.size());
 }
 
 TEST_F(TestGraphCycles, CyclesAreCorrect) {

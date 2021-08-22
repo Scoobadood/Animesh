@@ -8,8 +8,6 @@
 void TestPoSyQij::SetUp() {}
 void TestPoSyQij::TearDown() {}
 
-const float EPSILON = 1e-4;
-
 #define EXPECT_EQ_VECTOR3(v1,v2) \
     EXPECT_FLOAT_EQ(v1[0], v2[0]);   \
     EXPECT_FLOAT_EQ(v1[1], v2[1]);   \

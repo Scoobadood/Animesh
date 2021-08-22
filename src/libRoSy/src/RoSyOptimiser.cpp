@@ -103,15 +103,9 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
 
     // For each neighbour j in frame ...
     float w_sum = 0.0f;
-    auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, this_node, frame_index);
-    // Optionally randomise the order
-    if (m_randomise_neighour_order) {
-      std::shuffle(begin(neighbours_in_frame),
-                   end(neighbours_in_frame),
-                   m_random_engine);
-    }
-
+    auto neighbours_in_frame = get_neighbours_of_node_in_frame(m_surfel_graph, this_node, frame_index, m_randomise_neighour_order);
     for (const auto &neighbour_node : neighbours_in_frame) {
+
       const auto &nbr_surfel = neighbour_node->data();
       auto & edge = m_surfel_graph->edge(this_node, neighbour_node);
 

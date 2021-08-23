@@ -240,6 +240,11 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
             const auto to_node_id = read_string(file);
             auto to_node = graph_node_by_id.at(to_node_id);
 
+            if( graph->has_edge(from_node, to_node)) {
+              spdlog::debug("Skipping edge {} from {} to {}, already added", edge_index, from_node->data()->id(), to_node->data()->id());
+              continue;
+            }
+
             const auto weight = read_float(file);
             SurfelGraphEdge edge{weight};
 
@@ -264,6 +269,10 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
             const auto &neighbour_ids = neighbours_of_surfel_by_id.at(graph_node->data()->id());
             for (const auto &neighbour_id : neighbour_ids) {
                 const auto neighbour_node = graph_node_by_id.at(neighbour_id);
+                if( graph->has_edge(graph_node, neighbour_node)) {
+                  spdlog::debug("Not generating edge from {} to {}, already added", graph_node->data()->id(), neighbour_node->data()->id());
+                  continue;
+                }
                 // DEBUG
                 debug("    Generating edge from node ids {:s} to {:s}, node pointers {}, {}, shared pointers {} {}",
                      graph_node->data()->id(),

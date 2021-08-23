@@ -106,3 +106,5 @@ get_node_neighbours_in_frame(
         const SurfelGraphPtr &graph,
         const SurfelGraphNodePtr &node_ptr,
         unsigned int frame_index);
+
+std::ostream& operator<<( std::ostream& output, const std::shared_ptr<Surfel>& surfel );

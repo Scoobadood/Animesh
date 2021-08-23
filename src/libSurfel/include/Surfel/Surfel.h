@@ -57,7 +57,7 @@ public:
       output << surfel.m_id;
       return output;
     }
-    
+
     bool is_in_frame(unsigned int frame) const;
 
     void get_vertex_tangent_normal_for_frame(unsigned int frame_idx,

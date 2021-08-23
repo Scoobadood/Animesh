@@ -70,8 +70,8 @@ add_test(
 		COMMAND testGraph --gtest_filter=DirectedGraphEdgeTests.add_edge_to_non_empty_graph_should_increase_edge_count
 )
 add_test(
-		NAME DirectedGraphEdgeTests_add_duplicate_edge_should_not_increase_edge_count
-		COMMAND testGraph --gtest_filter=DirectedGraphEdgeTests.add_duplicate_edge_should_not_increase_edge_count
+		NAME DirectedGraphEdgeTests_add_duplicate_edge_should_throw
+		COMMAND testGraph --gtest_filter=DirectedGraphEdgeTests.add_duplicate_edge_should_throw
 )
 add_test(
 		NAME DirectedGraphEdgeTests_add_reverse_edge_should_increase_edge_count
@@ -103,8 +103,8 @@ add_test(
 		COMMAND testGraph --gtest_filter=DirectedGraphNodeTests.add_node_by_value_to_empty_graph_should_increase_node_count
 )
 add_test(
-		NAME DirectedGraphNodeTests_add_duplicate_node_by_value_should_not_increase_node_count
-		COMMAND testGraph --gtest_filter=DirectedGraphNodeTests.add_duplicate_node_by_value_should_not_increase_node_count
+		NAME DirectedGraphNodeTests_add_duplicate_node_by_value_should_throw
+		COMMAND testGraph --gtest_filter=DirectedGraphNodeTests.add_duplicate_node_by_value_should_throw
 )
 add_test(
 		NAME DirectedGraphNodeTests_add_node_by_value_to_existing_graph_should_increase_node_count
@@ -123,8 +123,8 @@ add_test(
 		COMMAND testGraph --gtest_filter=DirectedGraphNodeTests.remove_node_also_removes_all_edges_incident_at_node
 )
 add_test(
-		NAME DirectedGraphNodeTests_remove_missing_node_should_fail
-		COMMAND testGraph --gtest_filter=DirectedGraphNodeTests.remove_missing_node_should_fail
+		NAME DirectedGraphNodeTests_remove_missing_node_should_throw
+		COMMAND testGraph --gtest_filter=DirectedGraphNodeTests.remove_missing_node_should_throw
 )
 add_test(
 		NAME DirectedGraphNodeTests_node_with_no_edges_has_no_neighbours
@@ -221,12 +221,12 @@ add_test(
 		COMMAND testGraph --gtest_filter=UndirectedGraphEdgeTests.add_edge_to_non_empty_graph_should_increase_edge_count
 )
 add_test(
-		NAME UndirectedGraphEdgeTests_add_duplicate_edge_should_not_increase_edge_count
-		COMMAND testGraph --gtest_filter=UndirectedGraphEdgeTests.add_duplicate_edge_should_not_increase_edge_count
+		NAME UndirectedGraphEdgeTests_add_duplicate_edge_should_throw
+		COMMAND testGraph --gtest_filter=UndirectedGraphEdgeTests.add_duplicate_edge_should_throw
 )
 add_test(
-		NAME UndirectedGraphEdgeTests_add_reverse_edge_should_not_increase_edge_count
-		COMMAND testGraph --gtest_filter=UndirectedGraphEdgeTests.add_reverse_edge_should_not_increase_edge_count
+		NAME UndirectedGraphEdgeTests_add_reverse_edge_should_throw
+		COMMAND testGraph --gtest_filter=UndirectedGraphEdgeTests.add_reverse_edge_should_throw
 )
 add_test(
 		NAME UndirectedGraphEdgeTests_delete_reverse_of_added_edge_reduces_edge_count
@@ -259,8 +259,8 @@ add_test(
 		COMMAND testGraph --gtest_filter=UndirectedGraphNodeTests.add_node_by_value_to_empty_graph_should_increase_node_count
 )
 add_test(
-		NAME UndirectedGraphNodeTests_add_duplicate_node_by_value_should_not_increase_node_count
-		COMMAND testGraph --gtest_filter=UndirectedGraphNodeTests.add_duplicate_node_by_value_should_not_increase_node_count
+		NAME UndirectedGraphNodeTests_add_duplicate_node_by_value_should_throw
+		COMMAND testGraph --gtest_filter=UndirectedGraphNodeTests.add_duplicate_node_by_value_should_throw
 )
 add_test(
 		NAME UndirectedGraphNodeTests_add_node_by_value_to_existing_graph_should_increase_node_count
@@ -279,8 +279,8 @@ add_test(
 		COMMAND testGraph --gtest_filter=UndirectedGraphNodeTests.remove_node_also_removes_all_edges_incident_at_node
 )
 add_test(
-		NAME UndirectedGraphNodeTests_remove_missing_node_should_fail
-		COMMAND testGraph --gtest_filter=UndirectedGraphNodeTests.remove_missing_node_should_fail
+		NAME UndirectedGraphNodeTests_remove_missing_node_should_throw
+		COMMAND testGraph --gtest_filter=UndirectedGraphNodeTests.remove_missing_node_should_throw
 )
 
 
@@ -333,6 +333,10 @@ add_test(
 add_test(
 		NAME TestGraphNodeSimplifier_SecondNeighboursOfAnOrphanIsEmpty
 		COMMAND testGraph --gtest_filter=TestGraphNodeSimplifier.SecondNeighboursOfAnOrphanIsEmpty
+)
+add_test(
+		NAME TestGraphNodeSimplifier_SecondNeighboursOfALeafIsCorrect
+		COMMAND testGraph --gtest_filter=TestGraphNodeSimplifier.SecondNeighboursOfALeafIsCorrect
 )
 add_test(
 		NAME TestGraphNodeSimplifier_SecondNeighboursOfANearLeafIsCorrect

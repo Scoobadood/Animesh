@@ -29,24 +29,22 @@ TEST_F(UndirectedGraphEdgeTests, add_edge_to_non_empty_graph_should_increase_edg
   EXPECT_EQ(graph->num_edges(), 2);
 }
 
-TEST_F(UndirectedGraphEdgeTests, add_duplicate_edge_should_not_increase_edge_count) {
+TEST_F(UndirectedGraphEdgeTests, add_duplicate_edge_should_throw) {
   graph->add_edge(gn1, gn2, 1.0);
-  size_t before_count = graph->num_edges();
-
-  graph->add_edge(gn1, gn2, 1.0);
-  size_t after_count = graph->num_edges();
-
-  EXPECT_EQ(before_count, after_count);
+  EXPECT_THROW_WITH_MESSAGE(
+      graph->add_edge(gn1, gn2, 1.0),
+      std::runtime_error,
+      R"(Edge already exists from 0x[0-9a-z]+ \(a\) to 0x[a-z0-9]+ \(b\))"
+  );
 }
 
-TEST_F(UndirectedGraphEdgeTests, add_reverse_edge_should_not_increase_edge_count) {
+TEST_F(UndirectedGraphEdgeTests, add_reverse_edge_should_throw) {
   graph->add_edge(gn1, gn2, 1.0);
-  size_t before_count = graph->num_edges();
-
-  graph->add_edge(gn2, gn1, 1.0);
-  size_t after_count = graph->num_edges();
-
-  EXPECT_EQ(after_count, before_count);
+  EXPECT_THROW_WITH_MESSAGE(
+      graph->add_edge(gn2, gn1, 1.0),
+      std::runtime_error,
+      R"(Edge already exists from 0x[0-9a-z]+ \(b\) to 0x[a-z0-9]+ \(a\))"
+  );
 }
 
 TEST_F(UndirectedGraphEdgeTests, delete_reverse_of_added_edge_reduces_edge_count) {
@@ -56,7 +54,7 @@ TEST_F(UndirectedGraphEdgeTests, delete_reverse_of_added_edge_reduces_edge_count
   graph->remove_edge(gn2, gn1);
   size_t after_count = graph->num_edges();
 
-  EXPECT_EQ(after_count, before_count-1);
+  EXPECT_EQ(after_count, before_count - 1);
 }
 
 TEST_F(UndirectedGraphEdgeTests, to_node_of_edge_is_neighbour_of_from_node) {

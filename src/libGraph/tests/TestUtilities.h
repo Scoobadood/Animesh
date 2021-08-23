@@ -6,15 +6,17 @@
 #define ANIMESH_LIBGRAPH_TESTS_TESTUTILITIES_H
 
 #include "gtest/gtest.h"
+#include <regex>
 
-#define EXPECT_THROW_WITH_MESSAGE(stmt, etype, whatstring) EXPECT_THROW( \
-        try { \
-            stmt; \
-        } catch (const etype& ex) { \
-            EXPECT_EQ(std::string(ex.what()), whatstring); \
-            throw; \
-        } \
-    , etype)
-
+#define EXPECT_THROW_WITH_MESSAGE(stmt, etype, whatstring) \
+      EXPECT_THROW(                                        \
+        try { stmt; }                                      \
+        catch (const etype& ex) {                          \
+          std::regex r{whatstring};                        \
+          std::string s{ex.what()};                        \
+          bool matches = regex_match(s, r);                \
+          EXPECT_TRUE(matches);                            \
+          throw;                                           \
+          } , etype)
 
 #endif //ANIMESH_LIBGRAPH_TESTS_TESTUTILITIES_H

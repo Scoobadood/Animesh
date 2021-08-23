@@ -48,11 +48,14 @@ TEST_F(UndirectedGraphNodeTests, add_node_by_value_to_empty_graph_should_increas
   EXPECT_EQ(graph->num_nodes(), 1);
 }
 
-TEST_F(UndirectedGraphNodeTests, add_duplicate_node_by_value_should_not_increase_node_count) {
+TEST_F(UndirectedGraphNodeTests, add_duplicate_node_by_value_should_throw) {
   graph->add_node(gn1);
   EXPECT_EQ(graph->num_nodes(), 1);
-  graph->add_node(gn1);
-  EXPECT_EQ(graph->num_nodes(), 1);
+  EXPECT_THROW_WITH_MESSAGE(
+      graph->add_node(gn1),
+      std::runtime_error,
+      "Node 0x[a-z0-9]+ \\(a\\) already exists"
+  );
 }
 
 TEST_F(UndirectedGraphNodeTests, add_node_by_value_to_existing_graph_should_increase_node_count) {
@@ -98,12 +101,10 @@ TEST_F(UndirectedGraphNodeTests, remove_node_also_removes_all_edges_incident_at_
   EXPECT_FALSE(graph->has_edge(c, a));
 }
 
-TEST_F(UndirectedGraphNodeTests, remove_missing_node_should_fail) {
-  auto node_a = graph->add_node("a");
-  auto node_b = graph->add_node("b");
-  auto before_remove = graph->num_nodes();
-  graph->remove_node(gn1);
-  auto after_remove = graph->num_nodes();
-  EXPECT_EQ(before_remove, after_remove);
-
+TEST_F(UndirectedGraphNodeTests, remove_missing_node_should_throw) {
+  EXPECT_THROW_WITH_MESSAGE(
+      graph->remove_node(gn2),
+      std::runtime_error,
+      "No node 0x[a-z0-9]+ \\(b\\)"
+  );
 }

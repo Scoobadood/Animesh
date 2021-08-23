@@ -6,7 +6,8 @@
 #include <iostream>
 #include <list>
 #include <tuple>
-#include <strstream>
+#include <string>
+#include <sstream>
 #include <unordered_set>
 #include <spdlog/spdlog.h>
 #include <fmt/format.h>
@@ -112,14 +113,7 @@ public:
    * @param data The data to be added.
    */
   void add_node(const GraphNodePtr &node) {
-    using namespace std;
-    assert(node != nullptr);
-
-    // Check that node doesn't exist
-    if (m_nodes.count(node) == 1) {
-      spdlog::error("Ignoring attempt to add node {} to Graph, it's already there", fmt::ptr(node));
-      return;
-    }
+    check_no_node(node);
     m_nodes.emplace(node);
   }
 
@@ -127,15 +121,10 @@ public:
    * Remove the given node (and any incident edges)
    */
   void remove_node(const GraphNodePtr &node) {
-    using namespace std;
-
-    // Check that node exists
-    if (m_nodes.count(node) == 0) {
-      spdlog::error("remove_node failed. Missing node {}", fmt::ptr(node));
-      return;
-    }
+    check_has_node(node);
 
     // Find outbound edges from the given node.
+    using namespace std;
     auto outbound_edge_key_range = m_nodes_accessible_from.equal_range(node);
     for (auto &map_iter = outbound_edge_key_range.first; map_iter != outbound_edge_key_range.second; ++map_iter) {
       m_edges.erase({node, map_iter->second});
@@ -176,19 +165,10 @@ public:
    */
   void add_edge(const GraphNodePtr &from_node, const GraphNodePtr &to_node, const EdgeData &edge_data) {
     using namespace std;
+    check_has_node(from_node);
+    check_has_node(to_node);
+    check_no_edge(from_node, to_node);
 
-    if (m_nodes.count(from_node) == 0) {
-      spdlog::error("add_edge failed. Missing from node {}", fmt::ptr(from_node));
-      return;
-    }
-    if (m_nodes.count(to_node) == 0) {
-      spdlog::error("add_edge failed. Missing to node {}", fmt::ptr(to_node));
-      return;
-    }
-    if (has_edge(from_node, to_node)) {
-      spdlog::error("add_edge failed. Edge from {} to {} already exists.", fmt::ptr(from_node), fmt::ptr(to_node));
-      return;
-    }
     m_nodes_accessible_from.emplace(from_node, to_node);
     m_nodes_linking_to.emplace(to_node, from_node);
     auto edge_data_ptr = make_shared<EdgeData>(edge_data);
@@ -201,22 +181,10 @@ public:
    * <p/>
    */
   void remove_edge(const GraphNodePtr &from_node, const GraphNodePtr &to_node) {
-    using namespace std;
-
-    if (m_nodes.count(from_node) == 0) {
-      spdlog::error("remove_edge failed. Missing from node {}", fmt::ptr(from_node));
-      return;
-    }
-    if (m_nodes.count(to_node) == 0) {
-      spdlog::error("remove_edge failed. Missing to node {}", fmt::ptr(to_node));
-      return;
-    }
-    if (!has_edge(from_node, to_node)) {
-      spdlog::error("remove_edge failed. Edge from {} to {} doesn't exist.", fmt::ptr(from_node), fmt::ptr(to_node));
-      return;
-    }
+    check_has_edge(from_node, to_node);
 
     // If the graph is directed I must remove from->to
+    using namespace std;
     bool deleted_forward_edge = false;
     auto key_range = m_nodes_accessible_from.equal_range(from_node);
     for (auto iter = key_range.first; iter != key_range.second; ++iter) {
@@ -380,6 +348,76 @@ private:
     }
   }
 
+  /**
+   * Check that NO edge exists and silently return or else throw
+   * an exception. The edge is ordered.
+   */
+  void check_no_edge(const GraphNodePtr &first_node,
+                     const GraphNodePtr &second_node) const {
+    if (!has_edge(first_node, second_node)) {
+      return;
+    }
+    std::ostringstream error_msg;
+    error_msg << "Edge already exists from " << fmt::ptr(first_node)
+              << " (" << first_node->data() << ")"
+              << " to " << fmt::ptr(second_node)
+              << " (" << second_node->data() << ")";
+    auto msg = error_msg.str();
+    spdlog::error(msg);
+    throw std::runtime_error(msg);
+  }
+  /**
+   * Check that an edge exists and silently return or else throw
+   * an exception. The edge is ordered.
+   */
+  void check_has_edge(const GraphNodePtr &first_node,
+                      const GraphNodePtr &second_node) const {
+    if (has_edge(first_node, second_node)) {
+      return;
+    }
+    std::ostringstream error_msg;
+    error_msg << "No edge from " << fmt::ptr(first_node)
+              << " (" << first_node->data() << ") to " << fmt::ptr(second_node)
+              << " (" << second_node->data() << ")";
+    auto msg = error_msg.str();
+    spdlog::error(msg);
+    throw std::runtime_error(msg);
+  }
+
+  /**
+   * Check that a node exists and silently return or else throw
+   * an exception.
+   */
+  void check_has_node(const GraphNodePtr &node) const {
+    assert(node != nullptr);
+    if (m_nodes.count(node) == 0) {
+      std::ostringstream error_msg;
+      error_msg << "No node " << fmt::ptr(node)
+                << " (" << node->data() << ")";
+      auto msg = error_msg.str();
+      spdlog::error(msg);
+      throw std::runtime_error(msg);
+    }
+  }
+
+  /**
+   * Check that NO node exists and silently return or else throw
+   * an exception.
+   */
+  void check_no_node(const GraphNodePtr &node) const {
+    assert(node != nullptr);
+
+    // Check that node doesn't exist
+    if (m_nodes.count(node) == 1) {
+      std::ostringstream error_msg;
+      error_msg << "Node " << fmt::ptr(node)
+                << " (" << node->data() << ") already exists";
+      auto msg = error_msg.str();
+      spdlog::error(msg);
+      throw std::runtime_error(msg);
+    }
+  }
+
 public:
 /**
  * Collapse an edge merging the two vertices that bound it into a single new vertex.
@@ -396,13 +434,10 @@ public:
                                             const NodeData &,
                                             const EdgeData &)> edge_merge_function) {
     using namespace std;
+    check_has_node(first_node);
+    check_has_node(second_node);
+    check_has_edge(first_node, second_node);
 
-    if (!has_edge(first_node, second_node)) {
-      spdlog::warn("Ignoring attempt to collapse non-existent edge from {} to {}",
-                   fmt::ptr(first_node),
-                   fmt::ptr(second_node));
-      return;
-    }
     if (m_is_directed) {
       collapse_directed_edge(first_node, second_node, node_merge_function, edge_merge_function);
     } else {
@@ -410,14 +445,14 @@ public:
     }
   }
 
-  /**
-   * @return the number of nodes in this graph
-   */
+/**
+ * @return the number of nodes in this graph
+ */
   inline size_t num_nodes() const { return m_nodes.size(); }
 
-  /**
-   * @Return a vector of node values in the graph.
-   */
+/**
+ * @Return a vector of node values in the graph.
+ */
   std::vector<NodeData> node_data() const {
     using namespace std;
 
@@ -428,9 +463,9 @@ public:
     return nodes;
   }
 
-  /**
-   *
-   */
+/**
+ *
+ */
   std::vector<const GraphNodePtr> nodes() const {
     using namespace std;
 
@@ -438,9 +473,9 @@ public:
     return nodes;
   }
 
-  /**
-   *
-   */
+/**
+ *
+ */
   std::vector<Edge> edges() const {
     using namespace std;
 
@@ -451,50 +486,39 @@ public:
     return edges;
   }
 
-  /**
-   * Return the edge from from_node to to_node
-   */
+/**
+ * Return the edge from from_node to to_node
+ */
   std::shared_ptr<EdgeData> &edge(const GraphNodePtr &from_node, const GraphNodePtr &to_node) {
-    using std::to_string;
+    check_has_edge(from_node, to_node);
 
     auto iter = m_edges.find({from_node, to_node});
     if (iter != m_edges.end()) {
       return iter->second;
     }
-    if (!m_is_directed) {
-      iter = m_edges.find({to_node, from_node});
-      if (iter != m_edges.end()) {
-        return iter->second;
-      }
-    }
-    std::strstream s;
-    s << "No edge from " << from_node->data() << " to " << to_node->data();
-    throw std::runtime_error(s.str());
+    iter = m_edges.find({to_node, from_node});
+    return iter->second;
   }
 
-  /**
-   * @return the number of edges in this graph
-   */
+/**
+ * @return the number of edges in this graph
+ */
   size_t num_edges() const {
     return m_edges.size();
   }
 
-  /**
-   * @return a vector of the neighbours of a given node.
-   * A neighbour is a node for which there is an edge from this node to that node.
-   * In a directed graph nbr(a,b) does not imply nbr(b,a)
-   * In an undirected graph these are equivalent.
-   */
+/**
+ * @return a vector of the neighbours of a given node.
+ * A neighbour is a node for which there is an edge from this node to that node.
+ * In a directed graph nbr(a,b) does not imply nbr(b,a)
+ * In an undirected graph these are equivalent.
+ */
   std::vector<GraphNodePtr> neighbours(const GraphNodePtr &node) const {
+    check_has_node(node);
+
     using namespace std;
-    assert(node != nullptr);
 
     vector<GraphNodePtr> neighbours;
-    if (m_nodes.count(node) == 0) {
-      spdlog::error("neighbours failed for missing node {}", fmt::ptr(node));
-      return neighbours;
-    }
-
     // Neighbours are forward adjacent, ie you can get to them from node.
     auto key_range = m_nodes_accessible_from.equal_range(node);
     for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
@@ -511,20 +535,15 @@ public:
     return neighbours;
   }
 
-  /**
-   * @return a map of neighbours for the given node along with the accompanying edge data.
-   */
+/**
+ * @return a map of neighbours for the given node along with the accompanying edge data.
+ */
   std::map<GraphNodePtr, std::shared_ptr<EdgeData>> //
   nodes_with_edges_to(const GraphNodePtr &node) const {
+    check_has_node(node);
+
     using namespace std;
-    assert(node != nullptr);
-
     map<shared_ptr<GraphNode>, shared_ptr<EdgeData>> neighbours_with_edges;
-    if (m_nodes.count(node) == 0) {
-      spdlog::error("nodes_with_edges_to failed for missing node {}", fmt::ptr(node));
-      return neighbours_with_edges;
-    }
-
     auto key_range = m_nodes_linking_to.equal_range(node);
     for (auto &map_entry = key_range.first; map_entry != key_range.second; ++map_entry) {
       const auto &nbr = map_entry->second;
@@ -538,21 +557,15 @@ public:
     return neighbours_with_edges;
   }
 
-  /**
-   * @return a map of neighbours for the given node along with the accompanying edge data.
-   */
+/**
+ * @return a map of neighbours for the given node along with the accompanying edge data.
+ */
   std::map<GraphNodePtr, std::shared_ptr<EdgeData>>//
   nodes_with_edges_from(const GraphNodePtr &node) const {
+    check_has_node(node);
+
     using namespace std;
-    assert(node != nullptr);
-
     map<shared_ptr<GraphNode>, shared_ptr<EdgeData>> neighbours_with_edges;
-
-    if (m_nodes.count(node) == 0) {
-      spdlog::error("nodes_with_edges_from failed for missing node {}", fmt::ptr(node));
-      return neighbours_with_edges;
-    }
-
     auto key_range = m_nodes_accessible_from.equal_range(node);
     for (auto &map_entry = key_range.first; map_entry != key_range.second; ++map_entry) {
       const auto &nbr = map_entry->second;
@@ -566,10 +579,10 @@ public:
     return neighbours_with_edges;
   }
 
-  /**
-   * @return true if there is an edge from node 1 to node 2. If the graph is undirected,
-   * this will return true if there is an edge from node 2 to node 1.
-   */
+/**
+ * @return true if there is an edge from node 1 to node 2. If the graph is undirected,
+ * this will return true if there is an edge from node 2 to node 1.
+ */
   bool has_edge(const GraphNodePtr &node_a, const GraphNodePtr &node_b) const {
     using namespace std;
     // If we have this edge return true
@@ -585,9 +598,9 @@ public:
     return (m_edges.count({node_b, node_a}) == 1);
   }
 
-  /**
-   * Return a vector of cycles in the graph..
-   */
+/**
+ * Return a vector of cycles in the graph..
+ */
   std::vector<Path<GraphNodePtr>> cycles() const {
     using namespace std;
 
@@ -648,14 +661,14 @@ public:
 
 private:
   bool m_is_directed;
-  // Set of all nodes
+// Set of all nodes
   std::set<GraphNodePtr> m_nodes;
 
-  // Which nodes are adjacent to a given node?
+// Which nodes are adjacent to a given node?
   std::multimap<GraphNodePtr, GraphNodePtr> m_nodes_accessible_from;
   std::multimap<GraphNodePtr, GraphNodePtr> m_nodes_linking_to;
 
-  // Store edge data for edge from A to B
+// Store edge data for edge from A to B
   std::map<std::pair<GraphNodePtr, GraphNodePtr>, std::shared_ptr<EdgeData>> m_edges;
 };
 }

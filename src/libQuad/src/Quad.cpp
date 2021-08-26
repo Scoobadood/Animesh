@@ -7,6 +7,7 @@
 #include <PoSy/PoSy.h>
 #include <Surfel/SurfelGraph.h>
 #include <map>
+#include <queue>
 #include <Eigen/Geometry>
 
 QuadGraphNodePtr
@@ -148,48 +149,76 @@ collapse(int frame_index,
 ) {
   using namespace std;
 
+  auto edge_merge_function = [&]( //
+      const EdgeType &e1,
+      const EdgeType &e2) {
+    // TODO : Need to be smarter here
+    if( e1 == EDGE_TYPE_RED)
+      return e1;
+    if( e2 == EDGE_TYPE_RED)
+      return e2;
+    return e1;
+  };
+
+  auto node_merge_function = [&]( //
+      const QuadGraphVertex &n1,
+      const QuadGraphVertex &n2) {
+
+    return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
+  };
+
+  auto edge_sort_pred = [](
+      const pair<QuadGraphNodePtr, QuadGraphNodePtr> &e1,
+      const pair<QuadGraphNodePtr, QuadGraphNodePtr> &e2
+  ) -> bool {
+    auto l1 = (e2.second->data().location - e2.first->data().location).squaredNorm();
+    auto l2 = (e1.second->data().location - e1.first->data().location).squaredNorm();
+    // Using this on a queue so the FIRST thing should be the smallest
+    return l1 < l2;
+  };
+
+  // Extract blue edges
+  priority_queue<pair<QuadGraphNodePtr, QuadGraphNodePtr>,
+                 vector<pair<QuadGraphNodePtr, QuadGraphNodePtr>>,
+                 auto (*)(const pair<QuadGraphNodePtr, QuadGraphNodePtr> &,
+                          const pair<QuadGraphNodePtr, QuadGraphNodePtr> &)->bool> blue_edges{edge_sort_pred};
+
   for (const auto &edge : graph->edges()) {
     // Collapse the blue edges
-    if (*(edge.data()) == EDGE_TYPE_RED) {
-      continue;
+    if (*(edge.data()) == EDGE_TYPE_BLU) {
+      blue_edges.emplace(edge.from(), edge.to());
     }
-    auto from_node = edge.from();
-    auto to_node = edge.to();
+  }
 
+  // Iterate over the list, deleting edges and adding in newly generated ones
+  while (!blue_edges.empty()) {
+    cout << blue_edges.size() << endl;
+    auto next = blue_edges.top();
+    blue_edges.pop();
+    auto from_node = next.first;
+    auto to_node = next.second;
+
+    // Check that the edge is still present as it may not be
+    vector<QuadGraph::Edge> removed_edges;
+    vector<QuadGraph::Edge> created_edges;
     if (graph->has_edge(from_node, to_node)) {
-      graph->collapse_edge( //
-          from_node, //
-          to_node, //
-          [&]( //
-              const QuadGraphVertex &n1,
-              const QuadGraphVertex &n2) {
-
-            return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
-          }, //
-          [&]( //
-              const QuadGraphVertex &n1,
-              const QuadGraphVertex &n2,
-              const EdgeType &e) {
-            return e;
-          } //
-      );
-    } else {
-      graph->collapse_edge( //
-          to_node, //
-          from_node, //
-          [&]( //
-              const QuadGraphVertex &n1,
-              const QuadGraphVertex &n2) {
-
-            return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
-          }, //
-          [&]( //
-              const QuadGraphVertex &n1,
-              const QuadGraphVertex &n2,
-              const EdgeType &e) {
-            return e;
-          } //
-      );
+      graph->collapse_edge(from_node, to_node,
+                           node_merge_function,
+                           edge_merge_function,
+                           removed_edges,
+                           created_edges);
+    } else if (graph->has_edge(to_node, from_node)) {
+      graph->collapse_edge(to_node, from_node,
+                           node_merge_function,
+                           edge_merge_function,
+                           removed_edges,
+                           created_edges);
+    }
+    // Add newly created edges to queue
+    for (const auto &c_edge : created_edges) {
+      if(*(c_edge.data()) == EDGE_TYPE_BLU) {
+        blue_edges.emplace(c_edge.from(), c_edge.to());
+      }
     }
   }
 }

@@ -35,3 +35,7 @@ get_num_frames(const SurfelGraphPtr &surfel_graph) {
     return max_frame_id + 1;
 }
 
+std::ostream& operator<<( std::ostream& output, const std::shared_ptr<Surfel>& surfel ){
+  output << surfel->id();
+  return output;
+}

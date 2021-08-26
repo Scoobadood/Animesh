@@ -107,6 +107,8 @@ field_visualiser_window::~field_visualiser_window() {
 
 void
 field_visualiser_window::extract_geometry() {
+  using namespace  std;
+
   std::vector<float> positions;
   std::vector<float> tangents;
   std::vector<float> colours;
@@ -151,7 +153,22 @@ field_visualiser_window::extract_geometry() {
   std::vector<float> original_vertices;
   std::vector<float>vertex_affinity;
   m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
+  m_edge_from_node_names.clear();
   ui->quadGLWidget->setData(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
+
+  // FIXME:
+  // This code associates surfel IDs with nodes in edge graph
+  // BUT we want something else. When the quad graph gets decimated, it's the nodes from *that* that we care about.
+  // So seems like we should populate edge from node names form Quad graph node names
+  // But QG node names come from initial surfel graph. Read through this code
+  // And figure out WTF.
+  for (auto &edge : m_graph_ptr->edges()) {
+    pair<string, string> key1 = {edge.from()->data()->id(), edge.to()->data()->id()};
+    pair<string, string> key2 = {edge.to()->data()->id(), edge.from()->data()->id()};
+
+    m_edge_from_node_names.emplace(key1, edge.data());
+    m_edge_from_node_names.emplace(key2, edge.data());
+  }
 }
 
 void
@@ -160,13 +177,6 @@ field_visualiser_window::set_graph(SurfelGraphPtr graph_ptr) {
 
   m_graph_ptr = std::move(graph_ptr);
   m_quad_geometry_extractor->set_graph(m_graph_ptr);
-  for (auto &edge : m_graph_ptr->edges()) {
-    pair<string, string> key1 = {edge.from()->data()->id(), edge.to()->data()->id()};
-    pair<string, string> key2 = {edge.to()->data()->id(), edge.from()->data()->id()};
-
-    m_edge_from_node_names.emplace(key1, edge.data());
-    m_edge_from_node_names.emplace(key2, edge.data());
-  }
   extract_geometry();
 }
 

@@ -210,7 +210,7 @@ TEST_F(TestGraphNodeSimplifier, CollapseMiddleNode) {
     ASSERT_EQ(graph_ptr->num_nodes(), 4);
     ASSERT_EQ(graph_ptr->num_edges(), 2); // ab, de
 
-    std::vector<std::string> expected{"a", "e", "x", "dbc"};
+    std::vector<std::string> expected{"a", "e", "x", "bdc"};
     assertContainsInAnyOrder(graph_ptr->nodes(), expected);
     assertContainsInAnyOrder(removed, vector<string>{"b", "c", "d"});
 

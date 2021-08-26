@@ -6,6 +6,7 @@
 
 #include <Surfel/SurfelGraph.h>
 #include <Eigen/Core>
+#include <iostream>
 
 typedef enum {
   EDGE_TYPE_NON = 0,
@@ -16,6 +17,14 @@ typedef enum {
 struct QuadGraphVertex {
   std::string surfel_id;
   Eigen::Vector3f location;
+
+  friend std::ostream &operator<<(std::ostream &o, const QuadGraphVertex & v) {
+    o << v.surfel_id << "("
+      << v.location[0] << ", "
+      << v.location[1] << ", "
+      << v.location[2] << ")";
+    return o;
+  }
 };
 using QuadGraph = animesh::Graph<QuadGraphVertex, EdgeType>;
 using QuadGraphPtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>>;

@@ -9,6 +9,7 @@
 #include <Graph/Graph.h>
 
 class UndirectedGraphEdgeTests : public ::testing::Test {
+public:
   using GraphPtr = std::shared_ptr<typename animesh::Graph<std::string, float>>;
   using GraphNode = typename animesh::Graph<std::string, float>::GraphNode;
   using GraphNodePtr = std::shared_ptr<typename animesh::Graph<std::string, float>::GraphNode>;
@@ -21,6 +22,14 @@ protected:
   GraphPtr graph;
   GraphNodePtr gn1;
   GraphNodePtr gn2;
+  GraphNodePtr gn3;
+  GraphNodePtr gn4;
+  void setup_edges_as_square();
+  void assertContainsInAnyOrder(
+      const std::vector<const GraphNodePtr> & nodes,
+      const std::vector<std::string> &expected);
+
+
 };
 
 #endif //ANIMESH_LIBGRAPH_TESTS_UDGEDGETESTS_H

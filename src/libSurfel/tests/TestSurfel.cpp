@@ -116,11 +116,8 @@ void
 expect_edges_equal(SurfelGraph::Edge &edge1,
                    SurfelGraph::Edge &edge2) {
     EXPECT_EQ(edge1.data()->weight(), edge2.data()->weight());
-    EXPECT_EQ(edge1.data()->k_values(), edge2.data()->k_values());
-    for (auto ki = 0; ki < edge1.data()->k_values(); ++ki) {
-        EXPECT_EQ(edge1.data()->k_ij(ki), edge2.data()->k_ij(ki));
-        EXPECT_EQ(edge1.data()->k_ji(ki), edge2.data()->k_ji(ki));
-    }
+    EXPECT_EQ(edge1.data()->k_ij(), edge2.data()->k_ij());
+    EXPECT_EQ(edge1.data()->k_ji(), edge2.data()->k_ji());
     EXPECT_EQ(edge1.data()->t_values(), edge2.data()->t_values());
     for (auto ti = 0; ti < edge1.data()->t_values(); ++ti) {
         EXPECT_EQ(edge1.data()->t_ij(ti).x(), edge2.data()->t_ij(ti).x());

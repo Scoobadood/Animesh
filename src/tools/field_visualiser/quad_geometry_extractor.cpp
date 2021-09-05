@@ -54,6 +54,9 @@ quad_geometry_extractor::extract_geometry(
     }
   }
   for( const auto & node : m_surfel_graph->nodes()) {
+    if( !node->data()->is_in_frame(0)) {
+      continue;
+    }
     Eigen::Vector3f v, t, n;
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
     original_vertex.emplace_back(v[0]);

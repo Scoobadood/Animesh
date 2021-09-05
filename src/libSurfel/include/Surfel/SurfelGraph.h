@@ -8,8 +8,8 @@ class SurfelGraphEdge {
     float m_weight;
     std::vector<std::pair<unsigned short, unsigned short>> rosy_ij;
     // Best RoSy angles
-    std::vector<unsigned short> m_k_ij;
-    std::vector<unsigned short> m_k_ji;
+    unsigned short m_k_ij;
+    unsigned short m_k_ji;
     // PoSy displacements
     std::vector<Eigen::Vector2i> m_t_ij;
     std::vector<Eigen::Vector2i> m_t_ji;
@@ -19,25 +19,12 @@ public:
             : m_weight{weight} //
     {}
 
-    inline unsigned short k_ij(unsigned int frame_index) {
-        if (m_k_ij.size() <= frame_index) {
-            m_k_ij.resize(frame_index + 1);
-            m_k_ij.at(frame_index) = 0;
-        }
-        return m_k_ij.at(frame_index);
+    inline unsigned short k_ij() const {
+        return m_k_ij;
     }
 
-    inline unsigned short k_ji(unsigned int frame_index) {
-        if (m_k_ji.size() <= frame_index) {
-            m_k_ji.resize(frame_index + 1);
-            m_k_ji.at(frame_index) = 0;
-        }
-        return m_k_ji.at(frame_index);
-    }
-
-    inline size_t k_values() const {
-        assert( m_k_ij.size() == m_k_ji.size());
-        return m_k_ij.size();
+    inline unsigned short k_ji() const {
+        return m_k_ji;
     }
 
     inline size_t t_values() const {
@@ -45,18 +32,12 @@ public:
         return m_t_ij.size();
     }
 
-    inline void set_k_ij(unsigned int frame_index, unsigned int kij) {
-        if (m_k_ij.size() <= frame_index) {
-            m_k_ij.resize(frame_index + 1);
-        }
-        m_k_ij.at(frame_index) = kij;
+    inline void set_k_ij(unsigned int kij) {
+        m_k_ij = kij;
     }
 
-    inline void set_k_ji(unsigned int frame_index, unsigned int kji) {
-        if (m_k_ji.size() <= frame_index) {
-            m_k_ji.resize(frame_index + 1);
-        }
-        m_k_ji.at(frame_index) = kji;
+    inline void set_k_ji(unsigned int kji) {
+        m_k_ji = kji;
     }
 
     inline const Eigen::Vector2i& t_ji(unsigned int frame_index) {

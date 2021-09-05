@@ -2,8 +2,7 @@
 // Created by Dave Durbin on 2019-08-11.
 //
 
-#ifndef ANIMESH_PROPERTIES_H
-#define ANIMESH_PROPERTIES_H
+#pragma once
 
 #include <map>
 #include <string>
@@ -24,5 +23,3 @@ public:
 private:
     std::map<std::string, std::string> property_map;
 };
-
-#endif //ANIMESH_PROPERTIES_H

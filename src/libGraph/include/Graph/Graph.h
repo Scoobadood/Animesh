@@ -89,6 +89,8 @@ public:
     m_is_directed = is_directed;
   }
 
+  inline bool is_directed() const { return m_is_directed; }
+
   /**
    * Make a node for the given data.
    * @param node_data
@@ -265,7 +267,7 @@ private:
                               std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function,
                               std::vector<Edge> &removed_edges,
                               std::vector<Edge> &created_edges
-                              ) {
+  ) {
     using namespace std;
 
     // Generate a new node with the user defined callback
@@ -345,7 +347,7 @@ private:
                                 std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function,
                                 std::vector<Edge> &removed_edges,
                                 std::vector<Edge> &created_edges
-                                ) {
+  ) {
     using namespace std;
 
     // Generate a new node with the user defined callback
@@ -581,7 +583,7 @@ public:
  * In a directed graph nbr(a,b) does not imply nbr(b,a)
  * In an undirected graph these are equivalent.
  */
-  std::vector<GraphNodePtr> neighbours(const GraphNodePtr &node) const {
+  std::vector<GraphNodePtr> neighbours(const GraphNodePtr &node, bool inbound_neighbours_too = false) const {
     check_has_node(node);
 
     using namespace std;
@@ -591,6 +593,12 @@ public:
     auto key_range = m_nodes_accessible_from.equal_range(node);
     for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
       neighbours.push_back(map_iter->second);
+    }
+    if( m_is_directed && inbound_neighbours_too) {
+      auto key_range = m_nodes_linking_to.equal_range(node);
+      for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
+        neighbours.push_back(map_iter->second);
+      }
     }
     return neighbours;
   }

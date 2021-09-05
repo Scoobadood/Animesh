@@ -42,7 +42,7 @@ Properties::Properties(const std::string &file_name) {
         throw runtime_error("couldn't read property file");
     }
     for( string line; getline( in_file, line ); ) {
-        // Trim the string to remove leading and trailing spaces
+      // Trim the string to remove leading and trailing spaces
         line = trim(line);
 
         // Skip comments
@@ -53,7 +53,7 @@ Properties::Properties(const std::string &file_name) {
         // Find the '='
         size_t pos = line.find('=');
         if( pos >= line.length()) {
-            throw runtime_error( "Invalid line in properties file");
+            throw runtime_error( "Invalid line in properties file" + line);
         }
         string key = line.substr(0, pos);
         string value = line.substr(pos + 1);

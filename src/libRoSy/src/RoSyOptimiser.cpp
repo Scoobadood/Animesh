@@ -59,10 +59,7 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
     const auto rosy_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
 
     // Get the edge between this pair
-    const auto &edge = m_surfel_graph->edge(this_node, nbr_node);
-    edge->set_k_low(k_ij);
-    edge->set_k_high(k_ji);
-
+    set_k(m_surfel_graph, this_node, k_ij, nbr_node, k_ji);
     float theta = degrees_angle_between_vectors(rosy_pair.first, rosy_pair.second);
     const auto smoothness = (theta * theta);
     frame_smoothness += smoothness;
@@ -145,8 +142,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
       w_sum += w_ij;
 
       // Store ks
-      edge->set_k_low(k_ij);
-      edge->set_k_high(k_ji);
+      set_k(m_surfel_graph, this_node, k_ij, neighbour_node, k_ji);
     }
   }
 

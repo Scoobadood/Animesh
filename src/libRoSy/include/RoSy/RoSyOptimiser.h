@@ -6,33 +6,33 @@
 
 class RoSyOptimiser : public Optimiser {
 public:
-    explicit RoSyOptimiser(const Properties& properties);
+  explicit RoSyOptimiser(const Properties &properties);
 
-    virtual ~RoSyOptimiser() = default;
+  virtual ~RoSyOptimiser() = default;
 
 private:
-    bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;
+  bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;
 
-    float compute_node_smoothness_for_frame(
-            const SurfelGraphNodePtr &this_node,
-            size_t frame_index,
-            unsigned int &num_neighbours,
-            bool is_first_run) const override;
+  float compute_node_smoothness_for_frame(
+      const SurfelGraphNodePtr &this_node,
+      size_t frame_index,
+      unsigned int &num_neighbours,
+      bool is_first_run) const override;
 
-    const std::string &get_ssa_property_name() const override {
-        static const std::string SSA_PROPERTY_NAME = "rosy-surfel-selection-algorithm";
-        return SSA_PROPERTY_NAME;
-    }
+  const std::string &get_ssa_property_name() const override {
+    static const std::string SSA_PROPERTY_NAME = "rosy-surfel-selection-algorithm";
+    return SSA_PROPERTY_NAME;
+  }
 
-    const std::string &get_ssa_percentage_property_name() const override {
-        static const std::string SSA_PERCENTAGE_PROPERTY_NAME = "rosy-ssa-percentage";
-        return SSA_PERCENTAGE_PROPERTY_NAME;
-    }
+  const std::string &get_ssa_percentage_property_name() const override {
+    static const std::string SSA_PERCENTAGE_PROPERTY_NAME = "rosy-ssa-percentage";
+    return SSA_PERCENTAGE_PROPERTY_NAME;
+  }
 
-    void optimise_node(const SurfelGraphNodePtr &this_node) override;
-    void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
+  void optimise_node(const SurfelGraphNodePtr &this_node) override;
+  void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
 
-    float m_damping_factor;
-    bool m_weight_for_error;
-    int m_weight_for_error_steps;
+  float m_damping_factor;
+  bool m_weight_for_error;
+  int m_weight_for_error_steps;
 };

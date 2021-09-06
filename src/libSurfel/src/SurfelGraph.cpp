@@ -3,18 +3,18 @@
 //
 #include "SurfelGraph.h"
 
-std::vector <SurfelGraphNodePtr>
+std::vector<SurfelGraphNodePtr>
 get_node_neighbours_in_frame(
-        const SurfelGraphPtr &graph,
-        const SurfelGraphNodePtr &node_ptr,
-        unsigned int frame_index) {
-    std::vector <SurfelGraphNodePtr> neighbours_in_frame;
-    for (const auto &neighbour_node : graph->neighbours(node_ptr)) {
-        if (neighbour_node->data()->is_in_frame(frame_index)) {
-            neighbours_in_frame.emplace_back(neighbour_node);
-        }
+    const SurfelGraphPtr &graph,
+    const SurfelGraphNodePtr &node_ptr,
+    unsigned int frame_index) {
+  std::vector<SurfelGraphNodePtr> neighbours_in_frame;
+  for (const auto &neighbour_node: graph->neighbours(node_ptr)) {
+    if (neighbour_node->data()->is_in_frame(frame_index)) {
+      neighbours_in_frame.emplace_back(neighbour_node);
     }
-    return neighbours_in_frame;
+  }
+  return neighbours_in_frame;
 }
 
 /**
@@ -23,19 +23,46 @@ get_node_neighbours_in_frame(
  */
 unsigned int
 get_num_frames(const SurfelGraphPtr &surfel_graph) {
-    // Compute the number of frames
-    unsigned int max_frame_id = 0;
-    for (const auto &n : surfel_graph->nodes()) {
-        for (const auto &fd : n->data()->frame_data()) {
-            if (fd.pixel_in_frame.frame > max_frame_id) {
-                max_frame_id = fd.pixel_in_frame.frame;
-            }
-        }
+  // Compute the number of frames
+  unsigned int max_frame_id = 0;
+  for (const auto &n: surfel_graph->nodes()) {
+    for (const auto &fd: n->data()->frame_data()) {
+      if (fd.pixel_in_frame.frame > max_frame_id) {
+        max_frame_id = fd.pixel_in_frame.frame;
+      }
     }
-    return max_frame_id + 1;
+  }
+  return max_frame_id + 1;
 }
 
-std::ostream& operator<<( std::ostream& output, const std::shared_ptr<Surfel>& surfel ){
+std::ostream &operator<<(std::ostream &output, const std::shared_ptr<Surfel> &surfel) {
   output << surfel->id();
   return output;
+}
+
+void
+set_k(const SurfelGraphPtr& graph,
+      const SurfelGraphNodePtr &node1, unsigned short k1,
+      const SurfelGraphNodePtr &node2, unsigned short k2) {
+  auto &edge = graph->edge(node1, node2);
+  if (node1->data() < node2->data()) {
+    edge->set_k_low(k1);
+    edge->set_k_high(k2);
+  } else {
+    edge->set_k_low(k2);
+    edge->set_k_high(k1);
+  }
+}
+
+std::pair<unsigned short, unsigned short>
+get_k(
+    const SurfelGraphPtr& graph,
+    const SurfelGraphNodePtr &node1,
+    const SurfelGraphNodePtr &node2) {
+  auto &edge = graph->edge(node1, node2);
+  if (node1->data() < node2->data()) {
+    return (std::make_pair(edge->k_low(), edge->k_high()));
+  } else {
+    return (std::make_pair(edge->k_high(), edge->k_low()));
+  }
 }

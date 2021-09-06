@@ -116,8 +116,8 @@ void
 expect_edges_equal(SurfelGraph::Edge &edge1,
                    SurfelGraph::Edge &edge2) {
     EXPECT_EQ(edge1.data()->weight(), edge2.data()->weight());
-    EXPECT_EQ(edge1.data()->k_ij(), edge2.data()->k_ij());
-    EXPECT_EQ(edge1.data()->k_ji(), edge2.data()->k_ji());
+    EXPECT_EQ(edge1.data()->k_low(), edge2.data()->k_low());
+    EXPECT_EQ(edge1.data()->k_high(), edge2.data()->k_high());
     EXPECT_EQ(edge1.data()->t_values(), edge2.data()->t_values());
     for (auto ti = 0; ti < edge1.data()->t_values(); ++ti) {
         EXPECT_EQ(edge1.data()->t_ij(ti).x(), edge2.data()->t_ij(ti).x());
@@ -272,5 +272,36 @@ TEST_F(TestSurfelIO, SaveLoadRoundTripWithSmoothnessAndEdges) {
     expect_graphs_equal(surfel_graph, loaded_graph);
 }
 
+TEST_F(TestSurfelIO, k_is_preserved_when_accessed_directly) {
+  auto nodes = surfel_graph->nodes(); // Two nodes ave an edge between them
+  auto edge = surfel_graph->edge(nodes[0], nodes[1]);
 
+  edge->set_k_low(32);
+  edge->set_k_high(19);
+  auto k_first = edge->k_low();
+  auto k_second = edge->k_high();
 
+  EXPECT_EQ(32, k_first);
+  EXPECT_EQ(19, k_second);
+
+  // retrieve the edge the other way around
+  edge = surfel_graph->edge(nodes[1], nodes[0]);
+  auto k_first_next = edge->k_low();
+  auto k_second_next = edge->k_high();
+
+  EXPECT_EQ(k_first, k_first_next);
+  EXPECT_EQ(k_second, k_second_next);
+}
+
+TEST_F(TestSurfelIO, k_is_switched_based_on_node_order_when_accessed_indirectly) {
+  auto nodes = surfel_graph->nodes(); // Two nodes ave an edge between them
+
+  set_k(surfel_graph, nodes[0], 32, nodes[1], 19);
+  auto ks = get_k(surfel_graph, nodes[0], nodes[1]);
+  EXPECT_EQ(32, ks.first);
+  EXPECT_EQ(19, ks.second);
+
+  auto switched_ks = get_k(surfel_graph, nodes[1], nodes[0]);
+  EXPECT_EQ(19, switched_ks.first);
+  EXPECT_EQ(32, switched_ks.second);
+}

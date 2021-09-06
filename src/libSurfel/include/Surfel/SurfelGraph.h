@@ -8,8 +8,8 @@ class SurfelGraphEdge {
     float m_weight;
     std::vector<std::pair<unsigned short, unsigned short>> rosy_ij;
     // Best RoSy angles
-    unsigned short m_k_ij;
-    unsigned short m_k_ji;
+    unsigned short m_k_low;
+    unsigned short m_k_high;
     // PoSy displacements
     std::vector<Eigen::Vector2i> m_t_ij;
     std::vector<Eigen::Vector2i> m_t_ji;
@@ -17,14 +17,16 @@ class SurfelGraphEdge {
 public:
     explicit SurfelGraphEdge(float weight) //
             : m_weight{weight} //
+            , m_k_low{0} //
+            , m_k_high{0} //
     {}
 
-    inline unsigned short k_ij() const {
-        return m_k_ij;
+    inline unsigned short k_low() const {
+        return m_k_low;
     }
 
-    inline unsigned short k_ji() const {
-        return m_k_ji;
+    inline unsigned short k_high() const {
+        return m_k_high;
     }
 
     inline size_t t_values() const {
@@ -32,12 +34,12 @@ public:
         return m_t_ij.size();
     }
 
-    inline void set_k_ij(unsigned int kij) {
-        m_k_ij = kij;
+    inline void set_k_low(unsigned int k_low) {
+      m_k_low = k_low;
     }
 
-    inline void set_k_ji(unsigned int kji) {
-        m_k_ji = kji;
+    inline void set_k_high(unsigned int k_high) {
+      m_k_high = k_high;
     }
 
     inline const Eigen::Vector2i& t_ji(unsigned int frame_index) {
@@ -89,3 +91,14 @@ get_node_neighbours_in_frame(
         unsigned int frame_index);
 
 std::ostream& operator<<( std::ostream& output, const std::shared_ptr<Surfel>& surfel );
+
+void
+set_k(const SurfelGraphPtr& graph,
+      const SurfelGraphNodePtr &node1, unsigned short k1,
+      const SurfelGraphNodePtr &node2, unsigned short k2);
+
+std::pair<unsigned short, unsigned short>
+get_k(
+    const SurfelGraphPtr& graph,
+    const SurfelGraphNodePtr &node1,
+    const SurfelGraphNodePtr &node2);

@@ -103,8 +103,8 @@ save_surfel_graph_to_file(const std::string &file_name,
 
       // Historical: Used to have multiple k_ij, now only 1
       write_size_t(file, 1);
-      write_unsigned_short(file, edge.data()->k_ij());
-      write_unsigned_short(file, edge.data()->k_ji());
+      write_unsigned_short(file, edge.data()->k_low());
+      write_unsigned_short(file, edge.data()->k_high());
       const auto tv = edge.data()->t_values();
       write_size_t(file, tv);
       for (auto tvi = 0; tvi < tv; ++tvi) {
@@ -252,8 +252,8 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
         // sic. We've moved from multiple k_ij to a single value. This will initialise with
         // one value (the last one) while consuming all the data in legacy files.
         // Could have more elegantly done this with seek but this works.
-        edge.set_k_ij(read_unsigned_short(file));
-        edge.set_k_ji(read_unsigned_short(file));
+        edge.set_k_low(read_unsigned_short(file));
+        edge.set_k_high(read_unsigned_short(file));
       }
       const auto tv = read_size_t(file);
       for (auto tvi = 0; tvi < tv; ++tvi) {

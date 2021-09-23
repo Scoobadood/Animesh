@@ -6,6 +6,11 @@ add_library(
 		ArcBall SHARED
 		src/ArcBall.cpp
 		include/ArcBall/ArcBall.h
+
+		src/TrackBall.cpp
+		include/ArcBall/TrackBall.h
+
+		include/ArcBall/AbstractArcBall.h
 )
 
 target_include_directories(
@@ -14,6 +19,7 @@ target_include_directories(
 		$<INSTALL_INTERFACE:include>
 		PRIVATE
 		include/ArcBall
+
 )
 
 target_link_libraries(
@@ -23,4 +29,5 @@ target_link_libraries(
 		Geom
 		Qt${QT_VERSION_MAJOR}::Widgets
 		Qt5::Widgets
+		spdlog::spdlog
 )

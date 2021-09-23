@@ -23,7 +23,7 @@
  * the interaction to without subclassing vtkInteractorStyle.  This is
  * particularly useful for setting up custom interaction modes in
  * scripting languages such as Python.  This class allows you
- * to hook into the MouseMove, ButtonPress/Release, KeyPress/Release,
+ * to hook into the mouse_move, ButtonPress/Release, KeyPress/Release,
  * etc. events.  If you want to hook into just a single mouse button,
  * but leave the interaction modes for the others unchanged, you
  * must use e.g. SetMiddleButtonPressMethod() instead of the more

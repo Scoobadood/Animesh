@@ -34,7 +34,7 @@ private slots:
     void quad_vertex_selected(int i);
 
 private:
-    ArcBall * m_arc_ball;
+    std::shared_ptr<AbstractArcBall> m_arc_ball;
     QTimer * m_timer;
     std::map<std::pair<std::string,std::string>, std::shared_ptr<SurfelGraphEdge>>m_edge_from_node_names;
 

@@ -5,8 +5,6 @@
 #include <spdlog/spdlog.h>
 #include "quad_gl_widget.h"
 
-const float DEG2RAD = (3.14159265f / 180.0f);
-
 quad_gl_widget::quad_gl_widget(
     QWidget *parent, Qt::WindowFlags f) //
     : field_gl_widget(parent, f) //
@@ -102,7 +100,7 @@ quad_gl_widget::maybe_draw_red_edges() const {
   glLineWidth(3.0f);
   glColor4d(1.0, 0.0, 0.0, 1.0);
   glBegin(GL_LINES);
-  for (const auto &edge : m_red_edges) {
+  for (const auto &edge: m_red_edges) {
     unsigned int from_index = edge.first.second;
     unsigned int to_index = edge.second.second;
     glVertex3f(m_vertices.at(from_index * 3 + 0),
@@ -161,7 +159,7 @@ quad_gl_widget::maybe_draw_blue_edges() const {
   glGetFloatv(GL_LINE_WIDTH, &old_line_width);
   glLineWidth(3.0f);
 
-  for (const auto &edge : m_blue_edges) {
+  for (const auto &edge: m_blue_edges) {
     unsigned int from_index = edge.first.second;
     unsigned int to_index = edge.second.second;
     glBegin(GL_LINES);
@@ -221,7 +219,7 @@ quad_gl_widget::setData(
   m_vertex_affinity.insert(m_vertex_affinity.begin(), vertex_affinity.begin(), vertex_affinity.end());
   m_red_edges.insert(m_red_edges.begin(), red_edges.begin(), red_edges.end());
   m_blue_edges.insert(m_blue_edges.begin(), blue_edges.begin(), blue_edges.end());
-  for (const auto &edge : red_edges) {
+  for (const auto &edge: red_edges) {
     m_all_edges.emplace_back(std::make_pair<Eigen::Vector3f, Eigen::Vector3f>(
         {vertices[edge.first.second * 3 + 0],
          vertices[edge.first.second * 3 + 1],

@@ -15,7 +15,7 @@ public:
       QWidget *parent = nullptr,
       Qt::WindowFlags f = Qt::WindowFlags());
 
-  void set_arc_ball(ArcBall *arc_ball);
+  void set_arc_ball(const std::shared_ptr<AbstractArcBall>& arc_ball);
 
 protected:
   void paintGL() override;
@@ -43,7 +43,7 @@ private:
                                 Eigen::Vector3f& camera_origin,
                                 Eigen::Vector3f& ray_direction);
 
-    ArcBall *m_arcBall;
+  std::shared_ptr<AbstractArcBall> m_arc_ball;
 
   float m_fov;
   float m_zNear;

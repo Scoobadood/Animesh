@@ -34,14 +34,14 @@ ArcBall::rotate(float d_azim, float d_incl) {
   m_azimuth += d_azim;
 
   // Keep phi within -2PI to +2PI for easy 'up' comparison
-  if (m_azimuth > TWO_PI) {
-    m_azimuth -= TWO_PI;
-  } else if (m_azimuth < -TWO_PI) {
-    m_azimuth += TWO_PI;
+  if (m_inclination > TWO_PI) {
+    m_inclination -= TWO_PI;
+  } else if (m_inclination < -TWO_PI) {
+    m_inclination += TWO_PI;
   }
 
   // If phi is between 0 to PI or -PI to -2PI, make 'up' be positive Y, other wise make it negative Y
-  if ((m_azimuth > 0 && m_azimuth < M_PI) || (m_azimuth < -M_PI && m_azimuth > -TWO_PI)) {
+  if ((m_inclination > 0 && m_inclination < M_PI) || (m_inclination < -M_PI && m_inclination > -TWO_PI)) {
     m_up = 1.0f;
   } else {
     m_up = -1.0f;
@@ -81,18 +81,23 @@ ArcBall::toCartesian() const {
 void
 ArcBall::mouseMoveEvent(QMouseEvent *e) {
   if (e->buttons() & Qt::LeftButton) {
+    const auto delta = m_last_pixel_position - e->pos();
+    // CTL to pan
     if (e->modifiers() & Qt::KeyboardModifier::ControlModifier) {
-      const auto delta = m_lastPixelPosition - e->pos();
       pan((float) delta.x() * PAN_FACTOR, (float) delta.y() * PAN_FACTOR);
-    } else {
-      const auto delta = (m_lastPixelPosition - e->pos());
-      rotate((float) delta.x() / ROTATE_FACTOR, (float) delta.y() / ROTATE_FACTOR);
+    }
+      // Else, rotate
+    else {
+      auto d_azimuth = (static_cast<float>(delta.x()) / static_cast<float>(m_viewport_size.width())) * TWO_PI;
+      auto d_incl =
+          (static_cast<float>(delta.y()) / static_cast<float>(m_viewport_size.height())) * static_cast<float>(M_PI);
+      rotate(d_azimuth, d_incl);
     }
     e->accept();
   } else {
     e->ignore();
   }
-  m_lastPixelPosition = e->pos();
+  m_last_pixel_position = e->pos();
 }
 
 void
@@ -104,9 +109,15 @@ ArcBall::wheelEvent(QWheelEvent *e) {
 void
 ArcBall::mousePressEvent(QMouseEvent *e) {
   if (e->buttons() & (Qt::LeftButton | Qt::RightButton)) {
-    m_lastPixelPosition = e->pos();
+    m_last_pixel_position = e->pos();
   }
   e->accept();
+}
+
+void
+ArcBall::resizeEvent(QResizeEvent *e) {
+  set_viewport_size(e->size());
+  e->ignore();
 }
 
 void
@@ -190,6 +201,11 @@ ArcBall::eventFilter(QObject *o, QEvent *e) {
   case QEvent::KeyPress: //
     keyPressEvent((QKeyEvent *) e);
     handled = true;
+    break;
+
+  case QEvent::Resize: //
+    resizeEvent((QResizeEvent *) e);
+    handled = false;
     break;
 
   default:handled = false;

@@ -5,12 +5,12 @@
 #include <Surfel/Surfel_IO.h>
 #include <QFileDialog>
 #include <utility>
-
+#include <ArcBall/TrackBall.h>
 field_visualiser_window::field_visualiser_window(Properties properties, QWidget *parent) :
     QMainWindow(parent), ui(new Ui::field_visualiser_window), m_properties{std::move(properties)} {
   ui->setupUi(this);
 
-  m_arc_ball = new ArcBall();
+  m_arc_ball = std::make_shared<Trackball>();
 
   float rho = m_properties.getFloatProperty("rho");
   ui->posyGLWidget->setRho(rho);
@@ -77,16 +77,16 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
   });
   connect(ui->quadGLWidget, &quad_gl_widget::no_edge_selected,
           this, [&]() {
-    using namespace std;
+        using namespace std;
 
-    ui->lblEdgeVertex1->setText("-");
-    ui->lblEdgeVertex2->setText("-");
-    // Extract the edge data
-    ui->lblEdgeTij->setText("");
-    ui->lblEdgeTji->setText("");
-    ui->lblEdgeKij->setText("");
-    ui->lblEdgeKji->setText("");
-  });
+        ui->lblEdgeVertex1->setText("-");
+        ui->lblEdgeVertex2->setText("-");
+        // Extract the edge data
+        ui->lblEdgeTij->setText("");
+        ui->lblEdgeTji->setText("");
+        ui->lblEdgeKij->setText("");
+        ui->lblEdgeKji->setText("");
+      });
 
   m_timer = new QTimer(this); //Create a timer
   m_timer->callOnTimeout([=]() {
@@ -101,13 +101,12 @@ field_visualiser_window::~field_visualiser_window() {
   delete m_posy_geometry_extractor;
   delete m_rosy_geometry_extractor;
   delete m_quad_geometry_extractor;
-  delete m_arc_ball;
   delete ui;
 }
 
 void
 field_visualiser_window::extract_geometry() {
-  using namespace  std;
+  using namespace std;
 
   std::vector<float> positions;
   std::vector<float> tangents;
@@ -151,7 +150,7 @@ field_visualiser_window::extract_geometry() {
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> red_edges;
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> blue_edges;
   std::vector<float> original_vertices;
-  std::vector<float>vertex_affinity;
+  std::vector<float> vertex_affinity;
   m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
   m_edge_from_node_names.clear();
   ui->quadGLWidget->setData(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
@@ -162,7 +161,7 @@ field_visualiser_window::extract_geometry() {
   // So seems like we should populate edge from node names form Quad graph node names
   // But QG node names come from initial surfel graph. Read through this code
   // And figure out WTF.
-  for (auto &edge : m_graph_ptr->edges()) {
+  for (auto &edge: m_graph_ptr->edges()) {
     pair<string, string> key1 = {edge.from()->data()->id(), edge.to()->data()->id()};
     pair<string, string> key2 = {edge.to()->data()->id(), edge.from()->data()->id()};
 

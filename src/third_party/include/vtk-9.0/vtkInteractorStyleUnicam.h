@@ -138,7 +138,7 @@ public:
   //@}
 
   /**
-   * OnTimer calls RotateCamera, RotateActor etc which should be overridden by
+   * OnTimer calls maybe_update_rotation, RotateActor etc which should be overridden by
    * style subclasses.
    */
   void OnTimer() override;

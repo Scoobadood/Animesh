@@ -145,5 +145,6 @@ target_link_libraries(
 )
 
 add_subdirectory(field_visualiser)
+add_subdirectory(leggings_tool)
 add_subdirectory(quadulator)
 add_subdirectory(surfel_info)

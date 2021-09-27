@@ -5,6 +5,8 @@
 #pragma once
 
 #include <fstream>
+#include <string>
+#include <vector>
 #include <Eigen/Core>
 
 /**
@@ -85,3 +87,9 @@ write_string(std::ofstream &file, const std::string &value);
 
 std::string
 read_string(std::ifstream &file);
+
+template<typename Out>
+void split(const std::string &s, char delim, Out result);
+
+std::vector<std::string>
+split(const std::string &s, char delim);

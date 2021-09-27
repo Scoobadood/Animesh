@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
 project(Animesh
 		VERSION 0.1
-		LANGUAGES CXX)
+		LANGUAGES CXX C)
 
 set(PROJECT_VERSION 0.2)
 

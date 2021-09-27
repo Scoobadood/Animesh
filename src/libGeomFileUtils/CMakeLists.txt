@@ -3,6 +3,8 @@ add_library(
 		src/io_utils.cpp include/GeomFileUtils/io_utils.h
 		src/ObjFileParser.cpp include/GeomFileUtils/ObjFileParser.h
 		src/PgmFileParser.cpp include/GeomFileUtils/PgmFileParser.h
+		src/PlyFileParser.cpp include/GeomFileUtils/PlyFileParser.h
+		src/ply_io.c include/GeomFileUtils/ply_io.h
 )
 
 target_include_directories(
@@ -25,6 +27,7 @@ add_executable(
 		testGeomFileUtils
 		tests/main.cpp
 		tests/TestObjFileParser.cpp tests/TestObjFileParser.h
+		tests/TestPlyFileParser.cpp tests/TestPlyFileParser.h
 )
 
 target_link_libraries(

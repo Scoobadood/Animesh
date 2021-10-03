@@ -12,6 +12,8 @@
 #include <FileUtils/FileUtils.h>
 #include <Surfel/Surfel_IO.h>
 #include <GeomFileUtils/io_utils.h>
+#include <Eigen/Eigen>
+#include <Eigen/Geometry>
 
 struct args {
   std::string ply_file_name;
@@ -80,78 +82,67 @@ typedef struct Face {
   void *other_props;       /* other properties */
 } Face;
 
-char *elem_names[] = { /* list of the elements in the object */
-    "vertex", "face"
-};
+void
+read_vertices(PlyFile *ply,
+              unsigned int element_id,
+              unsigned int num_vertices,
+              std::vector<Eigen::Vector3f> &vertices) {
+  PlyProperty vert_props[] = { /* list of property information for a vertex */
+      {"x", Float32, Float32, 0, 0, 0, 0, 0},
+      {"y", Float32, Float32, 4, 0, 0, 0, 0},
+      {"z", Float32, Float32, 8, 0, 0, 0, 0},
+  };
+  setup_property_ply(ply, &vert_props[0]);
+  setup_property_ply(ply, &vert_props[1]);
+  setup_property_ply(ply, &vert_props[2]);
 
-PlyProperty vert_props[] = { /* list of property information for a vertex */
-    {"x", Float32, Float32, 0, 0, 0, 0, 0},
-    {"y", Float32, Float32, 4, 0, 0, 0, 0},
-    {"z", Float32, Float32, 8, 0, 0, 0, 0},
-};
+  Eigen::Vector3f vertex;
 
-PlyProperty face_props[] = { /* list of property information for a face */
-    {"vertex_indices", Int32, Int32, offsetof(Face, verts),
-     1, Uint8, Uint8, offsetof(Face, nverts)},
-};
-
-void extract_vertices(PlyFile *ply, std::vector<Eigen::Vector3f> &vertices) {
-  int elem_count;
-  for (int i = 0; i < ply->num_elem_types; ++i) {
-    // Prepare to read the i'th list of elements.
-    auto elem_name = setup_element_read_ply(ply, i, &elem_count);
-    if (strcmp("vertex", elem_name) != 0) {
-      continue;
-    }
-
-    // Set up for getting vertex elements.
-    setup_property_ply(ply, &vert_props[0]);
-    setup_property_ply(ply, &vert_props[1]);
-    setup_property_ply(ply, &vert_props[2]);
-
-    for (int j = 0; j < elem_count; j++) {
-      Eigen::Vector3f v;
-      get_element_ply(ply, (float *) v.data());
-      vertices.push_back(v);
-    }
-  }
-}
-void extract_faces(PlyFile *ply, std::vector<std::vector<std::size_t>> &faces) {
-  int elem_count;
-  for (int i = 0; i < ply->num_elem_types; ++i) {
-    // Prepare to read the i'th list of elements.
-    auto elem_name = setup_element_read_ply(ply, i, &elem_count);
-    if (strcmp("face", elem_name) != 0) {
-      continue;
-    }
-
-    // Set up for getting face elements
-    setup_property_ply(ply, &face_props[0]);
-    for (int j = 0; j < elem_count; ++j) {
-      Face f;
-      get_element_ply(ply, (void *) &f);
-      std::vector<std::size_t> face;
-      for (int k = 0; k < f.nverts; ++k) {
-        face.push_back(f.verts[k]);
-      }
-      faces.push_back(face);
-    }
+  for (unsigned int j = 0; j < num_vertices; j++) {
+    get_element_ply(ply, (void *) &vertex.data()[0]);
+    vertices.push_back(vertex);
   }
 }
 
 void
-read_vert_data_for_frames(const std::string &anim_file_name, unsigned int num_vertices,
+read_faces(PlyFile *ply,
+           unsigned int element_id,
+           unsigned int num_faces,
+           std::vector<std::vector<std::size_t>> &faces) {
+  PlyProperty face_prop{
+      "vertex_indices",
+      Int32, Int32, offsetof(Face, verts),
+      1, Uint8, Uint8, 0};
+
+  setup_property_ply(ply, &face_prop);
+  Face f;
+  for (int j = 0; j < num_faces; ++j) {
+    get_element_ply(ply, (void *) &f);
+    std::vector<std::size_t> face;
+    for (int k = 0; k < f.nverts; ++k) {
+      face.push_back(f.verts[k]);
+    }
+    faces.push_back(face);
+  }
+}
+
+/*
+ * Read the vertex data for a number of frames.
+ * The number of frames (F) is the first line of the file
+ * This is followed by F blocks of V (num vertices) lines
+ * each of which contains 3 comma separated floats representing X,Y,Z of that vertex.
+ */
+void
+read_vert_data_for_frames(const std::string &anim_file_name,
+                          unsigned int num_vertices,
                           std::vector<int> frame_indices,
                           std::vector<std::vector<Eigen::Vector3f>> &vertices_by_frame) {
-  // Read all future positions of vertices from txt file for given frames
-  // This file contains a single line containing thenumber of frames then
-  // N x num_verts lines
   size_t curr_line_num = 0;
   std::vector<Eigen::Vector3f> frame_data;
   unsigned int num_frames_in_file = 0;
-  unsigned int next_frame_index = 0;
-  unsigned int next_frame = frame_indices[next_frame_index];
-  unsigned int next_frame_line_num = ((next_frame - 1) * num_vertices) + 1;
+  unsigned int curr_frame_index_index = 0;
+  unsigned int curr_frame_index = frame_indices[curr_frame_index_index];
+  unsigned int current_frame_start_line = (curr_frame_index * num_vertices) + 1;
   process_file_by_lines(anim_file_name,
                         [&](const std::string &line) {
                           // First line
@@ -162,86 +153,115 @@ read_vert_data_for_frames(const std::string &anim_file_name, unsigned int num_ve
                           }
 
                           // Bad frame number
-                          if (next_frame >= num_frames_in_file) {
+                          if (curr_frame_index >= num_frames_in_file) {
                             throw std::runtime_error("Can't find frame " +
-                                std::to_string(next_frame) +
+                                std::to_string(curr_frame_index) +
                                 ". Only " +
                                 std::to_string(num_frames_in_file) +
                                 " frames in file.");
                           }
 
                           // Processed last frame I need to
-                          if (next_frame_index == frame_indices.size()) {
+                          if (curr_frame_index_index == frame_indices.size()) {
                             return;
                           }
 
                           // Not yet reached data for the curr frame
-                          if (curr_line_num < next_frame_line_num) {
+                          if (curr_line_num < current_frame_start_line) {
                             ++curr_line_num;
                             return;
                           }
 
-                          // Process this data
-                          if (curr_line_num < next_frame_line_num + num_vertices) {
+                          // If we're still reading data for this frame, do so.
+                          if (curr_line_num < current_frame_start_line + num_vertices) {
+                            // Otherwise ... process this data
                             std::vector<std::string> coords = split(line, ',');
                             float x = stof(coords[0]);
                             float y = stof(coords[1]);
                             float z = stof(coords[2]);
                             frame_data.emplace_back(x, y, z);
                             ++curr_line_num;
+                            // If we finished this frames data, stash it.
+                            if (curr_line_num == current_frame_start_line + num_vertices) {
+                              // We finished reading data
+                              vertices_by_frame.push_back(frame_data);
+                              frame_data.clear();
+                              ++curr_frame_index_index;
+                              if (curr_frame_index_index != frame_indices.size()) {
+                                curr_frame_index = frame_indices[curr_frame_index_index];
+                                current_frame_start_line = (curr_frame_index * num_vertices) + 1;
+                              }
+                            }
                             return;
                           }
 
-                          // Reached end of data
-                          vertices_by_frame.push_back(frame_data);
-                          frame_data.clear();
-                          ++next_frame_index;
-                          if (next_frame_index == frame_indices.size()) {
-                            return; // Done
-                          }
-
-                          next_frame = frame_indices[next_frame_index];
-                          next_frame_line_num = ((next_frame - 1) * num_vertices) + 1;
-                          return;
-                        });
+                        }
+  );
 }
 
 void
-read_verts_and_faces(const std::string &ply_file_name,
-                     std::vector<Eigen::Vector3f> &vertices,
-                     std::vector<std::vector<std::size_t>> &faces) {
+read_face_and_vertex_data(const std::string &ply_file_name,
+                          std::vector<std::vector<std::size_t>> &faces,
+                          std::vector<Eigen::Vector3f> &vertices) {
   FILE *f = fopen(ply_file_name.c_str(), "r");
   PlyFile *ply = read_ply(f);
 
-  extract_vertices(ply, vertices);
-  extract_faces(ply, faces);
+  int elem_count;
+  for (int i = 0; i < ply->num_elem_types; ++i) {
+    // Prepare to read the i'th list of elements.
+    auto elem_name = setup_element_read_ply(ply, i, &elem_count);
+    if (strcmp("vertex", elem_name) == 0) {
+      read_vertices(ply, i, elem_count, vertices);
+    }
+    if (strcmp("face", elem_name) == 0) {
+      read_faces(ply, i, elem_count, faces);
+    }
+  }
+
   close_ply(ply);
   free_ply(ply);
 }
 
+/*
+ * @return a vector[num_vertices] or adjacent vertex indices.
+ */
 std::vector<std::vector<std::size_t>>
 compute_vertex_adjacency_from_faces(const std::vector<std::vector<std::size_t>> &faces,
                                     unsigned int num_vertices) {
-  std::vector<std::vector<std::size_t>> adjacency;
+  using namespace std;
+
+  spdlog::info("Computing vertex adjacency");
+
+  vector<vector<size_t>> adjacency;
   adjacency.resize(num_vertices);
+
   for (const auto &face: faces) {
-    for (int i = 0; i < face.size() - 1; i++) {
+    adjacency[face.back()].push_back(face.front());
+    adjacency[face.front()].push_back(face.back());
+
+    for (int i = 1; i < face.size() - 1; i++) {
+      adjacency[face[i]].push_back(face[i - 1]);
       adjacency[face[i]].push_back(face[i + 1]);
     }
-    adjacency[face.back()].push_back(face[0]);
   }
   return adjacency;
 }
 
+/*
+ * @return a vector[num_vertices] of the face indices of adjacent faces.
+ */
 std::vector<std::vector<std::size_t>>
 compute_face_adjacency_from_faces(const std::vector<std::vector<std::size_t>> &faces,
                                   unsigned int num_vertices) {
-  std::vector<std::vector<std::size_t>> adjacency;
+  using namespace std;
+
+  vector<vector<size_t>> adjacency;
   adjacency.resize(num_vertices);
+
   for (int face_index = 0; face_index < faces.size(); ++face_index) {
     const auto &face = faces[face_index];
-    for (int i = 0; i < face.size(); i++) {
-      adjacency[face[i]].push_back(face_index);
+    for (unsigned long i: face) {
+      adjacency[i].push_back(face_index);
     }
   }
   return adjacency;
@@ -258,55 +278,147 @@ Eigen::Vector3f normal_from_vertices(
   return normal;
 }
 
+/*
+ * @return a vector[num_frames] of vectors[num_faces] or normals
+ */
 std::vector<std::vector<Eigen::Vector3f>>
 compute_face_normals(const std::vector<std::vector<std::size_t>> &faces,
-                     const std::vector<std::vector<Eigen::Vector3f>> &frames) {
-  std::vector<std::vector<Eigen::Vector3f>> face_normals;
-  face_normals.resize(frames.size());
+                     const std::vector<std::vector<Eigen::Vector3f>> &vertex_data_by_frame) {
+  using namespace std;
+  using namespace Eigen;
+  using namespace spdlog;
 
+  assert(!vertex_data_by_frame.empty());
+  assert(!vertex_data_by_frame[0].empty());
+  assert(!faces.empty());
+
+  spdlog::info("Computing face normals for {} faces", faces.size());
+  vector<vector<Vector3f>> face_normals;
+
+  // Reserve space for normals in each frame
+  auto num_frames = vertex_data_by_frame.size();
+  face_normals.resize(num_frames);
+
+  // For each face
   for (const auto &face: faces) {
+    // Extract three vertices
     auto v1_index = face[0];
     auto v2_index = face[1];
     auto v3_index = face[2];
 
-    for (int frame_idx = 0; frame_idx < frames.size(); ++frame_idx) {
-      const auto &vec1 = frames[frame_idx][v1_index];
-      const auto &vec2 = frames[frame_idx][v2_index];
-      const auto &vec3 = frames[frame_idx][v3_index];
-
-      face_normals[frame_idx].push_back(normal_from_vertices(vec1, vec2, vec3));
+    for (int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+      const auto &vec1 = vertex_data_by_frame[frame_idx][v1_index];
+      const auto &vec2 = vertex_data_by_frame[frame_idx][v2_index];
+      const auto &vec3 = vertex_data_by_frame[frame_idx][v3_index];
+      Vector3f face_normal = normal_from_vertices(vec1, vec2, vec3);
+      face_normals[frame_idx].push_back(face_normal);
     }
   }
   return face_normals;
 }
 
+/*
+ * @return a vector[num_frames] of vectors[num_vertcies] of norma
+ */
 std::vector<std::vector<Eigen::Vector3f>>
 compute_vertex_normals(
-    const std::vector<std::vector<std::size_t>> &vertex_face_adjacency, // vertex -> vertex list
-    const std::vector<std::vector<Eigen::Vector3f>> &face_normals) // frame -> normal_per_face
-{
+    const std::vector<std::vector<std::size_t>> &faces,
+    const std::vector<std::vector<Eigen::Vector3f>> &vertex_data_by_frame
+) {
+  spdlog::info("Computing vertex normals");
+
+  using namespace std;
+  auto num_frames = vertex_data_by_frame.size();
+
+  // vector[num_frames] of vectors[num_faces] of normals
+  auto face_normals = compute_face_normals(faces, vertex_data_by_frame);
+
+  // vector[num_vertices] of vector[] of adj vertex indices
+  auto vertex_face_adjacency = compute_face_adjacency_from_faces(faces, vertex_data_by_frame[0].size());
+  auto num_vertices = vertex_face_adjacency.size();
 
   // Normal per vertex per frame
-  std::vector<std::vector<Eigen::Vector3f>> vertex_normals_by_frame;
-
-  size_t num_frames = face_normals.size();
-  size_t num_vertices = vertex_face_adjacency.size();
+  vector<vector<Eigen::Vector3f>> vertex_normals_by_frame;
   vertex_normals_by_frame.resize(num_frames);
 
   // For each frame
-  for( int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+  for (auto frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
     // For each vertex
-    for ( int vertex_id = 0; vertex_id < num_vertices; ++vertex_id ) {
+    for (int vertex_id = 0; vertex_id < num_vertices; ++vertex_id) {
       // Compute mean of face normals
-      Eigen::Vector3f mean{0,0,0};
-      for( const auto & face_id : vertex_face_adjacency[vertex_id] ) {
-        const auto & face_normal = face_normals[frame_idx][face_id];
+      Eigen::Vector3f mean{0, 0, 0};
+      for (const auto &face_id: vertex_face_adjacency[vertex_id]) {
+        const auto &face_normal = face_normals[frame_idx][face_id];
         mean += face_normal;
       }
       vertex_normals_by_frame[frame_idx].push_back(mean.normalized());
     }
   }
   return vertex_normals_by_frame;
+}
+
+void centre_frame_data(std::vector<std::vector<Eigen::Vector3f>> &frame_data) {
+  using namespace std;
+  using namespace Eigen;
+
+  auto num_frames = frame_data.size();
+  auto num_vertices = frame_data[0].size();
+
+  for (auto frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+    Vector3f centroid{0, 0, 0};
+    for (auto vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+      centroid += frame_data[frame_idx][vertex_idx];
+    }
+    centroid /= static_cast<float>(num_vertices);
+    for (auto vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+      frame_data[frame_idx][vertex_idx] -= centroid;
+    }
+  }
+}
+
+void scale_frame_data(std::vector<std::vector<Eigen::Vector3f>> &frame_data) {
+  using namespace std;
+  using namespace Eigen;
+
+  auto num_frames = frame_data.size();
+  auto num_vertices = frame_data[0].size();
+
+  Vector3f minv{MAXFLOAT, MAXFLOAT, MAXFLOAT};
+  Vector3f maxv{-MAXFLOAT, -MAXFLOAT, -MAXFLOAT};
+
+  for (auto vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+    auto point = frame_data[0][vertex_idx];
+    if (point.x() < minv.x())
+      minv.x() = point.x();
+    if (point.y() < minv.y())
+      minv.y() = point.y();
+    if (point.z() < minv.z())
+      minv.z() = point.z();
+    if (point.x() > maxv.x())
+      maxv.x() = point.x();
+    if (point.y() > maxv.y())
+      maxv.y() = point.y();
+    if (point.z() > maxv.z())
+      maxv.z() = point.z();
+  }
+  auto dist = (maxv - minv).norm();
+  auto scale = 40.0f / dist;
+  for (auto frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+    for (auto vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+      frame_data[frame_idx][vertex_idx] *= scale;
+    }
+  }
+}
+
+void read_data(const args &args,
+               unsigned int &num_vertices,
+               std::vector<std::vector<std::size_t>> &faces,
+               std::vector<std::vector<Eigen::Vector3f>> &vertex_data_by_frame
+) {
+  std::vector<Eigen::Vector3f> vertices;
+  read_face_and_vertex_data(args.ply_file_name, faces, vertices);
+  num_vertices = vertices.size();
+  read_vert_data_for_frames(args.anim_file_name, num_vertices, args.frames, vertex_data_by_frame);
 }
 
 int main(int argc, char *argv[]) {
@@ -323,30 +435,21 @@ int main(int argc, char *argv[]) {
                args.surfel_file_name
   );
 
-  vector<Eigen::Vector3f> vertices;
+  unsigned int num_vertices;
   vector<vector<size_t>> faces;
-  read_verts_and_faces(args.ply_file_name, vertices, faces);
+  vector<vector<Eigen::Vector3f>> vertex_data_by_frame;
+  read_data(args, num_vertices, faces, vertex_data_by_frame);
+  spdlog::info("Read {} vertices and positions for {} frames.",
+               num_vertices, num_frames
+  );
 
-  unsigned int num_vertices_per_frame = vertices.size();
-  vector<vector<Eigen::Vector3f>> frames;
-  frames.push_back(vertices);
-  read_vert_data_for_frames(args.anim_file_name,
-                            num_vertices_per_frame,
-                            args.frames,
-                            frames);
+  // Normalise and centre
+  spdlog::info("Normalising data");
+  centre_frame_data(vertex_data_by_frame);
+  scale_frame_data(vertex_data_by_frame);
 
-
-  // Convert faces to adjacency array of arrays
-  auto vertex_vertex_adjacency = compute_vertex_adjacency_from_faces(faces, num_vertices_per_frame);
-
-  // Compute face_vertex adjacency
-  auto vertex_face_adjacency = compute_face_adjacency_from_faces(faces, num_vertices_per_frame);
-
-  // Compute face normals (by frame)
-  auto face_normals = compute_face_normals(faces, frames);
-
-  // Compute vertex norms by frame
-  auto vertex_normals = compute_vertex_normals(vertex_face_adjacency, face_normals);
+  // Compute vertex normals by frame
+  auto vertex_normals = compute_vertex_normals(faces, vertex_data_by_frame);
 
   // create a surfel graph
   SurfelGraphPtr g = make_shared<SurfelGraph>();
@@ -355,40 +458,34 @@ int main(int argc, char *argv[]) {
   auto surfel_builder = new SurfelBuilder(rnd);
   vector<SurfelGraphNodePtr> node_for_vertex;
 
-  for( int vertex_idx = 0; vertex_idx< num_vertices_per_frame; ++vertex_idx) {
+  spdlog::info("Building graph");
+
+  spdlog::info("Adding nodes");
+  for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
     surfel_builder
         ->reset()
         ->with_id("s_" + to_string(vertex_idx));
 
-    for( int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
-      FrameData fd;
-      // PixelInFrame
-      fd.pixel_in_frame.pixel.x = 0;
-      fd.pixel_in_frame.pixel.y = 0;
-      fd.pixel_in_frame.frame = frame_idx;
-      fd.depth = 0.0f;
-
-      // Transform - Identity for now.
-      fd.transform << 1, 0, 0, 0, 1, 0, 0, 0, 1;
-
-      // Normal
-      fd.normal = vertex_normals[frame_idx][vertex_idx];
-
-      // Position
-      fd.position = frames[frame_idx][vertex_idx];
-
-      surfel_builder->with_frame(fd);
+    for (unsigned int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
+      surfel_builder->with_frame(
+          {0, 0, frame_idx},
+          0.0f,
+          vertex_normals[frame_idx][vertex_idx],
+          vertex_data_by_frame[frame_idx][vertex_idx]
+      );
     }
     auto n = g->add_node(make_shared<Surfel>(surfel_builder->build()));
     node_for_vertex.push_back(n);
   }
 
   // Create neighbours
-  for( int vertex_idx = 0; vertex_idx < num_vertices_per_frame; ++vertex_idx) {
-    for( auto adjacent_vetrex_idx : vertex_vertex_adjacency[vertex_idx]) {
+  auto vertex_vertex_adjacency = compute_vertex_adjacency_from_faces(faces, num_vertices);
+  spdlog::info("Adding edges");
+  for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+    for (auto adjacent_vertex_idx: vertex_vertex_adjacency[vertex_idx]) {
       try {
-        g->add_edge(node_for_vertex[vertex_idx], node_for_vertex[adjacent_vetrex_idx], SurfelGraphEdge{1.0f});
-      } catch( runtime_error& e) {
+        g->add_edge(node_for_vertex[vertex_idx], node_for_vertex[adjacent_vertex_idx], SurfelGraphEdge{1.0f});
+      } catch (runtime_error &e) {
 
       }
     }

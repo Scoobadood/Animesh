@@ -37,6 +37,8 @@ public:
 
     void renderErrorColours(bool shouldRender);
 
+    void set_norm_tan_length(float l);
+
 protected:
     void do_paint() override;
 

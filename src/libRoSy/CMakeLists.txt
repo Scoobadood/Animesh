@@ -18,6 +18,7 @@ target_include_directories(
 target_link_libraries(
 		RoSy
 		Optimise
+		Vote
 )
 
 # Tests

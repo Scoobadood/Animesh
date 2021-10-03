@@ -25,7 +25,7 @@ maybe_insert_node_in_graph( //
   // If it's in our output map, return early with the map's value
   const auto found_iter = out_nodes_by_surfel_id.find(surfel_id);
   if (found_iter != out_nodes_by_surfel_id.end()) {
-    spdlog::info("   Ignored insert for node {}", surfel_id);
+    spdlog::debug("   Ignored insert for node {}", surfel_id);
     return found_iter->second;
   }
 
@@ -36,7 +36,7 @@ maybe_insert_node_in_graph( //
   auto lattice_position = vertex +
       (tangent * offset[0]) +
       (orth_tangent * offset[1]);
-  spdlog::info("Inserted node {} at ({}, {}, {})",
+  spdlog::debug("Inserted node {} at ({}, {}, {})",
                surfel_id,
                lattice_position[0],
                lattice_position[1],
@@ -126,7 +126,7 @@ build_edge_graph(
       continue;
     }
 
-    spdlog::info("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
+    spdlog::debug("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
                  edgeType == EDGE_TYPE_BLU ? "blue" : "red",
                  from_surfel_ptr->id(),
                  to_surfel_ptr->id(),

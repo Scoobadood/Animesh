@@ -6,7 +6,7 @@
 
 class SurfelGraphEdge {
     float m_weight;
-    std::vector<std::pair<unsigned short, unsigned short>> rosy_ij;
+
     // Best RoSy angles
     unsigned short m_k_low;
     unsigned short m_k_high;

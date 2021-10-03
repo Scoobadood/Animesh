@@ -44,6 +44,36 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
           ui->rosyGLWidget, &rosy_gl_widget::renderOtherTangents);
   connect(ui->cbErrorColours, &QCheckBox::toggled,
           ui->rosyGLWidget, &rosy_gl_widget::renderErrorColours);
+  connect(ui->slNormalLength, &QSlider::valueChanged,
+          this, [&](int value) {
+        float spur_length;
+        switch (value) {
+        case 1:spur_length = 0.01f;
+          break;
+        case 2:spur_length = 0.05f;
+          break;
+        case 3:spur_length = 0.1f;
+          break;
+        case 4:spur_length = 0.2f;
+          break;
+        case 5:spur_length = 0.3f;
+          break;
+        case 6:spur_length = 0.4f;
+          break;
+        case 7:spur_length = 0.5f;
+          break;
+        case 8:spur_length = 0.75f;
+          break;
+        case 9:spur_length = 1.0f;
+          break;
+        case 10:spur_length = 2.0f;
+          break;
+        default:spur_length = 1.0f;
+          break;
+        }
+        m_rosy_geometry_extractor->set_spur_length(spur_length);
+        extract_geometry();
+      });
 
   connect(ui->cbBlue, &QCheckBox::toggled,
           ui->quadGLWidget, &quad_gl_widget::showBlueEdges);

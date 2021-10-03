@@ -111,7 +111,5 @@ void rosy_surfel_graph_geometry_extractor::extract_geometry(
     colours.clear();
 
     extract_lines_for_frame(graphPtr, get_frame(), positions, tangents, normals, colours);
-    const auto model_scale = 1.0f;
-    normal_scale = compute_normal_scale(graphPtr, model_scale);
-    normal_scale = 0.4f;
+    normal_scale = m_spur_length;
 }

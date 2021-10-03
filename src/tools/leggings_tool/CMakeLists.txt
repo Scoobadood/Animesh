@@ -7,6 +7,7 @@ add_executable(
 target_include_directories(
 		leg_tool
 		PRIVATE
+		${PROJECT_SOURCE_DIR}/third_party/include/Ei
 		${PROJECT_SOURCE_DIR}/third_party/include
 )
 target_link_libraries(

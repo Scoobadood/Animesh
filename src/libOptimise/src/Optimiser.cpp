@@ -138,12 +138,12 @@ Optimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult 
     return true;
   }
 
+  latest_smoothness = compute_mean_smoothness();
   // Otherwise return early if we're not checking for convergence
   if ((m_termination_criteria & (TC_ABSOLUTE | TC_RELATIVE)) == 0) {
     return false;
   }
 
-  latest_smoothness = compute_mean_smoothness();
   float improvement = m_last_smoothness - latest_smoothness;
   float pct = (100.0f * improvement) / m_last_smoothness;
   spdlog::info("Mean smoothness per node: {}, Improvement {}%", latest_smoothness, pct);
@@ -240,10 +240,10 @@ Optimiser::optimise_do_one_step() {
 
       spdlog::info("Terminating because {}. Smoothness : {:4.3f}",
                    m_result == NOT_COMPLETE
-                   ? " not complete"
+                   ? "not complete"
                    : m_result == CONVERGED
-                     ? " converged"
-                     : " cancelled", smoothness
+                     ? "converged"
+                     : "cancelled", smoothness
       );
       m_state = ENDING_OPTIMISATION;
     }

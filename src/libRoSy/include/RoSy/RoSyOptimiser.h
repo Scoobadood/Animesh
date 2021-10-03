@@ -31,6 +31,13 @@ private:
 
   void optimise_node(const SurfelGraphNodePtr &this_node) override;
   void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
+  void optimise_node_with_voting(const SurfelGraphNodePtr &this_node);
+  void adjust_weights_based_on_error(const std::shared_ptr<Surfel> &s1,
+                                     const std::shared_ptr<Surfel> &s2,
+                                     float &w_ij,
+                                     float &w_ji) const;
+  static std::vector<unsigned int>
+  get_common_frames(const std::shared_ptr<Surfel> &s1, const std::shared_ptr<Surfel> &s2) ;
 
   float m_damping_factor;
   bool m_weight_for_error;

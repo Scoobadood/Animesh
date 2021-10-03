@@ -78,9 +78,10 @@ PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_
         nbr_normal);
 
     // Get edge data
-    const auto &edge = m_surfel_graph->edge(node_ptr, neighbour_node);
-    const auto k_ij = edge->k_low();
-    const auto k_ji = edge->k_high();
+//    const auto &edge = m_surfel_graph->edge(node_ptr, neighbour_node);
+    const auto k = get_k(m_surfel_graph, node_ptr, neighbour_node);
+    const auto k_ij = k.first;
+    const auto k_ji = k.second;
 
     // Orient tangents appropriately for frame based on k_ij and k_ji
     const auto &oriented_tangent = vector_by_rotating_around_n(tangent, normal, k_ij);
@@ -332,10 +333,11 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
       const auto &nbr_surfel = nbr_node->data();
 
       // Get edge data
+      const auto k = get_k(m_surfel_graph, node, nbr_node);
       const auto &edge = m_surfel_graph->edge(node, nbr_node);
-      const auto k_ij = edge->k_low();
-      const auto k_ji = edge->k_high();
-      const auto w_ij = edge->weight();
+      const auto k_ij = k.first;
+      const auto k_ji = k.second;
+      const auto w_ij = 1.0f;
 
       // Rotate curr surfel for this edge
       Vector3f vertex, tangent, orth_tangent, normal, ignored;

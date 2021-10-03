@@ -134,10 +134,7 @@ void Trackball::maybe_update_matrix() {
 
   m_cam_location = m_focal_point + m_target_to_cam;
 
-//  CheckDistances();
-
-  spdlog::info("cam location ({}, {}, {})", m_cam_location.x(), m_cam_location.y(), m_cam_location.z());
-  spdlog::info("focal pt ({}, {}, {})", m_focal_point.x(), m_focal_point.y(), m_focal_point.z());
+  CheckDistances();
 
   m_cam_view_matrix.setToIdentity();
   m_cam_view_matrix.lookAt(m_cam_location, m_focal_point, m_cam_up);
@@ -182,8 +179,6 @@ void Trackball::maybe_update_pan() {
   if (!m_pan_enabled) {
     return;
   }
-
-  spdlog::info("Panning");
 
   QVector2D pan_delta = m_pan_mouse_end - m_pan_mouse_start;
   // If we moved significantly
@@ -265,10 +260,9 @@ Trackball::get_mouse_projection_on_ball(int mouse_x, int mouse_y) {
 
   QVector3D projection =
       (mouse_on_ball.x() * unit_x) +
-      (mouse_on_ball.y() * unit_y) +
-      (mouse_on_ball.z() * unit_z);
+          (mouse_on_ball.y() * unit_y) +
+          (mouse_on_ball.z() * unit_z);
 
-  spdlog::info("Mouse on ball ({}, {}, {}) ", projection.x(), projection.y(), projection.z());
   return projection;
 }
 
@@ -282,11 +276,9 @@ Trackball::mouse_down(Qt::MouseButton button, Qt::KeyboardModifiers mods, int xp
     if (mods.testFlag(Qt::KeyboardModifier::MetaModifier)) {
       if (m_pan_enabled) {
         m_mode = MODE::PAN;
-        spdlog::info("Panning");
       }
     } else if (m_rotation_enabled) {
       m_mode = MODE::ROTATE;
-      spdlog::info("Rotating");
     }
   }
 

@@ -37,15 +37,12 @@ int main(int argc, char *argv[]) {
 
     auto start_time = std::chrono::system_clock::now();
     unsigned int last_level_iterations = 0;
-    auto last_level_start_time = std::chrono::system_clock::now();
     while ((!poSyOptimiser.optimise_do_one_step())) {
         ++last_level_iterations;
     }
 
     auto end_time = std::chrono::system_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
-    auto last_level_elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
-            end_time - last_level_start_time).count();
 
     auto mins = (int) elapsed_time / 60;
     auto secs = elapsed_time - (mins * 60);

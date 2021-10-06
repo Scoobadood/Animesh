@@ -70,6 +70,10 @@ public:
 
     std::shared_ptr<EdgeData> data() const { return m_edge_data; }
 
+    bool operator<(const Edge &rhs) {
+      return m_edge_data < rhs.m_edge_data;
+    }
+
   private:
     GraphNodePtr m_from_node;
     GraphNodePtr m_to_node;
@@ -87,6 +91,30 @@ public:
    */
   explicit Graph(bool is_directed = false) {
     m_is_directed = is_directed;
+  }
+
+  /**
+   * Copy constructor.
+   */
+  Graph(const Graph &other_graph) {
+    using namespace std;
+
+    m_is_directed = other_graph.m_is_directed;
+    // Map from old graph to new one
+    map<GraphNodePtr, GraphNodePtr> node_mapping;
+    for (const auto &node: other_graph.nodes()) {
+      auto gn = add_node(node->data());
+      node_mapping.insert({node, gn});
+    }
+
+    for (const auto &edge: other_graph.m_edges) {
+      auto from_ptr = edge.first.first;
+      auto to_ptr = edge.first.second;
+      auto data = edge.second;
+      auto from_node = node_mapping.at(from_ptr);
+      auto to_node = node_mapping.at(to_ptr);
+      add_edge(from_node, to_node, *data);
+    }
   }
 
   inline bool is_directed() const { return m_is_directed; }
@@ -242,7 +270,7 @@ private:
                      const GraphNodePtr to_node,
                      const GraphNodePtr exclude_node,
                      std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function) {
-    for (const auto &node_edge : from_node_edges) {
+    for (const auto &node_edge: from_node_edges) {
       // Unless it's from the second node
       if (node_edge.first == exclude_node) {
         continue;
@@ -263,46 +291,48 @@ private:
    */
   void collapse_directed_edge(const GraphNodePtr first_node,
                               const GraphNodePtr second_node,
-                              std::function<NodeData(const NodeData &, const NodeData &)> node_merge_function,
-                              std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function,
+                              std::function<NodeData(const NodeData &, float, const NodeData &, float )> node_merge_function,
+                              std::function<EdgeData(const EdgeData &, float, const EdgeData &, float )> edge_merge_function,
                               std::vector<Edge> &removed_edges,
-                              std::vector<Edge> &created_edges
+                              std::vector<Edge> &created_edges,
+                              float weight1,
+                              float weight2
   ) {
     using namespace std;
 
     // Generate a new node with the user defined callback
-    auto new_node_data = node_merge_function(first_node->data(), second_node->data());
+    auto new_node_data = node_merge_function(first_node->data(), weight1, second_node->data(), weight2);
     auto new_node = add_node(new_node_data);
 
     // For each inbound edge to the first node, add a merged edge to this new node
     auto to_first_neighbours = nodes_with_edges_to(first_node, second_node);
-    for (const auto &node_and_edge : to_first_neighbours) {
+    for (const auto &node_and_edge: to_first_neighbours) {
       removed_edges.emplace_back(node_and_edge.first, first_node, node_and_edge.second);
     }
 
     auto to_second_neighbours = nodes_with_edges_to(second_node, first_node);
-    for (const auto &node_and_edge : to_second_neighbours) {
+    for (const auto &node_and_edge: to_second_neighbours) {
       removed_edges.emplace_back(node_and_edge.first, second_node, node_and_edge.second);
     }
 
-    auto merged_to_nodes_and_edges = merge_edges(to_first_neighbours, to_second_neighbours, edge_merge_function);
-    for (const auto &node_and_edge : merged_to_nodes_and_edges) {
+    auto merged_to_nodes_and_edges = merge_edges(to_first_neighbours, to_second_neighbours, edge_merge_function, weight1, weight2);
+    for (const auto &node_and_edge: merged_to_nodes_and_edges) {
       add_edge(node_and_edge.first, new_node, *(node_and_edge.second));
       created_edges.emplace_back(node_and_edge.first, new_node, node_and_edge.second);
     }
 
     auto from_first_neighbours = nodes_with_edges_from(first_node, second_node);
-    for (const auto &node_and_edge : from_first_neighbours) {
+    for (const auto &node_and_edge: from_first_neighbours) {
       removed_edges.emplace_back(first_node, node_and_edge.first, node_and_edge.second);
     }
 
     auto from_second_neighbours = nodes_with_edges_from(second_node, first_node);
-    for (const auto &node_and_edge : from_second_neighbours) {
+    for (const auto &node_and_edge: from_second_neighbours) {
       removed_edges.emplace_back(second_node, node_and_edge.first, node_and_edge.second);
     }
 
-    auto merged_from_nodes_and_edges = merge_edges(from_first_neighbours, from_second_neighbours, edge_merge_function);
-    for (const auto &node_and_edge : merged_from_nodes_and_edges) {
+    auto merged_from_nodes_and_edges = merge_edges(from_first_neighbours, from_second_neighbours, edge_merge_function, weight1, weight2);
+    for (const auto &node_and_edge: merged_from_nodes_and_edges) {
       add_edge(new_node, node_and_edge.first, *(node_and_edge.second));
       created_edges.emplace_back(new_node, node_and_edge.first, node_and_edge.second);
     }
@@ -316,22 +346,24 @@ private:
   merge_edges(
       const std::map<GraphNodePtr, std::shared_ptr<EdgeData>> &nodes_and_edges_1,
       const std::map<GraphNodePtr, std::shared_ptr<EdgeData>> &nodes_and_edges_2,
-      std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function) {
+      std::function<EdgeData(const EdgeData &, float, const EdgeData &, float)> edge_merge_function,
+      float weight1,
+      float weight2) {
     using namespace std;
 
     vector<pair<GraphNodePtr, shared_ptr<EdgeData>>> merged_nodes_and_edges;
 
-    for (const auto &map_iter : nodes_and_edges_1) {
+    for (const auto &map_iter: nodes_and_edges_1) {
       const auto &other_map_iter = nodes_and_edges_2.find(map_iter.first);
       if (other_map_iter == end(nodes_and_edges_2)) {
         merged_nodes_and_edges.push_back({map_iter.first, map_iter.second});
         continue;
       }
       // node is present in both edge sets; merge them
-      auto new_edge_data = edge_merge_function(*(map_iter.second), *(other_map_iter->second));
+      auto new_edge_data = edge_merge_function(*(map_iter.second), weight1, *(other_map_iter->second), weight2);
       merged_nodes_and_edges.push_back({map_iter.first, make_shared<EdgeData>(new_edge_data)});
     }
-    for (const auto &map_iter : nodes_and_edges_2) {
+    for (const auto &map_iter: nodes_and_edges_2) {
       const auto &other_map_iter = nodes_and_edges_1.find(map_iter.first);
       if (other_map_iter != end(nodes_and_edges_1)) {
         continue;
@@ -343,25 +375,27 @@ private:
 
   void collapse_undirected_edge(const GraphNodePtr first_node,
                                 const GraphNodePtr second_node,
-                                std::function<NodeData(const NodeData &, const NodeData &)> node_merge_function,
-                                std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function,
+                                std::function<NodeData(const NodeData &, float, const NodeData &, float )> node_merge_function,
+                                std::function<EdgeData(const EdgeData &, float, const EdgeData &, float )> edge_merge_function,
                                 std::vector<Edge> &removed_edges,
-                                std::vector<Edge> &created_edges
+                                std::vector<Edge> &created_edges,
+                                float weight1,
+                                float weight2
   ) {
     using namespace std;
 
     // Generate a new node with the user defined callback
-    auto new_node_data = node_merge_function(first_node->data(), second_node->data());
+    auto new_node_data = node_merge_function(first_node->data(), weight1, second_node->data(), weight2);
     auto new_node = add_node(new_node_data);
 
     // Fix up the old nodes
     auto to_first_neighbours = nodes_with_edges_to(first_node, second_node);
-    for (const auto &node_and_edge : to_first_neighbours) {
+    for (const auto &node_and_edge: to_first_neighbours) {
       removed_edges.emplace_back(node_and_edge.first, first_node, node_and_edge.second);
     }
 
     auto to_second_neighbours = nodes_with_edges_to(second_node, first_node);
-    for (const auto &node_and_edge : to_second_neighbours) {
+    for (const auto &node_and_edge: to_second_neighbours) {
       removed_edges.emplace_back(node_and_edge.first, second_node, node_and_edge.second);
     }
 
@@ -378,8 +412,8 @@ private:
       return;
     }
 
-    auto merged_nodes_and_edges = merge_edges(to_first_neighbours, to_second_neighbours, edge_merge_function);
-    for (const auto &node_and_edge : merged_nodes_and_edges) {
+    auto merged_nodes_and_edges = merge_edges(to_first_neighbours, to_second_neighbours, edge_merge_function, weight1, weight2);
+    for (const auto &node_and_edge: merged_nodes_and_edges) {
       add_edge(node_and_edge.first, new_node, *(node_and_edge.second));
       created_edges.emplace_back(node_and_edge.first, new_node, node_and_edge.second);
     }
@@ -470,12 +504,17 @@ public:
  */
   void collapse_edge(const GraphNodePtr first_node,
                      const GraphNodePtr second_node,
-                     std::function<NodeData(const NodeData &, const NodeData &)> node_merge_function,
-                     std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function
+                     std::function<NodeData(const NodeData &, float, const NodeData &, float)> node_merge_function,
+                     std::function<EdgeData(const EdgeData &, float, const EdgeData &, float)> edge_merge_function,
+                     float weight1 = 1.0f,
+                     float weight2 = 1.0f
   ) {
     std::vector<Edge> removed_edges;
     std::vector<Edge> created_edges;
-    collapse_edge(first_node, second_node, node_merge_function, edge_merge_function, removed_edges, created_edges);
+    collapse_edge(first_node, second_node,
+                  node_merge_function, edge_merge_function,
+                  removed_edges, created_edges,
+                  weight1, weight2);
   }
 
 /**
@@ -488,10 +527,12 @@ public:
  */
   void collapse_edge(const GraphNodePtr first_node,
                      const GraphNodePtr second_node,
-                     std::function<NodeData(const NodeData &, const NodeData &)> node_merge_function,
-                     std::function<EdgeData(const EdgeData &, const EdgeData &)> edge_merge_function,
+                     std::function<NodeData(const NodeData &, float, const NodeData &, float )> node_merge_function,
+                     std::function<EdgeData(const EdgeData &, float, const EdgeData &, float )> edge_merge_function,
                      std::vector<Edge> &removed_edges,
-                     std::vector<Edge> &created_edges
+                     std::vector<Edge> &created_edges,
+                     float weight1 = 1.0f,
+                     float weight2 = 1.0f
   ) {
     using namespace std;
     check_has_node(first_node);
@@ -504,14 +545,18 @@ public:
                              node_merge_function,
                              edge_merge_function,
                              removed_edges,
-                             created_edges);
+                             created_edges,
+                             weight1,
+                             weight2);
     } else {
       collapse_undirected_edge(first_node,
                                second_node,
                                node_merge_function,
                                edge_merge_function,
                                removed_edges,
-                               created_edges);
+                               created_edges,
+                               weight1,
+                               weight2);
     }
   }
 
@@ -527,7 +572,7 @@ public:
     using namespace std;
 
     vector<NodeData> nodes;
-    for (const auto &n : m_nodes) {
+    for (const auto &n: m_nodes) {
       nodes.push_back(n->data());
     }
     return nodes;
@@ -594,7 +639,7 @@ public:
     for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
       neighbours.push_back(map_iter->second);
     }
-    if( m_is_directed && inbound_neighbours_too) {
+    if (m_is_directed && inbound_neighbours_too) {
       auto key_range = m_nodes_linking_to.equal_range(node);
       for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
         neighbours.push_back(map_iter->second);
@@ -690,7 +735,7 @@ public:
     vector<Path<shared_ptr<GraphNode>>> cycles;
 
     // For each node
-    for (auto n : nodes()) {
+    for (auto n: nodes()) {
 
       Path<GraphNodePtr> current_path;
       current_path.push_back(n);
@@ -704,11 +749,11 @@ public:
       while (!done) {
         // Grow each path by adding a neighbour not in the path
         list<Path<GraphNodePtr>> new_paths;
-        for (const auto &path : paths) {
+        for (const auto &path: paths) {
           auto node = path.last();
 
           auto next = neighbours(node);
-          for (const auto &nbr : next) {
+          for (const auto &nbr: next) {
             if (!path.contains(nbr) || (path[0] == nbr && path.length() > 2)) {
               new_paths.emplace_back(path, nbr);
             }
@@ -717,12 +762,12 @@ public:
         paths = new_paths;
 
         // Check if we have a cycle yet
-        for (const auto &path : paths) {
+        for (const auto &path: paths) {
           if (path.is_cycle()) {
             done = true;
             // Check whether a variant of this cycle is already known
             bool cycle_is_known = false;
-            for (const auto &known_cycles : cycles) {
+            for (const auto &known_cycles: cycles) {
               if (path.is_equivalent_to(known_cycles)) {
                 cycle_is_known = true;
                 break;

@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
     set<pair<int, int>> edges;
     set<tuple<int, int, int, int>> faces;
     set<vector<QuadGraphNodePtr>> cycles;
-    animesh::CycleExtractor<QuadGraphVertex, EdgeType> ce;
+//    animesh::CycleExtractor<QuadGraphVertex, EdgeType> ce;
 //    ce.extract_cycles(out_graph, cycles);
 
 //    save_as_ply(vertices, edges, faces, args.save_file_name, !args.is_ascii);

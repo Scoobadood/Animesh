@@ -8,6 +8,7 @@ add_library(
 		src/SurfelBuilder.cpp include/Surfel/SurfelBuilder.h
 		src/Surfel_IO.cpp include/Surfel/Surfel_IO.h
 		src/SurfelGraph.cpp include/Surfel/SurfelGraph.h
+		src/MultiResolutionSurfelGraph.cpp include/Surfel/MultiResolutionSurfelGraph.h
 )
 
 # Define headers for this library. PUBLIC headers are used for
@@ -37,6 +38,7 @@ add_executable(
 		testSurfel
 		tests/main.cpp
 		tests/TestSurfel.h tests/TestSurfel.cpp
+		tests/TestMultiResolutionGraph.h tests/TestMultiResolutionGraph.cpp
 		${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph.bin
 		${CMAKE_BINARY_DIR}/surfel_test_data/gold_graph_smooth.bin
 )

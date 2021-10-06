@@ -1,24 +1,21 @@
 # Legging Tool
 add_executable(
-		leg_tool
+		multi_res_tool
 		main.cpp
 )
 
 target_include_directories(
-		leg_tool
+		multi_res_tool
 		PRIVATE
 		${PROJECT_SOURCE_DIR}/third_party/include
 )
-
 target_link_libraries(
-		leg_tool
-		FileUtils
-		GeomFileUtils
+		multi_res_tool
 		Surfel
 )
 
 target_compile_features(
-		leg_tool
+		multi_res_tool
 		PUBLIC
 		cxx_std_11
 )

@@ -151,9 +151,9 @@ TEST_F(DirectedGraphEdgeTests, collapse_edge_invokes_node_merge_function) {
   auto n = graph->add_node("c");
   graph->add_edge(n, gn1, 1.0f);
 
-  testing::MockFunction<std::string(const std::string &a, const std::string &b)> mock_node_merge_function;
+  testing::MockFunction<std::string(const std::string &a, float w1, const std::string &b, float w2)> mock_node_merge_function;
 
-  EXPECT_CALL(mock_node_merge_function, Call("a", "b")).Times(1);
+  EXPECT_CALL(mock_node_merge_function, Call("a", 1.0f, "b", 1.0f)).Times(1);
   graph->collapse_edge(gn1, gn2, mock_node_merge_function.AsStdFunction(), edge_merge_function);
 }
 
@@ -254,10 +254,10 @@ TEST_F(DirectedGraphEdgeTests, collapse_singular_edge_does_not_call_edge_merge_f
   graph->add_edge(gn3, gn4, 1.1);
   graph->add_edge(gn4, gn1, 1.1);
 
-  MockFunction<float(const float &f1, const float &f2)> mock_edge_merge_function;
+  MockFunction<float(const float &f1, float w1, const float &f2, float w2)> mock_edge_merge_function;
   EXPECT_CALL(
       mock_edge_merge_function,
-      Call(_, _)
+      Call(_, _, _, _)
   ).Times(0);
   graph->collapse_edge(gn1, gn2, node_merge_function, mock_edge_merge_function.AsStdFunction());
 }
@@ -269,10 +269,10 @@ TEST_F(DirectedGraphEdgeTests, collapse_edge_invokes_edge_merge_function_on_inci
   graph->add_edge(gn1, gn4, 1.3f);
   graph->add_edge(gn2, gn4, 1.7f);
 
-  testing::MockFunction<float(const float &f1, const float &f2)> mock_edge_merge_function;
+  testing::MockFunction<float(const float &f1, float w1, const float &f2, float w2)> mock_edge_merge_function;
 
-  EXPECT_CALL(mock_edge_merge_function, Call(1.3, 1.7)).Times(1);
-  EXPECT_CALL(mock_edge_merge_function, Call(0.5, 0.7)).Times(1);
+  EXPECT_CALL(mock_edge_merge_function, Call(1.3, 1.0, 1.7, 1.0)).Times(1);
+  EXPECT_CALL(mock_edge_merge_function, Call(0.5, 1.0, 0.7, 1.0)).Times(1);
   graph->collapse_edge(gn1, gn2, node_merge_function, mock_edge_merge_function.AsStdFunction());
 }
 

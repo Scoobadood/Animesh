@@ -35,8 +35,6 @@ GLuint Model::writeToTexture() {
         coords.push_back(float(i));
     }
 
-    int numFaces = coords.size() / 3;
-
     // Assume a 512x512 texture, unclamped floats
     GLuint textureId;
     glGenTextures(1, &textureId);
@@ -212,6 +210,7 @@ GLuint textureFromFile(const char *path, const std::string &directory, bool gamm
             format = GL_RGB;
         else if (nrComponents == 4)
             format = GL_RGBA;
+        else throw std::runtime_error("Unsupported number of components " + std::to_string(nrComponents));
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);

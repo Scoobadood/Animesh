@@ -19,7 +19,7 @@
           throw;                                           \
           } , etype)
 
-std::string node_merge_function(const std::string &n1, const std::string &n2);
-float edge_merge_function(const float &f1, const float& f2);
+std::string node_merge_function(const std::string &n1, float w1, const std::string &n2, float w2);
+float edge_merge_function(const float &f1, float w1, const float& f2, float w2);
 
 #endif //ANIMESH_LIBGRAPH_TESTS_TESTUTILITIES_H

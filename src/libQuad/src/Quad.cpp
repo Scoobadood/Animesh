@@ -37,10 +37,10 @@ maybe_insert_node_in_graph( //
       (tangent * offset[0]) +
       (orth_tangent * offset[1]);
   spdlog::debug("Inserted node {} at ({}, {}, {})",
-               surfel_id,
-               lattice_position[0],
-               lattice_position[1],
-               lattice_position[2]);
+                surfel_id,
+                lattice_position[0],
+                lattice_position[1],
+                lattice_position[2]);
 
   auto node = out_graph->add_node({surfel_id, lattice_position});
   out_nodes_by_surfel_id.insert({surfel_id, node});
@@ -52,7 +52,7 @@ get_unique_edges_in_frame(const SurfelGraphPtr graph, int frame_index) {
   using namespace std;
 
   map<pair<string, string>, SurfelGraph::Edge> included_edges;
-  for (const auto &edge : graph->edges()) {
+  for (const auto &edge: graph->edges()) {
     const auto from_surfel = edge.from()->data();
     const auto to_surfel = edge.to()->data();
     // Skip edges where one end is not in this frame
@@ -105,7 +105,7 @@ build_edge_graph(
 
   // For each edge in this list, insert the end vertices if not present, then add the edge.
   map<string, QuadGraphNodePtr> output_graph_nodes_by_surfel_id;
-  for (const auto &edge_entry : included_edges) {
+  for (const auto &edge_entry: included_edges) {
     const auto edge = edge_entry.second;
     const auto from_surfel_ptr = edge.from()->data();
     const auto from_node = maybe_insert_node_in_graph(from_surfel_ptr, frame_index,
@@ -127,12 +127,12 @@ build_edge_graph(
     }
 
     spdlog::debug("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
-                 edgeType == EDGE_TYPE_BLU ? "blue" : "red",
-                 from_surfel_ptr->id(),
-                 to_surfel_ptr->id(),
-                 t_ij[0], t_ij[1],
-                 t_ji[0], t_ji[1],
-                 (from_node->data().location - to_node->data().location).norm());
+                  edgeType == EDGE_TYPE_BLU ? "blue" : "red",
+                  from_surfel_ptr->id(),
+                  to_surfel_ptr->id(),
+                  t_ij[0], t_ij[1],
+                  t_ji[0], t_ji[1],
+                  (from_node->data().location - to_node->data().location).norm());
 
     out_graph->add_edge(from_node, to_node, edgeType);
   }
@@ -151,20 +151,25 @@ collapse(int frame_index,
 
   auto edge_merge_function = [&]( //
       const EdgeType &e1,
-      const EdgeType &e2) {
+      float weight1,
+      const EdgeType &e2,
+      float weight2) {
     // TODO : Need to be smarter here
-    if( e1 == EDGE_TYPE_RED)
+    if (e1 == EDGE_TYPE_RED)
       return e1;
-    if( e2 == EDGE_TYPE_RED)
+    if (e2 == EDGE_TYPE_RED)
       return e2;
     return e1;
   };
 
   auto node_merge_function = [&]( //
       const QuadGraphVertex &n1,
-      const QuadGraphVertex &n2) {
+      float weight1,
+      const QuadGraphVertex &n2,
+      float weight2) {
 
-    return QuadGraphVertex{(n1.surfel_id + n2.surfel_id), (n1.location + n2.location) * 0.5};
+    return QuadGraphVertex{(n1.surfel_id + n2.surfel_id),
+                           ((n1.location * weight1) + (n2.location * weight2)) / (weight1 + weight2)};
   };
 
   auto edge_sort_pred = [](
@@ -183,7 +188,7 @@ collapse(int frame_index,
                  auto (*)(const pair<QuadGraphNodePtr, QuadGraphNodePtr> &,
                           const pair<QuadGraphNodePtr, QuadGraphNodePtr> &)->bool> blue_edges{edge_sort_pred};
 
-  for (const auto &edge : graph->edges()) {
+  for (const auto &edge: graph->edges()) {
     // Collapse the blue edges
     if (*(edge.data()) == EDGE_TYPE_BLU) {
       blue_edges.emplace(edge.from(), edge.to());
@@ -215,8 +220,8 @@ collapse(int frame_index,
                            created_edges);
     }
     // Add newly created edges to queue
-    for (const auto &c_edge : created_edges) {
-      if(*(c_edge.data()) == EDGE_TYPE_BLU) {
+    for (const auto &c_edge: created_edges) {
+      if (*(c_edge.data()) == EDGE_TYPE_BLU) {
         blue_edges.emplace(c_edge.from(), c_edge.to());
       }
     }

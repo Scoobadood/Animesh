@@ -80,7 +80,7 @@ Optimiser::setup_termination_criteria(
 void
 Optimiser::setup_ssa() {
   m_node_selection_function = nullptr;
-  auto ssa = with_name(m_properties.getProperty(get_ssa_property_name()));
+  auto ssa = ::with_name(m_properties.getProperty(get_ssa_property_name()));
   switch (ssa) {
   case SSA_SELECT_ALL_IN_RANDOM_ORDER:
     m_node_selection_function = std::bind(&Optimiser::ssa_select_all_in_random_order, this);

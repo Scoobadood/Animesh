@@ -143,7 +143,6 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Update the scene
-		float timeValue = glfwGetTime();
 		worldTransform = glm::rotate(worldTransform, glm::radians(.1f), glm::vec3(0.0, 1.0, 0.0));
 
 		// Push to shader program		

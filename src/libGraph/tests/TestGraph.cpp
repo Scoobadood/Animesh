@@ -34,3 +34,14 @@ void dump_graph(const TestGraph::GraphPtr & graph) {
 TEST_F(TestGraph, GraphAssignmentWorks ) {
     auto g2 = undirected_graph;
 }
+
+TEST_F(TestGraph, copy_constructor_should_copy_graph ) {
+  graph->add_node(gn1);
+  graph->add_node(gn2);
+  graph->add_edge(gn1, gn2, 1.1);
+  animesh::Graph<std::string, float> graph2{*graph};
+
+  EXPECT_EQ(graph2.num_edges(), graph->num_edges());
+  EXPECT_EQ(graph2.num_nodes(), graph->num_nodes());
+}
+

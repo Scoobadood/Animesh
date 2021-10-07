@@ -20,6 +20,11 @@ public:
   void generate_levels(unsigned int num_levels);
 
   /**
+   * Up-propagate data from one level to the next.
+   */
+  void propagate(unsigned int from_level);
+
+  /**
    * Return a reference to the specified level of the graph
    */
    const SurfelGraphPtr& operator[](size_t index) {
@@ -30,6 +35,8 @@ private:
   struct SurfelGraphEdgeComparator;
 
   std::vector<SurfelGraphPtr> m_levels;
+
+  std::vector<std::map<SurfelGraphNodePtr, std::pair<SurfelGraphNodePtr,SurfelGraphNodePtr>>> m_up_mapping;
 
   std::default_random_engine m_random_engine;
 

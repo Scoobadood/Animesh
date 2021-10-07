@@ -34,8 +34,8 @@ surfel_merge_function(const std::shared_ptr<Surfel> &n1,
   n2_frames.insert(n2->frames().begin(), n2->frames().end());
   vector<unsigned int> common_frames(min(n1_frames.size(), n2_frames.size()));
   auto it = set_intersection(n1_frames.begin(), n1_frames.end(),
-                   n2_frames.begin(), n2_frames.end(),
-                   common_frames.begin());
+                             n2_frames.begin(), n2_frames.end(),
+                             common_frames.begin());
   common_frames.resize(it - common_frames.begin());
   assert (!common_frames.empty());
 
@@ -159,8 +159,9 @@ MultiResolutionSurfelGraph::generate_new_level() {
     auto mean_normal = compute_mean_normal(node);
     mean_normal_by_node[node->data()->id()] = mean_normal;
   }
-
   map<SurfelGraph::Edge, float, SurfelGraphEdgeComparator> scores;
+
+
   /*
     2. Repeat the following phases until a fixed point is reached:
       (a) For each pair of neighboring vertices i,j,
@@ -186,13 +187,14 @@ MultiResolutionSurfelGraph::generate_new_level() {
   SurfelBuilder sb{m_random_engine};
   set<string> collapsed;
 
+  map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> level_mapping;
   for (const auto &pair: pairs) {
     const auto first_node = pair.first.from();
     const auto second_node = pair.first.to();
     const auto first_node_id = first_node->data()->id();
     const auto second_node_id = second_node->data()->id();
 
-    if( collapsed.count(first_node_id) >0 ||
+    if (collapsed.count(first_node_id) > 0 ||
         collapsed.count(second_node_id) > 0) {
       continue;
     }
@@ -209,7 +211,29 @@ MultiResolutionSurfelGraph::generate_new_level() {
     auto val = dual_area_by_node.at(first_node_id) + dual_area_by_node.at(second_node_id);
     dual_area_by_node.erase(first_node_id);
     dual_area_by_node.erase(second_node_id);
-    dual_area_by_node.insert({ new_node->data()->id() ,val});
+    dual_area_by_node.insert({new_node->data()->id(), val});
+
+    // Update the node mapping table
+    level_mapping.insert({new_node, {first_node, second_node}});
   }
+
+  m_up_mapping.push_back(level_mapping);
   m_levels.push_back(new_graph);
+}
+
+/**
+ * Up-propagate data from one level to the next.
+ */
+void
+MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
+  assert(from_level < m_up_mapping.size());
+  assert(from_level > 0);
+  // For each node in the from_level graph,
+  for (const auto &node : m_levels[from_level]->nodes()) {
+    auto parents = m_up_mapping[from_level - 1].at(node);
+
+    // Find the nodes in the graph
+    parents.first->data()->setTangent(node->data()->tangent());
+    parents.second->data()->setTangent(node->data()->tangent());
+  }
 }

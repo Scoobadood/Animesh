@@ -289,7 +289,8 @@ private:
    * @param node_merge_function
    * @param edge_merge_function
    */
-  void collapse_directed_edge(const GraphNodePtr first_node,
+  const GraphNodePtr
+  collapse_directed_edge(const GraphNodePtr first_node,
                               const GraphNodePtr second_node,
                               std::function<NodeData(const NodeData &, float, const NodeData &, float )> node_merge_function,
                               std::function<EdgeData(const EdgeData &, float, const EdgeData &, float )> edge_merge_function,
@@ -340,6 +341,8 @@ private:
     // Delete the old nodes (and incidentally any edges)
     remove_node(first_node);
     remove_node(second_node);
+
+    return new_node;
   }
 
   std::vector<std::pair<GraphNodePtr, std::shared_ptr<EdgeData>>>
@@ -373,7 +376,8 @@ private:
     return merged_nodes_and_edges;
   }
 
-  void collapse_undirected_edge(const GraphNodePtr first_node,
+  GraphNodePtr
+  collapse_undirected_edge(const GraphNodePtr first_node,
                                 const GraphNodePtr second_node,
                                 std::function<NodeData(const NodeData &, float, const NodeData &, float )> node_merge_function,
                                 std::function<EdgeData(const EdgeData &, float, const EdgeData &, float )> edge_merge_function,
@@ -409,7 +413,7 @@ private:
       remove_node(first_node);
       remove_node(second_node);
       // No fix-up to do so we can just return.
-      return;
+      return new_node;
     }
 
     auto merged_nodes_and_edges = merge_edges(to_first_neighbours, to_second_neighbours, edge_merge_function, weight1, weight2);
@@ -421,6 +425,8 @@ private:
     // Delete the old nodes (and incidentally any edges)
     remove_node(first_node);
     remove_node(second_node);
+
+    return new_node;
   }
 
   /**
@@ -502,7 +508,8 @@ public:
  * given by the user.
  * Deleting the original edge
  */
-  void collapse_edge(const GraphNodePtr first_node,
+  GraphNodePtr
+  collapse_edge(const GraphNodePtr first_node,
                      const GraphNodePtr second_node,
                      std::function<NodeData(const NodeData &, float, const NodeData &, float)> node_merge_function,
                      std::function<EdgeData(const EdgeData &, float, const EdgeData &, float)> edge_merge_function,
@@ -511,7 +518,7 @@ public:
   ) {
     std::vector<Edge> removed_edges;
     std::vector<Edge> created_edges;
-    collapse_edge(first_node, second_node,
+    return collapse_edge(first_node, second_node,
                   node_merge_function, edge_merge_function,
                   removed_edges, created_edges,
                   weight1, weight2);
@@ -525,7 +532,8 @@ public:
  * given by the user.
  * Deleting the original edge
  */
-  void collapse_edge(const GraphNodePtr first_node,
+  GraphNodePtr
+  collapse_edge(const GraphNodePtr first_node,
                      const GraphNodePtr second_node,
                      std::function<NodeData(const NodeData &, float, const NodeData &, float )> node_merge_function,
                      std::function<EdgeData(const EdgeData &, float, const EdgeData &, float )> edge_merge_function,
@@ -540,7 +548,7 @@ public:
     check_has_edge(first_node, second_node);
 
     if (m_is_directed) {
-      collapse_directed_edge(first_node,
+      return collapse_directed_edge(first_node,
                              second_node,
                              node_merge_function,
                              edge_merge_function,
@@ -549,7 +557,7 @@ public:
                              weight1,
                              weight2);
     } else {
-      collapse_undirected_edge(first_node,
+      return collapse_undirected_edge(first_node,
                                second_node,
                                node_merge_function,
                                edge_merge_function,

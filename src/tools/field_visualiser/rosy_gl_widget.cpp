@@ -2,169 +2,223 @@
 
 #include <vector>
 #include <QColor>
+#include <Geom/Geom.h>
+#include <Eigen/Geometry>
 
 rosy_gl_widget::rosy_gl_widget(
-        QWidget *parent, //
-        Qt::WindowFlags f) //
-        : field_gl_widget{parent, f}
-        , m_normalScaleFactor{1.0f} //
-        , m_renderNormals{true} //
-        , m_renderMainTangents{true} //
-        , m_renderOtherTangents{true} //
-        , m_renderErrorColours{true} //
-        , m_normalColour{QColor{255, 255, 255, 255}} //
-        , m_mainTangentColour{QColor{255, 0, 0, 255}} //
-        , m_otherTangentsColour{QColor{0, 255, 0, 255}} //
+    QWidget *parent, //
+    Qt::WindowFlags f) //
+    : field_gl_widget{parent, f}, m_normalScaleFactor{1.0f} //
+    , m_renderNormals{true} //
+    , m_renderSplats{true} //
+    , m_renderMainTangents{true} //
+    , m_renderOtherTangents{true} //
+    , m_renderErrorColours{true} //
+    , m_normalColour{QColor{255, 255, 255, 255}} //
+    , m_splatColour{QColor{88, 116, 167, 255}} //
+    , m_mainTangentColour{QColor{255, 0, 0, 255}} //
+    , m_otherTangentsColour{QColor{0, 255, 0, 255}} //
 {
-    setFocus();
-    // Dummy data
-    setRoSyData(
-            std::vector<float>{0.0f, 0.0f, 0.0f},
-            std::vector<float>{0.0f, 1.0f, 0.0f},
-            std::vector<float>{0.0f, 0.0f, 1.0f},
-            std::vector<float>{0.0f, 1.0f, 0.0f, 1.0f},
-            1.0f
+  setFocus();
+  // Dummy data
+  setRoSyData(
+      std::vector<float>{0.0f, 0.0f, 0.0f},
+      std::vector<float>{0.0f, 1.0f, 0.0f},
+      std::vector<float>{0.0f, 0.0f, 1.0f},
+      std::vector<float>{0.0f, 1.0f, 0.0f, 1.0f},
+      1.0f
+  );
+}
+
+void drawEllipse(float cx, float cy, float cz,
+                 float nx, float ny, float nz,
+                 float tx, float ty, float tz,
+                 float radius,
+                 int num_segments) {
+
+  float angle_delta = (2 * 3.1415926f) / (float) num_segments;
+  Eigen::Vector3f axis{nx, ny, nz};
+  Eigen::Vector3f point{tx, ty, tz};
+  Eigen::Vector3f pos{cx, cy, cz};
+  pos -= (0.1 * axis);
+
+  glBegin(GL_TRIANGLE_FAN);
+  glVertex3f(pos.x(), pos.y(), pos.z());
+  for (int i = 0; i <= num_segments; ++i) {
+    auto angle = (float) i * angle_delta;
+    auto vec = rotate_point_through_axis_angle(axis, angle, point);
+    glVertex3f(pos.x() + vec.x() * radius,
+               pos.y() + vec.y() * radius,
+               pos.z() + vec.z() * radius);
+  }
+  glEnd();
+}
+
+void
+rosy_gl_widget::maybeDrawSplats() const {
+  if (!m_renderSplats) {
+    return;
+  }
+
+  glColor4d(m_splatColour.redF(), m_splatColour.greenF(),
+            m_splatColour.blueF(), m_splatColour.alphaF());
+
+  for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+    drawEllipse(m_positions.at(i * 3 + 0),
+                m_positions.at(i * 3 + 1),
+                m_positions.at(i * 3 + 2),
+                m_normals.at(i * 3 + 0),
+                m_normals.at(i * 3 + 1),
+                m_normals.at(i * 3 + 2),
+                m_tangents.at(i * 3 + 0),
+                m_tangents.at(i * 3 + 1),
+                m_tangents.at(i * 3 + 2),
+                1.2, 10
     );
+  }
+  checkGLError("maybeDrawSplats");
+
 }
 
 void
 rosy_gl_widget::maybeDrawNormals() const {
-    if (!m_renderNormals) {
-        return;
-    }
-    glColor4d(m_normalColour.redF(), m_normalColour.greenF(),
-              m_normalColour.blueF(), m_normalColour.alphaF());
+  if (!m_renderNormals) {
+    return;
+  }
+  glColor4d(m_normalColour.redF(), m_normalColour.greenF(),
+            m_normalColour.blueF(), m_normalColour.alphaF());
 
-    for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
-        if( m_renderErrorColours) {
-            auto r = m_colours.at(i * 4 + 0);
-            auto g = m_colours.at(i * 4 + 1);
-            auto b = m_colours.at(i * 4 + 2);
-            auto a = m_colours.at(i * 4 + 3);
-            glColor4f(r, g, b, a);
-        }
-        glBegin(GL_LINES);
-        glVertex3f(m_positions.at(i * 3 + 0),
-                   m_positions.at(i * 3 + 1),
-                   m_positions.at(i * 3 + 2));
-        glVertex3f(m_positions.at(i * 3 + 0) + (m_normals.at(i * 3 + 0) * m_normalScaleFactor),
-                   m_positions.at(i * 3 + 1) + (m_normals.at(i * 3 + 1) * m_normalScaleFactor),
-                   m_positions.at(i * 3 + 2) + (m_normals.at(i * 3 + 2) * m_normalScaleFactor));
-        glEnd();
+  for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+    if (m_renderErrorColours) {
+      auto r = m_colours.at(i * 4 + 0);
+      auto g = m_colours.at(i * 4 + 1);
+      auto b = m_colours.at(i * 4 + 2);
+      auto a = m_colours.at(i * 4 + 3);
+      glColor4f(r, g, b, a);
     }
-    checkGLError("maybeDrawNormals");
+    glBegin(GL_LINES);
+    glVertex3f(m_positions.at(i * 3 + 0),
+               m_positions.at(i * 3 + 1),
+               m_positions.at(i * 3 + 2));
+    glVertex3f(m_positions.at(i * 3 + 0) + (m_normals.at(i * 3 + 0) * m_normalScaleFactor),
+               m_positions.at(i * 3 + 1) + (m_normals.at(i * 3 + 1) * m_normalScaleFactor),
+               m_positions.at(i * 3 + 2) + (m_normals.at(i * 3 + 2) * m_normalScaleFactor));
+    glEnd();
+  }
+  checkGLError("maybeDrawNormals");
 
 }
 
 void
 rosy_gl_widget::drawPositions() const {
-    glColor4d(m_normalColour.redF(),m_normalColour.greenF(),
-              m_normalColour.blueF(),m_normalColour.alphaF());
+  glColor4d(m_normalColour.redF(), m_normalColour.greenF(),
+            m_normalColour.blueF(), m_normalColour.alphaF());
 
-    glEnable(GL_POINT_SMOOTH);
-    float oldPointSize;
-    glGetFloatv(GL_POINT_SIZE, &oldPointSize);
+  glEnable(GL_POINT_SMOOTH);
+  float oldPointSize;
+  glGetFloatv(GL_POINT_SIZE, &oldPointSize);
 
-    glPointSize(3.0f);
-    for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
-        glBegin(GL_POINTS);
-        glVertex3f(m_positions.at(i * 3 + 0),
-                   m_positions.at(i * 3 + 1),
-                   m_positions.at(i * 3 + 2));
-        glEnd();
-    }
-    glPointSize(oldPointSize);
-    glDisable(GL_POINT_SMOOTH);
-    checkGLError("drawPositions");
+  glPointSize(3.0f);
+  for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+    glBegin(GL_POINTS);
+    glVertex3f(m_positions.at(i * 3 + 0),
+               m_positions.at(i * 3 + 1),
+               m_positions.at(i * 3 + 2));
+    glEnd();
+  }
+  glPointSize(oldPointSize);
+  glDisable(GL_POINT_SMOOTH);
+  checkGLError("drawPositions");
 }
 
 void
 rosy_gl_widget::maybeDrawMainTangents() const {
-    if (!m_renderMainTangents) {
-        return;
+  if (!m_renderMainTangents) {
+    return;
+  }
+  glColor4d(m_mainTangentColour.redF(), m_mainTangentColour.greenF(),
+            m_mainTangentColour.blueF(), m_mainTangentColour.alphaF());
+  for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+    if (m_renderErrorColours) {
+      auto r = m_colours.at(i * 4 + 0);
+      auto g = m_colours.at(i * 4 + 1);
+      auto b = m_colours.at(i * 4 + 2);
+      auto a = m_colours.at(i * 4 + 3);
+      glColor4f(r, g, b, a);
     }
-        glColor4d(m_mainTangentColour.redF(),m_mainTangentColour.greenF(),
-                  m_mainTangentColour.blueF(),m_mainTangentColour.alphaF());
-    for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
-        if( m_renderErrorColours) {
-            auto r = m_colours.at(i * 4 + 0);
-            auto g = m_colours.at(i * 4 + 1);
-            auto b = m_colours.at(i * 4 + 2);
-            auto a = m_colours.at(i * 4 + 3);
-            glColor4f(r, g, b, a);
-        }
 
-        glBegin(GL_LINES);
-        glVertex3f(m_positions.at(i * 3 + 0),
-                   m_positions.at(i * 3 + 1),
-                   m_positions.at(i * 3 + 2));
-        glVertex3f(m_positions.at(i * 3 + 0) + (m_tangents.at(i * 3 + 0) * m_normalScaleFactor),
-                   m_positions.at(i * 3 + 1) + (m_tangents.at(i * 3 + 1) * m_normalScaleFactor),
-                   m_positions.at(i * 3 + 2) + (m_tangents.at(i * 3 + 2) * m_normalScaleFactor));
-        glEnd();
-    }
-    checkGLError("maybeDrawTangents");
+    glBegin(GL_LINES);
+    glVertex3f(m_positions.at(i * 3 + 0),
+               m_positions.at(i * 3 + 1),
+               m_positions.at(i * 3 + 2));
+    glVertex3f(m_positions.at(i * 3 + 0) + (m_tangents.at(i * 3 + 0) * m_normalScaleFactor),
+               m_positions.at(i * 3 + 1) + (m_tangents.at(i * 3 + 1) * m_normalScaleFactor),
+               m_positions.at(i * 3 + 2) + (m_tangents.at(i * 3 + 2) * m_normalScaleFactor));
+    glEnd();
+  }
+  checkGLError("maybeDrawTangents");
 
 }
 
 void
 rosy_gl_widget::maybeDrawOtherTangents() const {
-    if (!m_renderOtherTangents) {
-        return;
+  if (!m_renderOtherTangents) {
+    return;
+  }
+  glColor4f((GLfloat) m_otherTangentsColour.redF(),
+            (GLfloat) m_otherTangentsColour.greenF(),
+            (GLfloat) m_otherTangentsColour.blueF(),
+            (GLfloat) m_otherTangentsColour.alphaF());
+
+  for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+    if (m_renderErrorColours) {
+      auto r = m_colours.at(i * 4 + 0);
+      auto g = m_colours.at(i * 4 + 1);
+      auto b = m_colours.at(i * 4 + 2);
+      auto a = m_colours.at(i * 4 + 3);
+      glColor4f(r, g, b, a);
     }
-    glColor4f((GLfloat) m_otherTangentsColour.redF(),
-              (GLfloat) m_otherTangentsColour.greenF(),
-              (GLfloat) m_otherTangentsColour.blueF(),
-              (GLfloat) m_otherTangentsColour.alphaF());
+    // Get perpendicular tangent by computing cross(norm,tan)
+    const auto normX = m_normals.at(i * 3 + 0);
+    const auto normY = m_normals.at(i * 3 + 1);
+    const auto normZ = m_normals.at(i * 3 + 2);
+    const auto tanX = m_tangents.at(i * 3 + 0);
+    const auto tanY = m_tangents.at(i * 3 + 1);
+    const auto tanZ = m_tangents.at(i * 3 + 2);
 
-    for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
-        if( m_renderErrorColours) {
-            auto r = m_colours.at(i * 4 + 0);
-            auto g = m_colours.at(i * 4 + 1);
-            auto b = m_colours.at(i * 4 + 2);
-            auto a = m_colours.at(i * 4 + 3);
-            glColor4f(r, g, b, a);
-        }
-        // Get perpendicular tangent by computing cross(norm,tan)
-        const auto normX = m_normals.at(i * 3 + 0);
-        const auto normY = m_normals.at(i * 3 + 1);
-        const auto normZ = m_normals.at(i * 3 + 2);
-        const auto tanX = m_tangents.at(i * 3 + 0);
-        const auto tanY = m_tangents.at(i * 3 + 1);
-        const auto tanZ = m_tangents.at(i * 3 + 2);
+    auto crossTanX = (normY * tanZ - normZ * tanY) * m_normalScaleFactor; //bn -cm
+    auto crossTanY = (normZ * tanX - normX * tanZ) * m_normalScaleFactor; //bn -cm
+    auto crossTanZ = (normX * tanY - normY * tanX) * m_normalScaleFactor; //bn -cm
 
-        auto crossTanX = (normY * tanZ - normZ * tanY) * m_normalScaleFactor; //bn -cm
-        auto crossTanY = (normZ * tanX - normX * tanZ) * m_normalScaleFactor; //bn -cm
-        auto crossTanZ = (normX * tanY - normY * tanX) * m_normalScaleFactor; //bn -cm
-
-        glBegin(GL_LINES);
-        glVertex3f(m_positions.at(i * 3 + 0) - crossTanX,
-                   m_positions.at(i * 3 + 1) - crossTanY,
-                   m_positions.at(i * 3 + 2) - crossTanZ);
-        glVertex3f(m_positions.at(i * 3 + 0) + crossTanX,
-                   m_positions.at(i * 3 + 1) + crossTanY,
-                   m_positions.at(i * 3 + 2) + crossTanZ);
-        glVertex3f(m_positions.at(i * 3 + 0) - (tanX * m_normalScaleFactor),
-                   m_positions.at(i * 3 + 1) - (tanY * m_normalScaleFactor),
-                   m_positions.at(i * 3 + 2) - (tanZ * m_normalScaleFactor));
-        glVertex3f(m_positions.at(i * 3 + 0),
-                   m_positions.at(i * 3 + 1),
-                   m_positions.at(i * 3 + 2));
-        glEnd();
-    }
-    checkGLError("maybeDrawOtherTangents");
+    glBegin(GL_LINES);
+    glVertex3f(m_positions.at(i * 3 + 0) - crossTanX,
+               m_positions.at(i * 3 + 1) - crossTanY,
+               m_positions.at(i * 3 + 2) - crossTanZ);
+    glVertex3f(m_positions.at(i * 3 + 0) + crossTanX,
+               m_positions.at(i * 3 + 1) + crossTanY,
+               m_positions.at(i * 3 + 2) + crossTanZ);
+    glVertex3f(m_positions.at(i * 3 + 0) - (tanX * m_normalScaleFactor),
+               m_positions.at(i * 3 + 1) - (tanY * m_normalScaleFactor),
+               m_positions.at(i * 3 + 2) - (tanZ * m_normalScaleFactor));
+    glVertex3f(m_positions.at(i * 3 + 0),
+               m_positions.at(i * 3 + 1),
+               m_positions.at(i * 3 + 2));
+    glEnd();
+  }
+  checkGLError("maybeDrawOtherTangents");
 }
-
 
 void
 rosy_gl_widget::do_paint() {
-    drawPositions();
+  drawPositions();
 
-    maybeDrawNormals();
+  maybeDrawSplats();
 
-    maybeDrawMainTangents();
+  maybeDrawNormals();
 
-    maybeDrawOtherTangents();
+  maybeDrawMainTangents();
+
+  maybeDrawOtherTangents();
 }
 
 void
@@ -173,48 +227,48 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
                             const std::vector<float> &tangents,
                             const std::vector<float> &colours,
                             const float normal_scale_factor) {
-    m_positions.clear();
-    m_tangents.clear();
-    m_normals.clear();
-    m_colours.clear();
+  m_positions.clear();
+  m_tangents.clear();
+  m_normals.clear();
+  m_colours.clear();
 
-    m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
-    m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
-    m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
-    m_colours.insert(m_colours.begin(), colours.begin(), colours.end());
-    m_normalScaleFactor = normal_scale_factor;
+  m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
+  m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
+  m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
+  m_colours.insert(m_colours.begin(), colours.begin(), colours.end());
+  m_normalScaleFactor = normal_scale_factor;
 }
 
 void
 rosy_gl_widget::initializeGL() {
-    glEnable(GL_DEPTH);
-    glLineWidth(3.0f);
+  glEnable(GL_DEPTH_TEST);
+  glLineWidth(3.0f);
 }
 
 void
-rosy_gl_widget::renderNormals( bool shouldRender) {
-    if( m_renderNormals != shouldRender) {
-        m_renderNormals = shouldRender;
-    }
+rosy_gl_widget::renderNormals(bool shouldRender) {
+  if (m_renderNormals != shouldRender) {
+    m_renderNormals = shouldRender;
+  }
 }
 
 void
-rosy_gl_widget::renderMainTangents( bool shouldRender) {
-    if( m_renderMainTangents != shouldRender) {
-        m_renderMainTangents = shouldRender;
-    }
+rosy_gl_widget::renderMainTangents(bool shouldRender) {
+  if (m_renderMainTangents != shouldRender) {
+    m_renderMainTangents = shouldRender;
+  }
 }
 
 void
-rosy_gl_widget::renderOtherTangents( bool shouldRender) {
-    if( m_renderOtherTangents != shouldRender) {
-        m_renderOtherTangents = shouldRender;
-    }
+rosy_gl_widget::renderOtherTangents(bool shouldRender) {
+  if (m_renderOtherTangents != shouldRender) {
+    m_renderOtherTangents = shouldRender;
+  }
 }
 
 void
-rosy_gl_widget::renderErrorColours( bool shouldRender) {
-    if( m_renderErrorColours != shouldRender) {
-        m_renderErrorColours = shouldRender;
-    }
+rosy_gl_widget::renderErrorColours(bool shouldRender) {
+  if (m_renderErrorColours != shouldRender) {
+    m_renderErrorColours = shouldRender;
+  }
 }

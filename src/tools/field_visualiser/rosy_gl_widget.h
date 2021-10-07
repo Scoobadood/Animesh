@@ -20,49 +20,53 @@
 class rosy_gl_widget : public field_gl_widget {
 Q_OBJECT
 public:
-    explicit rosy_gl_widget(QWidget *parent = nullptr, //
-                            Qt::WindowFlags f = Qt::WindowFlags());
+  explicit rosy_gl_widget(QWidget *parent = nullptr, //
+                          Qt::WindowFlags f = Qt::WindowFlags());
 
-    void setRoSyData(const std::vector<float> &positions,
-                     const std::vector<float> &normals,
-                     const std::vector<float> &tangents,
-                     const std::vector<float> &colours,
-                     float scale_factor);
+  void setRoSyData(const std::vector<float> &positions,
+                   const std::vector<float> &normals,
+                   const std::vector<float> &tangents,
+                   const std::vector<float> &colours,
+                   float scale_factor);
 
-    void renderNormals(bool shouldRender);
+  void renderNormals(bool shouldRender);
 
-    void renderMainTangents(bool shouldRender);
+  void renderMainTangents(bool shouldRender);
 
-    void renderOtherTangents(bool shouldRender);
+  void renderOtherTangents(bool shouldRender);
 
-    void renderErrorColours(bool shouldRender);
+  void renderErrorColours(bool shouldRender);
 
-    void set_norm_tan_length(float l);
+  void set_norm_tan_length(float l);
 
 protected:
-    void do_paint() override;
+  void do_paint() override;
 
-    void initializeGL() override;
+  void initializeGL() override;
 
 private:
-    std::vector<float> m_positions;
-    std::vector<float> m_tangents;
-    std::vector<float> m_normals;
-    std::vector<float> m_colours;
-    float m_normalScaleFactor;
-    bool m_renderNormals;
-    bool m_renderMainTangents;
-    bool m_renderOtherTangents;
-    bool m_renderErrorColours;
-    QColor m_normalColour;
-    QColor m_mainTangentColour;
-    QColor m_otherTangentsColour;
+  std::vector<float> m_positions;
+  std::vector<float> m_tangents;
+  std::vector<float> m_normals;
+  std::vector<float> m_colours;
+  float m_normalScaleFactor;
+  bool m_renderNormals;
+  bool m_renderSplats;
+  bool m_renderMainTangents;
+  bool m_renderOtherTangents;
+  bool m_renderErrorColours;
+  QColor m_normalColour;
+  QColor m_splatColour;
+  QColor m_mainTangentColour;
+  QColor m_otherTangentsColour;
 
-    void drawPositions() const;
+  void drawPositions() const;
 
-    void maybeDrawNormals() const;
+  void maybeDrawNormals() const;
 
-    void maybeDrawMainTangents() const;
+  void maybeDrawSplats() const;
 
-    void maybeDrawOtherTangents() const;
+  void maybeDrawMainTangents() const;
+
+  void maybeDrawOtherTangents() const;
 };

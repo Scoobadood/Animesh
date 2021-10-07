@@ -33,7 +33,7 @@ field_gl_widget::set_arc_ball(const std::shared_ptr<AbstractArcBall>& arc_ball) 
 void
 field_gl_widget::clear() {
   glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   checkGLError("clear");
 }
 

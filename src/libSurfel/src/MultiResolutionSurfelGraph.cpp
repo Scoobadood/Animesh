@@ -187,21 +187,29 @@ MultiResolutionSurfelGraph::generate_new_level() {
   set<string> collapsed;
 
   for (const auto &pair: pairs) {
-    const SurfelGraphNodePtr first_node = pair.first.from();
-    const SurfelGraphNodePtr second_node = pair.first.to();
+    const auto first_node = pair.first.from();
+    const auto second_node = pair.first.to();
+    const auto first_node_id = first_node->data()->id();
+    const auto second_node_id = second_node->data()->id();
 
-    if( collapsed.count(first_node->data()->id()) >0 ||
-        collapsed.count(second_node->data()->id()) > 0) {
+    if( collapsed.count(first_node_id) >0 ||
+        collapsed.count(second_node_id) > 0) {
       continue;
     }
-    new_graph->collapse_edge(
+    auto new_node = new_graph->collapse_edge(
         first_node, second_node,
         ::surfel_merge_function,
         ::edge_merge_function,
-        (float) dual_area_by_node.at(first_node->data()->id()),
-        (float) dual_area_by_node.at(second_node->data()->id()));
-    collapsed.emplace(first_node->data()->id());
-    collapsed.emplace(second_node->data()->id());
+        (float) dual_area_by_node.at(first_node_id),
+        (float) dual_area_by_node.at(second_node_id));
+    collapsed.emplace(first_node_id);
+    collapsed.emplace(second_node_id);
+
+    // Update the dual areas
+    auto val = dual_area_by_node.at(first_node_id) + dual_area_by_node.at(second_node_id);
+    dual_area_by_node.erase(first_node_id);
+    dual_area_by_node.erase(second_node_id);
+    dual_area_by_node.insert({ new_node->data()->id() ,val});
   }
   m_levels.push_back(new_graph);
 }

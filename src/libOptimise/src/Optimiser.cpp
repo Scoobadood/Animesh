@@ -236,16 +236,11 @@ Optimiser::optimise_do_one_step() {
     }
 
     float smoothness = std::numeric_limits<float>::infinity();
-    if (check_termination_criteria(smoothness, m_result)) {
-
-      spdlog::info("Terminating because {}. Smoothness : {:4.3f}",
-                   m_result == NOT_COMPLETE
-                   ? "not complete"
-                   : m_result == CONVERGED
-                     ? "converged"
-                     : "cancelled", smoothness
-      );
+    OptimisationResult result;
+    if (check_termination_criteria(smoothness, result)) {
       m_state = ENDING_OPTIMISATION;
+      m_result = result;
+      smoothing_completed(smoothness, result);
     }
     m_last_smoothness = smoothness;
   }
@@ -385,3 +380,14 @@ Optimiser::get_neighbours_of_node_in_frame(
   }
   return neighbours_in_frame;
 }
+
+/* Call back when termination criteria are met */
+void Optimiser::smoothing_completed(float smoothness, OptimisationResult result) {
+  spdlog::info("Terminating because {}. Smoothness : {:4.3f}",
+               m_result == NOT_COMPLETE
+               ? "not complete"
+               : m_result == CONVERGED
+                 ? "converged"
+                 : "cancelled", smoothness
+  );
+};

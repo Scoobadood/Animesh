@@ -22,4 +22,5 @@ private:
   MultiResolutionSurfelGraph * m_multi_res_graph;
   Properties m_properties;
   unsigned int m_num_levels;
+  unsigned int m_current_level;
 };

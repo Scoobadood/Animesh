@@ -15,7 +15,13 @@ public:
     bool optimise_do_one_step();
 
 protected:
-    explicit Optimiser(Properties properties);
+  enum OptimisationResult {
+    NOT_COMPLETE,
+    CONVERGED,
+    CANCELLED,
+  };
+
+  explicit Optimiser(Properties properties);
 
     void setup_termination_criteria(
             const std::string &termination_criteria_property,
@@ -45,6 +51,18 @@ protected:
 
   /* Call back once a graph is loaded to provide an opportunity to play with it before smoothing starts */
   virtual void loaded_graph() {  };
+  /* Call back when termination criteria are met */
+  virtual void smoothing_completed(float smoothness, OptimisationResult result);
+
+
+  enum OptimisationState {
+    UNINITIALISED,
+    INITIALISED,
+    OPTIMISING,
+    ENDING_OPTIMISATION
+  };
+
+  OptimisationResult m_result;
 
 private:
     // Termination criteria
@@ -90,21 +108,6 @@ private:
     virtual void store_mean_smoothness( SurfelGraphNodePtr node, float smoothness) const = 0;
 
     float compute_mean_smoothness(bool is_first_run = false) const;
-
-    enum OptimisationResult {
-        NOT_COMPLETE,
-        CONVERGED,
-        CANCELLED,
-    };
-
-    enum OptimisationState {
-        UNINITIALISED,
-        INITIALISED,
-        OPTIMISING,
-        ENDING_OPTIMISATION
-    };
-
-    OptimisationResult m_result;
     unsigned int m_num_iterations;
     unsigned int m_num_frames;
 

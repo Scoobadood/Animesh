@@ -128,6 +128,4 @@ private:
     bool maybe_check_iterations(OptimisationResult &result) const;
 
     bool check_termination_criteria(float &smoothness, OptimisationResult &result) const;
-
-    static unsigned int count_number_of_frames(const SurfelGraphPtr &surfel_graph);
 };

@@ -63,6 +63,7 @@ protected:
   };
 
   OptimisationResult m_result;
+  OptimisationState m_state;
 
 private:
     // Termination criteria
@@ -113,8 +114,6 @@ private:
 
     // Error and convergence
     float m_last_smoothness;
-
-    OptimisationState m_state;
 
     unsigned short read_termination_criteria(const std::string &termination_criteria);
 

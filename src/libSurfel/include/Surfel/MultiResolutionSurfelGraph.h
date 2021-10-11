@@ -27,9 +27,9 @@ public:
   /**
    * Return a reference to the specified level of the graph
    */
-   const SurfelGraphPtr& operator[](size_t index) {
-     return m_levels[index];
-   }
+  SurfelGraphPtr& operator[](size_t index) {
+    return m_levels[index];
+  }
 
 private:
   struct SurfelGraphEdgeComparator;

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <RoSyOptimiser.h>
+#include "RoSyOptimiser.h"
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
 #include <Surfel/MultiResolutionSurfelGraph.h>
@@ -17,11 +17,10 @@ public:
 
 protected:
   void loaded_graph() override;
+  void smoothing_completed(float smoothness, OptimisationResult result) override;
 
 private:
-  RoSyOptimiser * m_rosy_optimiser;
   MultiResolutionSurfelGraph * m_multi_res_graph;
-  Properties m_properties;
   unsigned int m_num_levels;
   unsigned int m_current_level;
 };

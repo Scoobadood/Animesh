@@ -1,7 +1,7 @@
 
 #include <Properties/Properties.h>
 #include <Surfel/Surfel_IO.h>
-#include <RoSy/RoSyOptimiser.h>
+#include <RoSy/MultiResolutionRoSyOptimiser.h>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/cfg/env.h"
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     string input_file_name = properties.getProperty("rosy-input-file");
     string output_file_name = properties.getProperty("rosy-output-file");
 
-    RoSyOptimiser roSyOptimiser{properties};
+    MultiResolutionRoSyOptimiser roSyOptimiser{properties};
     auto surfel_graph = load_surfel_graph_from_file(input_file_name);
     info("Loaded from {}", input_file_name);
 

@@ -41,7 +41,7 @@ surfel_merge_function(const std::shared_ptr<Surfel> &n1,
 
   default_random_engine re{123};
   auto *sb = new SurfelBuilder(re);
-  auto new_id = n1->id() + n2->id();
+  auto new_id = "(" + n1->id() + " + " + n2->id() + ")";
   auto new_tangent = ((n1->tangent() * w1) + (n2->tangent() * w2)).normalized();
   auto new_offset = ((n1->reference_lattice_offset() * w1) + (n2->reference_lattice_offset() * w2)) / (w1 + w2);
   sb->with_id(new_id)
@@ -61,7 +61,7 @@ surfel_merge_function(const std::shared_ptr<Surfel> &n1,
         frame_pos);
   }
   return make_shared<Surfel>(sb->build());
-};
+}
 
 SurfelGraphEdge
 edge_merge_function(const SurfelGraphEdge &e1, float w1, const SurfelGraphEdge &e2, float w2) {
@@ -94,7 +94,7 @@ MultiResolutionSurfelGraph::generate_levels(unsigned int num_levels) {
     return;
   }
 
-  for (unsigned int lvl_idx = 0; lvl_idx < num_levels; ++lvl_idx) {
+  for (unsigned int lvl_idx = 1; lvl_idx < num_levels; ++lvl_idx) {
     generate_new_level();
   }
 }
@@ -174,12 +174,12 @@ MultiResolutionSurfelGraph::generate_new_level() {
           merged together.
    */
   compute_scores(new_graph, dual_area_by_node, mean_normal_by_node, scores);
-  vector<pair<SurfelGraph::Edge, float>> pairs;
-  pairs.reserve(scores.size());
-  for (auto &score: scores) {
-    pairs.emplace_back(score);
+  vector<pair<SurfelGraph::Edge, float>> edges_and_scores;
+  edges_and_scores.reserve(scores.size());
+  for (auto &edge_and_score: scores) {
+    edges_and_scores.emplace_back(edge_and_score);
   }
-  sort(pairs.begin(), pairs.end(), [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
+  sort(edges_and_scores.begin(), edges_and_scores.end(), [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
          return a.second > b.second;
        }
   );
@@ -188,16 +188,19 @@ MultiResolutionSurfelGraph::generate_new_level() {
   set<string> collapsed;
 
   map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> level_mapping;
-  for (const auto &pair: pairs) {
-    const auto first_node = pair.first.from();
-    const auto second_node = pair.first.to();
+  for (const auto &edge_and_score: edges_and_scores) {
+    const auto first_node = edge_and_score.first.from();
+    const auto second_node = edge_and_score.first.to();
     const auto first_node_id = first_node->data()->id();
     const auto second_node_id = second_node->data()->id();
 
+    // Only collapse if neither node has already been involved in a collapse
     if (collapsed.count(first_node_id) > 0 ||
         collapsed.count(second_node_id) > 0) {
       continue;
     }
+
+    // Perform the collapse and remember it.
     auto new_node = new_graph->collapse_edge(
         first_node, second_node,
         ::surfel_merge_function,
@@ -226,14 +229,27 @@ MultiResolutionSurfelGraph::generate_new_level() {
  */
 void
 MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
-  assert(from_level < m_up_mapping.size());
+  assert(from_level <= m_up_mapping.size());
   assert(from_level > 0);
   // For each node in the from_level graph,
+  int i=0;
   for (const auto &node : m_levels[from_level]->nodes()) {
-    auto parents = m_up_mapping[from_level - 1].at(node);
+    spdlog::info("{}\tFinding up mapping for node {}", ++i, node->data()->id());
 
-    // Find the nodes in the graph
-    parents.first->data()->setTangent(node->data()->tangent());
-    parents.second->data()->setTangent(node->data()->tangent());
+    auto mapping = m_up_mapping[from_level - 1].find(node);
+    if( mapping == end(m_up_mapping[from_level - 1])) {
+      // Not found
+      for( auto & parent_node : m_levels[from_level-1]->nodes()) {
+        if( parent_node->data()->id() == node->data()->id()) {
+          parent_node->data()->setTangent(node->data()->tangent());
+          break;
+        }
+      }
+    } else {
+      auto parents = mapping->second;
+      // Find the nodes in the graph
+      parents.first->data()->setTangent(node->data()->tangent());
+      parents.second->data()->setTangent(node->data()->tangent());
+    }
   }
 }

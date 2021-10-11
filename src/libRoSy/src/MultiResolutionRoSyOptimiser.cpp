@@ -2,10 +2,11 @@
 // Created by Dave Durbin (Old) on 7/10/21.
 //
 
-#include "../include/RoSy/MultiResolutionRoSyOptimiser.h"
+#include "MultiResolutionRoSyOptimiser.h"
 
 MultiResolutionRoSyOptimiser::MultiResolutionRoSyOptimiser(const Properties &properties) //
-    : Optimiser{properties} //
+    : RoSyOptimiser{properties} //
+    , m_rosy_optimiser{nullptr} //}
     , m_multi_res_graph{nullptr} //
     , m_properties{properties} //
     , m_current_level{0} //

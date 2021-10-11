@@ -4,21 +4,22 @@
 
 #pragma once
 
-#include <Optimise/Optimiser.h>
+#include <RoSyOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
 #include <Surfel/MultiResolutionSurfelGraph.h>
 
-class MultiResolutionRoSyOptimiser  : public Optimiser {
+class MultiResolutionRoSyOptimiser  : public RoSyOptimiser {
 public:
   explicit MultiResolutionRoSyOptimiser(const Properties &properties);
 
-  virtual ~MultiResolutionRoSyOptimiser() = default;
+  ~MultiResolutionRoSyOptimiser() override = default;
 
 protected:
   void loaded_graph() override;
 
 private:
+  RoSyOptimiser * m_rosy_optimiser;
   MultiResolutionSurfelGraph * m_multi_res_graph;
   Properties m_properties;
   unsigned int m_num_levels;

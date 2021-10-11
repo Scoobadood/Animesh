@@ -11,8 +11,8 @@ public:
   virtual ~RoSyOptimiser() = default;
 
 protected:
-  void loaded_graph() override = 0;
-  void smoothing_completed(float smoothness, OptimisationResult result) override = 0;
+  void loaded_graph() override { };
+  void smoothing_completed(float smoothness, OptimisationResult result) override {};
 
 private:
   bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;

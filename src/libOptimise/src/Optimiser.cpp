@@ -225,7 +225,7 @@ Optimiser::optimise_do_one_step() {
 
   if (m_state == OPTIMISING) {
     auto nodes_to_optimise = select_nodes_to_optimise();
-    for (const auto &node : nodes_to_optimise) {
+    for (const auto &node: nodes_to_optimise) {
       optimise_node(node);
     }
 
@@ -236,16 +236,11 @@ Optimiser::optimise_do_one_step() {
     }
 
     float smoothness = std::numeric_limits<float>::infinity();
-    if (check_termination_criteria(smoothness, m_result)) {
-
-      spdlog::info("Terminating because {}. Smoothness : {:4.3f}",
-                   m_result == NOT_COMPLETE
-                   ? "not complete"
-                   : m_result == CONVERGED
-                     ? "converged"
-                     : "cancelled", smoothness
-      );
+    OptimisationResult result;
+    if (check_termination_criteria(smoothness, result)) {
       m_state = ENDING_OPTIMISATION;
+      m_result = result;
+      smoothing_completed(smoothness, result);
     }
     m_last_smoothness = smoothness;
   }
@@ -264,7 +259,7 @@ Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool
 
   // For each frame in which this surfel appears
   unsigned int num_neighbours_in_frame;
-  for (const auto &frame : node_ptr->data()->frames()) {
+  for (const auto &frame: node_ptr->data()->frames()) {
     // Compute the smoothness in this frame
     node_smoothness += compute_node_smoothness_for_frame(node_ptr, frame, num_neighbours_in_frame, is_first_run);
     num_neighbours += num_neighbours_in_frame;
@@ -281,7 +276,7 @@ Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool
 float
 Optimiser::compute_mean_smoothness(bool is_first_run) const {
   float total_smoothness = 0.0f;
-  for (const auto &n : m_surfel_graph->nodes()) {
+  for (const auto &n: m_surfel_graph->nodes()) {
     auto mean_smoothness = compute_mean_node_smoothness(n, is_first_run);
     total_smoothness += mean_smoothness;
     store_mean_smoothness(n, mean_smoothness);
@@ -308,7 +303,7 @@ Optimiser::ssa_select_all_in_random_order() {
   vector<SurfelGraphNodePtr> selected_nodes;
   selected_nodes.reserve(indices.size());
   const auto graph_nodes = m_surfel_graph->nodes();
-  for (const auto i : indices) {
+  for (const auto i: indices) {
     selected_nodes.push_back(graph_nodes.at(i));
   }
   return selected_nodes;
@@ -322,7 +317,7 @@ Optimiser::ssa_select_worst_100() const {
   using namespace std;
 
   vector<SurfelGraphNodePtr> selected_nodes;
-  for (const auto &n : m_surfel_graph->nodes()) {
+  for (const auto &n: m_surfel_graph->nodes()) {
     selected_nodes.push_back(n);
   }
   // Sort worst to best
@@ -343,7 +338,7 @@ Optimiser::ssa_select_worst_percentage() const {
   using namespace std;
 
   vector<SurfelGraphNodePtr> selected_nodes;
-  for (const auto &n : m_surfel_graph->nodes()) {
+  for (const auto &n: m_surfel_graph->nodes()) {
     selected_nodes.push_back(n);
   }
   // Sort worst to best
@@ -381,7 +376,18 @@ Optimiser::get_neighbours_of_node_in_frame(
   if (randomise_order) {
     std::shuffle(begin(neighbours_in_frame),
                  end(neighbours_in_frame),
-                 const_cast<std::default_random_engine&>(m_random_engine));
+                 const_cast<std::default_random_engine &>(m_random_engine));
   }
   return neighbours_in_frame;
 }
+
+/* Call back when termination criteria are met */
+void Optimiser::smoothing_completed(float smoothness, OptimisationResult result) {
+  spdlog::info("Terminating because {}. Smoothness : {:4.3f}",
+               m_result == NOT_COMPLETE
+               ? "not complete"
+               : m_result == CONVERGED
+                 ? "converged"
+                 : "cancelled", smoothness
+  );
+};

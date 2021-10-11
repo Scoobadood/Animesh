@@ -15,7 +15,13 @@ public:
     bool optimise_do_one_step();
 
 protected:
-    explicit Optimiser(Properties properties);
+  enum OptimisationResult {
+    NOT_COMPLETE,
+    CONVERGED,
+    CANCELLED,
+  };
+
+  explicit Optimiser(Properties properties);
 
     void setup_termination_criteria(
             const std::string &termination_criteria_property,
@@ -42,6 +48,22 @@ protected:
       const SurfelGraphNodePtr &node_ptr,
       unsigned int frame_index,
       bool randomise_order = false) const;
+
+  /* Call back once a graph is loaded to provide an opportunity to play with it before smoothing starts */
+  virtual void loaded_graph() {  };
+  /* Call back when termination criteria are met */
+  virtual void smoothing_completed(float smoothness, OptimisationResult result);
+
+
+  enum OptimisationState {
+    UNINITIALISED,
+    INITIALISED,
+    OPTIMISING,
+    ENDING_OPTIMISATION
+  };
+
+  OptimisationResult m_result;
+  OptimisationState m_state;
 
 private:
     // Termination criteria
@@ -82,36 +104,16 @@ private:
             unsigned int &num_neighbours,
             bool is_first_run) const = 0;
 
-    /* Call back once a graph is loaded to provide an opportunity to play with it before smoothing starts */
-    virtual void loaded_graph() {};
-
     float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool is_first_run) const;
 
     virtual void store_mean_smoothness( SurfelGraphNodePtr node, float smoothness) const = 0;
 
     float compute_mean_smoothness(bool is_first_run = false) const;
-
-    enum OptimisationResult {
-        NOT_COMPLETE,
-        CONVERGED,
-        CANCELLED,
-    };
-
-    enum OptimisationState {
-        UNINITIALISED,
-        INITIALISED,
-        OPTIMISING,
-        ENDING_OPTIMISATION
-    };
-
-    OptimisationResult m_result;
     unsigned int m_num_iterations;
     unsigned int m_num_frames;
 
     // Error and convergence
     float m_last_smoothness;
-
-    OptimisationState m_state;
 
     unsigned short read_termination_criteria(const std::string &termination_criteria);
 
@@ -125,6 +127,4 @@ private:
     bool maybe_check_iterations(OptimisationResult &result) const;
 
     bool check_termination_criteria(float &smoothness, OptimisationResult &result) const;
-
-    static unsigned int count_number_of_frames(const SurfelGraphPtr &surfel_graph);
 };

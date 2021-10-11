@@ -2,6 +2,7 @@ add_library(
 		RoSy SHARED
 		include/RoSy/RoSy.h src/RoSy.cpp
 		include/RoSy/RoSyOptimiser.h src/RoSyOptimiser.cpp
+		include/RoSy/MultiResolutionRoSyOptimiser.h src/MultiResolutionRoSyOptimiser.cpp
 )
 
 # Define headers for this library. PUBLIC headers are used for

@@ -23,6 +23,7 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties)
   m_weight_for_error = m_properties.getBooleanProperty("rosy-weight-for-error");
   m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
   m_randomise_neighour_order = m_properties.getBooleanProperty("rosy-randomise-neighbour-order");
+  m_vote_for_best_k = m_properties.getBooleanProperty("rosy-vote-for-best-k");
 }
 
 /**
@@ -235,7 +236,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   using namespace Eigen;
   using namespace std;
 
-  if (m_properties.getBooleanProperty("rosy-vote-for-best-k")) {
+  if (m_vote_for_best_k) {
     optimise_node_with_voting(this_node);
     return;
   }
@@ -246,7 +247,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
 
   // For each frame that this surfel appears in.
   for (const auto frame_index: this_surfel->frames()) {
-    Eigen::Vector3f vertex, normal, tangent;
+    Vector3f vertex, normal, tangent;
     this_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
 
     float w_sum = 0.0f;
@@ -262,11 +263,12 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
         adjust_weights_based_on_error(this_surfel, nbr_surfel, w_ij, w_ji);
       }
 
-      Vector3f neighbour_tan_in_surfel_space, neighbour_norm_in_surfel_space;
-      this_surfel->transform_surfel_via_frame(
-          nbr_surfel, frame_index,
-          neighbour_norm_in_surfel_space,
-          neighbour_tan_in_surfel_space);
+      Vector3f nbr_tan_in_surfel_space;
+      Vector3f nbr_norm_in_surfel_space;
+      this_surfel->transform_surfel_via_frame(nbr_surfel,
+                                              frame_index,
+                                              nbr_norm_in_surfel_space,
+                                              nbr_tan_in_surfel_space);
 
       unsigned short k_ij;
       unsigned short k_ji;
@@ -274,14 +276,14 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
           new_tangent,
           Vector3f::UnitY(),
           w_sum,
-          neighbour_tan_in_surfel_space,
-          neighbour_norm_in_surfel_space,
+          nbr_tan_in_surfel_space,
+          nbr_norm_in_surfel_space,
           w_ji,
           k_ij,
           k_ji);
       w_sum += w_ij;
 
-      // Store ks
+      // Store k
       set_k(m_surfel_graph, this_node, k_ij, neighbour_node, k_ji);
     }
   }

@@ -45,5 +45,6 @@ private:
 
   float m_damping_factor;
   bool m_weight_for_error;
+  bool m_vote_for_best_k;
   int m_weight_for_error_steps;
 };

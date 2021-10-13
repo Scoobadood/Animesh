@@ -45,7 +45,7 @@ set_k(const SurfelGraphPtr& graph,
       const SurfelGraphNodePtr &node1, unsigned short k1,
       const SurfelGraphNodePtr &node2, unsigned short k2) {
   auto &edge = graph->edge(node1, node2);
-  if (node1->data() < node2->data()) {
+  if (node1->data()->id() < node2->data()->id()) {
     edge->set_k_low(k1);
     edge->set_k_high(k2);
   } else {

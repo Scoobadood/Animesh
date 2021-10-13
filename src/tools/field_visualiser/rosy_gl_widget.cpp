@@ -40,7 +40,7 @@ void drawEllipse(float cx, float cy, float cz,
   Eigen::Vector3f axis{nx, ny, nz};
   Eigen::Vector3f point{tx, ty, tz};
   Eigen::Vector3f pos{cx, cy, cz};
-  pos -= (0.1 * axis);
+  pos -= (0.05 * axis);
 
   glBegin(GL_TRIANGLE_FAN);
   glVertex3f(pos.x(), pos.y(), pos.z());
@@ -64,6 +64,10 @@ rosy_gl_widget::maybeDrawSplats() const {
             m_splatColour.blueF(), m_splatColour.alphaF());
 
   for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
+    glNormal3f(m_normals.at(i * 3 + 0),
+               m_normals.at(i * 3 + 1),
+               m_normals.at(i * 3 + 2)
+    );
     drawEllipse(m_positions.at(i * 3 + 0),
                 m_positions.at(i * 3 + 1),
                 m_positions.at(i * 3 + 2),
@@ -210,15 +214,17 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
 
 void
 rosy_gl_widget::do_paint() {
+  glDepthRange(0.0, 0.999);
   drawPositions();
-
-  maybeDrawSplats();
 
   maybeDrawNormals();
 
   maybeDrawMainTangents();
 
   maybeDrawOtherTangents();
+
+  glDepthRange(0.0, 1.0f);
+  maybeDrawSplats();
 }
 
 void
@@ -242,6 +248,10 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
 void
 rosy_gl_widget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+  glEnable(GL_NORMALIZE);
+  glEnable(GL_COLOR_MATERIAL);
   glLineWidth(3.0f);
 }
 

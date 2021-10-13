@@ -232,10 +232,7 @@ MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
   assert(from_level <= m_up_mapping.size());
   assert(from_level > 0);
   // For each node in the from_level graph,
-  int i=0;
   for (const auto &node : m_levels[from_level]->nodes()) {
-    spdlog::info("{}\tFinding up mapping for node {}", ++i, node->data()->id());
-
     auto mapping = m_up_mapping[from_level - 1].find(node);
     if( mapping == end(m_up_mapping[from_level - 1])) {
       // Not found

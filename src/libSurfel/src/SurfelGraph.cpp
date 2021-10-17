@@ -60,7 +60,7 @@ get_k(
     const SurfelGraphNodePtr &node1,
     const SurfelGraphNodePtr &node2) {
   auto &edge = graph->edge(node1, node2);
-  if (node1->data() < node2->data()) {
+  if (node1->data()->id() < node2->data()->id()) {
     return (std::make_pair(edge->k_low(), edge->k_high()));
   } else {
     return (std::make_pair(edge->k_high(), edge->k_low()));

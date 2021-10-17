@@ -25,5 +25,14 @@ public:
 protected:
     SurfelGraphPtr surfel_graph;
     SurfelBuilder * m_surfel_builder;
+};
 
+class TestSurfelGraph : public ::testing::Test {
+public:
+  void SetUp( );
+  void TearDown();
+
+protected:
+  SurfelGraphPtr surfel_graph;
+  SurfelBuilder * m_surfel_builder;
 };

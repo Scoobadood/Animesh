@@ -76,6 +76,61 @@ void TestSurfelIO::TearDown() {
     delete m_surfel_builder;
 }
 
+void TestSurfelGraph::SetUp() {
+  using namespace std;
+
+  std::default_random_engine re{123};
+  m_surfel_builder = new SurfelBuilder(re);
+  surfel_graph = make_shared<SurfelGraph>();
+  Eigen::Matrix3f transform;
+  transform << 1.1f, 2.2f, 3.3f,
+      4.4f, 5.5f, 6.6f,
+      7.7f, 8.8f, 9.9f;
+
+  m_surfel_builder
+      ->reset()
+      ->with_id("a")
+      ->with_frame({
+                       {1, 1, 1}, // pif
+                       1.1f, // depth
+                       transform,
+                       {1.1f, 2.2f, 3.3f}, // norm
+                       {1.1f, 2.2f, 3.3f} //pos
+                   }
+      )
+      ->with_tangent(1.0f, 0.0f, 0.0f)
+      ->with_reference_lattice_offset(0.15f, 0.25f);
+  const auto s1 = make_shared<Surfel>(m_surfel_builder->build());
+  s1->set_rosy_smoothness(0);
+  s1->set_posy_smoothness(22.9);
+
+  m_surfel_builder
+      ->reset()
+      ->with_id("b")
+      ->with_frame({
+                       {1, 1, 1}, // pif
+                       1.1f, // depth
+                       transform,
+                       {1.1f, 2.2f, 3.3f}, // norm
+                       {1.1f, 2.2f, 3.3f} //pos
+                   }
+      )
+      ->with_tangent(
+          M_SQRT1_2, 0, M_SQRT1_2)
+      ->with_reference_lattice_offset(0.35f, 0.45f);
+  const auto s2 = make_shared<Surfel>(m_surfel_builder->build());
+
+  s2->set_rosy_smoothness(0);
+  s2->set_posy_smoothness(99.2);
+  const auto &sn1 = surfel_graph->add_node(s1);
+  const auto &sn2 = surfel_graph->add_node(s2);
+  surfel_graph->add_edge(sn1, sn2, SurfelGraphEdge{1.0});
+}
+
+void TestSurfelGraph::TearDown() {
+  delete m_surfel_builder;
+}
+
 bool compare_files(const std::string &p1, const std::string &p2) {
     using namespace std;
 
@@ -272,8 +327,8 @@ TEST_F(TestSurfelIO, SaveLoadRoundTripWithSmoothnessAndEdges) {
     expect_graphs_equal(surfel_graph, loaded_graph);
 }
 
-TEST_F(TestSurfelIO, k_is_preserved_when_accessed_directly) {
-  auto nodes = surfel_graph->nodes(); // Two nodes ave an edge between them
+TEST_F(TestSurfelGraph, k_is_preserved_when_accessed_directly) {
+  auto nodes = surfel_graph->nodes(); // Two nodes have an edge between them
   auto edge = surfel_graph->edge(nodes[0], nodes[1]);
 
   edge->set_k_low(32);
@@ -293,8 +348,8 @@ TEST_F(TestSurfelIO, k_is_preserved_when_accessed_directly) {
   EXPECT_EQ(k_second, k_second_next);
 }
 
-TEST_F(TestSurfelIO, k_is_switched_based_on_node_order_when_accessed_indirectly) {
-  auto nodes = surfel_graph->nodes(); // Two nodes ave an edge between them
+TEST_F(TestSurfelGraph, k_is_switched_based_on_node_order_when_accessed_indirectly) {
+  auto nodes = surfel_graph->nodes(); // Two nodes have an edge between them
 
   set_k(surfel_graph, nodes[0], 32, nodes[1], 19);
   auto ks = get_k(surfel_graph, nodes[0], nodes[1]);

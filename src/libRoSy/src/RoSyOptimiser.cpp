@@ -58,32 +58,7 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
     auto k = get_k(m_surfel_graph, this_node, nbr_node);
     auto v1 = vector_by_rotating_around_n(tangent, normal, k.first);
     auto v2 = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k.second);
-
-    // Compute k_ij and k_ji
-    unsigned short k_ij_computed, k_ji_computed;
-    auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij_computed, nbr_tangent, nbr_normal, k_ji_computed);
-    float theta_computed = degrees_angle_between_vectors(best_pair.first, best_pair.second);
-
     float theta = degrees_angle_between_vectors(v1, v2);
-
-    if (this_surfel->id() == "v_1497" || nbr_surfel->id() == "v_1497") {
-      if (k.first != k_ij_computed || k.second != k_ji_computed) {
-        spdlog::warn("{}->{}:  ({}, {}) doesn't match computed ({}, {}) theta:{}, computed theta:{}",
-                     this_surfel->id(),
-                     nbr_surfel->id(),
-                     k.first, k.second,
-                     k_ij_computed, k_ji_computed,
-                     theta, theta_computed
-        );
-      } else {
-        spdlog::info("{}->{}:  ({}, {}) matches computed score. theta:{}",
-                     this_surfel->id(),
-                     nbr_surfel->id(),
-                     k.first, k.second,
-                     theta
-        );
-      }
-    }
     const auto smoothness = (theta * theta);
     frame_smoothness += smoothness;
   }

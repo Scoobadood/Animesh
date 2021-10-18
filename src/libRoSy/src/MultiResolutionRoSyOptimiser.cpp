@@ -4,8 +4,8 @@
 
 #include "MultiResolutionRoSyOptimiser.h"
 
-MultiResolutionRoSyOptimiser::MultiResolutionRoSyOptimiser(const Properties &properties) //
-    : RoSyOptimiser{properties} //
+MultiResolutionRoSyOptimiser::MultiResolutionRoSyOptimiser(const Properties &properties, std::mt19937& rng) //
+    : RoSyOptimiser{properties, rng} //
     , m_multi_res_graph{nullptr} //
     , m_current_level{0} //
 {
@@ -14,7 +14,7 @@ MultiResolutionRoSyOptimiser::MultiResolutionRoSyOptimiser(const Properties &pro
 
 void
 MultiResolutionRoSyOptimiser::loaded_graph() {
-  m_multi_res_graph = new MultiResolutionSurfelGraph{m_surfel_graph};
+  m_multi_res_graph = new MultiResolutionSurfelGraph{m_surfel_graph, m_random_engine};
   m_multi_res_graph->generate_levels(m_num_levels);
   m_current_level = m_num_levels - 1;
   m_surfel_graph = (*m_multi_res_graph)[m_current_level];

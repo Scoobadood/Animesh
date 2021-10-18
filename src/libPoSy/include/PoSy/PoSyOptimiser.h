@@ -10,7 +10,7 @@
 
 class PoSyOptimiser : public Optimiser {
 public:
-    explicit PoSyOptimiser(const Properties &properties);
+    PoSyOptimiser(const Properties &properties, std::mt19937& rng);
 
     virtual ~PoSyOptimiser() = default;
 
@@ -20,8 +20,7 @@ private:
     float compute_node_smoothness_for_frame(
             const SurfelGraphNodePtr &node_ptr,
             size_t frame_index,
-            unsigned int &num_neighbours,
-            bool is_first_run) const override;
+            unsigned int &num_neighbours) const override;
 
     const std::string &get_ssa_property_name() const override {
         static const std::string SSA_PROPERTY_NAME = "posy-surfel-selection-algorithm";

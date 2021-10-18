@@ -28,7 +28,11 @@ int main( int argc, const char * argv[] ) {
   }
 
   unsigned short flags;
-  SurfelGraphPtr graph = load_surfel_graph_from_file(argv[1], flags);
+  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
+  uint32_t seed_val = 123;  // populate somehow
+  rng.seed(seed_val);
+
+  SurfelGraphPtr graph = load_surfel_graph_from_file(argv[1], flags, rng);
 
   std::cout << "Surfels : " << graph->num_nodes() << std::endl;
   std::cout << "  Edges : " << graph->num_edges() << std::endl;

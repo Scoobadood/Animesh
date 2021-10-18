@@ -12,7 +12,8 @@ public:
   /**
    * Construct from a given starting graph.
    */
-  explicit MultiResolutionSurfelGraph(const SurfelGraphPtr &surfel_graph);
+  MultiResolutionSurfelGraph(const SurfelGraphPtr &surfel_graph,
+                             std::mt19937 &rng);
 
   /**
    * Generate levels (if not already done).
@@ -27,18 +28,23 @@ public:
   /**
    * Return a reference to the specified level of the graph
    */
-  SurfelGraphPtr& operator[](size_t index) {
+  SurfelGraphPtr &operator[](size_t index) {
     return m_levels[index];
   }
+  std::shared_ptr<Surfel>
+  surfel_merge_function(const std::shared_ptr<Surfel> &n1,
+                        float w1,
+                        const std::shared_ptr<Surfel> &n2,
+                        float w2);
 
 private:
   struct SurfelGraphEdgeComparator;
 
   std::vector<SurfelGraphPtr> m_levels;
 
-  std::vector<std::map<SurfelGraphNodePtr, std::pair<SurfelGraphNodePtr,SurfelGraphNodePtr>>> m_up_mapping;
+  std::vector<std::map<SurfelGraphNodePtr, std::pair<SurfelGraphNodePtr, SurfelGraphNodePtr>>> m_up_mapping;
 
-  std::default_random_engine m_random_engine;
+  std::mt19937 &m_random_engine;
 
   /**
    * Generate the next level for this multi-resolution graph.
@@ -56,7 +62,7 @@ private:
    * Compute the scores for each edge.
    */
   static void compute_scores(const SurfelGraphPtr &current_graph,
-                      const std::map<std::string, int> &dual_area_by_node,
-                      const std::map<std::string, Eigen::Vector3f> &mean_normal_by_node,
-                      std::map<SurfelGraph::Edge, float, SurfelGraphEdgeComparator> &scores);
+                             const std::map<std::string, int> &dual_area_by_node,
+                             const std::map<std::string, Eigen::Vector3f> &mean_normal_by_node,
+                             std::map<SurfelGraph::Edge, float, SurfelGraphEdgeComparator> &scores);
 };

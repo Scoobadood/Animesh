@@ -11,7 +11,7 @@
 
 class MultiResolutionRoSyOptimiser  : public RoSyOptimiser {
 public:
-  explicit MultiResolutionRoSyOptimiser(const Properties &properties);
+  MultiResolutionRoSyOptimiser(const Properties &properties, std::mt19937& rng );
 
   ~MultiResolutionRoSyOptimiser() override = default;
 

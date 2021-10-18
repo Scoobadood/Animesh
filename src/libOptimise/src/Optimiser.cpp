@@ -8,26 +8,30 @@
 #include <sstream>
 #include <utility>
 #include <numeric>      // iota
-#include <random>       // default_random_engine initialisation
 #include <algorithm>    // random_shuffle
 #include <sys/stat.h>
 #include <spdlog/spdlog.h>
 #include <SurfelSelectionAlgorithm.h>
 #include <Properties/Properties.h>       // termination criteria set up
 
-Optimiser::Optimiser(Properties properties)
+Optimiser::Optimiser(Properties properties, std::mt19937& rng)
     : m_properties(std::move(properties)) //
+    , m_random_engine{rng}
+    , m_result{NOT_COMPLETE} //
+    , m_state{UNINITIALISED} //
+    , m_randomise_neighour_order{false} //
+    , m_node_selection_function{nullptr} //
     , m_termination_criteria{0} //
     , m_term_crit_absolute_smoothness{0.0f} //
     , m_term_crit_relative_smoothness{0.0f} //
     , m_term_crit_max_iterations{0} //
-    , m_node_selection_function{nullptr} //
-    , m_result{NOT_COMPLETE} //
+    , m_ssa_percentage{0} //
     , m_num_iterations{0} //
     , m_num_frames{0} //
     , m_last_smoothness{std::numeric_limits<float>::infinity()} //
-    , m_state{UNINITIALISED} //
-{}
+{
+
+}
 
 unsigned short
 Optimiser::read_termination_criteria(const std::string &termination_criteria_property) {
@@ -91,7 +95,7 @@ Optimiser::setup_ssa() {
 
   case SSA_SELECT_WORST_PERCENTAGE:
     auto ssa_percentage = m_properties.getIntProperty(get_ssa_percentage_property_name());
-    m_ssa_percentage = std::min<unsigned int>(std::max<unsigned int>(0, ssa_percentage), 100);
+    m_ssa_percentage = std::min<float>(std::max<float>(0.0f, ((float)ssa_percentage / 100.0f)), 1.0f);
     m_node_selection_function = std::bind(&Optimiser::ssa_select_worst_percentage, this);
     break;
   }
@@ -104,7 +108,7 @@ Optimiser::optimise_begin() {
   using namespace spdlog;
   setup_ssa();
   info("Computing initial smoothness");
-  m_last_smoothness = compute_mean_smoothness(true);
+  m_last_smoothness = compute_mean_smoothness();
   info("Initial smoothness : {:4.3f}", m_last_smoothness);
   m_num_iterations = 0;
   m_state = OPTIMISING;
@@ -211,7 +215,7 @@ Optimiser::check_termination_criteria(
 void
 Optimiser::optimise_end() {
   assert(m_state == ENDING_OPTIMISATION);
-  // TODO: Consider a final state here that can transition back to INITAILISED or make both READY
+  // TODO: Consider a final state here that can transition back to INITIALISED or make both READY
   m_state = INITIALISED;
 }
 
@@ -253,7 +257,7 @@ Optimiser::optimise_do_one_step() {
 }
 
 float
-Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool is_first_run) const {
+Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const {
   float node_smoothness = 0.0f;
   unsigned int num_neighbours = 0;
 
@@ -261,7 +265,7 @@ Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool
   unsigned int num_neighbours_in_frame;
   for (const auto &frame: node_ptr->data()->frames()) {
     // Compute the smoothness in this frame
-    node_smoothness += compute_node_smoothness_for_frame(node_ptr, frame, num_neighbours_in_frame, is_first_run);
+    node_smoothness += compute_node_smoothness_for_frame(node_ptr, frame, num_neighbours_in_frame);
     num_neighbours += num_neighbours_in_frame;
   }
   // Set the mean smoothness
@@ -274,10 +278,10 @@ Optimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool
 }
 
 float
-Optimiser::compute_mean_smoothness(bool is_first_run) const {
+Optimiser::compute_mean_smoothness() const {
   float total_smoothness = 0.0f;
   for (const auto &n: m_surfel_graph->nodes()) {
-    auto mean_smoothness = compute_mean_node_smoothness(n, is_first_run);
+    auto mean_smoothness = compute_mean_node_smoothness(n);
     total_smoothness += mean_smoothness;
     store_mean_smoothness(n, mean_smoothness);
   }
@@ -349,7 +353,7 @@ Optimiser::ssa_select_worst_percentage() const {
               });
 
   // Required nodes
-  auto required_nodes = (unsigned int) std::roundf(((float) (m_surfel_graph->num_nodes()) * m_ssa_percentage) / 100);
+  auto required_nodes = (unsigned int) std::roundf( (float)m_surfel_graph->num_nodes() *  m_ssa_percentage);
   if (selected_nodes.size() > required_nodes) {
     selected_nodes.resize(required_nodes);
   }
@@ -376,7 +380,7 @@ Optimiser::get_neighbours_of_node_in_frame(
   if (randomise_order) {
     std::shuffle(begin(neighbours_in_frame),
                  end(neighbours_in_frame),
-                 const_cast<std::default_random_engine &>(m_random_engine));
+                 m_random_engine);
   }
   return neighbours_in_frame;
 }
@@ -390,4 +394,4 @@ void Optimiser::smoothing_completed(float smoothness, OptimisationResult result)
                  ? "converged"
                  : "cancelled", smoothness
   );
-};
+}

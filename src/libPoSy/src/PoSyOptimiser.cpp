@@ -12,8 +12,8 @@
 
 const std::string WATCH_NODE = "s_3_0";
 
-PoSyOptimiser::PoSyOptimiser(const Properties &properties)
-    : Optimiser{properties} //
+PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::mt19937& rng)
+    : Optimiser{properties, rng} //
 {
   m_rho = m_properties.getFloatProperty("rho");
 
@@ -53,8 +53,7 @@ PoSyOptimiser::trace_smoothing(const SurfelGraphPtr &surfel_graph) const {
 float
 PoSyOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_ptr,
                                                  size_t frame_index,
-                                                 unsigned int &num_neighbours,
-                                                 bool is_first_run) const {
+                                                 unsigned int &num_neighbours) const {
   float frame_smoothness = 0.0f;
 
   const auto neighbours_in_frame = get_neighbours_of_node_in_frame(m_surfel_graph, node_ptr, frame_index, false);

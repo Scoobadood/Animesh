@@ -13,7 +13,8 @@ int main(int argc, char *argv[])
     std::string property_file_name = (argc == 2) ? argv[1] : "animesh.properties";
     Properties properties{property_file_name};
 
-    field_visualiser_window w(properties);
+    std::mt19937 rng(123);
+    field_visualiser_window w(properties, rng);
     w.show();
     return a.exec();
 }

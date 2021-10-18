@@ -6,7 +6,7 @@
 
 class RoSyOptimiser : public Optimiser {
 public:
-  explicit RoSyOptimiser(const Properties &properties);
+  RoSyOptimiser(const Properties &properties, std::mt19937& rng);
 
   virtual ~RoSyOptimiser() = default;
 
@@ -20,8 +20,7 @@ private:
   float compute_node_smoothness_for_frame(
       const SurfelGraphNodePtr &this_node,
       size_t frame_index,
-      unsigned int &num_neighbours,
-      bool is_first_run) const override;
+      unsigned int &num_neighbours) const override;
 
   const std::string &get_ssa_property_name() const override {
     static const std::string SSA_PROPERTY_NAME = "rosy-surfel-selection-algorithm";
@@ -33,9 +32,16 @@ private:
     return SSA_PERCENTAGE_PROPERTY_NAME;
   }
 
+  void vote_for_best_ks(
+      const std::shared_ptr<Surfel> &this_surfel,
+      const std::shared_ptr<Surfel> &that_surfel,
+      const Eigen::Vector3f& tangent,
+      std::vector<unsigned int> &shared_frames,
+      unsigned short &best_k_ij,
+      unsigned short &best_k_ji) const;
+
   void optimise_node(const SurfelGraphNodePtr &this_node) override;
   void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
-  void optimise_node_with_voting(const SurfelGraphNodePtr &this_node);
   void adjust_weights_based_on_error(const std::shared_ptr<Surfel> &s1,
                                      const std::shared_ptr<Surfel> &s2,
                                      float &w_ij,

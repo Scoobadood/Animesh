@@ -22,10 +22,11 @@ struct MultiResolutionSurfelGraph::SurfelGraphEdgeComparator {
 };
 
 std::shared_ptr<Surfel>
-surfel_merge_function(const std::shared_ptr<Surfel> &n1,
-                      float w1,
-                      const std::shared_ptr<Surfel> &n2,
-                      float w2) {
+MultiResolutionSurfelGraph::surfel_merge_function(
+    const std::shared_ptr<Surfel> &n1,
+    float w1,
+    const std::shared_ptr<Surfel> &n2,
+    float w2) {
   using namespace std;
 
   set<unsigned int> n1_frames;
@@ -39,8 +40,7 @@ surfel_merge_function(const std::shared_ptr<Surfel> &n1,
   common_frames.resize(it - common_frames.begin());
   assert (!common_frames.empty());
 
-  default_random_engine re{123};
-  auto *sb = new SurfelBuilder(re);
+  auto *sb = new SurfelBuilder(m_random_engine);
   auto new_id = "(" + n1->id() + " + " + n2->id() + ")";
   auto new_tangent = ((n1->tangent() * w1) + (n2->tangent() * w2)).normalized();
   auto new_offset = ((n1->reference_lattice_offset() * w1) + (n2->reference_lattice_offset() * w2)) / (w1 + w2);
@@ -70,7 +70,11 @@ edge_merge_function(const SurfelGraphEdge &e1, float w1, const SurfelGraphEdge &
   };
 };
 
-MultiResolutionSurfelGraph::MultiResolutionSurfelGraph(const SurfelGraphPtr &surfel_graph) {
+MultiResolutionSurfelGraph::MultiResolutionSurfelGraph(
+    const SurfelGraphPtr &surfel_graph,
+    std::mt19937 &rng)
+    : m_random_engine{rng} //
+{
   m_levels.push_back(surfel_graph);
 }
 
@@ -179,7 +183,9 @@ MultiResolutionSurfelGraph::generate_new_level() {
   for (auto &edge_and_score: scores) {
     edges_and_scores.emplace_back(edge_and_score);
   }
-  sort(edges_and_scores.begin(), edges_and_scores.end(), [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
+  sort(edges_and_scores.begin(),
+       edges_and_scores.end(),
+       [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
          return a.second > b.second;
        }
   );
@@ -203,7 +209,12 @@ MultiResolutionSurfelGraph::generate_new_level() {
     // Perform the collapse and remember it.
     auto new_node = new_graph->collapse_edge(
         first_node, second_node,
-        ::surfel_merge_function,
+        [&](const std::shared_ptr<Surfel> &n1,
+            float w1,
+            const std::shared_ptr<Surfel> &n2,
+            float w2) {
+          return surfel_merge_function(n1, w1, n2, w2);
+        },
         ::edge_merge_function,
         (float) dual_area_by_node.at(first_node_id),
         (float) dual_area_by_node.at(second_node_id));
@@ -232,12 +243,12 @@ MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
   assert(from_level <= m_up_mapping.size());
   assert(from_level > 0);
   // For each node in the from_level graph,
-  for (const auto &node : m_levels[from_level]->nodes()) {
+  for (const auto &node: m_levels[from_level]->nodes()) {
     auto mapping = m_up_mapping[from_level - 1].find(node);
-    if( mapping == end(m_up_mapping[from_level - 1])) {
+    if (mapping == end(m_up_mapping[from_level - 1])) {
       // Not found
-      for( auto & parent_node : m_levels[from_level-1]->nodes()) {
-        if( parent_node->data()->id() == node->data()->id()) {
+      for (auto &parent_node: m_levels[from_level - 1]->nodes()) {
+        if (parent_node->data()->id() == node->data()->id()) {
           parent_node->data()->setTangent(node->data()->tangent());
           break;
         }

@@ -11,8 +11,8 @@ void TestMultiResolutionGraph::SetUp() {
 
   // Generate surfel graph
   m_surfel_graph = make_shared<SurfelGraph>();
-  default_random_engine rnd{123};
-  auto *sb = new SurfelBuilder(rnd);
+  std::mt19937 rng{123};
+  auto *sb = new SurfelBuilder(rng);
 
   auto surfel1 = sb->with_id("s1")
       ->with_reference_lattice_offset(0.5, 0.5)
@@ -38,11 +38,13 @@ void TestMultiResolutionGraph::SetUp() {
 void TestMultiResolutionGraph::TearDown() {}
 
 TEST_F(TestMultiResolutionGraph, generate_zero_levels_should_fail) {
-  MultiResolutionSurfelGraph g{m_surfel_graph};
+  std::mt19937 rng{123};
+  MultiResolutionSurfelGraph g{m_surfel_graph, rng};
   g.generate_levels(0);
 }
 
 TEST_F(TestMultiResolutionGraph, generate_multi_levels_should_fail) {
-  MultiResolutionSurfelGraph g{m_surfel_graph};
+  std::mt19937 rng{123};
+  MultiResolutionSurfelGraph g{m_surfel_graph, rng};
   g.generate_levels(2);
 }

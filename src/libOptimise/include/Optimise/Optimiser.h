@@ -6,7 +6,7 @@
 
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
-#include <random>                       // default_random_engine
+#include <random>
 
 class Optimiser {
 public:
@@ -15,7 +15,7 @@ public:
   bool optimise_do_one_step();
 
 protected:
-  explicit Optimiser(Properties properties);
+  Optimiser(Properties properties, std::mt19937& rng);
 
   void setup_termination_criteria(
       const std::string &termination_criteria_property,
@@ -50,12 +50,12 @@ protected:
     ENDING_OPTIMISATION
   };
 
+  Properties m_properties;
+  std::mt19937 & m_random_engine;
   OptimisationResult m_result;
   OptimisationState m_state;
-  Properties m_properties;
   SurfelGraphPtr m_surfel_graph;
   bool m_randomise_neighour_order;
-  std::default_random_engine m_random_engine;
 
 private:
   // Optimisation
@@ -79,17 +79,14 @@ private:
 
   virtual bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const = 0;
 
+  float compute_mean_smoothness() const;
+  float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
   virtual float compute_node_smoothness_for_frame(
       const SurfelGraphNodePtr &node_ptr,
       size_t frame_index,
-      unsigned int &num_neighbours,
-      bool is_first_run) const = 0;
-
-  float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr, bool is_first_run) const;
-
+      unsigned int &num_neighbours) const = 0;
   virtual void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const = 0;
 
-  float compute_mean_smoothness(bool is_first_run = false) const;
   unsigned short read_termination_criteria(const std::string &termination_criteria);
 
   // Checking for termination
@@ -112,7 +109,7 @@ private:
   float                 m_term_crit_absolute_smoothness;
   float                 m_term_crit_relative_smoothness;
   unsigned int          m_term_crit_max_iterations;
-  unsigned int          m_ssa_percentage;
+  float                 m_ssa_percentage;
   unsigned int          m_num_iterations;
   unsigned int          m_num_frames;
   float                 m_last_smoothness;

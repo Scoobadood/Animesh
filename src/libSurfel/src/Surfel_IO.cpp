@@ -123,16 +123,16 @@ save_surfel_graph_to_file(const std::string &file_name,
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name) {
+load_surfel_graph_from_file(const std::string &file_name, std::mt19937& rng) {
   unsigned short flags;
-  return load_surfel_graph_from_file(file_name, flags);
+  return load_surfel_graph_from_file(file_name, flags, rng);
 }
 
 /**
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags) {
+load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags, std::mt19937& rng) {
   using namespace std;
   using namespace spdlog;
 
@@ -161,8 +161,7 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
   map<string, vector<string>> neighbours_of_surfel_by_id;
   map<string, SurfelGraphNodePtr> graph_node_by_id;
 
-  std::default_random_engine random_engine{123};
-  auto surfel_builder = new SurfelBuilder(random_engine);
+  auto surfel_builder = new SurfelBuilder(rng);
   for (unsigned int sIdx = 0; sIdx < num_surfels; ++sIdx) {
     string surfel_id = read_string(file);
     surfel_builder

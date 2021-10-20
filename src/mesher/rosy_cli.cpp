@@ -33,12 +33,6 @@ int main(int argc, char *argv[]) {
   std::mt19937 rng{123};         // the Mersenne Twister with a popular choice of parameters
 
   auto surfel_graph = load_surfel_graph_from_file(input_file_name, rng);
-  info("Loaded from {}", input_file_name);
-  info("Tangent 4 {} {} {}",
-       surfel_graph->nodes()[4]->data()->tangent()[0],
-       surfel_graph->nodes()[4]->data()->tangent()[1],
-       surfel_graph->nodes()[4]->data()->tangent()[2]
-  );
 
   RoSyOptimiser *roSyOptimiser;
   if (properties.hasProperty("enable-multi-resolution") &&

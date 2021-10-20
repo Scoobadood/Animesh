@@ -40,10 +40,25 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
   float frame_smoothness = 0.0f;
 
   const auto &this_surfel = this_node->data();
-  spdlog::debug("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);
+
+  bool should_dump = false;//(this_surfel->id() == "s_32");
+  // START DEBUG
+  if (should_dump) {
+    spdlog::info("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);
+  }
+  // END DEBUG
 
   Vector3f vertex, normal, tangent;
   this_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+
+  // START DEBUG
+  if (should_dump) {
+    spdlog::info("  Stored tan is ({},{},{})",
+                 this_surfel->tangent()[0], this_surfel->tangent()[1], this_surfel->tangent()[2]);
+    spdlog::info("  In frame is ({},{},{})",
+                 tangent[0], tangent[1], tangent[2]);
+  }
+  // END DEBUG
 
   int bad_count = 0, good_count = 0;
   // For each neighbour in frame...
@@ -54,35 +69,34 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
     Vector3f nbr_vertex, nbr_normal, nbr_tangent;
     nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
 
-    // Get k_ij and k_ji from edge
-    const auto k_pair = get_k(m_surfel_graph, this_node, nbr_node);
-    const auto v1 = vector_by_rotating_around_n(tangent, normal, k_pair.first);
-    const auto v2 = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_pair.second);
-    float theta = degrees_angle_between_vectors(v1, v2);
-    if ((k_pair.first != 0 || k_pair.second != 0) && (theta > 45 || theta < -45)) {
-//      spdlog::error("Bad angle between vectors");
-//      spdlog::error("V1=[{},{},{}]; N1=[{}, {}, {}]; T1=[{}, {}, {}] % node {}, k: {}",
-//                    vertex[0], vertex[1], vertex[2],
-//                    normal[0], normal[1], normal[2],
-//                    tangent[0], tangent[1], tangent[2],
-//                    this_surfel->id(),
-//                    k_pair.first
-//      );
-//      spdlog::error("V2=[{},{},{}]; N2=[{}, {}, {}]; T2=[{}, {}, {}] % node {}, k: {}",
-//                    nbr_vertex[0], nbr_vertex[1], nbr_vertex[2],
-//                    nbr_normal[0], nbr_normal[1], nbr_normal[2],
-//                    nbr_tangent[0], nbr_tangent[1], nbr_tangent[2],
-//                    nbr_surfel->id(),
-//                    k_pair.second
-//      );
-//      spdlog::error("theta {}", theta);
+    // Compute best Ks
+    unsigned short k_ij;
+    unsigned short k_ji;
+    auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
+
+    float theta = degrees_angle_between_vectors(best_pair.first, best_pair.second);
+    if (theta > 45 || theta < -45) {
       bad_count++;
     } else {
       good_count++;
     }
-    spdlog::info("Bad {}   Good {} ", bad_count, good_count);
+    if (should_dump) {
+      spdlog::info("  Edge to ", nbr_surfel->id());
+      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
+      spdlog::info("    V1=[{},{},{}]", vertex[0], vertex[1], vertex[2]);
+      spdlog::info("    N1=[{}, {}, {}]", normal[0], normal[1], normal[2]);
+      spdlog::info("    T1=[{}, {}, {}]", tangent[0], tangent[1], tangent[2]);
+      spdlog::info("    V2=[{},{},{}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
+      spdlog::info("    N2=[{}, {}, {}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
+      spdlog::info("    T2=[{}, {}, {}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
+      spdlog::info("    theta {}", theta);
+    }
     const auto smoothness = (theta * theta);
     frame_smoothness += smoothness;
+  }
+
+  if (should_dump) {
+    spdlog::info("Bad {}   Good {} ", bad_count, good_count);
   }
 
   num_neighbours = neighbours_in_frame.size();
@@ -186,6 +200,7 @@ RoSyOptimiser::vote_for_best_ks(
   best_k_ij = winner.first;
   best_k_ji = winner.second;
 }
+
 /*
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
@@ -197,6 +212,8 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   const auto &this_surfel = this_node->data();
   const auto &starting_tangent = this_surfel->tangent();
   Vector3f new_tangent{starting_tangent};
+
+  bool should_dump = false;//(this_surfel->id() == "s_32");
 
   // For each neighbour of this Surfel
   auto neighbours = m_surfel_graph->neighbours(this_node);
@@ -213,6 +230,13 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
       vote_for_best_ks(
           this_surfel, nbr_surfel, new_tangent,
           shared_frames, k_ij, k_ji);
+
+      // START DEBUG
+      if (should_dump) {
+        spdlog::info("Voted for edge to {} ", nbr_surfel->id());
+        spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
+      }
+      //END DEBUG
     }
 
     for (unsigned int frame_index: shared_frames) {
@@ -245,11 +269,34 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
         best_pair = best_rosy_vector_pair(
             new_tangent, Vector3f::UnitY(), k_ij,
             nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji);
+        // START DEBUG
+        if (should_dump) {
+          spdlog::info("Computed for edge to {} ", nbr_surfel->id());
+          spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
+        }
+        //END DEBUG
       }
       Vector3f v = (best_pair.first * this_surfel_weight) + (best_pair.second * nbr_surfel_weight);
-      new_tangent = project_vector_to_plane(v, Vector3f::UnitY());
+      new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
+      // START DEBUG
+      if (should_dump) {
+        spdlog::info("  Best Pair");
+        spdlog::info("  T1=[{}, {}, {}]", best_pair.first[0], best_pair.first[1], best_pair.first[2]);
+        spdlog::info("  T2=[{}, {}, {}]", best_pair.second[0], best_pair.second[1], best_pair.second[2]);
+        spdlog::info("  N2=[{}, {}, {}]",
+                     nbr_norm_in_surfel_space[0],
+                     nbr_norm_in_surfel_space[1],
+                     nbr_norm_in_surfel_space[2]);
+        spdlog::info("  new_tan=[{}, {}, {}]", new_tangent[0], new_tangent[1], new_tangent[2]);
+      }
+      //END DEBUG
     } // Next frame
     set_k(m_surfel_graph, this_node, k_ij, nbr, k_ji);
+    if (should_dump) {
+      spdlog::info("  Storing edge s_32->{} ", nbr->data()->id());
+      spdlog::info("    computed from tan ({}, {}, {})", new_tangent[0], new_tangent[1], new_tangent[2]);
+      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
+    }
   } // Next neighbour
 
   // Handle damping

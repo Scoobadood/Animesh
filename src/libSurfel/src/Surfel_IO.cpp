@@ -105,12 +105,10 @@ save_surfel_graph_to_file(const std::string &file_name,
       write_size_t(file, 1);
       write_unsigned_short(file, edge.data()->k_low());
       write_unsigned_short(file, edge.data()->k_high());
-      const auto tv = edge.data()->t_values();
-      write_size_t(file, tv);
-      for (auto tvi = 0; tvi < tv; ++tvi) {
-        write_vector_2i(file, edge.data()->t_ij(tvi));
-        write_vector_2i(file, edge.data()->t_ji(tvi));
-      }
+      // Historical: Used to have multiple t_ij, now only 1
+      write_size_t(file, 1);
+      write_vector_2i(file, edge.data()->t_low());
+      write_vector_2i(file, edge.data()->t_high());
       written_edges++;
     }
     spdlog::info("Wrote {} edges", written_edges);
@@ -256,8 +254,9 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags,
       }
       const auto tv = read_size_t(file);
       for (auto tvi = 0; tvi < tv; ++tvi) {
-        edge.set_t_ij(tvi, read_int(file), read_int(file));
-        edge.set_t_ji(tvi, read_int(file), read_int(file));
+        // As above
+        edge.set_t_low(read_int(file), read_int(file));
+        edge.set_t_high(read_int(file), read_int(file));
       }
       graph->add_edge(from_node, to_node, edge);
       spdlog::debug("Added edge {} from {} to {}", edge_index, from_node->data()->id(), to_node->data()->id());

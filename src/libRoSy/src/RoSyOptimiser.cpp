@@ -8,6 +8,7 @@
 #include <Surfel/SurfelGraph.h>
 #include <Eigen/Core>
 #include <Vote/VoteCounter.h>
+#include <spdlog/spdlog.h>
 
 RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
     : Optimiser(properties, rng) //
@@ -214,7 +215,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   Vector3f new_tangent{starting_tangent};
 
   bool should_dump = false;//(this_surfel->id() == "s_32");
-
+  float wsum = 0.0f;
   // For each neighbour of this Surfel
   auto neighbours = m_surfel_graph->neighbours(this_node);
   for (const auto &nbr: neighbours) {
@@ -276,7 +277,8 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
         }
         //END DEBUG
       }
-      Vector3f v = (best_pair.first * this_surfel_weight) + (best_pair.second * nbr_surfel_weight);
+      wsum += this_surfel_weight;
+      Vector3f v = (best_pair.first * wsum) + (best_pair.second * nbr_surfel_weight);
       new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
       // START DEBUG
       if (should_dump) {

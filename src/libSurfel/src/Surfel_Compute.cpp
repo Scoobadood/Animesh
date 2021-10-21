@@ -14,7 +14,6 @@
 #include "PixelInFrame.h"
 #include "Surfel.h"
 #include "SurfelBuilder.h"
-#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
 /**

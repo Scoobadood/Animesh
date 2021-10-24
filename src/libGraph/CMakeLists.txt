@@ -19,6 +19,7 @@ target_include_directories(
 # Depend on a library that we defined in the top-level file
 target_link_libraries(
 		Graph
+		spdlog::spdlog
 )
 
 add_executable(

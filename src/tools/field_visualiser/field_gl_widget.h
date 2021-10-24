@@ -15,7 +15,7 @@ public:
       QWidget *parent = nullptr,
       Qt::WindowFlags f = Qt::WindowFlags());
 
-  void set_arc_ball(const std::shared_ptr<AbstractArcBall>& arc_ball);
+  void set_arc_ball(const std::shared_ptr<AbstractArcBall> &arc_ball);
 
 protected:
   void paintGL() override;
@@ -33,15 +33,24 @@ protected:
                         unsigned int pixel_y,
                         std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>> &edges,
                         float &distance);
+
+  void enable_light() {
+    m_light_enabled = true;
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+  }
+
+  void maybe_update_light();
+
 private:
   int find_closest_vertex(unsigned int pixel_x,
                           unsigned int pixel_y,
                           std::vector<float> &items, /// assumed XYZ triples
                           float &distance);
   void get_ray_data(unsigned int pixel_x,
-                                unsigned int pixel_y,
-                                Eigen::Vector3f& camera_origin,
-                                Eigen::Vector3f& ray_direction);
+                    unsigned int pixel_y,
+                    Eigen::Vector3f &camera_origin,
+                    Eigen::Vector3f &ray_direction);
 
   std::shared_ptr<AbstractArcBall> m_arc_ball;
 
@@ -56,6 +65,7 @@ private:
   Eigen::Vector3f m_near_point;
   Eigen::Vector3f m_far_point;
   bool m_render_mouse_ray;
+  bool m_light_enabled;
   void maybe_render_mouse_ray();
 
   void update_model_matrix();

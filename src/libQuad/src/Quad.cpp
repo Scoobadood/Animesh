@@ -115,8 +115,9 @@ build_edge_graph(
     const auto to_node = maybe_insert_node_in_graph(to_surfel_ptr, frame_index,
                                                     out_graph, output_graph_nodes_by_surfel_id);
 
-    auto t_ij = edge.data()->t_ij(frame_index);
-    auto t_ji = edge.data()->t_ji(frame_index);
+    auto t = get_t(graph, edge.from(), edge.to());
+    auto t_ij = t.first;
+    auto t_ji = t.second;
     EdgeType edgeType = compute_edge_type(t_ij, t_ji);
     if (edgeType == EDGE_TYPE_NON) {
       spdlog::info("Skipped edge from {} {}",

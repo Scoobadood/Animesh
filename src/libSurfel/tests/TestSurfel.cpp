@@ -69,7 +69,12 @@ void TestSurfelIO::SetUp() {
   s2->set_posy_smoothness(99.2);
   const auto &sn1 = surfel_graph->add_node(s1);
   const auto &sn2 = surfel_graph->add_node(s2);
-  surfel_graph->add_edge(sn1, sn2, SurfelGraphEdge{1.0});
+  SurfelGraphEdge edge{0.0};
+  edge.set_k_low(1);
+  edge.set_k_high(3);
+  edge.set_t_low(1,2);
+  edge.set_t_high(3,4);
+  surfel_graph->add_edge(sn1, sn2, edge);
 }
 
 void TestSurfelIO::TearDown() {
@@ -173,13 +178,11 @@ expect_edges_equal(SurfelGraph::Edge &edge1,
   EXPECT_EQ(edge1.data()->weight(), edge2.data()->weight());
   EXPECT_EQ(edge1.data()->k_low(), edge2.data()->k_low());
   EXPECT_EQ(edge1.data()->k_high(), edge2.data()->k_high());
-  EXPECT_EQ(edge1.data()->t_values(), edge2.data()->t_values());
-  for (auto ti = 0; ti < edge1.data()->t_values(); ++ti) {
-    EXPECT_EQ(edge1.data()->t_ij(ti).x(), edge2.data()->t_ij(ti).x());
-    EXPECT_EQ(edge1.data()->t_ji(ti).x(), edge2.data()->t_ji(ti).x());
-    EXPECT_EQ(edge1.data()->t_ij(ti).y(), edge2.data()->t_ij(ti).y());
-    EXPECT_EQ(edge1.data()->t_ji(ti).y(), edge2.data()->t_ji(ti).y());
-  }
+
+  EXPECT_EQ(edge1.data()->t_low()[0], edge2.data()->t_low()[0]);
+  EXPECT_EQ(edge1.data()->t_high()[0], edge2.data()->t_high()[0]);
+  EXPECT_EQ(edge1.data()->t_low()[1], edge2.data()->t_low()[1]);
+  EXPECT_EQ(edge1.data()->t_high()[1], edge2.data()->t_high()[1]);
 }
 
 void
@@ -239,10 +242,13 @@ expect_node_vectors_equal(
 void
 expect_graphs_equal(const SurfelGraphPtr &graph1,
                     const SurfelGraphPtr &graph2,
-                    bool exclude_smoothness = false) {
-  auto g1_edges = graph1->edges();
-  auto g2_edges = graph2->edges();
-  expect_edges_equal(g1_edges, g2_edges);
+                    bool exclude_smoothness = false,
+                    bool exclude_edges = false) {
+  if (!exclude_edges) {
+    auto g1_edges = graph1->edges();
+    auto g2_edges = graph2->edges();
+    expect_edges_equal(g1_edges, g2_edges);
+  }
 
   std::vector<const SurfelGraphNodePtr> g1_nodes = graph1->nodes();
   std::vector<const SurfelGraphNodePtr> g2_nodes = graph2->nodes();
@@ -256,7 +262,16 @@ TEST_F(TestSurfelIO, LoadFromTestFileDefault) {
   auto loaded_graph = load_surfel_graph_from_file(gold_file_name, flags, m_random_engine);
   EXPECT_EQ((flags & FLAG_SMOOTHNESS), 0);
   EXPECT_EQ((flags & FLAG_EDGES), 0);
-  expect_graphs_equal(surfel_graph, loaded_graph, true);
+  expect_graphs_equal(surfel_graph, loaded_graph, true, true);
+}
+
+TEST_F(TestSurfelIO, LoadFromTestFileWithEdges) {
+  std::string gold_file_name = "surfel_test_data/gold_graph_edges.bin";
+  unsigned short flags = 0;
+  auto loaded_graph = load_surfel_graph_from_file(gold_file_name, flags, m_random_engine);
+  EXPECT_EQ((flags & FLAG_SMOOTHNESS), 0);
+  EXPECT_EQ((flags & FLAG_EDGES), FLAG_EDGES);
+  expect_graphs_equal(surfel_graph, loaded_graph, true, false);
 }
 
 TEST_F(TestSurfelIO, LoadFromTestFileWithSmoothness) {
@@ -265,16 +280,7 @@ TEST_F(TestSurfelIO, LoadFromTestFileWithSmoothness) {
   auto loaded_graph = load_surfel_graph_from_file(gold_file_name, flags, m_random_engine);
   EXPECT_EQ((flags & FLAG_SMOOTHNESS), FLAG_SMOOTHNESS);
   EXPECT_EQ((flags & FLAG_EDGES), 0);
-  expect_graphs_equal(surfel_graph, loaded_graph, false);
-}
-
-TEST_F(TestSurfelIO, LoadFromTestFileWithEdges) {
-  std::string gold_file_name = "surfel_test_data/gold_graph_smooth.bin";
-  unsigned short flags = 0;
-  auto loaded_graph = load_surfel_graph_from_file(gold_file_name, flags, m_random_engine);
-  EXPECT_EQ((flags & FLAG_SMOOTHNESS), FLAG_SMOOTHNESS);
-  EXPECT_EQ((flags & FLAG_EDGES), 0);
-  expect_graphs_equal(surfel_graph, loaded_graph);
+  expect_graphs_equal(surfel_graph, loaded_graph, false, true);
 }
 
 TEST_F(TestSurfelIO, SaveToTestFile) {
@@ -288,6 +294,7 @@ TEST_F(TestSurfelIO, SaveToTestFile) {
 
 TEST_F(TestSurfelIO, SaveLoadRoundTripDefault) {
   std::string tmp_file_name = std::tmpnam(nullptr);
+  // Doesn't save edges or smoothnesss
   save_surfel_graph_to_file(tmp_file_name, surfel_graph);
 
   unsigned short flags = 0;
@@ -296,11 +303,12 @@ TEST_F(TestSurfelIO, SaveLoadRoundTripDefault) {
   EXPECT_EQ((flags & FLAG_EDGES), 0);
 
   // Exclude smoothness as we don't persist it.
-  expect_graphs_equal(surfel_graph, loaded_graph, true);
+  expect_graphs_equal(surfel_graph, loaded_graph, true, true);
 }
 
 TEST_F(TestSurfelIO, SaveLoadRoundTripWithSmoothness) {
   std::string tmp_file_name = std::tmpnam(nullptr);
+  // Doesn't save edges
   save_surfel_graph_to_file(tmp_file_name, surfel_graph, true);
 
   unsigned short flags = 0;
@@ -309,7 +317,7 @@ TEST_F(TestSurfelIO, SaveLoadRoundTripWithSmoothness) {
   EXPECT_EQ((flags & FLAG_EDGES), 0);
 
   // Exclude smoothness as we don't persist it.
-  expect_graphs_equal(surfel_graph, loaded_graph);
+  expect_graphs_equal(surfel_graph, loaded_graph, false, true);
 }
 
 TEST_F(TestSurfelIO, SaveLoadRoundTripWithSmoothnessAndEdges) {

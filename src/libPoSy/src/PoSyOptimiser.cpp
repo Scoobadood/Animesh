@@ -417,8 +417,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
         spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]]", j_vecs[0][0], j_vecs[0][1], j_vecs[0][2]);
       }
 
-      edge->set_t_ij(frame_index, t_ij_pair.first[0], t_ij_pair.first[1]);
-      edge->set_t_ji(frame_index, t_ij_pair.second[0], t_ij_pair.second[1]);
+      set_t(m_surfel_graph, node, t_ij_pair.first, nbr_node, t_ij_pair.second);
 
       // Compute the weighted mean closest point
       auto old_lattice_vertex = curr_lattice_vertex;

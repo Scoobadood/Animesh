@@ -80,7 +80,16 @@ set_k(const SurfelGraphPtr &graph,
       const SurfelGraphNodePtr &node2, unsigned short k2);
 
 std::pair<unsigned short, unsigned short>
-get_k(
-    const SurfelGraphPtr &graph,
-    const SurfelGraphNodePtr &node1,
-    const SurfelGraphNodePtr &node2);
+get_k(const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node1,
+      const SurfelGraphNodePtr &node2);
+
+void
+set_t(const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node1, Eigen::Vector2i t1,
+      const SurfelGraphNodePtr &node2, Eigen::Vector2i t2);
+
+std::pair<Eigen::Vector2i, Eigen::Vector2i>
+get_t(const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node1,
+      const SurfelGraphNodePtr &node2);

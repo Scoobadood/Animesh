@@ -97,6 +97,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, std::mt1
     ui->lblEdgeVertex1->setText(from_name.c_str());
     ui->lblEdgeVertex2->setText(to_name.c_str());
     // Extract the edge data
+    get_t(s);
     auto edge = m_edge_from_node_names[{from_name, to_name}];
     auto t_ij_0 = edge->t_ij(0);
     auto t_ji_0 = edge->t_ji(0);

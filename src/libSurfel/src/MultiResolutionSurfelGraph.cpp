@@ -250,6 +250,7 @@ MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
       for (auto &parent_node: m_levels[from_level - 1]->nodes()) {
         if (parent_node->data()->id() == node->data()->id()) {
           parent_node->data()->setTangent(node->data()->tangent());
+          parent_node->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
           break;
         }
       }
@@ -258,6 +259,13 @@ MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
       // Find the nodes in the graph
       parents.first->data()->setTangent(node->data()->tangent());
       parents.second->data()->setTangent(node->data()->tangent());
+
+      //TODO: Make this better
+      // Right now we up propagate the same offset to both nodes
+      // A better approach would perhaps be to compute the location of this node in 3 space and then
+      // calculate an *actual* offset from the vertices across a single frame or averaged across all frames
+      parents.first->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
+      parents.second->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
     }
   }
 }

@@ -6,6 +6,8 @@
 
 #include <Optimise/Optimiser.h>
 #include <Properties/Properties.h>
+#include <PoSy/PoSyOptimiser.h>
+#include <RoSy/RoSyOptimiser.h>
 #include <Surfel/MultiResolutionSurfelGraph.h>
 
 #include <random>
@@ -20,6 +22,8 @@ protected:
 
 private:
   MultiResolutionSurfelGraph * m_multi_res_graph;
+  PoSyOptimiser * m_posy_optimiser;
+  RoSyOptimiser * m_rosy_optimiser;
   unsigned int m_num_levels;
   unsigned int m_current_level;
 };

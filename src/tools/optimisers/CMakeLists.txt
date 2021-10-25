@@ -1,0 +1,35 @@
+add_executable(
+		posy_cli
+		posy_cli.cpp
+)
+
+target_link_libraries(
+		posy_cli
+		PoSy
+		Properties
+		Surfel
+		Cpd::Library-C++
+)
+
+target_compile_features(
+		posy_cli
+		PUBLIC
+		cxx_std_11
+)
+
+# Building rosy_cli
+add_executable(
+		rosy_cli
+		rosy_cli.cpp
+)
+
+target_link_libraries(
+		rosy_cli
+		RoSy
+)
+
+target_compile_features(
+		rosy_cli
+		PUBLIC
+		cxx_std_11
+)

@@ -303,6 +303,25 @@ compute_closest_points(
       that_base_lattice_point + (nbr_tangent * (best_j & 1) + nbr_orth_tangent * ((best_j & 2) >> 1)) * scale);
 }
 
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+compute_closest_points(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_lattice_point,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+) {
+  std::vector<Eigen::Vector3f> i_vecs;
+  std::vector<Eigen::Vector3f> j_vecs;
+  return compute_closest_points(
+      lattice_point, tangent, orth_tangent,
+      nbr_lattice_point, nbr_tangent, nbr_orth_tangent,
+      midpoint, scale, i_vecs, j_vecs);
+}
+
 /**
  * Optimise this GraphNode by considering all neighbours and allowing them all to
  * 'push' this node slightly to an agreed common position.
@@ -350,13 +369,13 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
       // Compute edge adjusted tangents for this node and neighbour
       Vector3f edge_adjusted_tangent = (k_ij == 0)
-                              ? tangent
-                              : vector_by_rotating_around_n(tangent, normal, k_ij);
+                                       ? tangent
+                                       : vector_by_rotating_around_n(tangent, normal, k_ij);
       Vector3f edge_adjusted_orth_tangent = normal.cross(edge_adjusted_tangent);
 
       Vector3f nbr_edge_adjusted_tangent = (k_ji == 0)
-                                       ? nbr_tangent
-                                       : vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
+                                           ? nbr_tangent
+                                           : vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
       Vector3f nbr_edge_adjusted_orth_tangent = nbr_normal.cross(nbr_edge_adjusted_tangent);
 
       // Compute the midpoint
@@ -366,12 +385,10 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
           nbr_lattice_vertex, nbr_edge_adjusted_tangent, nbr_edge_adjusted_orth_tangent,
           midpoint, m_rho);
 
-      std::vector<Vector3f> i_vecs, j_vecs;
       const auto closest_points = compute_closest_points(
           curr_lattice_vertex, edge_adjusted_tangent, edge_adjusted_orth_tangent,
           nbr_lattice_vertex, nbr_edge_adjusted_tangent, nbr_edge_adjusted_orth_tangent,
-          midpoint, m_rho,
-          i_vecs, j_vecs
+          midpoint, m_rho
       );
 
       set_t(m_surfel_graph, node, t_ij_pair.first, nbr_node, t_ij_pair.second);
@@ -386,14 +403,14 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
       // Make sure this is actually the closest lattice vertex by doing the rounding thing
       curr_lattice_vertex = round_4(normal, tangent, curr_lattice_vertex, vertex, m_rho);
     } // End of neighbours
+
     // Pick the closest estimated lattice vertex based on CLV
-//    curr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
     curr_lattice_vertex = round_4(normal, tangent, curr_lattice_vertex, vertex, m_rho);
     // Convert back to an offset at k=0
     const auto diff = curr_lattice_vertex - vertex;
     curr_lattice_offset = {diff.dot(tangent), diff.dot(orth_tangent)};
-    if (curr_lattice_offset[0] > 0.5 || curr_lattice_offset[0] < -0.5 || curr_lattice_offset[1] > 0.5
-        || curr_lattice_offset[1] < -0.5) {
+    if ((std::fabsf(curr_lattice_offset[0]) - 0.5 > 1e-5) ||
+        (std::fabsf(curr_lattice_offset[1]) - 0.5 > 1e-5)) {
       spdlog::error("curr_lattice_offset is too far away {},{}",
                     curr_lattice_offset[0],
                     curr_lattice_offset[1]);

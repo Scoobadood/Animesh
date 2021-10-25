@@ -6,8 +6,12 @@
 #include <QFileDialog>
 #include <utility>
 #include <ArcBall/TrackBall.h>
-field_visualiser_window::field_visualiser_window(Properties properties, QWidget *parent) :
-    QMainWindow(parent), ui(new Ui::field_visualiser_window), m_properties{std::move(properties)} {
+field_visualiser_window::field_visualiser_window(Properties properties, std::mt19937 &rng, QWidget *parent) //
+    : QMainWindow(parent) //
+    , m_random_engine{rng} //
+    , ui(new Ui::field_visualiser_window) //
+    , m_properties{std::move(properties)} //
+{
   ui->setupUi(this);
 
   m_arc_ball = std::make_shared<Trackball>();
@@ -94,8 +98,8 @@ field_visualiser_window::field_visualiser_window(Properties properties, QWidget 
     ui->lblEdgeVertex2->setText(to_name.c_str());
     // Extract the edge data
     auto edge = m_edge_from_node_names[{from_name, to_name}];
-    auto t_ij_0 = edge->t_ij(0);
-    auto t_ji_0 = edge->t_ji(0);
+    auto t_ij_0 = edge->t_low();
+    auto t_ji_0 = edge->t_high();
     auto k_ij_0 = edge->k_low();
     auto k_ji_0 = edge->k_high();
     QString t_ij{(to_string(t_ij_0.x()) + ", " + to_string(t_ij_0.y())).c_str()};
@@ -213,7 +217,8 @@ void field_visualiser_window::fileOpenAction() {
   QString fileName = QFileDialog::getOpenFileName(this,
                                                   tr("Open Graph"), "",
                                                   tr("Surfel Graph Files (*.bin);;All Files (*)"));
-  const auto graphPtr = load_surfel_graph_from_file(fileName.toStdString());
+  const auto graphPtr = load_surfel_graph_from_file(fileName.toStdString(),
+                                                    m_random_engine);
   set_graph(graphPtr);
 }
 

@@ -30,7 +30,7 @@ target_link_libraries(
 		GeomFileUtils
 		Graph
 		Properties
-		fmt
+		spdlog::spdlog
 )
 
 # Every library has unit tests, of course

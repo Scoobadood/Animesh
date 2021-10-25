@@ -2,10 +2,11 @@
 
 #include <Surfel/Surfel_Compute.h>
 #include <memory>
+#include <random>
 
 void TestUtilities::SetUp() {
-    std::default_random_engine re{123};
-    m_surfel_builder = new SurfelBuilder(re);
+    std::mt19937 rng{123};
+    m_surfel_builder = new SurfelBuilder(rng);
     s1 = std::make_shared<Surfel>(
             m_surfel_builder
                     ->with_id("id1")

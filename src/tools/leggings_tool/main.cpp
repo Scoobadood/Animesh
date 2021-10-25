@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) {
   // create a surfel graph
   SurfelGraphPtr g = make_shared<SurfelGraph>();
 
-  default_random_engine rnd{123};
+  std::mt19937 rnd{123};
   auto surfel_builder = new SurfelBuilder(rnd);
   vector<SurfelGraphNodePtr> node_for_vertex;
 

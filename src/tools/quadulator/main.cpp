@@ -175,7 +175,10 @@ int main(int argc, char *argv[]) {
   Args args = parse_args(argc, argv);
 
   // Load graph
-  auto graph = load_surfel_graph_from_file(args.in_file_name);
+  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
+  uint32_t seed_val = 123;  // populate somehow
+  rng.seed(seed_val);
+  auto graph = load_surfel_graph_from_file(args.in_file_name, rng);
 
   // Make an interim graph per frame
   for (auto frame_index = 0; frame_index < get_num_frames(graph); ++frame_index) {

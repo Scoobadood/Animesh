@@ -14,7 +14,6 @@
 #include "PixelInFrame.h"
 #include "Surfel.h"
 #include "SurfelBuilder.h"
-#include <spdlog/fmt/fmt.h>
 #include <spdlog/spdlog.h>
 
 /**
@@ -230,15 +229,15 @@ SurfelGraphPtr
 generate_surfels(const std::vector<DepthMap> &depth_maps,
                  const std::vector<std::vector<PixelInFrame>> &correspondences,
                  const std::map<PixelInFrame, Eigen::Vector3f> &coordinates_by_pif,
-                 const Properties &properties) {
+                 const Properties &properties,
+                 std::mt19937 & rng) {
     using namespace std;
     assert(!correspondences.empty());
     assert(!depth_maps.empty());
 
     vector<shared_ptr<Surfel>> surfels;
 
-    std::default_random_engine random_engine{123};
-    auto surfel_builder = new SurfelBuilder(random_engine);
+    auto surfel_builder = new SurfelBuilder(rng);
     int count = 0;
     int target = correspondences.size();
     // Iterate over each correspondence and generate a surfel.

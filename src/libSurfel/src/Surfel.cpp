@@ -37,7 +37,7 @@ Surfel::Surfel(std::string id,
     m_last_rosy_correction{0.0f},
     m_posy_smoothness{0.0f} {
 
-  for (auto &fd : frames) {
+  for (auto &fd: frames) {
     m_frame_data.push_back(fd);
     this->m_frames.push_back(fd.pixel_in_frame.frame);
   }
@@ -54,7 +54,7 @@ Surfel::is_in_frame(unsigned int frame) const {
 
 const FrameData &
 Surfel::frame_data_for_frame(unsigned int frame) const {
-  for (const auto &fd : m_frame_data) {
+  for (const auto &fd: m_frame_data) {
     if (fd.pixel_in_frame.frame == frame) {
       return fd;
     }
@@ -110,18 +110,21 @@ void Surfel::get_all_data_for_surfel_in_frame(
   orth_tangent = normal.cross(tangent);
 }
 
-void
-Surfel::transform_surfel_via_frame(const std::shared_ptr<Surfel> &that_surfel_ptr,
-                                   unsigned int frame_index,
-                                   Eigen::Vector3f &transformed_other_norm,
-                                   Eigen::Vector3f &transformed_other_tan) const {
+/*
+ * Transform a given surfels normal and tangent into this surfels frame of reference
+ * via a specific common frame.
+ */
+void Surfel::transform_surfel_via_frame(
+    const std::shared_ptr<Surfel> &that_surfel_ptr,
+    unsigned int frame_index,
+    Eigen::Vector3f &transformed_other_norm,
+    Eigen::Vector3f &transformed_other_tan) const {
 
-  const auto frame_to_surfel = frame_data_for_frame(frame_index).transform.transpose();
-  const auto &other_surfel_to_frame = that_surfel_ptr->frame_data_for_frame(frame_index).transform;
-  auto other_surfel_to_this_surfel = frame_to_surfel * other_surfel_to_frame;
+  // Get transform (rotation) from given frame to surfel space for this surfel
+  const auto frame_to_this_surfel = frame_data_for_frame(frame_index).transform.transpose();
+  const auto &that_surfel_to_frame = that_surfel_ptr->frame_data_for_frame(frame_index).transform;
+  auto that_surfel_to_this_surfel = frame_to_this_surfel * that_surfel_to_frame;
 
-  const auto &neighbour_normal_in_frame = that_surfel_ptr->frame_data_for_frame(frame_index).normal;
-
-  transformed_other_norm = frame_to_surfel * neighbour_normal_in_frame;
-  transformed_other_tan = other_surfel_to_this_surfel * that_surfel_ptr->tangent();
+  transformed_other_norm = that_surfel_to_this_surfel * Eigen::Vector3f::UnitY();
+  transformed_other_tan = that_surfel_to_this_surfel * that_surfel_ptr->tangent();
 }

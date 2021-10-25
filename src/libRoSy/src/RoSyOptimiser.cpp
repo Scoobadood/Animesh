@@ -8,10 +8,10 @@
 #include <Surfel/SurfelGraph.h>
 #include <Eigen/Core>
 #include <Vote/VoteCounter.h>
-#include <strstream>
+#include <spdlog/spdlog.h>
 
-RoSyOptimiser::RoSyOptimiser(const Properties &properties)
-    : Optimiser(properties) //
+RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
+    : Optimiser(properties, rng) //
 {
   setup_termination_criteria(
       "rosy-termination-criteria",
@@ -23,28 +23,45 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties)
   m_weight_for_error = m_properties.getBooleanProperty("rosy-weight-for-error");
   m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
   m_randomise_neighour_order = m_properties.getBooleanProperty("rosy-randomise-neighbour-order");
+  m_vote_for_best_k = m_properties.getBooleanProperty("rosy-vote-for-best-k");
 }
 
 /**
- * @return The mean error per neighbour.
+ * @return The total smoothness for a given node in a frame.
+ * Also sets the number of neighbours it's compared to so that the mean can be computed.
  */
 float
 RoSyOptimiser::compute_node_smoothness_for_frame(
     const SurfelGraphNodePtr &this_node,
     size_t frame_index,
-    unsigned int &num_neighbours,
-    bool is_first_run) const {
+    unsigned int &num_neighbours) const {
 
   using namespace Eigen;
 
   float frame_smoothness = 0.0f;
 
   const auto &this_surfel = this_node->data();
-  spdlog::debug("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);
+
+  bool should_dump = false;//(this_surfel->id() == "s_32");
+  // START DEBUG
+  if (should_dump) {
+    spdlog::info("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);
+  }
+  // END DEBUG
 
   Vector3f vertex, normal, tangent;
   this_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
 
+  // START DEBUG
+  if (should_dump) {
+    spdlog::info("  Stored tan is ({},{},{})",
+                 this_surfel->tangent()[0], this_surfel->tangent()[1], this_surfel->tangent()[2]);
+    spdlog::info("  In frame is ({},{},{})",
+                 tangent[0], tangent[1], tangent[2]);
+  }
+  // END DEBUG
+
+  int bad_count = 0, good_count = 0;
   // For each neighbour in frame...
   const auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, this_node, frame_index);
   for (const auto &nbr_node: neighbours_in_frame) {
@@ -53,38 +70,34 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
     Vector3f nbr_vertex, nbr_normal, nbr_tangent;
     nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
 
-    // Get k_ij and k_ji from edge
-    auto k = get_k(m_surfel_graph, this_node, nbr_node);
-    auto v1 = vector_by_rotating_around_n(tangent, normal, k.first);
-    auto v2 = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k.second);
+    // Compute best Ks
+    unsigned short k_ij;
+    unsigned short k_ji;
+    auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
 
-    // Compute k_ij and k_ji
-    unsigned short k_ij_computed, k_ji_computed;
-    auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij_computed, nbr_tangent, nbr_normal, k_ji_computed);
-    float theta_computed = degrees_angle_between_vectors(best_pair.first, best_pair.second);
-
-    float theta = degrees_angle_between_vectors(v1, v2);
-
-    if (this_surfel->id() == "v_1497" || nbr_surfel->id() == "v_1497") {
-      if (k.first != k_ij_computed || k.second != k_ji_computed) {
-        spdlog::warn("{}->{}:  ({}, {}) doesn't match computed ({}, {}) theta:{}, computed theta:{}",
-                     this_surfel->id(),
-                     nbr_surfel->id(),
-                     k.first, k.second,
-                     k_ij_computed, k_ji_computed,
-                     theta, theta_computed
-        );
-      } else {
-        spdlog::info("{}->{}:  ({}, {}) matches computed score. theta:{}",
-                     this_surfel->id(),
-                     nbr_surfel->id(),
-                     k.first, k.second,
-                     theta
-        );
-      }
+    float theta = degrees_angle_between_vectors(best_pair.first, best_pair.second);
+    if (theta > 45 || theta < -45) {
+      bad_count++;
+    } else {
+      good_count++;
+    }
+    if (should_dump) {
+      spdlog::info("  Edge to ", nbr_surfel->id());
+      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
+      spdlog::info("    V1=[{},{},{}]", vertex[0], vertex[1], vertex[2]);
+      spdlog::info("    N1=[{}, {}, {}]", normal[0], normal[1], normal[2]);
+      spdlog::info("    T1=[{}, {}, {}]", tangent[0], tangent[1], tangent[2]);
+      spdlog::info("    V2=[{},{},{}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
+      spdlog::info("    N2=[{}, {}, {}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
+      spdlog::info("    T2=[{}, {}, {}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
+      spdlog::info("    theta {}", theta);
     }
     const auto smoothness = (theta * theta);
     frame_smoothness += smoothness;
+  }
+
+  if (should_dump) {
+    spdlog::info("Bad {}   Good {} ", bad_count, good_count);
   }
 
   num_neighbours = neighbours_in_frame.size();
@@ -143,88 +156,50 @@ RoSyOptimiser::get_common_frames(
   return shared_frames;
 }
 
-/*
- * Smooth an individual Surfel across temporal and spatial neighbours.
- */
 void
-RoSyOptimiser::optimise_node_with_voting(const SurfelGraphNodePtr &this_node) {
+RoSyOptimiser::vote_for_best_ks(
+    const std::shared_ptr<Surfel> &this_surfel,
+    const std::shared_ptr<Surfel> &that_surfel,
+    const Eigen::Vector3f &tangent,
+    std::vector<unsigned int> &shared_frames,
+    unsigned short &best_k_ij,
+    unsigned short &best_k_ji) const {
   using namespace std;
   using namespace Eigen;
 
-  const auto &this_surfel = this_node->data();
-  const auto &old_tangent = this_surfel->tangent();
-  Vector3f new_tangent{old_tangent};
-
-  // For each neighbour of this surfel
-  float w_sum = 0.0f;
-  auto neighbours = m_surfel_graph->neighbours(this_node);
-  for (const auto &nbr: neighbours) {
-    const auto &nbr_surfel = nbr->data();
-
-    // Get the set of common frames
-    auto shared_frames = get_common_frames(this_surfel, nbr_surfel);
-
-    // Initialise vote
-    VoteCounter<pair<unsigned short, unsigned short>> vote_counter{
-        [&](const vector<pair<unsigned short, unsigned short>> &possibilities) -> pair<int, int> {
-          uniform_int_distribution <size_t> i(0, possibilities.size() - 1);
-          return possibilities[i(m_random_engine)];
-        }
-    };
-
-    // For each frame that they both appear in
-    for (unsigned int frame_index: shared_frames) {
-      // Compute best k_ij/k_ji and tally vote
-      unsigned short k_ij, k_ji;
-      Vector3f nbr_tan_in_surfel_space, nbr_norm_in_surfel_space;
-      this_surfel->transform_surfel_via_frame(
-          nbr_surfel, frame_index,
-          nbr_norm_in_surfel_space,
-          nbr_tan_in_surfel_space);
-      best_rosy_vector_pair(
-          new_tangent, Vector3f::UnitY(), k_ij,
-          nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji);
-      vote_counter.cast_vote({k_ij, k_ji});
-    }
-    auto winner = vote_counter.winner();
-    // DEBUG
-    if (this_surfel->id() == "v_1497" || nbr_surfel->id() == "v_1497") {
-      std::ostringstream s;
-      s << this_surfel->id() << "->" << nbr_surfel->id() << ":";
-      for (const auto &vc: vote_counter.votes_with_counts()) {
-        s << "(" << std::to_string(vc.first.first)
-          << ", "
-          << std::to_string(vc.first.second)
-          << ") [" << std::to_string(vc.second)
-          << "] ";
+  // Initialise vote
+  VoteCounter<pair<unsigned short, unsigned short>> vote_counter{
+      // In the event of a tie pick one at random.
+      [&](const vector<pair<unsigned short, unsigned short>> &possibilities) -> pair<int, int> {
+        uniform_int_distribution <size_t> i(0, possibilities.size() - 1);
+        return possibilities[i(m_random_engine)];
       }
-      s << "==> (" << winner.first << ", " << winner.second << ")";
-      spdlog::info("{}", s.str());
-    }
-    // END DEBUG
-    unsigned short k_ij = winner.first;
-    unsigned short k_ji = winner.second;
+  };
 
-    // For each frame that they both appear in
-    for (unsigned int frame_index: shared_frames) {
-      float w_ij = 1.0f;
-      float w_ji = 1.0f;
+  // For each frame that they both appear in
+  for (auto frame_index: shared_frames) {
+    // Compute best k_ij/k_ji and tally vote
+    unsigned short k_ij, k_ji;
+    Vector3f nbr_tan_in_surfel_space;
+    Vector3f nbr_norm_in_surfel_space;
+    this_surfel->transform_surfel_via_frame(
+        that_surfel,
+        frame_index,
+        nbr_norm_in_surfel_space,
+        nbr_tan_in_surfel_space);
+    best_rosy_vector_pair(
+        tangent,
+        Vector3f::UnitY(),
+        k_ij,
+        nbr_tan_in_surfel_space,
+        nbr_norm_in_surfel_space,
+        k_ji);
+    vote_counter.cast_vote({k_ij, k_ji});
+  }
+  auto winner = vote_counter.winner();
 
-      Vector3f nbr_tan_in_surfel_space, nbr_norm_in_surfel_space;
-      this_surfel->transform_surfel_via_frame(nbr_surfel, frame_index,
-                                              nbr_norm_in_surfel_space,
-                                              nbr_tan_in_surfel_space);
-
-      // Compute smoothing
-      auto v1 = vector_by_rotating_around_n(new_tangent, Vector3f::UnitY(), k_ij);
-      auto v2 = vector_by_rotating_around_n(nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji);
-      Vector3f v = (v1 * w_sum) + (v2 * w_ji);
-      w_sum += w_ij;
-      new_tangent = project_vector_to_plane(v, Vector3f::UnitY());
-    } // Next frame
-    set_k(m_surfel_graph, this_node, k_ij, nbr, k_ji);
-  } // Next neighbour
-  this_node->data()->setTangent(new_tangent);
+  best_k_ij = winner.first;
+  best_k_ji = winner.second;
 }
 
 /*
@@ -232,66 +207,107 @@ RoSyOptimiser::optimise_node_with_voting(const SurfelGraphNodePtr &this_node) {
  */
 void
 RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
-  using namespace Eigen;
   using namespace std;
-
-  if (m_properties.getBooleanProperty("rosy-vote-for-best-k")) {
-    optimise_node_with_voting(this_node);
-    return;
-  }
+  using namespace Eigen;
 
   const auto &this_surfel = this_node->data();
-  const auto &old_tangent = this_surfel->tangent();
-  Vector3f new_tangent{old_tangent};
+  const auto &starting_tangent = this_surfel->tangent();
+  Vector3f new_tangent{starting_tangent};
 
-  // For each frame that this surfel appears in.
-  for (const auto frame_index: this_surfel->frames()) {
-    Eigen::Vector3f vertex, normal, tangent;
-    this_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+  bool should_dump = false;//(this_surfel->id() == "s_32");
+  float wsum = 0.0f;
+  // For each neighbour of this Surfel
+  auto neighbours = m_surfel_graph->neighbours(this_node);
+  for (const auto &nbr: neighbours) {
+    const auto &nbr_surfel = nbr->data();
 
-    float w_sum = 0.0f;
-    auto neighbours_in_frame =
-        get_neighbours_of_node_in_frame(m_surfel_graph, this_node, frame_index, m_randomise_neighour_order);
-    for (const auto &neighbour_node: neighbours_in_frame) {
+    // Get the set of common frames
+    auto shared_frames = get_common_frames(this_surfel, nbr_surfel);
 
-      const auto &nbr_surfel = neighbour_node->data();
+    // Optionally generate a set of Ks for all frames
+    unsigned short k_ij = 0;
+    unsigned short k_ji = 0;
+    if (m_vote_for_best_k) {
+      vote_for_best_ks(
+          this_surfel, nbr_surfel, new_tangent,
+          shared_frames, k_ij, k_ji);
 
-      float w_ij = 1.0f;
-      float w_ji = 1.0f;
+      // START DEBUG
+      if (should_dump) {
+        spdlog::info("Voted for edge to {} ", nbr_surfel->id());
+        spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
+      }
+      //END DEBUG
+    }
+
+    for (unsigned int frame_index: shared_frames) {
+      Vector3f nbr_tan_in_surfel_space;
+      Vector3f nbr_norm_in_surfel_space;
+      this_surfel->transform_surfel_via_frame(
+          nbr_surfel,
+          frame_index,
+          nbr_norm_in_surfel_space,
+          nbr_tan_in_surfel_space);
+
+      float this_surfel_weight = 1.0f;
+      float nbr_surfel_weight = 1.0f;
       if (m_weight_for_error) {
-        adjust_weights_based_on_error(this_surfel, nbr_surfel, w_ij, w_ji);
+        adjust_weights_based_on_error(
+            this_surfel,
+            nbr_surfel,
+            this_surfel_weight,
+            nbr_surfel_weight);
       }
 
-      Vector3f neighbour_tan_in_surfel_space, neighbour_norm_in_surfel_space;
-      this_surfel->transform_surfel_via_frame(
-          nbr_surfel, frame_index,
-          neighbour_norm_in_surfel_space,
-          neighbour_tan_in_surfel_space);
-
-      unsigned short k_ij;
-      unsigned short k_ji;
-      new_tangent = average_rosy_vectors(
-          new_tangent,
-          Vector3f::UnitY(),
-          w_sum,
-          neighbour_tan_in_surfel_space,
-          neighbour_norm_in_surfel_space,
-          w_ji,
-          k_ij,
-          k_ji);
-      w_sum += w_ij;
-
-      // Store ks
-      set_k(m_surfel_graph, this_node, k_ij, neighbour_node, k_ji);
+      // Compute the best RoSy pair (or voted pair)
+      std::pair<Vector3f, Vector3f> best_pair;
+      if (m_vote_for_best_k) {
+        best_pair = {
+            vector_by_rotating_around_n(new_tangent, Vector3f::UnitY(), k_ij),
+            vector_by_rotating_around_n(nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji)
+        };
+      } else {
+        best_pair = best_rosy_vector_pair(
+            new_tangent, Vector3f::UnitY(), k_ij,
+            nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji);
+        // START DEBUG
+        if (should_dump) {
+          spdlog::info("Computed for edge to {} ", nbr_surfel->id());
+          spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
+        }
+        //END DEBUG
+      }
+      wsum += this_surfel_weight;
+      Vector3f v = (best_pair.first * wsum) + (best_pair.second * nbr_surfel_weight);
+      new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
+      // START DEBUG
+      if (should_dump) {
+        spdlog::info("  Best Pair");
+        spdlog::info("  T1=[{}, {}, {}]", best_pair.first[0], best_pair.first[1], best_pair.first[2]);
+        spdlog::info("  T2=[{}, {}, {}]", best_pair.second[0], best_pair.second[1], best_pair.second[2]);
+        spdlog::info("  N2=[{}, {}, {}]",
+                     nbr_norm_in_surfel_space[0],
+                     nbr_norm_in_surfel_space[1],
+                     nbr_norm_in_surfel_space[2]);
+        spdlog::info("  new_tan=[{}, {}, {}]", new_tangent[0], new_tangent[1], new_tangent[2]);
+      }
+      //END DEBUG
+    } // Next frame
+    set_k(m_surfel_graph, this_node, k_ij, nbr, k_ji);
+    if (should_dump) {
+      spdlog::info("  Storing edge s_32->{} ", nbr->data()->id());
+      spdlog::info("    computed from tan ({}, {}, {})", new_tangent[0], new_tangent[1], new_tangent[2]);
+      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
     }
-  }
+  } // Next neighbour
 
+  // Handle damping
   if (m_damping_factor > 0) {
-    new_tangent = (m_damping_factor * old_tangent) + ((1.0f - m_damping_factor) * new_tangent);
+    new_tangent = (m_damping_factor * starting_tangent) + ((1.0f - m_damping_factor) * new_tangent);
     new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY(), true);
   }
   this_node->data()->setTangent(new_tangent);
-  this_node->data()->set_rosy_correction(degrees_angle_between_vectors(old_tangent, new_tangent));
+  this_node->data()->set_rosy_correction(degrees_angle_between_vectors(starting_tangent, new_tangent));
 }
 
 void RoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {

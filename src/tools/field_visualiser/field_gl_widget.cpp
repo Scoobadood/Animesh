@@ -19,13 +19,14 @@ field_gl_widget::field_gl_widget(
     , m_aspectRatio{1.0f} //
     , m_projectionMatrixIsDirty{true} //
     , m_render_mouse_ray{false} //
+    , m_light_enabled{false} //
 {
   setFocusPolicy(Qt::FocusPolicy::StrongFocus);
   setFocus();
 }
 
 void
-field_gl_widget::set_arc_ball(const std::shared_ptr<AbstractArcBall>& arc_ball) {
+field_gl_widget::set_arc_ball(const std::shared_ptr<AbstractArcBall> &arc_ball) {
   m_arc_ball = arc_ball;
   installEventFilter(m_arc_ball.get());
 }
@@ -60,6 +61,26 @@ field_gl_widget::update_model_matrix() {
     glLoadMatrixf(m_model_view_matrix);
   }
   checkGLError("update_model_matrix");
+}
+
+
+/**
+ * If lighting is enabled, make sure the light is at the eye coordinate
+ */
+void
+field_gl_widget::maybe_update_light() {
+  if (!m_light_enabled) {
+    return;
+  }
+  // Correctly position the light
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  float pos[]{0, 0, 0, 1};
+  glLightfv(GL_LIGHT0, GL_POSITION, pos);
+  float dir[]{0, 0, -1};
+  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
+  glPopMatrix();
 }
 
 /**
@@ -110,6 +131,8 @@ field_gl_widget::paintGL() {
   maybe_update_projection_matrix();
 
   update_model_matrix();
+
+  maybe_update_light();
 
   maybe_render_mouse_ray();
 
@@ -235,8 +258,6 @@ field_gl_widget::get_ray_data(unsigned int pixel_x,
                co[0], co[1], co[2]
   );
 }
-
-
 
 int
 field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,

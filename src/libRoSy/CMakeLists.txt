@@ -20,6 +20,7 @@ target_link_libraries(
 		RoSy
 		Optimise
 		Vote
+		spdlog::spdlog
 )
 
 # Tests

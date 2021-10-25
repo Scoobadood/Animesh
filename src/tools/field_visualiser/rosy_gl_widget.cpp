@@ -3,7 +3,6 @@
 #include <vector>
 #include <QColor>
 #include <Geom/Geom.h>
-#include <Eigen/Geometry>
 
 rosy_gl_widget::rosy_gl_widget(
     QWidget *parent, //
@@ -40,7 +39,7 @@ void drawEllipse(float cx, float cy, float cz,
   Eigen::Vector3f axis{nx, ny, nz};
   Eigen::Vector3f point{tx, ty, tz};
   Eigen::Vector3f pos{cx, cy, cz};
-  pos -= (0.1 * axis);
+  pos -= (0.05 * axis);
 
   glBegin(GL_TRIANGLE_FAN);
   glVertex3f(pos.x(), pos.y(), pos.z());
@@ -50,6 +49,7 @@ void drawEllipse(float cx, float cy, float cz,
     glVertex3f(pos.x() + vec.x() * radius,
                pos.y() + vec.y() * radius,
                pos.z() + vec.z() * radius);
+    glNormal3f(nx, ny, nz);
   }
   glEnd();
 }
@@ -59,6 +59,16 @@ rosy_gl_widget::maybeDrawSplats() const {
   if (!m_renderSplats) {
     return;
   }
+
+//  glEnable(GL_LIGHT0);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  float pos[]{0, 0, 0, 1};
+  glLightfv(GL_LIGHT0, GL_POSITION, pos);
+  float dir[]{0, 0, -1};
+  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
+  glPopMatrix();
 
   glColor4d(m_splatColour.redF(), m_splatColour.greenF(),
             m_splatColour.blueF(), m_splatColour.alphaF());
@@ -76,8 +86,8 @@ rosy_gl_widget::maybeDrawSplats() const {
                 1.2, 10
     );
   }
+//  glDisable(GL_LIGHT0);
   checkGLError("maybeDrawSplats");
-
 }
 
 void
@@ -100,9 +110,15 @@ rosy_gl_widget::maybeDrawNormals() const {
     glVertex3f(m_positions.at(i * 3 + 0),
                m_positions.at(i * 3 + 1),
                m_positions.at(i * 3 + 2));
+    glNormal3f(m_normals.at(i * 3 + 0),
+               m_normals.at(i * 3 + 1),
+               m_normals.at(i * 3 + 2));
     glVertex3f(m_positions.at(i * 3 + 0) + (m_normals.at(i * 3 + 0) * m_normalScaleFactor),
                m_positions.at(i * 3 + 1) + (m_normals.at(i * 3 + 1) * m_normalScaleFactor),
                m_positions.at(i * 3 + 2) + (m_normals.at(i * 3 + 2) * m_normalScaleFactor));
+    glNormal3f(m_normals.at(i * 3 + 0),
+               m_normals.at(i * 3 + 1),
+               m_normals.at(i * 3 + 2));
     glEnd();
   }
   checkGLError("maybeDrawNormals");
@@ -151,9 +167,15 @@ rosy_gl_widget::maybeDrawMainTangents() const {
     glVertex3f(m_positions.at(i * 3 + 0),
                m_positions.at(i * 3 + 1),
                m_positions.at(i * 3 + 2));
+    glNormal3f(m_normals.at(i * 3 + 0),
+               m_normals.at(i * 3 + 1),
+               m_normals.at(i * 3 + 2));
     glVertex3f(m_positions.at(i * 3 + 0) + (m_tangents.at(i * 3 + 0) * m_normalScaleFactor),
                m_positions.at(i * 3 + 1) + (m_tangents.at(i * 3 + 1) * m_normalScaleFactor),
                m_positions.at(i * 3 + 2) + (m_tangents.at(i * 3 + 2) * m_normalScaleFactor));
+    glNormal3f(m_normals.at(i * 3 + 0),
+               m_normals.at(i * 3 + 1),
+               m_normals.at(i * 3 + 2));
     glEnd();
   }
   checkGLError("maybeDrawTangents");
@@ -194,15 +216,19 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
     glVertex3f(m_positions.at(i * 3 + 0) - crossTanX,
                m_positions.at(i * 3 + 1) - crossTanY,
                m_positions.at(i * 3 + 2) - crossTanZ);
+    glNormal3f(normX, normY, normZ);
     glVertex3f(m_positions.at(i * 3 + 0) + crossTanX,
                m_positions.at(i * 3 + 1) + crossTanY,
                m_positions.at(i * 3 + 2) + crossTanZ);
+    glNormal3f(normX, normY, normZ);
     glVertex3f(m_positions.at(i * 3 + 0) - (tanX * m_normalScaleFactor),
                m_positions.at(i * 3 + 1) - (tanY * m_normalScaleFactor),
                m_positions.at(i * 3 + 2) - (tanZ * m_normalScaleFactor));
+    glNormal3f(normX, normY, normZ);
     glVertex3f(m_positions.at(i * 3 + 0),
                m_positions.at(i * 3 + 1),
                m_positions.at(i * 3 + 2));
+    glNormal3f(normX, normY, normZ);
     glEnd();
   }
   checkGLError("maybeDrawOtherTangents");
@@ -210,15 +236,18 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
 
 void
 rosy_gl_widget::do_paint() {
+  glDepthRange(0.0, 0.999);
   drawPositions();
-
-  maybeDrawSplats();
 
   maybeDrawNormals();
 
   maybeDrawMainTangents();
 
   maybeDrawOtherTangents();
+
+  glDepthRange(0.0, 1.0f);
+
+  maybeDrawSplats();
 }
 
 void
@@ -242,7 +271,10 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
 void
 rosy_gl_widget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_NORMALIZE);
+  glEnable(GL_COLOR_MATERIAL);
   glLineWidth(3.0f);
+  enable_light();
 }
 
 void

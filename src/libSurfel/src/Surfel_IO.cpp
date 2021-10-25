@@ -105,12 +105,10 @@ save_surfel_graph_to_file(const std::string &file_name,
       write_size_t(file, 1);
       write_unsigned_short(file, edge.data()->k_low());
       write_unsigned_short(file, edge.data()->k_high());
-      const auto tv = edge.data()->t_values();
-      write_size_t(file, tv);
-      for (auto tvi = 0; tvi < tv; ++tvi) {
-        write_vector_2i(file, edge.data()->t_ij(tvi));
-        write_vector_2i(file, edge.data()->t_ji(tvi));
-      }
+      // Historical: Used to have multiple t_ij, now only 1
+      write_size_t(file, 1);
+      write_vector_2i(file, edge.data()->t_low());
+      write_vector_2i(file, edge.data()->t_high());
       written_edges++;
     }
     spdlog::info("Wrote {} edges", written_edges);
@@ -123,16 +121,16 @@ save_surfel_graph_to_file(const std::string &file_name,
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name) {
+load_surfel_graph_from_file(const std::string &file_name, std::mt19937& rng) {
   unsigned short flags;
-  return load_surfel_graph_from_file(file_name, flags);
+  return load_surfel_graph_from_file(file_name, flags, rng);
 }
 
 /**
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags) {
+load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags, std::mt19937& rng) {
   using namespace std;
   using namespace spdlog;
 
@@ -161,8 +159,7 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
   map<string, vector<string>> neighbours_of_surfel_by_id;
   map<string, SurfelGraphNodePtr> graph_node_by_id;
 
-  std::default_random_engine random_engine{123};
-  auto surfel_builder = new SurfelBuilder(random_engine);
+  auto surfel_builder = new SurfelBuilder(rng);
   for (unsigned int sIdx = 0; sIdx < num_surfels; ++sIdx) {
     string surfel_id = read_string(file);
     surfel_builder
@@ -257,8 +254,9 @@ load_surfel_graph_from_file(const std::string &file_name, unsigned short &flags)
       }
       const auto tv = read_size_t(file);
       for (auto tvi = 0; tvi < tv; ++tvi) {
-        edge.set_t_ij(tvi, read_int(file), read_int(file));
-        edge.set_t_ji(tvi, read_int(file), read_int(file));
+        // As above
+        edge.set_t_low(read_int(file), read_int(file));
+        edge.set_t_high(read_int(file), read_int(file));
       }
       graph->add_edge(from_node, to_node, edge);
       spdlog::debug("Added edge {} from {} to {}", edge_index, from_node->data()->id(), to_node->data()->id());

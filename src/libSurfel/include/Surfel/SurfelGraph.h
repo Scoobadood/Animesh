@@ -10,9 +10,10 @@ class SurfelGraphEdge {
   // Best RoSy angles
   unsigned short m_k_low;
   unsigned short m_k_high;
+
   // PoSy displacements
-  std::vector<Eigen::Vector2i> m_t_ij;
-  std::vector<Eigen::Vector2i> m_t_ji;
+  Eigen::Vector2i m_t_low;
+  Eigen::Vector2i m_t_high;
 
 public:
   explicit SurfelGraphEdge(float weight) //
@@ -29,11 +30,6 @@ public:
     return m_k_high;
   }
 
-  inline size_t t_values() const {
-    assert(m_t_ij.size() == m_t_ji.size());
-    return m_t_ij.size();
-  }
-
   inline void set_k_low(unsigned int k_low) {
     m_k_low = k_low;
   }
@@ -42,34 +38,20 @@ public:
     m_k_high = k_high;
   }
 
-  inline const Eigen::Vector2i &t_ji(unsigned int frame_index) {
-    if (m_t_ji.size() <= frame_index) {
-      m_t_ji.resize(frame_index + 1);
-      m_t_ji.at(frame_index) = Eigen::Vector2i{0, 0};
-    }
-    return m_t_ji.at(frame_index);
+  inline const Eigen::Vector2i &t_low() {
+    return m_t_low;
   }
 
-  inline const Eigen::Vector2i &t_ij(unsigned int frame_index) {
-    if (m_t_ij.size() <= frame_index) {
-      m_t_ij.resize(frame_index + 1);
-      m_t_ij.at(frame_index) = Eigen::Vector2i{0, 0};
-    }
-    return m_t_ij.at(frame_index);
+  inline const Eigen::Vector2i &t_high() {
+    return m_t_high;
   }
 
-  inline void set_t_ij(unsigned int frame_index, int x, int y) {
-    if (m_t_ij.size() <= frame_index) {
-      m_t_ij.resize(frame_index + 1);
-    }
-    m_t_ij.at(frame_index) = Eigen::Vector2i{x, y};
+  inline void set_t_low(int x, int y) {
+    m_t_low = {x, y};
   }
 
-  inline void set_t_ji(unsigned int frame_index, int x, int y) {
-    if (m_t_ji.size() <= frame_index) {
-      m_t_ji.resize(frame_index + 1);
-    }
-    m_t_ji.at(frame_index) = Eigen::Vector2i{x, y};
+  inline void set_t_high(int x, int y) {
+    m_t_high = {x, y};
   }
 
   inline float weight() const {
@@ -98,7 +80,16 @@ set_k(const SurfelGraphPtr &graph,
       const SurfelGraphNodePtr &node2, unsigned short k2);
 
 std::pair<unsigned short, unsigned short>
-get_k(
-    const SurfelGraphPtr &graph,
-    const SurfelGraphNodePtr &node1,
-    const SurfelGraphNodePtr &node2);
+get_k(const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node1,
+      const SurfelGraphNodePtr &node2);
+
+void
+set_t(const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node1, Eigen::Vector2i t1,
+      const SurfelGraphNodePtr &node2, Eigen::Vector2i t2);
+
+std::pair<Eigen::Vector2i, Eigen::Vector2i>
+get_t(const SurfelGraphPtr &graph,
+      const SurfelGraphNodePtr &node1,
+      const SurfelGraphNodePtr &node2);

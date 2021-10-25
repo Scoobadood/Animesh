@@ -24,11 +24,11 @@ save_surfel_graph_to_file(const std::string& file_name,
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name);
+load_surfel_graph_from_file(const std::string &file_name, std::mt19937& rng);
 
 /**
  * Load surfel data from binary file
  */
 SurfelGraphPtr
-load_surfel_graph_from_file(const std::string &file_name, unsigned short& flags);
+load_surfel_graph_from_file(const std::string &file_name, unsigned short& flags, std::mt19937& rng);
 

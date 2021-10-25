@@ -10,7 +10,7 @@
 
 const Eigen::Vector3f SurfelBuilder::Y_AXIS = {0.0f, 1.0f, 0.0f};
 
-SurfelBuilder::SurfelBuilder(std::default_random_engine& random_engine)
+SurfelBuilder::SurfelBuilder(std::mt19937 & random_engine)
         : m_two_pi{-M_PI, M_PI} //
         , m_unit(-0.5f, 0.5f) //
         , m_random_engine(random_engine) //

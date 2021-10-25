@@ -25,5 +25,15 @@ public:
 protected:
     SurfelGraphPtr surfel_graph;
     SurfelBuilder * m_surfel_builder;
+    std::mt19937 m_random_engine{123};
+};
 
+class TestSurfelGraph : public ::testing::Test {
+public:
+  void SetUp( );
+  void TearDown();
+
+protected:
+  SurfelGraphPtr surfel_graph;
+  SurfelBuilder * m_surfel_builder;
 };

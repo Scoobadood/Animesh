@@ -19,7 +19,7 @@ class field_visualiser_window : public QMainWindow {
 Q_OBJECT
 
 public:
-    explicit field_visualiser_window(Properties properties, QWidget *parent = nullptr);
+    field_visualiser_window(Properties properties, std::mt19937 & rng, QWidget *parent = nullptr);
 
     ~field_visualiser_window() override;
 
@@ -38,6 +38,7 @@ private:
     QTimer * m_timer;
     std::map<std::pair<std::string,std::string>, std::shared_ptr<SurfelGraphEdge>>m_edge_from_node_names;
 
+    std::mt19937 & m_random_engine;
     Ui::field_visualiser_window *ui;
     SurfelGraphPtr m_graph_ptr;
     Properties m_properties;

@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
     cout << "Generating graph (scale: " << scale_factor << ")" << endl;
     SurfelGraph graph;
     vector<SurfelGraphNodePtr> nodes;
-    std::default_random_engine re(123);
-    SurfelBuilder sb(re);
+    std::mt19937 rng(123);
+    SurfelBuilder sb(rng);
     size_t vertex_index = 0;
 
     for (const auto &point_with_normal : points_with_normals) {

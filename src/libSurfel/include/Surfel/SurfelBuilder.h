@@ -11,7 +11,7 @@
 
 class SurfelBuilder {
 public:
-    explicit SurfelBuilder(std::default_random_engine& random_engine);
+    explicit SurfelBuilder(std::mt19937 & random_engine);
 
     SurfelBuilder *reset();
 
@@ -51,7 +51,7 @@ private:
     std::vector<FrameData> m_frames;
     Eigen::Vector3f m_tangent;
     Eigen::Vector2f m_reference_lattice_offset;
-    std::default_random_engine& m_random_engine;
+    std::mt19937 & m_random_engine;
 
     bool m_id_set;
     bool m_tangent_set;

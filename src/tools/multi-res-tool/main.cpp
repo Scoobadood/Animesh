@@ -51,10 +51,12 @@ int main(int argc, char *argv[]) {
   );
 
   // Normalise and centre
-  auto surfel_graph = load_surfel_graph_from_file(args.input_graph_file_name);
+  std::mt19937 rng{123};         // the Mersenne Twister with a popular choice of parameters
+
+  auto surfel_graph = load_surfel_graph_from_file(args.input_graph_file_name, rng);
   spdlog::info("Loaded {} nodes", surfel_graph->num_nodes());
 
-  MultiResolutionSurfelGraph mrg{surfel_graph};
+  MultiResolutionSurfelGraph mrg{surfel_graph, rng};
   mrg.generate_levels(args.levels);
 
   spdlog::info("Writing {} levels", args.levels);

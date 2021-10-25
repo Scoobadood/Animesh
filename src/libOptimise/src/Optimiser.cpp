@@ -15,8 +15,7 @@
 #include <Properties/Properties.h>       // termination criteria set up
 
 Optimiser::Optimiser(Properties properties, std::mt19937& rng)
-    : m_properties(std::move(properties)) //
-    , m_random_engine{rng}
+    : OptimiserInterface{properties, rng}//
     , m_result{NOT_COMPLETE} //
     , m_state{UNINITIALISED} //
     , m_randomise_neighour_order{false} //

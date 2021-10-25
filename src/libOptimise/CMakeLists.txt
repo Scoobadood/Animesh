@@ -1,5 +1,6 @@
 add_library(Optimise STATIC
 		src/SurfelSelectionAlgorithm.cpp include/Optimise/SurfelSelectionAlgorithm.h
+		src/OptimiserInterface.cpp include/Optimise/OptimiserInterface.h
 		src/Optimiser.cpp include/Optimise/Optimiser.h
 		)
 
@@ -18,4 +19,4 @@ target_include_directories(Optimise
 target_link_libraries(Optimise
 		Properties
 		Surfel
-)
+		)

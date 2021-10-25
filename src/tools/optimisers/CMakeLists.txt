@@ -33,3 +33,19 @@ target_compile_features(
 		PUBLIC
 		cxx_std_11
 )
+
+add_executable(
+		multi_res_cli
+		multi_res_cli.cpp
+)
+
+target_link_libraries(
+		multi_res_cli
+		MultiResolutionOptimiser
+)
+
+target_compile_features(
+		multi_res_cli
+		PUBLIC
+		cxx_std_11
+)

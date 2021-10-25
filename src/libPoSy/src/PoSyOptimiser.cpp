@@ -315,117 +315,68 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
   const auto &curr_surfel = node->data();
   Vector2f curr_lattice_offset = curr_surfel->reference_lattice_offset();
 
-  // For each frame this surfel is in...
-  for (const auto frame_index: curr_surfel->frames()) {
+  // For each frame in which this surfel appears
+  for (const auto frame_idx: curr_surfel->frames()) {
+
     // Compute the current vertex 3D position of nearest lattice vertex in this frame
     Vector3f vertex, tangent, normal;
-    curr_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+    curr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
     Vector3f orth_tangent = normal.cross(tangent);
     Vector3f curr_lattice_vertex = vertex +
         curr_lattice_offset[0] * tangent +
         curr_lattice_offset[1] * orth_tangent;
 
     // Consider every neighbour in this frame
-    const auto neighbours_in_frame = get_neighbours_of_node_in_frame(
-        m_surfel_graph, node,
-        frame_index, m_randomise_neighour_order);
+    const auto neighbours_in_frame =
+        get_neighbours_of_node_in_frame(m_surfel_graph, node, frame_idx, m_randomise_neighour_order);
 
     float sum_w = 1.0f;
     for (const auto &nbr_node: neighbours_in_frame) {
       const auto &nbr_surfel = nbr_node->data();
+      Vector2f nbr_lattice_offset = nbr_surfel->reference_lattice_offset();
+      // Collect neighbour data
+      Vector3f nbr_vertex, nbr_tangent, nbr_normal;
+      nbr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, nbr_vertex, nbr_tangent, nbr_normal);
+      Vector3f nbr_orth_tangent = nbr_normal.cross(nbr_tangent);
+      Vector3f nbr_lattice_vertex = nbr_vertex +
+          nbr_lattice_offset[0] * nbr_tangent +
+          nbr_lattice_offset[1] * nbr_orth_tangent;
 
-      // Get edge data from this node to this neighbour
+      // Get edge data for the edge from this node to this neighbour
       const auto k = get_k(m_surfel_graph, node, nbr_node);
       const auto k_ij = k.first;
       const auto k_ji = k.second;
       const auto w_ij = 1.0f;
 
-      // Rotate curr surfel tangents for this smoothing
-      Vector3f this_tangent = (k_ij == 0)
+      // Compute edge adjusted tangents for this node and neighbour
+      Vector3f edge_adjusted_tangent = (k_ij == 0)
                               ? tangent
                               : vector_by_rotating_around_n(tangent, normal, k_ij);
-      Vector3f this_orth_tangent = (k_ij == 0)
-                                   ? orth_tangent
-                                   : vector_by_rotating_around_n(orth_tangent, normal, k_ij);
+      Vector3f edge_adjusted_orth_tangent = normal.cross(edge_adjusted_tangent);
 
-      // Collect neighbour data
-      Vector3f nbr_vertex, nbr_tangent, nbr_normal;
-      nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
-      Vector3f nbr_orth_tangent = nbr_normal.cross(nbr_tangent);
+      Vector3f nbr_edge_adjusted_tangent = (k_ji == 0)
+                                       ? nbr_tangent
+                                       : vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
+      Vector3f nbr_edge_adjusted_orth_tangent = nbr_normal.cross(nbr_edge_adjusted_tangent);
 
-      // Remember to apply these at k_ji = 0 to get the actual 3D location
-      Vector3f nbr_lattice_vertex = nbr_vertex +
-          curr_lattice_offset[0] * nbr_tangent +
-          curr_lattice_offset[1] * nbr_orth_tangent;
-
-      // Now rotate the tangent and orth for this neighbour
-      if (k_ji != 0) {
-        nbr_tangent = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
-        nbr_orth_tangent = vector_by_rotating_around_n(nbr_orth_tangent, nbr_normal, k_ji);
-      }
-
-      if (curr_surfel->id() == WATCH_NODE) {
-        spdlog::info("{}-->{}:: p_i =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     curr_surfel->id(), nbr_surfel->id(),
-                     vertex[0], vertex[1], vertex[2]);
-        spdlog::info("            :: t_i =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     tangent[0], tangent[1], tangent[2]);
-        spdlog::info("            :: o_i =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     orth_tangent[0], orth_tangent[1], orth_tangent[2]);
-        spdlog::info("            :: p_j =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
-        spdlog::info("            :: t_j =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
-        spdlog::info("            :: o_j =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     nbr_orth_tangent[0], nbr_orth_tangent[1], nbr_orth_tangent[2]);
-        spdlog::info("            :: curr_lp =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     curr_lattice_vertex[0], curr_lattice_vertex[1], curr_lattice_vertex[2]);
-        spdlog::info("            :: nbr_lp =[{:0.3f}, {:0.3f}, {:0.3f}]",
-                     nbr_lattice_vertex[0], nbr_lattice_vertex[1], nbr_lattice_vertex[2]);
-      }
-      if ((curr_lattice_vertex - vertex).norm() > 0.707) {
-        spdlog::error("Problem with surfel {}, curr_lattic_vertex ({}, {}, {}) is TOO far from vertex ({}, {}, {}).",
-                      curr_surfel->id(),
-                      curr_lattice_vertex[0],
-                      curr_lattice_vertex[1],
-                      curr_lattice_vertex[2],
-                      vertex[0],
-                      vertex[1],
-                      vertex[2]
-        );
-      }
       // Compute the midpoint
       const auto midpoint = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
       const auto t_ij_pair = compute_tij_pair(
-          curr_lattice_vertex, this_tangent, this_orth_tangent,
-          nbr_lattice_vertex, nbr_tangent, nbr_orth_tangent,
+          curr_lattice_vertex, edge_adjusted_tangent, edge_adjusted_orth_tangent,
+          nbr_lattice_vertex, nbr_edge_adjusted_tangent, nbr_edge_adjusted_orth_tangent,
           midpoint, m_rho);
 
       std::vector<Vector3f> i_vecs, j_vecs;
       const auto closest_points = compute_closest_points(
-          curr_lattice_vertex, this_tangent, this_orth_tangent,
-          nbr_lattice_vertex, nbr_tangent, nbr_orth_tangent,
+          curr_lattice_vertex, edge_adjusted_tangent, edge_adjusted_orth_tangent,
+          nbr_lattice_vertex, nbr_edge_adjusted_tangent, nbr_edge_adjusted_orth_tangent,
           midpoint, m_rho,
           i_vecs, j_vecs
       );
 
-      if (curr_surfel->id() == WATCH_NODE) {
-        spdlog::info("            :: Q_i =[[{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[0][0], i_vecs[0][1], i_vecs[0][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[1][0], i_vecs[1][1], i_vecs[1][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[3][0], i_vecs[3][1], i_vecs[3][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", i_vecs[2][0], i_vecs[2][1], i_vecs[2][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]]", i_vecs[0][0], i_vecs[0][1], i_vecs[0][2]);
-        spdlog::info("            :: Q_j =[[{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[0][0], j_vecs[0][1], j_vecs[0][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[1][0], j_vecs[1][1], j_vecs[1][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[3][0], j_vecs[3][1], j_vecs[3][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]", j_vecs[2][0], j_vecs[2][1], j_vecs[2][2]);
-        spdlog::info("            ::       [{:0.3f}, {:0.3f}, {:0.3f}]]", j_vecs[0][0], j_vecs[0][1], j_vecs[0][2]);
-      }
-
       set_t(m_surfel_graph, node, t_ij_pair.first, nbr_node, t_ij_pair.second);
 
       // Compute the weighted mean closest point
-      auto old_lattice_vertex = curr_lattice_vertex;
       curr_lattice_vertex = (sum_w * closest_points.first) + (w_ij * closest_points.second);
       sum_w += w_ij;
       curr_lattice_vertex = curr_lattice_vertex * (1.0f / sum_w);
@@ -434,21 +385,6 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
       // Make sure this is actually the closest lattice vertex by doing the rounding thing
       curr_lattice_vertex = round_4(normal, tangent, curr_lattice_vertex, vertex, m_rho);
-
-      if (curr_surfel->id() == WATCH_NODE) {
-        spdlog::info("            :: midpoint =[{}, {}, {}]",
-                     midpoint[0], midpoint[1], midpoint[2]);
-        spdlog::info("            :: cp_i =[{}, {}, {}]",
-                     closest_points.first[0], closest_points.first[1], closest_points.first[2]);
-        spdlog::info("            :: cp_j =[{}, {}, {}]",
-                     closest_points.second[0], closest_points.second[1], closest_points.second[2]);
-        spdlog::info("            :: t_ij=[{}, {}], t_ji =[{}, {}]",
-                     t_ij_pair.first[0], t_ij_pair.first[1], t_ij_pair.second[0], t_ij_pair.second[1]);
-        spdlog::info("            :: new_curr_lp=({}, {},{}). Moved by {}",
-                     curr_lattice_vertex[0], curr_lattice_vertex[1], curr_lattice_vertex[2],
-                     (curr_lattice_vertex - old_lattice_vertex).norm()
-        );
-      }
     } // End of neighbours
     // Pick the closest estimated lattice vertex based on CLV
 //    curr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
@@ -463,10 +399,6 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                     curr_lattice_offset[1]);
     }
     curr_surfel->set_reference_lattice_offset(curr_lattice_offset);
-    if (curr_surfel->id() == WATCH_NODE) {
-      spdlog::info("            :: clo =[{}, {}]",
-                   curr_lattice_offset[0], curr_lattice_offset[1]);
-    }
   } // End of frames
 }
 

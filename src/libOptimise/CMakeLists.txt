@@ -18,4 +18,4 @@ target_include_directories(Optimise
 target_link_libraries(Optimise
 		Properties
 		Surfel
-)
+		)

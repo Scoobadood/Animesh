@@ -6,13 +6,15 @@
 
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
+#include "OptimiserInterface.h"
+
 #include <random>
 
-class Optimiser {
+class Optimiser : public OptimiserInterface {
 public:
-  void set_data(const SurfelGraphPtr &surfel_graph);
+  void set_data(const SurfelGraphPtr &surfel_graph) override;
 
-  bool optimise_do_one_step();
+  bool optimise_do_one_step() override;
 
 protected:
   Optimiser(Properties properties, std::mt19937& rng);
@@ -50,8 +52,6 @@ protected:
     ENDING_OPTIMISATION
   };
 
-  Properties m_properties;
-  std::mt19937 & m_random_engine;
   OptimisationResult m_result;
   OptimisationState m_state;
   SurfelGraphPtr m_surfel_graph;

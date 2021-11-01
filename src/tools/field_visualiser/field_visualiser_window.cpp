@@ -211,6 +211,9 @@ field_visualiser_window::set_graph(SurfelGraphPtr graph_ptr) {
   m_graph_ptr = std::move(graph_ptr);
   m_quad_geometry_extractor->set_graph(m_graph_ptr);
   extract_geometry();
+
+  auto num_frames = get_num_frames(m_graph_ptr);
+  ui->frameSelector->setMaximum((int)num_frames);
 }
 
 void field_visualiser_window::fileOpenAction() {
@@ -225,6 +228,8 @@ void field_visualiser_window::fileOpenAction() {
 void field_visualiser_window::frameChanged(int value) {
   m_rosy_geometry_extractor->set_frame(value);
   m_posy_geometry_extractor->set_frame(value);
+  m_quad_geometry_extractor->set_frame(value);
+  ui->lblFrame->setText(std::to_string(value).c_str());
   extract_geometry();
 }
 

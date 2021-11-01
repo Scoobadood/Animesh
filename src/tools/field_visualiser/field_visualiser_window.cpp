@@ -208,12 +208,14 @@ void
 field_visualiser_window::set_graph(SurfelGraphPtr graph_ptr) {
   using namespace std;
 
+  m_quad_geometry_extractor->set_graph(graph_ptr);
   m_graph_ptr = std::move(graph_ptr);
-  m_quad_geometry_extractor->set_graph(m_graph_ptr);
   extract_geometry();
 
   auto num_frames = get_num_frames(m_graph_ptr);
-  ui->frameSelector->setMaximum((int)num_frames);
+  ui->frameSelector->setValue(0);
+  ui->frameSelector->setMinimum(0);
+  ui->frameSelector->setMaximum((int)num_frames - 1);
 }
 
 void field_visualiser_window::fileOpenAction() {

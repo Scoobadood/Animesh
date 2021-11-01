@@ -28,7 +28,6 @@ public:
     m_red_edges.clear();
     m_blue_edges.clear();
     m_surfel_graph = graph;
-    m_graph = build_edge_graph(get_frame(), graph, m_rho );
   }
 
   void collapse() {

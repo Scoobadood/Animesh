@@ -16,6 +16,8 @@ quad_geometry_extractor::extract_geometry(
 ) {
   using namespace std;
 
+  m_graph = build_edge_graph(get_frame(), m_surfel_graph, m_rho );
+
   vertices.clear();
   red_edges.clear();
   blue_edges.clear();

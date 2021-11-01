@@ -1,11 +1,11 @@
 #include "field_visualiser_window.h"
-#include "posy_surfel_graph_geometry_extractor.h"
 #include "ui_field_visualiser_window.h"
 #include <Surfel/SurfelGraph.h>
 #include <Surfel/Surfel_IO.h>
 #include <QFileDialog>
 #include <utility>
 #include <ArcBall/TrackBall.h>
+
 field_visualiser_window::field_visualiser_window(Properties properties, std::mt19937 &rng, QWidget *parent) //
     : QMainWindow(parent) //
     , m_random_engine{rng} //
@@ -32,7 +32,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, std::mt1
           this, &field_visualiser_window::frameChanged);
   connect(ui->splatSizeSelector, &QSlider::valueChanged,
           [=](int value) {
-            float mapped_value = value / 10.0f;
+            float mapped_value = (float)value / 10.0f;
             m_posy_geometry_extractor->set_splat_scale_factor(0.5f + mapped_value);
             extract_geometry();
           });
@@ -229,5 +229,4 @@ void field_visualiser_window::frameChanged(int value) {
 }
 
 void field_visualiser_window::quad_vertex_selected(int i) {
-
 }

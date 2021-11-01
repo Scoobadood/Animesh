@@ -6,10 +6,11 @@
 #include <ArcBall/ArcBall.h>
 #include <QTimer>
 
-#include "posy_surfel_graph_geometry_extractor.h"
-#include "rosy_surfel_graph_geometry_extractor.h"
-#include "../../libQuad/include/Quad/Quad.h"
-#include "quad_geometry_extractor.h"
+#include "posy/posy_surfel_graph_geometry_extractor.h"
+#include "rosy/rosy_surfel_graph_geometry_extractor.h"
+#include "quad/quad_geometry_extractor.h"
+
+//#include "../../libQuad/include/Quad/Quad.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class field_visualiser_window; }

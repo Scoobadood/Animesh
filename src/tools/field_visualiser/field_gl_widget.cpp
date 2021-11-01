@@ -4,8 +4,10 @@
 
 #include <spdlog/spdlog.h>
 #include <Eigen/Core>
-#include <Eigen/Geometry>
 #include <Geom/Geom.h>
+#include <QVector4D>
+#include <QMatrix4x4>
+
 #include "field_gl_widget.h"
 
 const float DEG2RAD = (3.14159265f / 180.0f);
@@ -18,6 +20,8 @@ field_gl_widget::field_gl_widget(
     , m_zFar{1000.0f} //
     , m_aspectRatio{1.0f} //
     , m_projectionMatrixIsDirty{true} //
+    , m_projection_matrix{} //
+    , m_model_view_matrix{} //
     , m_render_mouse_ray{false} //
     , m_light_enabled{false} //
 {
@@ -68,7 +72,7 @@ field_gl_widget::update_model_matrix() {
  * If lighting is enabled, make sure the light is at the eye coordinate
  */
 void
-field_gl_widget::maybe_update_light() {
+field_gl_widget::maybe_update_light() const {
   if (!m_light_enabled) {
     return;
   }
@@ -216,7 +220,7 @@ glUnprojectf(float winx, float winy, float winz,
 }
 
 Eigen::Vector3f
-field_gl_widget::ray_direction_for_pixel(int pixel_x, int pixel_y) {
+field_gl_widget::ray_direction_for_pixel(unsigned int pixel_x, unsigned int pixel_y) {
   QMatrix4x4 mv{m_model_view_matrix};
   QMatrix4x4 p{m_projection_matrix};
   auto mvp = mv * p;

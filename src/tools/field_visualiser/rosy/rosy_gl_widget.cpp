@@ -83,7 +83,7 @@ rosy_gl_widget::maybeDrawSplats() const {
                 m_tangents.at(i * 3 + 0),
                 m_tangents.at(i * 3 + 1),
                 m_tangents.at(i * 3 + 2),
-                1.2, 10
+                1.0, 10
     );
   }
 //  glDisable(GL_LIGHT0);
@@ -236,7 +236,7 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
 
 void
 rosy_gl_widget::do_paint() {
-  glDepthRange(0.0, 0.999);
+  glDepthRange(0.0, 0.99);
   drawPositions();
 
   maybeDrawNormals();

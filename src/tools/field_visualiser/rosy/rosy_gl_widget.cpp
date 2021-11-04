@@ -236,7 +236,7 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
 
 void
 rosy_gl_widget::do_paint() {
-  glDepthRange(0.0, 0.99);
+  glDepthRange(0.0, 0.999);
   drawPositions();
 
   maybeDrawNormals();
@@ -245,7 +245,7 @@ rosy_gl_widget::do_paint() {
 
   maybeDrawOtherTangents();
 
-  glDepthRange(0.0, 1.0f);
+  glDepthRange(0.01, 1.0f);
 
   maybeDrawSplats();
 }

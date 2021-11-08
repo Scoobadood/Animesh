@@ -26,6 +26,7 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector, const Eigen::Vector3
 * @param k_ji The number of rotations required for the match (output).
 * @return the best fitting vector (i.e. best multiple of PI/2 + angle)
 */
+
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 best_rosy_vector_pair(const Eigen::Vector3f &o_i, const Eigen::Vector3f &n_i, unsigned short &k_ij,
                       const Eigen::Vector3f &o_j, const Eigen::Vector3f &n_j, unsigned short &k_ji) {
@@ -67,6 +68,48 @@ best_rosy_vector_pair(const Eigen::Vector3f &o_i, const Eigen::Vector3f &n_i, un
     return {best_o_i, best_o_j};
 }
 
+void
+best_rosy_vector_pair(const Eigen::Vector3f &o_i, const Eigen::Vector3f &n_i,
+                      const Eigen::Vector3f &o_j, const Eigen::Vector3f &n_j,
+                      Eigen::Vector3f &best_o_i,
+                      unsigned short &k_ij,
+                      Eigen::Vector3f &best_o_j,
+                      unsigned short &k_ji,
+                      float & best_theta) {
+  using namespace Eigen;
+  using namespace std;
+
+  if (!is_unit_vector(n_j)) {
+    throw invalid_argument("Normal must be unit vector");
+  }
+  if (!is_unit_vector(n_i)) {
+    throw invalid_argument("Normal must be unit vector");
+  }
+  if (is_zero_vector(o_j)) {
+    throw invalid_argument("Vector may not be zero length");
+  }
+  if (is_zero_vector(o_i)) {
+    throw invalid_argument("Vector may not be zero length");
+  }
+
+  k_ij = k_ji = 0;
+  best_theta = INFINITY;
+  for(int test_k_ij =0; test_k_ij < 4; ++ test_k_ij) {
+    const auto &test_o_i = vector_by_rotating_around_n(o_i, n_i, test_k_ij);
+    for (int test_k_ji = 0; test_k_ji < 4; ++test_k_ji) {
+      const auto &test_o_j = vector_by_rotating_around_n(o_j, n_j, test_k_ji);
+
+      const auto theta = degrees_angle_between_vectors(test_o_i, test_o_j);
+      if (theta < best_theta) {
+        best_theta = theta;
+        best_o_j = test_o_j;
+        best_o_i = test_o_i;
+        k_ij = test_k_ij;
+        k_ji = test_k_ji;
+      }
+    }
+  }
+}
 /**
 * Combine two tangent vectors with weighting
 * @param v1 The first vector

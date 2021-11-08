@@ -18,6 +18,13 @@ best_rosy_vector_pair(const Eigen::Vector3f &target_vector,
                       const Eigen::Vector3f &source_vector,
                       const Eigen::Vector3f &source_normal);
 
+void
+best_rosy_vector_pair(const Eigen::Vector3f &o_i, const Eigen::Vector3f &n_i,
+                      const Eigen::Vector3f &o_j, const Eigen::Vector3f &n_j,
+                      Eigen::Vector3f &best_o_i, unsigned short &k_ij,
+                      Eigen::Vector3f &best_o_j, unsigned short &k_ji,
+                      float & best_theta);
+
 /**
 * @param o_i The vector we're trying to match.
 * @param n_i The normal about which to rotate it.

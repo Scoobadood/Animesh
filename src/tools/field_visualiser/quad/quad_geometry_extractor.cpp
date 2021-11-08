@@ -12,11 +12,14 @@ quad_geometry_extractor::extract_geometry(
     std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &red_edges,
     std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges,
     std::vector<float> &original_vertex,
-    std::vector<float> &vertex_affinity
+    std::vector<float> &vertex_affinity,
+    bool rebuild_edge_graph
 ) {
   using namespace std;
 
-  m_graph = build_edge_graph(get_frame(), m_surfel_graph, m_rho );
+  if( rebuild_edge_graph) {
+    m_graph = build_edge_graph(get_frame(), m_surfel_graph, m_rho);
+  }
 
   vertices.clear();
   red_edges.clear();

@@ -88,7 +88,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, std::mt1
   connect(ui->btnDecimate, &QPushButton::clicked,
           this, [&]() {
         m_quad_geometry_extractor->collapse();
-        extract_geometry();
+        extract_geometry(false);
       });
 
   connect(ui->quadGLWidget, &quad_gl_widget::edge_selected, this, [&](std::string &from_name, std::string &to_name) {
@@ -139,7 +139,7 @@ field_visualiser_window::~field_visualiser_window() {
 }
 
 void
-field_visualiser_window::extract_geometry() {
+field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
   using namespace std;
 
   std::vector<float> positions;
@@ -185,7 +185,7 @@ field_visualiser_window::extract_geometry() {
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> blue_edges;
   std::vector<float> original_vertices;
   std::vector<float> vertex_affinity;
-  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
+  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity, rebuild_edge_graph);
   m_edge_from_node_names.clear();
   ui->quadGLWidget->setData(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
 

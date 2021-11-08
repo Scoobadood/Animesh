@@ -46,5 +46,5 @@ private:
     posy_surfel_graph_geometry_extractor *m_posy_geometry_extractor;
     rosy_surfel_graph_geometry_extractor *m_rosy_geometry_extractor;
     quad_geometry_extractor * m_quad_geometry_extractor;
-    void extract_geometry();
+    void extract_geometry(bool rebuild_edge_graph = true);
 };

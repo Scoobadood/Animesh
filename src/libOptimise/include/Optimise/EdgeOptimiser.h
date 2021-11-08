@@ -13,5 +13,5 @@ protected:
 
   void optimise_do_pass() override;
 
-  virtual void optimise_edge( const SurfelGraph::Edge & edge);
+  virtual void optimise_edge( const SurfelGraph::Edge & edge) = 0;
 };

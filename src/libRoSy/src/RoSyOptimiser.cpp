@@ -138,26 +138,6 @@ RoSyOptimiser::adjust_weights_based_on_error(const std::shared_ptr<Surfel> &s1,
   ++iterations;
 }
 
-/*
- * Retrieve the set of frame indices for common frames of two nodes
- */
-std::vector<unsigned int>
-RoSyOptimiser::get_common_frames(
-    const std::shared_ptr<Surfel> &s1,
-    const std::shared_ptr<Surfel> &s2
-) {
-  using namespace std;
-
-  set<unsigned int> s1_frames, s2_frames;
-  s1_frames.insert(begin(s1->frames()), end(s1->frames()));
-  s2_frames.insert(begin(s2->frames()), end(s2->frames()));
-  vector<unsigned int> shared_frames(min(s1_frames.size(), s2_frames.size()));
-  auto it = set_intersection(s1_frames.begin(), s1_frames.end(),
-                             s2_frames.begin(), s2_frames.end(),
-                             shared_frames.begin());
-  shared_frames.resize(it - shared_frames.begin());
-  return shared_frames;
-}
 
 void
 RoSyOptimiser::vote_for_best_ks(

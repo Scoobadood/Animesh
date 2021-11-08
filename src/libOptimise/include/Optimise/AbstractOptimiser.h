@@ -55,7 +55,9 @@ protected:
   OptimisationResult m_result;
   OptimisationState m_state;
   SurfelGraphPtr m_surfel_graph;
-  bool m_randomise_neighour_order;
+
+  static std::vector<unsigned int>
+  get_common_frames(const std::shared_ptr<Surfel> &s1, const std::shared_ptr<Surfel> &s2) ;
 
 private:
   // Optimisation

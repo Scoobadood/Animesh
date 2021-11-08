@@ -2,15 +2,17 @@
 // Created by Dave Durbin (Old) on 8/11/21.
 //
 
-#ifndef ANIMESH_LIBPOSY_INCLUDE_POSY_POSYEDGEOPTIMISER_H
-#define ANIMESH_LIBPOSY_INCLUDE_POSY_POSYEDGEOPTIMISER_H
+#pragma once
 
+#include <Optimise/EdgeOptimiser.h>
 
+class PosyEdgeOptimiser : public EdgeOptimiser {
+protected:
+  PosyEdgeOptimiser(Properties properties, std::mt19937 &rng);
 
-class PosyEdgeOptimiser {
+  void optimise_edge(const SurfelGraph::Edge &edge) override;
 
+private:
+  float m_rho;
 };
 
-
-
-#endif //ANIMESH_LIBPOSY_INCLUDE_POSY_POSYEDGEOPTIMISER_H

@@ -16,7 +16,6 @@ AbstractOptimiser::AbstractOptimiser(Properties properties, std::mt19937& rng)
     : Optimiser{properties, rng}//
     , m_result{NOT_COMPLETE} //
     , m_state{UNINITIALISED} //
-    , m_randomise_neighour_order{false} //
     , m_termination_criteria{0} //
     , m_term_crit_absolute_smoothness{0.0f} //
     , m_term_crit_relative_smoothness{0.0f} //
@@ -294,4 +293,25 @@ void AbstractOptimiser::smoothing_completed(float smoothness, OptimisationResult
                  ? "converged"
                  : "cancelled", smoothness
   );
+}
+
+/*
+ * Retrieve the set of frame indices for common frames of two nodes
+ */
+std::vector<unsigned int>
+AbstractOptimiser::get_common_frames(
+    const std::shared_ptr<Surfel> &s1,
+    const std::shared_ptr<Surfel> &s2
+) {
+  using namespace std;
+
+  set<unsigned int> s1_frames, s2_frames;
+  s1_frames.insert(begin(s1->frames()), end(s1->frames()));
+  s2_frames.insert(begin(s2->frames()), end(s2->frames()));
+  vector<unsigned int> shared_frames(min(s1_frames.size(), s2_frames.size()));
+  auto it = set_intersection(s1_frames.begin(), s1_frames.end(),
+                             s2_frames.begin(), s2_frames.end(),
+                             shared_frames.begin());
+  shared_frames.resize(it - shared_frames.begin());
+  return shared_frames;
 }

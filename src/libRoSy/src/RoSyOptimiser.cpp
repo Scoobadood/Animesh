@@ -43,7 +43,7 @@ RoSyOptimiser::compute_node_smoothness_for_frame(
 
   const auto &this_surfel = this_node->data();
 
-  bool should_dump = false;//(this_surfel->id() == "s_32");
+  bool should_dump = (this_surfel->id() == "s_32");
   // START DEBUG
   if (should_dump) {
     spdlog::info("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);

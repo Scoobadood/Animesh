@@ -20,7 +20,8 @@ public:
       std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &red_edges,
       std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> &blue_edges,
       std::vector<float>& original_vertex,
-      std::vector<float>& vertex_affinity
+      std::vector<float>& vertex_affinity,
+      bool rebuild_edge_graph = true
   );
 
   void set_graph(const SurfelGraphPtr &graph) {
@@ -28,11 +29,10 @@ public:
     m_red_edges.clear();
     m_blue_edges.clear();
     m_surfel_graph = graph;
-    m_graph = build_edge_graph(get_frame(), graph, m_rho );
   }
 
   void collapse() {
-      ::collapse(0, m_graph, m_rho);
+      ::collapse(m_graph, m_rho);
   }
 
 private:

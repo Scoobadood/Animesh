@@ -7,6 +7,7 @@
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <Vote/VoteCounter.h>
 #include <spdlog/spdlog.h>
 
@@ -240,15 +241,14 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
       //END DEBUG
     }
 
+    // For each frame that the two surfels are neighbours in:
     for (unsigned int frame_index: shared_frames) {
-      Vector3f nbr_tan_in_surfel_space;
-      Vector3f nbr_norm_in_surfel_space;
-      this_surfel->transform_surfel_via_frame(
-          nbr_surfel,
-          frame_index,
-          nbr_norm_in_surfel_space,
-          nbr_tan_in_surfel_space);
+      Vector3f v1,t1,n1;
+      this_surfel->get_vertex_tangent_normal_for_frame(frame_index, v1, t1, n1);
+      t1 = this_surfel->frame_data()[frame_index].transform * new_tangent;
 
+      Vector3f v2, t2, n2;
+      nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v2, t2, n2);
       float this_surfel_weight = 1.0f;
       float nbr_surfel_weight = 1.0f;
       if (m_weight_for_error) {
@@ -263,13 +263,13 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
       std::pair<Vector3f, Vector3f> best_pair;
       if (m_vote_for_best_k) {
         best_pair = {
-            vector_by_rotating_around_n(new_tangent, Vector3f::UnitY(), k_ij),
-            vector_by_rotating_around_n(nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji)
+            vector_by_rotating_around_n(t1, n1, k_ij),
+            vector_by_rotating_around_n(t2, n2, k_ji)
         };
       } else {
         best_pair = best_rosy_vector_pair(
-            new_tangent, Vector3f::UnitY(), k_ij,
-            nbr_tan_in_surfel_space, nbr_norm_in_surfel_space, k_ji);
+            t1, n1, k_ij,
+            t2, n2, k_ji);
         // START DEBUG
         if (should_dump) {
           spdlog::info("Computed for edge to {} ", nbr_surfel->id());
@@ -279,19 +279,8 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
       }
       wsum += this_surfel_weight;
       Vector3f v = (best_pair.first * wsum) + (best_pair.second * nbr_surfel_weight);
+      v = this_surfel->frame_data()[frame_index].transform.inverse() * v;
       new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
-      // START DEBUG
-      if (should_dump) {
-        spdlog::info("  Best Pair");
-        spdlog::info("  T1=[{}, {}, {}]", best_pair.first[0], best_pair.first[1], best_pair.first[2]);
-        spdlog::info("  T2=[{}, {}, {}]", best_pair.second[0], best_pair.second[1], best_pair.second[2]);
-        spdlog::info("  N2=[{}, {}, {}]",
-                     nbr_norm_in_surfel_space[0],
-                     nbr_norm_in_surfel_space[1],
-                     nbr_norm_in_surfel_space[2]);
-        spdlog::info("  new_tan=[{}, {}, {}]", new_tangent[0], new_tangent[1], new_tangent[2]);
-      }
-      //END DEBUG
     } // Next frame
     set_k(m_surfel_graph, this_node, k_ij, nbr, k_ji);
     if (should_dump) {

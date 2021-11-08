@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <Optimise/Optimiser.h>
+#include <Optimise/NodeOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
 
-class PoSyOptimiser : public Optimiser {
+class PoSyOptimiser : public NodeOptimiser {
 public:
     PoSyOptimiser(const Properties &properties, std::mt19937& rng);
 

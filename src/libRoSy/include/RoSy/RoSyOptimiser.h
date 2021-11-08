@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Optimise/Optimiser.h>
+#include <Optimise/NodeOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
 
-class RoSyOptimiser : public Optimiser {
+class RoSyOptimiser : public NodeOptimiser {
 public:
   RoSyOptimiser(const Properties &properties, std::mt19937& rng);
 

@@ -13,7 +13,7 @@
 const std::string WATCH_NODE = "s_3_0";
 
 PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::mt19937 &rng)
-    : Optimiser{properties, rng} //
+    : NodeOptimiser{properties, rng} //
 {
   m_rho = m_properties.getFloatProperty("rho");
 
@@ -23,6 +23,8 @@ PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::mt19937 &rng)
       "posy-term-crit-absolute-smoothness",
       "posy-term-crit-max-iterations");
   m_randomise_neighour_order = m_properties.getBooleanProperty("posy-randomise-neighbour-order");
+
+  setup_ssa();
 }
 
 void

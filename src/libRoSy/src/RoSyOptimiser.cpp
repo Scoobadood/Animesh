@@ -12,7 +12,7 @@
 #include <spdlog/spdlog.h>
 
 RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
-    : Optimiser(properties, rng) //
+    : NodeOptimiser(properties, rng) //
 {
   setup_termination_criteria(
       "rosy-termination-criteria",
@@ -25,6 +25,8 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
   m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
   m_randomise_neighour_order = m_properties.getBooleanProperty("rosy-randomise-neighbour-order");
   m_vote_for_best_k = m_properties.getBooleanProperty("rosy-vote-for-best-k");
+
+  setup_ssa();
 }
 
 /**

@@ -12,7 +12,7 @@ void TestPoSyOptimiser::SetUp() {
   using namespace std;
 
   m_properties = Properties{
-      map<string, string>{
+      std::map<string, string>{
           {"rho", "1.5"},
           {"posy-termination-criteria", "relative"},
           {"posy-term-crit-relative-smoothness", "0.01"},

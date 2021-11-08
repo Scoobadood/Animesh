@@ -261,14 +261,14 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
           temp_t1, k_ij,
           temp_t2, k_ji,
           theta);
-      if (theta > best_theta) {
+//      if (theta > best_theta) {
         best_theta = theta;
         best_t1 = temp_t1;
         best_t2 = temp_t2;
         best_k_ij = k_ij;
         best_k_ji = k_ji;
         best_frame_index = frame_index;
-      }
+//      }
     } // Next frame
 
     // Now smooth new_tangent with the best frame

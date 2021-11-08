@@ -21,12 +21,22 @@ Hypothesis:
 Picking the closest will lead to better convergence or faster convergence.
 
 Test:
-Construct a test with 7 frames
-Run with a hierarchy = no, 10 iterations
-Establish baseline values for four nodes at random
+	Construct a test with 7 frames
+	Run with a hierarchy = no, 10 iterations
+	Establish baseline values for four nodes at random
 
 Dump results for a specific node
 Turn on the flag for best only smoothing
 Run again
+
+Results:
+Smoothing only on the best/closest frame led to worse results (ex1_smooth_once_best) overall and individual node results (wrt neighbours) fluctuated
+
+
+Hypothesis:
+Picking the furthest will lead to better convergence or faster convergence.
+Because we're fixing the most egregious error first.
+
+
 
 

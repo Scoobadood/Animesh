@@ -16,26 +16,28 @@ add_executable(field_visualiser
 		field_visualiser_window.cpp
 		field_visualiser_window.h
 		field_visualiser_window.ui
+		geometry_extractor.h
 
-		posy_gl_widget.cpp
-		posy_gl_widget.h
-		posy_surfel_graph_geometry_extractor.cpp
-		posy_surfel_graph_geometry_extractor.h
+		posy/posy_gl_widget.cpp
+		posy/posy_gl_widget.h
+		posy/posy_surfel_graph_geometry_extractor.cpp
+		posy/posy_surfel_graph_geometry_extractor.h
 
-		rosy_gl_widget.cpp
-		rosy_gl_widget.h
-		rosy_surfel_graph_geometry_extractor.h
-		rosy_surfel_graph_geometry_extractor.cpp
+		rosy/rosy_gl_widget.cpp
+		rosy/rosy_gl_widget.h
+		rosy/rosy_surfel_graph_geometry_extractor.h
+		rosy/rosy_surfel_graph_geometry_extractor.cpp
 
-		quad_gl_widget.cpp
-		quad_gl_widget.h
-		quad_geometry_extractor.cpp
-		quad_geometry_extractor.h		)
+		quad/quad_gl_widget.cpp
+		quad/quad_gl_widget.h
+		quad/quad_geometry_extractor.cpp
+		quad/quad_geometry_extractor.h)
 
 target_include_directories(
 		field_visualiser
 		PUBLIC
 		${CMAKE_CURRENT_SOURCE_DIR}
+		PRIVATE quad rosy posy
 )
 
 target_link_libraries(

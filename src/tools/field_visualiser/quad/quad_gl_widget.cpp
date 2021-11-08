@@ -4,12 +4,14 @@
 
 #include <spdlog/spdlog.h>
 #include "quad_gl_widget.h"
+#include <QMouseEvent>
 
 quad_gl_widget::quad_gl_widget(
     QWidget *parent, Qt::WindowFlags f) //
     : field_gl_widget(parent, f) //
     , m_show_blue_edges{true} //
     , m_show_red_edges{true} //
+    , m_show_vertex_affinities{false} //
 {
   using namespace std;
 
@@ -245,7 +247,7 @@ quad_gl_widget::setData(
 }
 
 void
-quad_gl_widget::mouse_moved(unsigned int pixel_x, unsigned int pixel_y) {
+quad_gl_widget::mouse_moved(unsigned int, unsigned int) {
 }
 
 void

@@ -402,7 +402,7 @@ void scale_frame_data(std::vector<std::vector<Eigen::Vector3f>> &frame_data) {
       maxv.z() = point.z();
   }
   auto dist = (maxv - minv).norm();
-  auto scale = 40.0f / dist;
+  auto scale = 30.0f / dist;
   for (auto frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
     for (auto vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
       frame_data[frame_idx][vertex_idx] *= scale;

@@ -1,11 +1,11 @@
 #include "field_visualiser_window.h"
-#include "posy_surfel_graph_geometry_extractor.h"
 #include "ui_field_visualiser_window.h"
 #include <Surfel/SurfelGraph.h>
 #include <Surfel/Surfel_IO.h>
 #include <QFileDialog>
 #include <utility>
 #include <ArcBall/TrackBall.h>
+
 field_visualiser_window::field_visualiser_window(Properties properties, std::mt19937 &rng, QWidget *parent) //
     : QMainWindow(parent) //
     , m_random_engine{rng} //
@@ -32,7 +32,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, std::mt1
           this, &field_visualiser_window::frameChanged);
   connect(ui->splatSizeSelector, &QSlider::valueChanged,
           [=](int value) {
-            float mapped_value = value / 10.0f;
+            float mapped_value = (float)value / 10.0f;
             m_posy_geometry_extractor->set_splat_scale_factor(0.5f + mapped_value);
             extract_geometry();
           });
@@ -88,7 +88,7 @@ field_visualiser_window::field_visualiser_window(Properties properties, std::mt1
   connect(ui->btnDecimate, &QPushButton::clicked,
           this, [&]() {
         m_quad_geometry_extractor->collapse();
-        extract_geometry();
+        extract_geometry(false);
       });
 
   connect(ui->quadGLWidget, &quad_gl_widget::edge_selected, this, [&](std::string &from_name, std::string &to_name) {
@@ -139,7 +139,7 @@ field_visualiser_window::~field_visualiser_window() {
 }
 
 void
-field_visualiser_window::extract_geometry() {
+field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
   using namespace std;
 
   std::vector<float> positions;
@@ -185,7 +185,7 @@ field_visualiser_window::extract_geometry() {
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> blue_edges;
   std::vector<float> original_vertices;
   std::vector<float> vertex_affinity;
-  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
+  m_quad_geometry_extractor->extract_geometry(vertices, red_edges, blue_edges, original_vertices, vertex_affinity, rebuild_edge_graph);
   m_edge_from_node_names.clear();
   ui->quadGLWidget->setData(vertices, red_edges, blue_edges, original_vertices, vertex_affinity);
 
@@ -208,9 +208,14 @@ void
 field_visualiser_window::set_graph(SurfelGraphPtr graph_ptr) {
   using namespace std;
 
+  m_quad_geometry_extractor->set_graph(graph_ptr);
   m_graph_ptr = std::move(graph_ptr);
-  m_quad_geometry_extractor->set_graph(m_graph_ptr);
   extract_geometry();
+
+  auto num_frames = get_num_frames(m_graph_ptr);
+  ui->frameSelector->setValue(0);
+  ui->frameSelector->setMinimum(0);
+  ui->frameSelector->setMaximum((int)num_frames - 1);
 }
 
 void field_visualiser_window::fileOpenAction() {
@@ -225,9 +230,10 @@ void field_visualiser_window::fileOpenAction() {
 void field_visualiser_window::frameChanged(int value) {
   m_rosy_geometry_extractor->set_frame(value);
   m_posy_geometry_extractor->set_frame(value);
+  m_quad_geometry_extractor->set_frame(value);
+  ui->lblFrame->setText(std::to_string(value).c_str());
   extract_geometry();
 }
 
 void field_visualiser_window::quad_vertex_selected(int i) {
-
 }

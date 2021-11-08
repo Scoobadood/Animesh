@@ -1,0 +1,16 @@
+//
+// Created by Dave Durbin (Old) on 8/11/21.
+//
+
+#ifndef ANIMESH_LIBPOSY_INCLUDE_POSY_POSYEDGEOPTIMISER_H
+#define ANIMESH_LIBPOSY_INCLUDE_POSY_POSYEDGEOPTIMISER_H
+
+
+
+class PosyEdgeOptimiser {
+
+};
+
+
+
+#endif //ANIMESH_LIBPOSY_INCLUDE_POSY_POSYEDGEOPTIMISER_H

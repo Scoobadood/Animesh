@@ -41,7 +41,6 @@ NodeOptimiser::setup_ssa() {
   }
 }
 
-
 void NodeOptimiser::optimise_do_pass() {
   auto nodes_to_optimise = select_nodes_to_optimise();
   for (const auto &node: nodes_to_optimise) {

@@ -240,7 +240,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
     unsigned short best_k_ji = 0;
 
     // For each frame that the two surfels are neighbours in:
-    float best_theta = INFINITY;
+    float best_theta = 0;
     Vector3f best_t1, best_t2;
     unsigned int best_frame_index;
     for (unsigned int frame_index: shared_frames) {
@@ -261,7 +261,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
           temp_t1, k_ij,
           temp_t2, k_ji,
           theta);
-      if (theta < best_theta) {
+      if (theta > best_theta) {
         best_theta = theta;
         best_t1 = temp_t1;
         best_t2 = temp_t2;

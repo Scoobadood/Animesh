@@ -145,7 +145,7 @@ compute_qij(
   // If planes are parallel, pick the midpoint
   const double denom = 1.0 - (ni_dot_nj * ni_dot_nj);
   Eigen::Vector3f q = (v_i + v_j) * 0.5;
-  if (abs(denom) > 1e-4) {
+  if (abs(denom) > 1e-2) {
     const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) / denom;
     const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) / denom;
     q -= (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
@@ -181,9 +181,9 @@ compute_t_ij(
   t_ij = Eigen::Vector2i::Zero();
   t_ji = Eigen::Vector2i::Zero();
 
-  for (auto &t_ij_test : Qij) {
+  for (auto &t_ij_test: Qij) {
     const auto v1 = translate_4(p_i, n_i, o_i, t_ij_test, rho);
-    for (auto &m_ij_test : Qji) {
+    for (auto &m_ij_test: Qji) {
       const auto v2 = translate_4(p_j, n_j, o_j, m_ij_test, rho);
       const auto diff = v2 - v1;
       const auto len = diff.squaredNorm();
@@ -263,21 +263,25 @@ compute_closest_points(
   int best_i = -1, best_j = -1;
 
   for (int i = 0; i < 4; ++i) {
-    Vector3f
-        test_this_lattice_point = this_base_lattice_point + (tangent * (i & 1) + orth_tangent * ((i & 2) >> 1)) * scale;
+    Vector3f test_this_lattice_point = this_base_lattice_point + (
+        tangent * (i & 1)
+            + orth_tangent * ((i & 2) >> 1)
+    ) * scale;
     i_vecs.push_back(test_this_lattice_point);
-    Vector3f test_that_lattice_point =
-        that_base_lattice_point + (nbr_tangent * (i & 1) + nbr_orth_tangent * ((i & 2) >> 1)) * scale;
+
+    Vector3f test_that_lattice_point = that_base_lattice_point + (
+        nbr_tangent * (i & 1)
+            + nbr_orth_tangent * ((i & 2) >> 1)
+    ) * scale;
     j_vecs.push_back(test_that_lattice_point);
   }
+
   for (int i = 0; i < 4; ++i) {
     // Derive ,test_this_lattice_point (test)  sequential, the other bounds of 1_ij in first plane
-    Vector3f
-        test_this_lattice_point = this_base_lattice_point + (tangent * (i & 1) + orth_tangent * ((i & 2) >> 1)) * scale;
+    Vector3f test_this_lattice_point = i_vecs[i];
 
     for (int j = 0; j < 4; ++j) {
-      Vector3f test_that_lattice_point =
-          that_base_lattice_point + (nbr_tangent * (j & 1) + nbr_orth_tangent * ((j & 2) >> 1)) * scale;
+      Vector3f test_that_lattice_point = j_vecs[j];
       float cost = (test_this_lattice_point - test_that_lattice_point).squaredNorm();
 
       if (cost < best_cost) {
@@ -290,9 +294,7 @@ compute_closest_points(
 
   // best_i and best_j are the closest vertices surrounding q_ij
   // we return the pair of closest points on the lattice according to both origins
-  return std::make_pair(
-      this_base_lattice_point + (tangent * (best_i & 1) + orth_tangent * ((best_i & 2) >> 1)) * scale,
-      that_base_lattice_point + (nbr_tangent * (best_j & 1) + nbr_orth_tangent * ((best_j & 2) >> 1)) * scale);
+  return {i_vecs[best_i], j_vecs[best_j]};
 }
 
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
@@ -335,8 +337,8 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f>
 find_closest_points(const std::vector<Eigen::Vector3f> &points_a, const std::vector<Eigen::Vector3f> &points_b) {
   float best_dist = std::numeric_limits<float>::infinity();
   Eigen::Vector3f best_pa, best_pb;
-  for (const auto &p_a : points_a) {
-    for (const auto &p_b : points_b) {
+  for (const auto &p_a: points_a) {
+    for (const auto &p_b: points_b) {
       const auto squared_dist = (p_b - p_a).squaredNorm();
       if (squared_dist < best_dist) {
         best_pa = p_a;
@@ -484,10 +486,13 @@ position_floor(
   using namespace std;
   auto inv_scale = 1.0f / scale;
 
-  Vector3f d = midpoint - lattice_point;
+  const auto d = midpoint - lattice_point;
+  const auto d_tan =  tangent.dot(d);
+  const auto d_orth_tan = orth_tangent.dot(d);
+
   // Computes the 'bottom left' lattice point closest to midpoint
   return lattice_point +
-      tangent * floorf(tangent.dot(d) * inv_scale) * scale +
-      orth_tangent * floorf(orth_tangent.dot(d) * inv_scale) * scale;
+      floorf(d_tan * inv_scale) * scale * tangent +
+      floorf(d_orth_tan * inv_scale) * scale * orth_tangent;
 }
 

@@ -48,9 +48,15 @@ PosyEdgeOptimiser::optimise_edge(const SurfelGraph::Edge &edge) {
       to_lattice_offset[1] * nbr_orth_tangent;
 
   // Get edge data for the edge from this node to this neighbour
-  const auto k = get_k(m_surfel_graph, edge.from(), edge.to());
-  const auto k_ij = k.first;
-  const auto k_ji = k.second;
+  unsigned short k_ij, k_ji;
+  if (edge.from()->data()->id() < edge.to()->data()->id()) {
+    k_ij = edge.data()->k_low();
+    k_ji = edge.data()->k_high();
+  } else {
+    k_ij = edge.data()->k_high();
+    k_ji = edge.data()->k_low();
+  }
+
 
   // Compute edge adjusted tangents for this node and neighbour
   Vector3f edge_adjusted_tangent = (k_ij == 0)
@@ -109,4 +115,81 @@ PosyEdgeOptimiser::optimise_edge(const SurfelGraph::Edge &edge) {
                   to_lattice_offset[1]);
   }
   to_surfel->set_reference_lattice_offset(to_lattice_offset);
+}
+
+
+// ================== Should be abstracted away as its shared with PoSyOpitimiser
+float
+PosyEdgeOptimiser::compute_node_smoothness_for_frame(const SurfelGraphNodePtr &node_ptr,
+                                                 size_t frame_index,
+                                                 unsigned int &num_neighbours) const {
+  float frame_smoothness = 0.0f;
+
+  const auto neighbours_in_frame = get_neighbours_of_node_in_frame(m_surfel_graph, node_ptr, frame_index, false);
+
+  // For each neighbour...
+  for (const auto &neighbour_node: neighbours_in_frame) {
+
+    Eigen::Vector3f vertex, normal, tangent;
+    node_ptr->data()->get_vertex_tangent_normal_for_frame(
+        frame_index,
+        vertex,
+        tangent,
+        normal
+    );
+
+    Eigen::Vector3f nbr_vertex, nbr_normal, nbr_tangent;
+    neighbour_node->data()->get_vertex_tangent_normal_for_frame(
+        frame_index,
+        nbr_vertex,
+        nbr_tangent,
+        nbr_normal);
+
+    // Get edge data
+//    const auto &edge = m_surfel_graph->edge(node_ptr, neighbour_node);
+    const auto k = get_k(m_surfel_graph, node_ptr, neighbour_node);
+    const auto k_ij = k.first;
+    const auto k_ji = k.second;
+
+    // Orient tangents appropriately for frame based on k_ij and k_ji
+    const auto &oriented_tangent = vector_by_rotating_around_n(tangent, normal, k_ij);
+    const auto &nbr_oriented_tangent = vector_by_rotating_around_n(nbr_tangent, nbr_normal, k_ji);
+
+    // Compute orth tangents
+    const auto &orth_tangent = normal.cross(oriented_tangent);
+    const auto &nbr_orth_tangent = nbr_normal.cross(nbr_oriented_tangent);
+
+    // Compute lattice points for this node and neighbour
+    Eigen::Vector3f nearest_lattice_point = vertex +
+        node_ptr->data()->reference_lattice_offset().x() * oriented_tangent +
+        node_ptr->data()->reference_lattice_offset().y() * orth_tangent;
+    const auto nbr_nearest_lattice_point = nbr_vertex +
+        neighbour_node->data()->reference_lattice_offset().x() *
+            nbr_oriented_tangent +
+        neighbour_node->data()->reference_lattice_offset().y() *
+            nbr_orth_tangent;
+    const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
+
+    // Compute q_ij ... the midpoint on the intersection of the tangent planes
+    // -----
+    const auto closest_points = compute_closest_points(
+        nearest_lattice_point, oriented_tangent, orth_tangent,
+        nbr_nearest_lattice_point, nbr_oriented_tangent, nbr_orth_tangent,
+        q, m_rho
+    );
+    // ------
+
+    const auto cp_i = closest_points.first;
+    const auto cp_j = closest_points.second;
+
+    // Compute the smoothness over this surfel in this frame and the neighbour in this frame.
+    const auto delta = (cp_j - cp_i).squaredNorm();
+    frame_smoothness += delta;
+  }
+  num_neighbours = neighbours_in_frame.size();
+  return frame_smoothness;
+}
+
+void PosyEdgeOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {
+  node->data()->set_posy_smoothness(smoothness);
 }

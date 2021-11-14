@@ -65,7 +65,7 @@ private:
 
   void optimise_end();
 
-  float compute_mean_smoothness() const;
+  void compute_smoothness();
   float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
   virtual float compute_node_smoothness_for_frame(
       const SurfelGraphNodePtr &node_ptr,
@@ -97,5 +97,7 @@ private:
   unsigned int          m_term_crit_max_iterations;
   unsigned int          m_num_iterations;
   unsigned int          m_num_frames;
+  bool                  m_smoothness_is_current;
+  std::vector<float>    m_frame_smoothness;
   float                 m_last_smoothness;
 };

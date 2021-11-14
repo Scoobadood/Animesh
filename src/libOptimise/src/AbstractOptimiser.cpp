@@ -13,7 +13,7 @@
 #include <Properties/Properties.h>       // termination criteria set up
 
 AbstractOptimiser::AbstractOptimiser(Properties properties, std::default_random_engine& rng)
-    : Optimiser{properties, rng}//
+    : Optimiser{std::move(properties), rng}//
     , m_result{NOT_COMPLETE} //
     , m_state{UNINITIALISED} //
     , m_termination_criteria{0} //
@@ -22,6 +22,7 @@ AbstractOptimiser::AbstractOptimiser(Properties properties, std::default_random_
     , m_term_crit_max_iterations{0} //
     , m_num_iterations{0} //
     , m_num_frames{0} //
+    , m_smoothness_is_current{false} //
     , m_last_smoothness{std::numeric_limits<float>::infinity()} //
 {
 
@@ -82,7 +83,7 @@ AbstractOptimiser::optimise_begin() {
 
   using namespace spdlog;
   info("Computing initial smoothness");
-  m_last_smoothness = compute_mean_smoothness();
+  compute_smoothness();
   info("Initial smoothness : {:4.3f}", m_last_smoothness);
   m_num_iterations = 0;
   m_state = OPTIMISING;
@@ -116,7 +117,7 @@ AbstractOptimiser::maybe_check_convergence(float &latest_smoothness, Optimisatio
     return true;
   }
 
-  latest_smoothness = compute_mean_smoothness();
+  compute_smoothness();
   // Otherwise return early if we're not checking for convergence
   if ((m_termination_criteria & (TC_ABSOLUTE | TC_RELATIVE)) == 0) {
     return false;
@@ -153,10 +154,8 @@ AbstractOptimiser::maybe_check_iterations(OptimisationResult &result) const {
   if ((m_termination_criteria & TC_FIXED) == 0) {
     return false;
   }
-  float latest_smoothness = compute_mean_smoothness();
-  spdlog::info("Mean smoothness per node: {}", latest_smoothness);
   if (m_num_iterations >= m_term_crit_max_iterations) {
-    spdlog::info("Terminating because we completed the specified number of iterations");
+    spdlog::info("Terminating because we completed {} of iterations", m_num_iterations);
     result = CONVERGED;
     return true;
   }
@@ -175,11 +174,11 @@ AbstractOptimiser::check_termination_criteria(
     return true;
   }
 
-  if (maybe_check_convergence(smoothness, result)) {
+  if (maybe_check_iterations(result)) {
     return true;
   }
 
-  if (maybe_check_iterations(result)) {
+  if (maybe_check_convergence(smoothness, result)) {
     return true;
   }
 
@@ -247,15 +246,17 @@ AbstractOptimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_p
   return mean_smoothness;
 }
 
-float
-AbstractOptimiser::compute_mean_smoothness() const {
+void
+AbstractOptimiser::compute_smoothness() {
   float total_smoothness = 0.0f;
   for (const auto &n: m_surfel_graph->nodes()) {
-    auto mean_smoothness = compute_mean_node_smoothness(n);
-    total_smoothness += mean_smoothness;
-    store_mean_smoothness(n, mean_smoothness);
+    auto node_smoothness = compute_mean_node_smoothness(n);
+    total_smoothness += node_smoothness;
+    store_mean_smoothness(n, node_smoothness);
   }
-  return total_smoothness / (float) m_surfel_graph->num_nodes();
+  m_last_smoothness = total_smoothness / (float) m_surfel_graph->num_nodes();
+
+  m_smoothness_is_current = true;
 }
 
 
@@ -263,6 +264,8 @@ void
 AbstractOptimiser::set_data(const SurfelGraphPtr &surfel_graph) {
   m_surfel_graph = surfel_graph;
   m_num_frames = get_num_frames(surfel_graph);
+  m_frame_smoothness.resize(m_num_frames);
+  m_smoothness_is_current = false;
   m_state = INITIALISED;
   loaded_graph();
 }

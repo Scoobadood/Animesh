@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Optimise/Optimiser.h>
+#include <Optimise/NodeOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/SurfelGraph.h>
 
-class RoSyOptimiser : public Optimiser {
+class RoSyOptimiser : public NodeOptimiser {
 public:
   RoSyOptimiser(const Properties &properties, std::mt19937& rng);
 
@@ -46,8 +46,6 @@ private:
                                      const std::shared_ptr<Surfel> &s2,
                                      float &w_ij,
                                      float &w_ji) const;
-  static std::vector<unsigned int>
-  get_common_frames(const std::shared_ptr<Surfel> &s1, const std::shared_ptr<Surfel> &s2) ;
 
   float m_damping_factor;
   bool m_weight_for_error;

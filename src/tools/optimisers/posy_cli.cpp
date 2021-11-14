@@ -1,5 +1,6 @@
 
 #include <PoSy/PoSyOptimiser.h>
+#include <PoSy/PoSyEdgeOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/Surfel_IO.h>
 
@@ -34,13 +35,21 @@ int main(int argc, char *argv[]) {
   uint32_t seed_val = 123;  // populate somehow
   rng.seed(seed_val);
 
-  PoSyOptimiser poSyOptimiser{properties, rng};
+  Optimiser * poSyOptimiser;
+  if( properties.hasProperty("posy-use-edge-optimiser") &&
+        properties.getBooleanProperty("posy-use-edge-optimiser")) {
+    poSyOptimiser = new PosyEdgeOptimiser(properties, rng);
+  } else {
+    poSyOptimiser = new PoSyOptimiser(properties, rng);
+  }
+
+
   auto surfel_graph = load_surfel_graph_from_file(input_file_name, rng);
-  poSyOptimiser.set_data(surfel_graph);
+  poSyOptimiser->set_data(surfel_graph);
 
   auto start_time = std::chrono::system_clock::now();
   unsigned int last_level_iterations = 0;
-  while ((!poSyOptimiser.optimise_do_one_step())) {
+  while ((!poSyOptimiser->optimise_do_one_step())) {
     ++last_level_iterations;
   }
 

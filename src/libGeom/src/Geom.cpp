@@ -80,7 +80,7 @@ Eigen::Vector3f vector_by_rotating_around_n(const Eigen::Vector3f &o, const Eige
     throw std::invalid_argument("Normal must be unit vector");
 
   Vector3f tangent = ((k & 1) ? (n.cross(o)) : o) * (k < 2 ? 1.0f : -1.0f);
-  tangent = project_vector_to_plane(tangent, n, true);
+//  tangent = project_vector_to_plane(tangent, n, true);
   return tangent;
 }
 

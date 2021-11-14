@@ -214,3 +214,62 @@ TEST_F(TestPoSy, PositionFloorInYPlaneQuadrant4RoundsToMinusY) {
       {0.9, 0.0, -0.9}, 1.0);
   expect_vector_equality(floor, {0, 0, -1});
 }
+
+TEST_F(TestPoSy, ComputeClosestPointsInQ1) {
+  std::vector<Eigen::Vector3f> ivec, jvec;
+  auto cp = compute_closest_points(
+      {0.0, 0.0, 0.0},
+      {1.0, 0.0, 0.0},
+      {0.0, 0.0, 1.0},
+
+      {0.9, 0.0, 0.9},
+      {1.0, 0.0, 0.0},
+      {0.0, 0.0, 1.0},
+
+      {0.5, 0.0, 0.5},
+      1.0,
+      ivec, jvec);
+
+  expect_vector_equality(ivec[0], {0, 0, 0});
+  expect_vector_equality(ivec[1], {1, 0, 0});
+  expect_vector_equality(ivec[2], {0, 0, 1});
+  expect_vector_equality(ivec[3], {1, 0, 1});
+
+  expect_vector_equality(jvec[0], {-0.1, 0, -0.1});
+  expect_vector_equality(jvec[1], {0.9, 0, -0.1});
+  expect_vector_equality(jvec[2], {-0.1, 0, 0.9});
+  expect_vector_equality(jvec[3], {0.9, 0, 0.9});
+
+  expect_vector_equality(cp.first, {0, 0, 0});
+  expect_vector_equality(cp.second, {-0.1, 0, -0.1});
+}
+
+TEST_F(TestPoSy, ComputeClosestPointsInQ1_2) {
+  std::vector<Eigen::Vector3f> ivec, jvec;
+  auto cp = compute_closest_points(
+      {0.0, 0.0, 0.0},
+      {1.0, 0.0, 0.0},
+      {0.0, 0.0, 1.0},
+
+      {0.4, 0.0, 0.4},
+      {1.0, 0.0, 0.0},
+      {0.0, 0.0, 1.0},
+
+      {0.5, 0.0, 0.5},
+      1.0,
+      ivec, jvec);
+
+  expect_vector_equality(ivec[0], {0, 0, 0});
+  expect_vector_equality(ivec[1], {1, 0, 0});
+  expect_vector_equality(ivec[2], {0, 0, 1});
+  expect_vector_equality(ivec[3], {1, 0, 1});
+
+  expect_vector_equality(jvec[0], {0.4, 0, 0.4});
+  expect_vector_equality(jvec[1], {1.4, 0, 0.4});
+  expect_vector_equality(jvec[2], {0.4, 0, 1.4});
+  expect_vector_equality(jvec[3], {1.4, 0, 1.4});
+
+  expect_vector_equality(cp.first, {1, 0, 1});
+  expect_vector_equality(cp.second, {1.4, 0, 1.4});
+}
+

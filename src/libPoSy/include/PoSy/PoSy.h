@@ -42,19 +42,19 @@ translate_4(const Eigen::Vector3f &p,
 
 /**
  * Compute the midpoint between two points on planes defined by normal vectors
- * n_i and n_j. The midpoint is forced to lie on the line of intersection of the planes.
- * @param v_i Point on first plane.
- * @param n_i Normal of first plane.
- * @param v_j Point on second plane.
- * @param n_j Nrmal of second plane.
+ * n0 and n1. The midpoint is forced to lie on the line of intersection of the planes.
+ * @param p0 Point on first plane.
+ * @param n0 Normal of first plane.
+ * @param p1 Point on second plane.
+ * @param n1 Nrmal of second plane.
  * @return
  */
 Eigen::Vector3f
 compute_qij(
-        const Eigen::Vector3f &v_i,
-        const Eigen::Vector3f &n_i,
-        const Eigen::Vector3f &v_j,
-        const Eigen::Vector3f &n_j
+        const Eigen::Vector3f &p0,
+        const Eigen::Vector3f &n0,
+        const Eigen::Vector3f &p1,
+        const Eigen::Vector3f &n1
 );
 
 /**

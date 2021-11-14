@@ -113,45 +113,63 @@ translate_4(const Eigen::Vector3f &p,
  * Compute a position qij that minimizes the distance to vertices vi and vj while being located
  * in their respective tangent planes.
  * So:
- * Minimize |x - v_i|^2 + |x - v_j|^2, where
- * dot(n_i, x) == dot(n_i, v_i)
- * dot(n_j, x) == dot(n_j, v_j)
+ * Minimize |x - p0|^2 + |x - p1|^2, where
+ * dot(n0, x) == dot(n0, p0)
+ * dot(n1, x) == dot(n1, p1)
  *
  * -> Lagrange multipliers, set derivative = 0
  *  Use first 3 equalities to write x in terms of
  *  lambda_1 and lambda_2. Substitute that into the last
  *  two equations and solve for the lambdas. Finally,
  *  add a small epsilon term to avoid issues when n1=n2.
- * @param v_i Point on first plane.
- * @param n_i Normal of first plane.
- * @param v_j Point on second plane.
- * @param n_j Nrmal of second plane.
+ * @param p0 Point on first plane.
+ * @param n0 Normal of first plane.
+ * @param p1 Point on second plane.
+ * @param n1 Nrmal of second plane.
  * @return
  */
 Eigen::Vector3f
 compute_qij(
-    const Eigen::Vector3f &v_i,
-    const Eigen::Vector3f &n_i,
-    const Eigen::Vector3f &v_j,
-    const Eigen::Vector3f &n_j
+    const Eigen::Vector3f &p0,
+    const Eigen::Vector3f &n0,
+    const Eigen::Vector3f &p1,
+    const Eigen::Vector3f &n1
 ) {
-  const double ni_dot_vi = n_i.dot(v_i);
-  const double ni_dot_vj = n_i.dot(v_j);
-  const double nj_dot_vi = n_j.dot(v_i);
-  const double nj_dot_vj = n_j.dot(v_j);
-  const double ni_dot_nj = n_i.dot(n_j);
+  /*
+   *  Float
+            denom = 1.0f / (1.0f - n0n1 * n0n1 + 1e-4f),
+            lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom,
+            lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
 
+    return 0.5f * (p0 + p1) - 0.25f * (n0 * lambda_0 + n1 * lambda_1);
+   */
+  const double n0p0 = n0.dot(p0);
+  const double n0p1 = n0.dot(p1);
+  const double n1p0 = n1.dot(p0);
+  const double n1p1 = n1.dot(p1);
+  const double n0n1 = n0.dot(n1);
+
+  const auto pl = 1.0 - n0n1 * n0n1;
+  if( std::fabs(pl)  < 1e-4 ) {
+    return 0.5f * (p0 + p1);
+  }
+  const auto denom = 1.0f / (pl + 1e-4f);
+
+  const auto lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom;
+  const auto lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
+
+  return 0.5f * (p0 + p1) - 0.25f * (n0 * lambda_0 + n1 * lambda_1);
 
   // If planes are parallel, pick the midpoint
-  const double denom = 1.0 - (ni_dot_nj * ni_dot_nj);
-  Eigen::Vector3f q = (v_i + v_j) * 0.5;
-  if (abs(denom) > 1e-2) {
-    const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) / denom;
-    const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) / denom;
-    q -= (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
-  }
-  // It's possible that q_ij is not in the plane defined by n_i so correct for that
-  return q;
+//  const double denom = 1.0 - (n0n1 * n0n1);
+//  Eigen::Vector3f q = (p0 + p1) * 0.5;
+//  if (abs(denom) > 1e-2) {
+//    const double lambda_i = 2.0 * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) / denom;
+//    const double lambda_j = 2.0 * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) / denom;
+//    q -= (((lambda_i * n0) + (lambda_j * n1)) * 0.25);
+//  }
+//  // It's possible that q_ij is not in the plane defined by n0 so correct for that
+//  return q;
 }
 
 void
@@ -263,27 +281,16 @@ compute_closest_points(
   int best_i = -1, best_j = -1;
 
   for (int i = 0; i < 4; ++i) {
-    Vector3f test_this_lattice_point = this_base_lattice_point + (
-        tangent * (i & 1)
-            + orth_tangent * ((i & 2) >> 1)
-    ) * scale;
-    i_vecs.push_back(test_this_lattice_point);
+    Vector3f pt = this_base_lattice_point + (tangent * (i & 1) + orth_tangent * ((i & 2) >> 1)) * scale;
+    i_vecs.emplace_back(pt);
 
-    Vector3f test_that_lattice_point = that_base_lattice_point + (
-        nbr_tangent * (i & 1)
-            + nbr_orth_tangent * ((i & 2) >> 1)
-    ) * scale;
-    j_vecs.push_back(test_that_lattice_point);
+    pt = that_base_lattice_point + (nbr_tangent * (i & 1) + nbr_orth_tangent * ((i & 2) >> 1)) * scale;
+    j_vecs.emplace_back(pt);
   }
 
   for (int i = 0; i < 4; ++i) {
-    // Derive ,test_this_lattice_point (test)  sequential, the other bounds of 1_ij in first plane
-    Vector3f test_this_lattice_point = i_vecs[i];
-
     for (int j = 0; j < 4; ++j) {
-      Vector3f test_that_lattice_point = j_vecs[j];
-      float cost = (test_this_lattice_point - test_that_lattice_point).squaredNorm();
-
+      float cost = (i_vecs[i] - j_vecs[j]).squaredNorm();
       if (cost < best_cost) {
         best_i = i;
         best_j = j;
@@ -487,7 +494,7 @@ position_floor(
   auto inv_scale = 1.0f / scale;
 
   const auto d = midpoint - lattice_point;
-  const auto d_tan =  tangent.dot(d);
+  const auto d_tan = tangent.dot(d);
   const auto d_orth_tan = orth_tangent.dot(d);
 
   // Computes the 'bottom left' lattice point closest to midpoint

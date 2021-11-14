@@ -10,7 +10,7 @@
 
 class PoSyOptimiser : public NodeOptimiser {
 public:
-  PoSyOptimiser(const Properties &properties, std::mt19937 &rng);
+  PoSyOptimiser(const Properties &properties, std::default_random_engine &rng);
 
   virtual ~PoSyOptimiser() = default;
 

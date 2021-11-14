@@ -8,7 +8,7 @@
 
 class PosyEdgeOptimiser : public EdgeOptimiser {
 public:
-  PosyEdgeOptimiser(Properties properties, std::mt19937 &rng);
+  PosyEdgeOptimiser(Properties properties, std::default_random_engine &rng);
 
 protected:
 

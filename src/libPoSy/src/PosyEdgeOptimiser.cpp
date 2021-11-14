@@ -8,7 +8,7 @@
 #include <Eigen/Geometry>
 #include <utility>
 
-PosyEdgeOptimiser::PosyEdgeOptimiser(Properties properties, std::mt19937 &rng) //
+PosyEdgeOptimiser::PosyEdgeOptimiser(Properties properties, std::default_random_engine &rng) //
     : EdgeOptimiser(std::move(properties), rng) //
     , m_rho{1.0} //
 {

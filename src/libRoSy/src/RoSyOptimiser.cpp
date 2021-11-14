@@ -11,7 +11,7 @@
 #include <Vote/VoteCounter.h>
 #include <spdlog/spdlog.h>
 
-RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
+RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::default_random_engine &rng)
     : NodeOptimiser(properties, rng) //
 {
   setup_termination_criteria(

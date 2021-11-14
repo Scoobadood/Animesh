@@ -9,7 +9,7 @@
 
 class NodeOptimiser : public AbstractOptimiser {
 protected:
-  NodeOptimiser(Properties properties, std::mt19937 &rng);
+  NodeOptimiser(Properties properties, std::default_random_engine &rng);
 
   void optimise_do_pass() override;
 

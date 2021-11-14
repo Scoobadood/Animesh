@@ -18,7 +18,7 @@ public:
 
 
 protected:
-  AbstractOptimiser(Properties properties, std::mt19937& rng);
+  AbstractOptimiser(Properties properties, std::default_random_engine& rng);
 
   void setup_termination_criteria(
       const std::string &termination_criteria_property,

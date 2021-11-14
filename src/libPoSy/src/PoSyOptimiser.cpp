@@ -10,7 +10,7 @@
 #include <Eigen/Geometry>
 #include <Surfel/SurfelGraph.h>
 
-PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::mt19937 &rng)
+PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::default_random_engine &rng)
     : NodeOptimiser{properties, rng} //
 {
   m_rho = m_properties.getFloatProperty("rho");

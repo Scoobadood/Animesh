@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     cout << "Generating graph (scale: " << scale_factor << ")" << endl;
     SurfelGraph graph;
     vector<SurfelGraphNodePtr> nodes;
-    std::mt19937 rng(123);
+    std::default_random_engine rng{123};
     SurfelBuilder sb(rng);
     size_t vertex_index = 0;
 

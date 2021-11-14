@@ -7,7 +7,7 @@
 #include <tclap/CmdLine.h>
 #include <Surfel/SurfelBuilder.h>
 
-std::mt19937 defaultRandomEngine{123};
+std::default_random_engine defaultRandomEngine{123};
 
 /*
  * Generate an unsmoothed RoSy graph.

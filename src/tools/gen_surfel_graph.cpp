@@ -40,7 +40,7 @@ SurfelGraphPtr generate_cylinder(int height, int numSteps, float radius, float p
               << percentage << std::endl;
 
     // Perturbation for vertices.
-    static std::mt19937 e(123);
+    static std::default_random_engine e(123);
     auto surfel_builder = new SurfelBuilder(e);
     static std::uniform_real_distribution<> dis(-0.15f, 0.15f);
 
@@ -91,16 +91,16 @@ SurfelGraphPtr generate_plane(int width, int height) {
     SurfelGraphPtr graph = std::make_shared<SurfelGraph>();
     SurfelGraphNodePtr nodes[width * height];
 
-    static std::mt19937 e(123);
-    auto surfel_builder = new SurfelBuilder(e);
+    static std::default_random_engine rng{123};
+    auto surfel_builder = new SurfelBuilder(rng);
     static std::uniform_real_distribution<> dis(-0.4f, 0.4f);
 
     for (unsigned int x = 0; x < width; x++) {
         for (unsigned int z = 0; z < height; z++) {
 
-            auto sx = x - (width / 2.0f) + dis(e);
+            auto sx = x - (width / 2.0f) + dis(rng);
             auto sy = 0.0f;
-            auto sz = z - (height / 2.0f) + dis(e);
+            auto sz = z - (height / 2.0f) + dis(rng);
             Eigen::Vector3f norm{0, 1, 0};
 
             auto surfel = std::make_shared<Surfel>(

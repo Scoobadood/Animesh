@@ -34,14 +34,14 @@ void TestPoSyOptimiser::TearDown() {}
 TEST_F(TestPoSyOptimiser, FailsAssertionOptimisingWhenUnready) {
   using namespace std;
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
-  std::mt19937 rng;
+  std::default_random_engine rng{123};
   PoSyOptimiser optimiser{m_properties, rng};
 
   ASSERT_DEATH(optimiser.optimise_do_one_step(), "(m_state != UNINITIALISED)");
 }
 
 TEST_F(TestPoSyOptimiser, IsReadyOnceDataIsSet) {
-  std::mt19937 rng;
+  std::default_random_engine rng{123};
   PoSyOptimiser optimiser{m_properties, rng};
   SurfelGraphPtr g = std::make_shared<SurfelGraph>(new SurfelGraph());
   optimiser.set_data(g);

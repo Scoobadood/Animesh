@@ -6,7 +6,7 @@
 
 #include <utility>
 
-Optimiser::Optimiser(Properties properties, std::mt19937& rng) //
+Optimiser::Optimiser(Properties properties, std::default_random_engine& rng) //
  : m_properties{ std::move(properties)} //
  , m_random_engine{ rng}
 {

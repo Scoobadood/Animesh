@@ -9,7 +9,7 @@
 
 class EdgeOptimiser : public AbstractOptimiser {
 protected:
-  EdgeOptimiser(Properties properties, std::mt19937 &rng);
+  EdgeOptimiser(Properties properties, std::default_random_engine &rng);
 
   void optimise_do_pass() override;
 

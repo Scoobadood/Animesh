@@ -4,7 +4,7 @@
 #include <gmock/gmock.h>
 
 void TestPoSy::SetUp() {
-  std::mt19937 re{123};
+  std::default_random_engine re{123};
   m_surfel_builder = new SurfelBuilder(re);
 }
 

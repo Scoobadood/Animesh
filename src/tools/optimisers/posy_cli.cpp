@@ -31,9 +31,7 @@ int main(int argc, char *argv[]) {
   string input_file_name = properties.getProperty("posy-input-file");
   string output_file_name = properties.getProperty("posy-output-file");
 
-  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
-  uint32_t seed_val = 123;  // populate somehow
-  rng.seed(seed_val);
+  std::default_random_engine rng{123};         // the Mersenne Twister with a popular choice of parameters
 
   Optimiser * poSyOptimiser;
   if( properties.hasProperty("posy-use-edge-optimiser") &&

@@ -12,7 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <Properties/Properties.h>       // termination criteria set up
 
-AbstractOptimiser::AbstractOptimiser(Properties properties, std::mt19937& rng)
+AbstractOptimiser::AbstractOptimiser(Properties properties, std::default_random_engine& rng)
     : Optimiser{properties, rng}//
     , m_result{NOT_COMPLETE} //
     , m_state{UNINITIALISED} //

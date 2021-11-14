@@ -15,9 +15,9 @@ public:
   virtual bool optimise_do_one_step() = 0;
 
 protected:
-  Optimiser(Properties properties, std::mt19937& rng);
+  Optimiser(Properties properties, std::default_random_engine& rng);
 
   Properties m_properties;
-  std::mt19937 & m_random_engine;
+  std::default_random_engine & m_random_engine;
   SurfelGraphPtr m_surfel_graph;
 };

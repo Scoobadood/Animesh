@@ -175,9 +175,7 @@ int main(int argc, char *argv[]) {
   Args args = parse_args(argc, argv);
 
   // Load graph
-  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
-  uint32_t seed_val = 123;  // populate somehow
-  rng.seed(seed_val);
+  std::default_random_engine rng{123};         // the Mersenne Twister with a popular choice of parameters
   auto graph = load_surfel_graph_from_file(args.in_file_name, rng);
 
   // Make an interim graph per frame

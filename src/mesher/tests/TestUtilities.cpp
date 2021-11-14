@@ -5,7 +5,7 @@
 #include <random>
 
 void TestUtilities::SetUp() {
-    std::mt19937 rng{123};
+    std::default_random_engine rng{123};
     m_surfel_builder = new SurfelBuilder(rng);
     s1 = std::make_shared<Surfel>(
             m_surfel_builder

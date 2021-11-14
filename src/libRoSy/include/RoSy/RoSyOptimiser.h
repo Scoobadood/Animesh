@@ -6,7 +6,7 @@
 
 class RoSyOptimiser : public NodeOptimiser {
 public:
-  RoSyOptimiser(const Properties &properties, std::mt19937& rng);
+  RoSyOptimiser(const Properties &properties, std::default_random_engine& rng);
 
   virtual ~RoSyOptimiser() = default;
 

@@ -1,7 +1,9 @@
 add_library(Optimise STATIC
 		src/SurfelSelectionAlgorithm.cpp include/Optimise/SurfelSelectionAlgorithm.h
-		src/OptimiserInterface.cpp include/Optimise/OptimiserInterface.h
 		src/Optimiser.cpp include/Optimise/Optimiser.h
+		src/AbstractOptimiser.cpp include/Optimise/AbstractOptimiser.h
+		src/NodeOptimiser.cpp include/Optimise/NodeOptimiser.h
+		src/EdgeOptimiser.cpp include/Optimise/EdgeOptimiser.h
 		)
 
 

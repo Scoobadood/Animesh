@@ -5,7 +5,7 @@
 #include "MultiResolutionOptimiser.h"
 
 MultiResolutionOptimiser::MultiResolutionOptimiser(const Properties &properties, std::mt19937 &rng) //
-    : OptimiserInterface{properties, rng} //
+    : Optimiser{properties, rng} //
     , m_current_level{0} //
     , m_state{UNINITIALISED} //
 {

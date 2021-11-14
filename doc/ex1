@@ -1,0 +1,42 @@
+Experiment One
+
+
+Background:
+
+Where two surfels are connecte by an edge in the SurfelGraph, it means that they are 'neighbours' in at least one frame.
+
+They may be neighbours in multiple frames.
+
+If we smooth the same neighbour across multiple temporal frames, we introduce more variance intp the final orientation of the cross field than may be helpful.
+
+So we should only smooth for one frame.
+
+Choices are:
+Compute best for all frames
+Compute most divergent for all frames
+Pick one at random
+Pick the first
+
+Hypothesis:
+Picking the closest will lead to better convergence or faster convergence.
+
+Test:
+	Construct a test with 7 frames
+	Run with a hierarchy = no, 10 iterations
+	Establish baseline values for four nodes at random
+
+Dump results for a specific node
+Turn on the flag for best only smoothing
+Run again
+
+Results:
+Smoothing only on the best/closest frame led to worse results (ex1_smooth_once_best) overall and individual node results (wrt neighbours) fluctuated
+
+
+Hypothesis:
+Picking the furthest will lead to better convergence or faster convergence.
+Because we're fixing the most egregious error first.
+
+
+
+

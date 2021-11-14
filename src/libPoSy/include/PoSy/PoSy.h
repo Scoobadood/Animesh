@@ -42,19 +42,19 @@ translate_4(const Eigen::Vector3f &p,
 
 /**
  * Compute the midpoint between two points on planes defined by normal vectors
- * n_i and n_j. The midpoint is forced to lie on the line of intersection of the planes.
- * @param v_i Point on first plane.
- * @param n_i Normal of first plane.
- * @param v_j Point on second plane.
- * @param n_j Nrmal of second plane.
+ * n0 and n1. The midpoint is forced to lie on the line of intersection of the planes.
+ * @param p0 Point on first plane.
+ * @param n0 Normal of first plane.
+ * @param p1 Point on second plane.
+ * @param n1 Nrmal of second plane.
  * @return
  */
 Eigen::Vector3f
 compute_qij(
-        const Eigen::Vector3f &v_i,
-        const Eigen::Vector3f &n_i,
-        const Eigen::Vector3f &v_j,
-        const Eigen::Vector3f &n_j
+        const Eigen::Vector3f &p0,
+        const Eigen::Vector3f &n0,
+        const Eigen::Vector3f &p1,
+        const Eigen::Vector3f &n1
 );
 
 /**
@@ -109,4 +109,60 @@ best_posy_offset_vertices(const Eigen::Vector3f &this_vertex,
                           const Eigen::Vector2f &that_offset,
                           Eigen::Vector2i& t_ji,
                           float rho
+);
+
+std::pair<Eigen::Vector2i, Eigen::Vector2i>
+compute_tij_pair(
+    const Eigen::Vector3f &origin,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_origin,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+);
+
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+compute_closest_points(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_lattice_point,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale,
+    std::vector<Eigen::Vector3f> &i_vecs,
+    std::vector<Eigen::Vector3f> &j_vecs
+);
+
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+compute_closest_points(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_lattice_point,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+);
+
+Eigen::Vector2i
+position_floor_index(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+);
+
+Eigen::Vector3f
+position_floor(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
 );

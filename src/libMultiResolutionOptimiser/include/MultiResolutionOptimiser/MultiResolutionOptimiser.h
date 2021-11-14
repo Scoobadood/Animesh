@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <Optimise/OptimiserInterface.h>
+#include <Optimise/Optimiser.h>
 #include <Properties/Properties.h>
 #include <PoSy/PoSyOptimiser.h>
 #include <RoSy/RoSyOptimiser.h>
@@ -12,7 +12,7 @@
 
 #include <random>
 
-class MultiResolutionOptimiser : public OptimiserInterface {
+class MultiResolutionOptimiser : public Optimiser {
 public:
   MultiResolutionOptimiser(const Properties &properties, std::mt19937 &rng);
 

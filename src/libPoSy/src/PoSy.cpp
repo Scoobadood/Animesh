@@ -113,45 +113,63 @@ translate_4(const Eigen::Vector3f &p,
  * Compute a position qij that minimizes the distance to vertices vi and vj while being located
  * in their respective tangent planes.
  * So:
- * Minimize |x - v_i|^2 + |x - v_j|^2, where
- * dot(n_i, x) == dot(n_i, v_i)
- * dot(n_j, x) == dot(n_j, v_j)
+ * Minimize |x - p0|^2 + |x - p1|^2, where
+ * dot(n0, x) == dot(n0, p0)
+ * dot(n1, x) == dot(n1, p1)
  *
  * -> Lagrange multipliers, set derivative = 0
  *  Use first 3 equalities to write x in terms of
  *  lambda_1 and lambda_2. Substitute that into the last
  *  two equations and solve for the lambdas. Finally,
  *  add a small epsilon term to avoid issues when n1=n2.
- * @param v_i Point on first plane.
- * @param n_i Normal of first plane.
- * @param v_j Point on second plane.
- * @param n_j Nrmal of second plane.
+ * @param p0 Point on first plane.
+ * @param n0 Normal of first plane.
+ * @param p1 Point on second plane.
+ * @param n1 Nrmal of second plane.
  * @return
  */
 Eigen::Vector3f
 compute_qij(
-    const Eigen::Vector3f &v_i,
-    const Eigen::Vector3f &n_i,
-    const Eigen::Vector3f &v_j,
-    const Eigen::Vector3f &n_j
+    const Eigen::Vector3f &p0,
+    const Eigen::Vector3f &n0,
+    const Eigen::Vector3f &p1,
+    const Eigen::Vector3f &n1
 ) {
-  const double ni_dot_vi = n_i.dot(v_i);
-  const double ni_dot_vj = n_i.dot(v_j);
-  const double nj_dot_vi = n_j.dot(v_i);
-  const double nj_dot_vj = n_j.dot(v_j);
-  const double ni_dot_nj = n_i.dot(n_j);
+  /*
+   *  Float
+            denom = 1.0f / (1.0f - n0n1 * n0n1 + 1e-4f),
+            lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom,
+            lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
 
+    return 0.5f * (p0 + p1) - 0.25f * (n0 * lambda_0 + n1 * lambda_1);
+   */
+  const double n0p0 = n0.dot(p0);
+  const double n0p1 = n0.dot(p1);
+  const double n1p0 = n1.dot(p0);
+  const double n1p1 = n1.dot(p1);
+  const double n0n1 = n0.dot(n1);
+
+  const auto pl = 1.0 - n0n1 * n0n1;
+  if( std::fabs(pl)  < 1e-4 ) {
+    return 0.5f * (p0 + p1);
+  }
+  const auto denom = 1.0f / (pl + 1e-4f);
+
+  const auto lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom;
+  const auto lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
+
+  return 0.5f * (p0 + p1) - 0.25f * (n0 * lambda_0 + n1 * lambda_1);
 
   // If planes are parallel, pick the midpoint
-  const double denom = 1.0 - (ni_dot_nj * ni_dot_nj);
-  Eigen::Vector3f q = (v_i + v_j) * 0.5;
-  if (abs(denom) > 1e-4) {
-    const double lambda_i = 2.0 * (ni_dot_vj - ni_dot_vi - ni_dot_nj * (nj_dot_vi - nj_dot_vj)) / denom;
-    const double lambda_j = 2.0 * (nj_dot_vi - nj_dot_vj - ni_dot_nj * (ni_dot_vj - ni_dot_vi)) / denom;
-    q -= (((lambda_i * n_i) + (lambda_j * n_j)) * 0.25);
-  }
-  // It's possible that q_ij is not in the plane defined by n_i so correct for that
-  return q;
+//  const double denom = 1.0 - (n0n1 * n0n1);
+//  Eigen::Vector3f q = (p0 + p1) * 0.5;
+//  if (abs(denom) > 1e-2) {
+//    const double lambda_i = 2.0 * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) / denom;
+//    const double lambda_j = 2.0 * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) / denom;
+//    q -= (((lambda_i * n0) + (lambda_j * n1)) * 0.25);
+//  }
+//  // It's possible that q_ij is not in the plane defined by n0 so correct for that
+//  return q;
 }
 
 void
@@ -181,9 +199,9 @@ compute_t_ij(
   t_ij = Eigen::Vector2i::Zero();
   t_ji = Eigen::Vector2i::Zero();
 
-  for (auto &t_ij_test : Qij) {
+  for (auto &t_ij_test: Qij) {
     const auto v1 = translate_4(p_i, n_i, o_i, t_ij_test, rho);
-    for (auto &m_ij_test : Qji) {
+    for (auto &m_ij_test: Qji) {
       const auto v2 = translate_4(p_j, n_j, o_j, m_ij_test, rho);
       const auto diff = v2 - v1;
       const auto len = diff.squaredNorm();
@@ -194,6 +212,115 @@ compute_t_ij(
       }
     }
   }
+}
+std::pair<Eigen::Vector2i, Eigen::Vector2i>
+compute_tij_pair(
+    const Eigen::Vector3f &origin,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_origin,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+) {
+  using namespace Eigen;
+  using namespace std;
+
+  auto base_lattice_offset = position_floor_index(origin, tangent, orth_tangent, midpoint, scale);
+  auto nbr_base_lattice_offset = position_floor_index(nbr_origin, nbr_tangent, nbr_orth_tangent, midpoint, scale);
+
+  float best_cost = numeric_limits<float>::infinity();
+  int best_i = -1, best_j = -1;
+  for (int i = 0; i < 4; ++i) {
+    Vector3f o0t = origin
+        + (tangent * ((i & 1) + base_lattice_offset[0]) +
+            orth_tangent * (((i & 2) >> 1) + base_lattice_offset[1]))
+            * scale;
+    for (int j = 0; j < 4; ++j) {
+      Vector3f o1t = nbr_origin
+          + (nbr_tangent * ((j & 1) + nbr_base_lattice_offset[0])
+              + nbr_orth_tangent * (((j & 2) >> 1) + nbr_base_lattice_offset[1]))
+              * scale;
+      float cost = (o0t - o1t).squaredNorm();
+
+      if (cost < best_cost) {
+        best_i = i;
+        best_j = j;
+        best_cost = cost;
+      }
+    }
+  }
+  return std::make_pair(
+      Vector2i((best_i & 1) + base_lattice_offset[0], ((best_i & 2) >> 1) + base_lattice_offset[1]),
+      Vector2i((best_j & 1) + nbr_base_lattice_offset[0], ((best_j & 2) >> 1) + nbr_base_lattice_offset[1]));
+}
+
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+compute_closest_points(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_lattice_point,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale,
+    std::vector<Eigen::Vector3f> &i_vecs,
+    std::vector<Eigen::Vector3f> &j_vecs
+) {
+  using namespace Eigen;
+  using namespace std;
+
+  // Origin, reptan, normal, point
+  Vector3f this_base_lattice_point = position_floor(lattice_point, tangent, orth_tangent, midpoint, scale);
+  Vector3f that_base_lattice_point =
+      position_floor(nbr_lattice_point, nbr_tangent, nbr_orth_tangent, midpoint, scale);
+
+  float best_cost = numeric_limits<float>::infinity();
+  int best_i = -1, best_j = -1;
+
+  for (int i = 0; i < 4; ++i) {
+    Vector3f pt = this_base_lattice_point + (tangent * (i & 1) + orth_tangent * ((i & 2) >> 1)) * scale;
+    i_vecs.emplace_back(pt);
+
+    pt = that_base_lattice_point + (nbr_tangent * (i & 1) + nbr_orth_tangent * ((i & 2) >> 1)) * scale;
+    j_vecs.emplace_back(pt);
+  }
+
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      float cost = (i_vecs[i] - j_vecs[j]).squaredNorm();
+      if (cost < best_cost) {
+        best_i = i;
+        best_j = j;
+        best_cost = cost;
+      }
+    }
+  }
+
+  // best_i and best_j are the closest vertices surrounding q_ij
+  // we return the pair of closest points on the lattice according to both origins
+  return {i_vecs[best_i], j_vecs[best_j]};
+}
+
+std::pair<Eigen::Vector3f, Eigen::Vector3f>
+compute_closest_points(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &nbr_lattice_point,
+    const Eigen::Vector3f &nbr_tangent,
+    const Eigen::Vector3f &nbr_orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+) {
+  std::vector<Eigen::Vector3f> i_vecs;
+  std::vector<Eigen::Vector3f> j_vecs;
+  return compute_closest_points(
+      lattice_point, tangent, orth_tangent,
+      nbr_lattice_point, nbr_tangent, nbr_orth_tangent,
+      midpoint, scale, i_vecs, j_vecs);
 }
 
 /**
@@ -217,8 +344,8 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f>
 find_closest_points(const std::vector<Eigen::Vector3f> &points_a, const std::vector<Eigen::Vector3f> &points_b) {
   float best_dist = std::numeric_limits<float>::infinity();
   Eigen::Vector3f best_pa, best_pb;
-  for (const auto &p_a : points_a) {
-    for (const auto &p_b : points_b) {
+  for (const auto &p_a: points_a) {
+    for (const auto &p_b: points_b) {
       const auto squared_dist = (p_b - p_a).squaredNorm();
       if (squared_dist < best_dist) {
         best_pa = p_a;
@@ -337,3 +464,42 @@ best_posy_offset_vertices(const Eigen::Vector3f &this_vertex,
       this_vertex + (t_ij[0] * this_tangent) + (t_ij[1] * this_orth_tangent),
       that_vertex + (t_ji[0] * that_tangent) + (t_ji[1] * that_orth_tangent));
 }
+Eigen::Vector2i
+position_floor_index(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+) {
+  using namespace Eigen;
+  auto inv_scale = 1.0f / scale;
+
+  Vector3f delta = midpoint - lattice_point;
+  return {
+      (int) std::floor(tangent.dot(delta) * inv_scale),
+      (int) std::floor(orth_tangent.dot(delta) * inv_scale)};
+}
+
+Eigen::Vector3f
+position_floor(
+    const Eigen::Vector3f &lattice_point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    const Eigen::Vector3f &midpoint,
+    float scale
+) {
+  using namespace Eigen;
+  using namespace std;
+  auto inv_scale = 1.0f / scale;
+
+  const auto d = midpoint - lattice_point;
+  const auto d_tan = tangent.dot(d);
+  const auto d_orth_tan = orth_tangent.dot(d);
+
+  // Computes the 'bottom left' lattice point closest to midpoint
+  return lattice_point +
+      floorf(d_tan * inv_scale) * scale * tangent +
+      floorf(d_orth_tan * inv_scale) * scale * orth_tangent;
+}
+

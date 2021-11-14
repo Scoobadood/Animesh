@@ -46,7 +46,10 @@ private:
                                      const std::shared_ptr<Surfel> &s2,
                                      float &w_ij,
                                      float &w_ji) const;
-
+  void get_weights(const std::shared_ptr<Surfel> & surfel_a,
+                             const std::shared_ptr<Surfel> & surfel_b,
+                             float & weight_a,
+                             float & weight_b) const;
   float m_damping_factor;
   bool m_weight_for_error;
   bool m_vote_for_best_k;

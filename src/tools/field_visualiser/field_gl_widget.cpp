@@ -149,7 +149,7 @@ field_gl_widget::paintGL() {
 void
 field_gl_widget::resizeGL(int width, int height) {
   glViewport(0, 0, width, height);
-  spdlog::info("ResizeGL parms: ({}, {}) window: ({}, {})",
+  spdlog::debug("ResizeGL parms: ({}, {}) window: ({}, {})",
                width, height, this->width(), this->height()
   );
 

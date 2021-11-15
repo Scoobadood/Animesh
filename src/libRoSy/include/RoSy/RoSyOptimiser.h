@@ -17,10 +17,7 @@ protected:
 private:
   bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;
 
-  float compute_node_smoothness_for_frame(
-      const SurfelGraphNodePtr &this_node,
-      size_t frame_index,
-      unsigned int &num_neighbours) const override;
+  float compute_smoothness_in_frame( const SurfelGraph::Edge & edge, unsigned int frame_idx) const override;
 
   const std::string &get_ssa_property_name() const override {
     static const std::string SSA_PROPERTY_NAME = "rosy-surfel-selection-algorithm";

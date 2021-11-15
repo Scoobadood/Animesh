@@ -12,7 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <Properties/Properties.h>       // termination criteria set up
 
-AbstractOptimiser::AbstractOptimiser(Properties properties, std::default_random_engine& rng)
+AbstractOptimiser::AbstractOptimiser(Properties properties, std::default_random_engine &rng)
     : Optimiser{std::move(properties), rng}//
     , m_result{NOT_COMPLETE} //
     , m_state{UNINITIALISED} //
@@ -76,14 +76,13 @@ AbstractOptimiser::setup_termination_criteria(
   }
 }
 
-
 void
 AbstractOptimiser::optimise_begin() {
   assert(m_state == INITIALISED);
 
   using namespace spdlog;
   info("Computing initial smoothness");
-  compute_smoothness();
+  compute_smoothness(m_last_smoothness, m_frame_smoothness);
   info("Initial smoothness : {:4.3f}", m_last_smoothness);
   m_num_iterations = 0;
   m_state = OPTIMISING;
@@ -109,26 +108,37 @@ AbstractOptimiser::check_cancellation(OptimisationResult &result) {
 }
 
 bool
-AbstractOptimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult &result) const {
-  // Always bail if converged to 0
+AbstractOptimiser::maybe_check_convergence(float &latest_smoothness, OptimisationResult &result) {
+  // Always bail if converged to 0, even if we're running fixed iterations, no need to do extra work.
   if (m_last_smoothness == 0) {
     spdlog::info("Terminating because m_last_smoothness is 0");
     result = CONVERGED;
     return true;
   }
 
-  compute_smoothness();
   // Otherwise return early if we're not checking for convergence
   if ((m_termination_criteria & (TC_ABSOLUTE | TC_RELATIVE)) == 0) {
     return false;
   }
 
-  float improvement = m_last_smoothness - latest_smoothness;
+  std::vector<float> frame_smoothness;
+  frame_smoothness.resize(m_num_frames,0);
+  float mean_node_smoothness;
+  compute_smoothness(mean_node_smoothness, frame_smoothness);
+
+  float improvement = m_last_smoothness - mean_node_smoothness;
   float pct = (100.0f * improvement) / m_last_smoothness;
   spdlog::info("Mean smoothness per node: {}, Improvement {}%", latest_smoothness, pct);
-  // If it's 0 then we converged, regardless of whether we're checking for absolute smoothness or not.
-  if (std::abs(latest_smoothness) < 1e-9) {
-    spdlog::info("Terminating because latest_smoothness is practically 0");
+
+  m_last_smoothness = mean_node_smoothness;
+  for (auto i = 0; i < m_num_frames; ++i) {
+    m_frame_smoothness[i] = frame_smoothness[i];
+  }
+  m_smoothness_is_current = true;
+
+  // If m_last_smoothness is 0 then we converged, regardless of whether we're checking for absolute smoothness or not.
+  if (std::abs(m_last_smoothness) < 1e-9) {
+    spdlog::info("Terminating because smoothness is practically 0");
     result = CONVERGED;
     return true;
   }
@@ -168,7 +178,7 @@ AbstractOptimiser::maybe_check_iterations(OptimisationResult &result) const {
 bool
 AbstractOptimiser::check_termination_criteria(
     float &smoothness,
-    OptimisationResult &result) const {
+    OptimisationResult &result) {
 
   if (check_cancellation(result)) {
     return true;
@@ -225,40 +235,51 @@ AbstractOptimiser::optimise_do_one_step() {
   return false;
 }
 
-float
-AbstractOptimiser::compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const {
-  float node_smoothness = 0.0f;
-  unsigned int num_neighbours = 0;
-
-  // For each frame in which this surfel appears
-  unsigned int num_neighbours_in_frame;
-  for (const auto &frame: node_ptr->data()->frames()) {
-    // Compute the smoothness in this frame
-    node_smoothness += compute_node_smoothness_for_frame(node_ptr, frame, num_neighbours_in_frame);
-    num_neighbours += num_neighbours_in_frame;
-  }
-  // Set the mean smoothness
-  const auto mean_smoothness = (num_neighbours == 0)
-                               ? 0
-                               : node_smoothness / (float) num_neighbours;
-
-  spdlog::debug(" mean_smoothness {:4.3f}", mean_smoothness);
-  return mean_smoothness;
-}
-
 void
-AbstractOptimiser::compute_smoothness() {
-  float total_smoothness = 0.0f;
-  for (const auto &n: m_surfel_graph->nodes()) {
-    auto node_smoothness = compute_mean_node_smoothness(n);
-    total_smoothness += node_smoothness;
-    store_mean_smoothness(n, node_smoothness);
-  }
-  m_last_smoothness = total_smoothness / (float) m_surfel_graph->num_nodes();
+AbstractOptimiser::compute_smoothness(
+    float &mean_node_smoothness,
+    std::vector<float> frame_smoothness) {
+  using namespace std;
 
-  m_smoothness_is_current = true;
+  map<string, float> node_smoothness;
+  map<string, float> node_count;
+  for (const auto &node: m_surfel_graph->nodes()) {
+    node_smoothness[node->data()->id()] = -1;
+    node_smoothness[node->data()->id()] = 0;
+  }
+
+  for (const auto &edge: m_surfel_graph->edges()) {
+    const auto &from_surfel = edge.from()->data();
+    const auto &to_surfel = edge.to()->data();
+    auto common_frames = get_common_frames(from_surfel, to_surfel);
+    for (auto frame_idx: common_frames) {
+      auto smoothness = compute_smoothness_in_frame(edge, frame_idx);
+      frame_smoothness[frame_idx] += smoothness;
+      auto from_smoothness = node_smoothness[from_surfel->id()];
+      node_smoothness[from_surfel->id()] = fmaxf(from_smoothness, 0) + smoothness;
+      node_count[from_surfel->id()] = node_count[from_surfel->id()] + 1;
+      auto to_smoothness = node_smoothness[to_surfel->id()];
+      node_smoothness[to_surfel->id()] = fmaxf(to_smoothness, 0) + smoothness;
+      node_count[to_surfel->id()] = node_count[to_surfel->id()] + 1;
+    }
+  }
+
+  auto total_smoothness = 0.0f;
+  auto total_count = 0.0f;
+  for (auto &n: m_surfel_graph->nodes()) {
+    total_smoothness += node_smoothness[n->data()->id()];
+    total_count += node_count[n->data()->id()];
+    auto mean_node_smoothness = node_smoothness[n->data()->id()] / node_count[n->data()->id()];
+    store_mean_smoothness(n, mean_node_smoothness);
+  }
+  mean_node_smoothness = total_smoothness / total_count;
 }
 
+// Extract neighbour/frames per node and edges per frame
+void
+AbstractOptimiser::extract_graph_statistics() {
+
+}
 
 void
 AbstractOptimiser::set_data(const SurfelGraphPtr &surfel_graph) {
@@ -267,6 +288,8 @@ AbstractOptimiser::set_data(const SurfelGraphPtr &surfel_graph) {
   m_frame_smoothness.resize(m_num_frames);
   m_smoothness_is_current = false;
   m_state = INITIALISED;
+
+  extract_graph_statistics();
   loaded_graph();
 }
 

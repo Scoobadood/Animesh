@@ -34,78 +34,27 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::default_random_e
  * Also sets the number of neighbours it's compared to so that the mean can be computed.
  */
 float
-RoSyOptimiser::compute_node_smoothness_for_frame(
-    const SurfelGraphNodePtr &this_node,
-    size_t frame_index,
-    unsigned int &num_neighbours) const {
+RoSyOptimiser::compute_smoothness_in_frame(
+    const SurfelGraph::Edge &edge,
+    unsigned int frame_idx) const {
 
   using namespace Eigen;
 
-  float frame_smoothness = 0.0f;
-
-  const auto &this_surfel = this_node->data();
-
-  bool should_dump = false;//(this_surfel->id() == "s_32");
-  // START DEBUG
-  if (should_dump) {
-    spdlog::info("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);
-  }
-  // END DEBUG
-
+  const auto &this_surfel = edge.from()->data();
   Vector3f vertex, normal, tangent;
-  this_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+  this_surfel->get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
 
-  // START DEBUG
-  if (should_dump) {
-    spdlog::info("  Stored tan is ({},{},{})",
-                 this_surfel->tangent()[0], this_surfel->tangent()[1], this_surfel->tangent()[2]);
-    spdlog::info("  In frame is ({},{},{})",
-                 tangent[0], tangent[1], tangent[2]);
-  }
-  // END DEBUG
+  const auto &nbr_surfel = edge.to()->data();
+  Vector3f nbr_vertex, nbr_normal, nbr_tangent;
+  nbr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, nbr_vertex, nbr_tangent, nbr_normal);
 
-  int bad_count = 0, good_count = 0;
-  // For each neighbour in frame...
-  const auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, this_node, frame_index);
-  for (const auto &nbr_node: neighbours_in_frame) {
-    const auto &nbr_surfel = nbr_node->data();
-
-    Vector3f nbr_vertex, nbr_normal, nbr_tangent;
-    nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
-
-    // Compute best Ks
-    unsigned short k_ij;
-    unsigned short k_ji;
-    auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
-
-    float theta = degrees_angle_between_vectors(best_pair.first, best_pair.second);
-    if (theta > 45 || theta < -45) {
-      bad_count++;
-    } else {
-      good_count++;
-    }
-    if (should_dump) {
-      spdlog::info("  Edge to ", nbr_surfel->id());
-      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
-      spdlog::info("    V1=[{},{},{}]", vertex[0], vertex[1], vertex[2]);
-      spdlog::info("    N1=[{}, {}, {}]", normal[0], normal[1], normal[2]);
-      spdlog::info("    T1=[{}, {}, {}]", tangent[0], tangent[1], tangent[2]);
-      spdlog::info("    V2=[{},{},{}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
-      spdlog::info("    N2=[{}, {}, {}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
-      spdlog::info("    T2=[{}, {}, {}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
-      spdlog::info("    theta {}", theta);
-    }
-    const auto smoothness = (theta * theta);
-    frame_smoothness += smoothness;
-  }
-
-  if (should_dump) {
-    spdlog::info("Bad {}   Good {} ", bad_count, good_count);
-  }
-
-  num_neighbours = neighbours_in_frame.size();
-  spdlog::debug(" smoothness {:4.3f}", frame_smoothness);
-  return frame_smoothness;
+  // Compute best Ks
+  unsigned short k_ij;
+  unsigned short k_ji;
+  auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
+  float theta = degrees_angle_between_vectors(best_pair.first, best_pair.second);
+  const auto smoothness = (theta * theta);
+  return smoothness;
 }
 
 bool

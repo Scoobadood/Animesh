@@ -39,12 +39,6 @@ protected:
   virtual void trace_smoothing(const SurfelGraphPtr &graph) const {};
   virtual void optimise_do_pass() = 0;
 
-  std::vector<SurfelGraphNodePtr> get_neighbours_of_node_in_frame(
-      const SurfelGraphPtr &graph,
-      const SurfelGraphNodePtr &node_ptr,
-      unsigned int frame_index,
-      bool randomise_order = false) const;
-
   enum OptimisationState {
     UNINITIALISED,
     INITIALISED,
@@ -76,7 +70,7 @@ private:
 
   static bool check_cancellation(OptimisationResult &result);
 
-  bool maybe_check_convergence(float &latest_smoothness, OptimisationResult &result);
+  bool maybe_check_convergence(float smoothness, OptimisationResult &result);
 
   bool maybe_check_iterations(OptimisationResult &result) const;
 
@@ -95,7 +89,8 @@ private:
   unsigned int          m_term_crit_max_iterations;
   unsigned int          m_num_iterations;
   unsigned int          m_num_frames;
-  bool                  m_smoothness_is_current;
-  std::vector<float>    m_frame_smoothness;
+  std::vector<int>      m_nodes_per_frame;
+  std::vector<int>      m_edges_per_frame;
   float                 m_last_smoothness;
+  bool                  m_show_progress = true;
 };

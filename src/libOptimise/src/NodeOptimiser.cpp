@@ -6,10 +6,8 @@
 #include "SurfelSelectionAlgorithm.h"
 
 #include <random>
-#include <sstream>
 #include <utility>
 #include <algorithm>    // random_shuffle
-#include <sys/stat.h>
 #include <spdlog/spdlog.h>
 #include <Properties/Properties.h>       // termination criteria set up
 

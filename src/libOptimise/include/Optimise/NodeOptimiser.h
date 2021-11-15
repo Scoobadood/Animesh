@@ -17,8 +17,6 @@ protected:
 
   virtual bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const = 0;
 
-  bool m_randomise_neighour_order;
-
   virtual const std::string &get_ssa_property_name() const = 0;
 
   virtual const std::string &get_ssa_percentage_property_name() const = 0;

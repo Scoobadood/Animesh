@@ -23,7 +23,6 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::default_random_e
   m_damping_factor = m_properties.getFloatProperty("rosy-damping-factor");
   m_weight_for_error = m_properties.getBooleanProperty("rosy-weight-for-error");
   m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
-  m_randomise_neighour_order = m_properties.getBooleanProperty("rosy-randomise-neighbour-order");
   m_vote_for_best_k = m_properties.getBooleanProperty("rosy-vote-for-best-k");
 
   setup_ssa();
@@ -209,4 +208,64 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
 
 void RoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {
   node->data()->set_rosy_smoothness(smoothness);
+}
+
+void RoSyOptimiser::ended_optimisation() {
+  using namespace Eigen;
+  using namespace std;
+
+  float theta[4][4][m_num_frames];
+  float theta_sum[4][4];
+
+  // Label graph edges
+  for (const auto &edge: m_surfel_graph->edges()) {
+    for (int i = 0; i < 4; ++i) {
+      for (int j = 0; j < 4; ++j) {
+        for (int f = 0; f < m_num_frames; ++f) {
+          theta[i][j][f] = numeric_limits<float>::max();
+        }
+        theta_sum[i][j] = 0;
+      }
+    }
+
+    const auto &s1 = edge.from()->data();
+    const auto &s2 = edge.to()->data();
+    const auto common_frames = get_common_frames(s1, s2);
+
+    for (const auto f: common_frames) {
+      Vector3f v_i, t_i, n_i;
+      s1->get_vertex_tangent_normal_for_frame(f, v_i, t_i, n_i);
+      Vector3f v_j, t_j, n_j;
+      s2->get_vertex_tangent_normal_for_frame(f, v_j, t_j, n_j);
+
+      for (int k_ij = 0; k_ij < 4; ++k_ij) {
+        for (int k_ji = 0; k_ji < 4; ++k_ji) {
+          auto atan_i = vector_by_rotating_around_n(t_i, n_i, k_ij);
+          auto atan_j = vector_by_rotating_around_n(t_j, n_j, k_ji);
+          auto angle = degrees_angle_between_vectors(atan_i, atan_j);
+          theta[k_ij][k_ji][f] = angle;
+          theta_sum[k_ij][k_ji] += angle;
+        }
+      }
+    }
+    // Sum theta per frame nd pick smallest k_ij/k_ji pair
+    unsigned short best_i, best_j, best_theta = numeric_limits<float>::max();
+    for (int k_ij = 0; k_ij < 4; ++k_ij) {
+      for (int k_ji = 0; k_ji < 4; ++k_ji) {
+        if (theta_sum[k_ij][k_ji] < best_theta) {
+          best_i = k_ij;
+          best_j = k_ji;
+          best_theta = theta_sum[k_ij][k_ji];
+        }
+      }
+    }
+
+    if (s1->id() < s2->id()) {
+      edge.data()->set_k_low(best_i);
+      edge.data()->set_k_high(best_j);
+    } else {
+      edge.data()->set_k_low(best_j);
+      edge.data()->set_k_high(best_i);
+    }
+  }
 }

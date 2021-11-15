@@ -14,6 +14,9 @@ public:
 
   virtual ~PoSyOptimiser() = default;
 
+protected:
+  void ended_optimisation() override;
+
 private:
   bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;
 

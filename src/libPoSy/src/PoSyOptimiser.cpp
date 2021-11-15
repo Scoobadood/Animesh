@@ -20,7 +20,6 @@ PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::default_random_e
       "posy-term-crit-relative-smoothness",
       "posy-term-crit-absolute-smoothness",
       "posy-term-crit-max-iterations");
-  m_randomise_neighour_order = m_properties.getBooleanProperty("posy-randomise-neighbour-order");
 
   setup_ssa();
 }
@@ -354,3 +353,5 @@ PoSyOptimiser::loaded_graph() {
 void PoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {
   node->data()->set_posy_smoothness(smoothness);
 }
+
+void PoSyOptimiser::ended_optimisation() { }

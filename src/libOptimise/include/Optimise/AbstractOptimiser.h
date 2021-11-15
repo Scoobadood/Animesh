@@ -38,6 +38,7 @@ protected:
   virtual void smoothing_completed(float smoothness, OptimisationResult result);
   virtual void trace_smoothing(const SurfelGraphPtr &graph) const {};
   virtual void optimise_do_pass() = 0;
+  virtual void ended_optimisation() = 0;
 
   enum OptimisationState {
     UNINITIALISED,
@@ -46,9 +47,10 @@ protected:
     ENDING_OPTIMISATION
   };
 
-  OptimisationResult m_result;
-  OptimisationState m_state;
-  SurfelGraphPtr m_surfel_graph;
+  OptimisationResult    m_result;
+  OptimisationState     m_state;
+  SurfelGraphPtr        m_surfel_graph;
+  unsigned int          m_num_frames;
 
   static std::vector<unsigned int>
   get_common_frames(const std::shared_ptr<Surfel> &s1, const std::shared_ptr<Surfel> &s2) ;
@@ -88,7 +90,6 @@ private:
   float                 m_term_crit_relative_smoothness;
   unsigned int          m_term_crit_max_iterations;
   unsigned int          m_num_iterations;
-  unsigned int          m_num_frames;
   std::vector<int>      m_nodes_per_frame;
   std::vector<int>      m_edges_per_frame;
   float                 m_last_smoothness;

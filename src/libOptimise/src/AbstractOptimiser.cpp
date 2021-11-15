@@ -16,12 +16,12 @@ AbstractOptimiser::AbstractOptimiser(Properties properties, std::default_random_
     : Optimiser{std::move(properties), rng}//
     , m_result{NOT_COMPLETE} //
     , m_state{UNINITIALISED} //
+    , m_num_frames{0} //
     , m_termination_criteria{0} //
     , m_term_crit_absolute_smoothness{0.0f} //
     , m_term_crit_relative_smoothness{0.0f} //
     , m_term_crit_max_iterations{0} //
     , m_num_iterations{0} //
-    , m_num_frames{0} //
     , m_last_smoothness{std::numeric_limits<float>::infinity()} //
 {
 }
@@ -194,6 +194,7 @@ AbstractOptimiser::optimise_end() {
   assert(m_state == ENDING_OPTIMISATION);
   // TODO: Consider a final state here that can transition back to INITIALISED or make both READY
   m_state = INITIALISED;
+  ended_optimisation();
 }
 
 bool

@@ -13,7 +13,6 @@
 
 NodeOptimiser::NodeOptimiser(Properties properties, std::default_random_engine& rng)
     : AbstractOptimiser{properties, rng}//
-    , m_randomise_neighour_order{false} //
     , m_node_selection_function{nullptr} //
     , m_ssa_percentage{0} //
 {

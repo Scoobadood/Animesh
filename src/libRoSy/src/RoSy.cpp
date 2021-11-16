@@ -45,26 +45,30 @@ best_rosy_vector_pair(const Eigen::Vector3f &o_i, const Eigen::Vector3f &n_i, un
         throw invalid_argument("Vector may not be zero length");
     }
 
-    k_ij = k_ji = 0;
-    float best_theta = INFINITY;
-    Vector3f best_o_i{o_i};
-    Vector3f best_o_j{o_j};
-    for(int test_k_ij =0; test_k_ij < 4; ++ test_k_ij) {
-        const auto &test_o_i = vector_by_rotating_around_n(o_i, n_i, test_k_ij);
-        for (int test_k_ji = 0; test_k_ji < 4; ++test_k_ji) {
-            const auto &test_o_j = vector_by_rotating_around_n(o_j, n_j, test_k_ji);
+  const Vector3f A[2] = {o_i, n_i.cross(o_i)};
+  const Vector3f B[2] = {o_j, n_j.cross(o_j)};
 
-            const auto theta = degrees_angle_between_vectors(test_o_i, test_o_j);
-            if (theta < best_theta) {
-                best_theta = theta;
-                best_o_j = test_o_j;
-                best_o_i = test_o_i;
-                k_ij = test_k_ij;
-                k_ji = test_k_ji;
-            }
-        }
+  auto best_score = -numeric_limits<float>::infinity();
+  k_ij = 0;
+  k_ji = 0;
+
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      auto score = std::abs(A[i].dot(B[j]));
+      if (score > best_score) {
+        k_ij = i;
+        k_ji = j;
+        best_score = score;
+      }
     }
-    return {best_o_i, best_o_j};
+  }
+
+  const auto dp = A[k_ij].dot(B[k_ji]);
+  pair<Vector3f, Vector3f> p = {A[k_ij], B[k_ji] * (dp < 0 ? -1 : 1)};
+  if( dp < 0 ) {
+    k_ji += 2;
+  }
+  return p;
 }
 
 /**

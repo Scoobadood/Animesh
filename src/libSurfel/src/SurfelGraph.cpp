@@ -107,3 +107,16 @@ set_delta(const SurfelGraphPtr &graph,
   }
 }
 
+unsigned short
+get_delta(const SurfelGraphPtr &graph,
+          const SurfelGraphNodePtr &node1,
+          const SurfelGraphNodePtr &node2) {
+  auto &edge = graph->edge(node1, node2);
+  if( node1->data()->id() < node2->data()->id()) {
+    return edge->get_delta();
+  } else {
+    return (4 - edge->get_delta() % 4);
+  }
+}
+
+

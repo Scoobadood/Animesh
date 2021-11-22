@@ -23,6 +23,7 @@ public:
       : m_weight{weight} //
       , m_k_low{0} //
       , m_k_high{0} //
+      , m_delta{0} //
   {}
 
   inline unsigned short k_low() const {
@@ -47,6 +48,10 @@ public:
     assert(delta >= 0 && delta <= 3);
     m_delta = delta;
     m_k_high = (m_k_low + m_delta) % 4;
+  }
+
+  inline unsigned short get_delta() {
+    return m_delta;
   }
 
   inline const Eigen::Vector2i &t_low() {
@@ -90,6 +95,11 @@ set_delta(const SurfelGraphPtr &graph,
           const SurfelGraphNodePtr &node1,
           const SurfelGraphNodePtr &node2,
           unsigned short delta);
+
+unsigned short
+get_delta(const SurfelGraphPtr &graph,
+          const SurfelGraphNodePtr &node1,
+          const SurfelGraphNodePtr &node2);
 
 void
 set_k(const SurfelGraphPtr &graph,

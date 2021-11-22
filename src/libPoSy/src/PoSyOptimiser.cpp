@@ -186,24 +186,19 @@ PoSyOptimiser::compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGrap
  */
 Eigen::Vector2f
 PoSyOptimiser::smooth_node_in_frame(//
+    unsigned int frame_idx,
     const std::shared_ptr<Surfel> &from_surfel,
     const Eigen::Vector2f &from_lattice_offset,
-    const std::shared_ptr<Surfel> &to_surfel,
-    const Eigen::Vector2f &to_lattice_offset,
-    unsigned int frame_idx,
-    unsigned short k_ij,
     float w_i,
-    unsigned short k_ji,
+    const std::shared_ptr<Surfel> &to_surfel,
     float w_j,
-    Eigen::Vector2i &t_ij,
-    Eigen::Vector2i &t_ji
+    unsigned short delta
 ) const {
   using namespace Eigen;
 
   // Compute the lattice offset 3D position in the given frame
   Vector3f from_vertex, from_tangent, from_normal;
   from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, from_vertex, from_tangent, from_normal);
-  from_tangent = vector_by_rotating_around_n(from_tangent, from_normal, k_ij);
   Vector3f from_orth_tangent = from_normal.cross(from_tangent);
   Vector3f from_lattice_vertex = from_vertex +
       from_lattice_offset[0] * from_tangent +
@@ -212,17 +207,21 @@ PoSyOptimiser::smooth_node_in_frame(//
   // Compute the neighbour's lattice offset 3D position in the given frame
   Vector3f to_vertex, to_tangent, to_normal;
   to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, to_vertex, to_tangent, to_normal);
-  to_tangent = vector_by_rotating_around_n(to_tangent, to_normal, k_ji);
+  Vector2f to_lattice_offset = to_surfel->reference_lattice_offset();
   Vector3f to_orth_tangent = to_normal.cross(to_tangent);
   Vector3f to_lattice_vertex = to_vertex +
       to_lattice_offset[0] * to_tangent +
       to_lattice_offset[1] * to_orth_tangent;
 
+  // Orient the 'to' cross field' with respect to the 'from' field
+  Vector3f adjusted_to_tangent = vector_by_rotating_around_n(to_tangent, to_normal, delta);
+  Vector3f adjusted_to_orth_tangent = to_normal.cross(adjusted_to_tangent);
+
   // Compute the midpoint
   const auto midpoint = compute_qij(from_vertex, from_normal, to_vertex, to_normal);
   const auto closest_points = compute_closest_points(
       from_lattice_vertex, from_tangent, from_orth_tangent,
-      to_lattice_vertex, to_tangent, to_orth_tangent,
+      to_lattice_vertex, adjusted_to_tangent, adjusted_to_orth_tangent,
       midpoint, m_rho);
 
   // Compute the weighted mean closest point
@@ -249,13 +248,6 @@ PoSyOptimiser::smooth_node_in_frame(//
                   new_lattice_offset[0],
                   new_lattice_offset[1]);
   }
-
-  const auto t_ij_pair = compute_tij_pair(
-      from_lattice_vertex, from_tangent, from_orth_tangent,
-      to_lattice_vertex, to_tangent, to_orth_tangent,
-      midpoint, m_rho);
-  t_ij = t_ij_pair.first;
-  t_ji = t_ij_pair.second;
   return new_lattice_offset;
 }
 
@@ -291,14 +283,13 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
   const auto &curr_surfel = node->data();
   Vector2f new_lattice_offset = curr_surfel->reference_lattice_offset();
 
+  // Smooth with each neighbour
+  float weight_sum = 0.0;
+
   // Get all of this node's neighbours
   const auto neighbours = m_surfel_graph->neighbours(node);
-
-  // Smooth with each neighbour
-  float sum_w = 0.0;
   for (const auto &nbr_node: neighbours) {
     const auto &nbr_surfel = nbr_node->data();
-    Vector2f nbr_lattice_offset = nbr_surfel->reference_lattice_offset();
 
     const auto &edge = m_surfel_graph->edge(node, nbr_node);
 
@@ -314,26 +305,20 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                                             m_properties.getProperty("posy-smooth-frame-filter"));
     }
 
-    // DEBUG
-//    frames_to_smooth = {frames_to_smooth[0]};
     Vector2i t_ij, t_ji;
-    // DEBUG
+
     // For each frame in this list, smooth in that frame
-    const auto &k = get_k(m_surfel_graph, node, nbr_node);
+    const auto delta = get_delta(m_surfel_graph, node, nbr_node);
     float w_ji = 1.0f;
     for (auto frame_idx: frames_to_smooth) {
-      new_lattice_offset = smooth_node_in_frame(//
-          curr_surfel, new_lattice_offset,
-          nbr_surfel, nbr_lattice_offset,
-          frame_idx,
-          k.first, sum_w,
-          k.second, w_ji,
-          t_ij, t_ji);
-      sum_w += w_ji;
-    }
-    set_t(m_surfel_graph, node, t_ij, nbr_node, t_ji);
-  }
 
+      new_lattice_offset = smooth_node_in_frame(//
+          frame_idx,
+          curr_surfel, new_lattice_offset, weight_sum,
+          nbr_surfel, w_ji, delta );
+      weight_sum += w_ji;
+    }
+  }
 
   // Store the new offset
   curr_surfel->set_reference_lattice_offset(new_lattice_offset);

@@ -315,7 +315,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
     }
 
     // DEBUG
-    frames_to_smooth = {frames_to_smooth[0]};
+//    frames_to_smooth = {frames_to_smooth[0]};
     Vector2i t_ij, t_ji;
     // DEBUG
     // For each frame in this list, smooth in that frame

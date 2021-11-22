@@ -54,13 +54,13 @@ private:
     unsigned short best_kij;
     unsigned short best_delta;
     float best_dp;
+    float dot_product[4][4];
   };
 
   void compute_all_dps(
-      const std::shared_ptr<Surfel> &s1,
-      const std::shared_ptr<Surfel> &s2,
+      const std::shared_ptr<Surfel> &from_surfel,
+      const std::shared_ptr<Surfel> &to_surfel,
       unsigned int num_frames,
-      std::vector<std::vector<std::vector<float>>>& dot_prod,
       std::vector<FrameStat>& frame_stats
   ) const;
 

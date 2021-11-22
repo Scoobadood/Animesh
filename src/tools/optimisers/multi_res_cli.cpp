@@ -22,8 +22,7 @@ int main(int argc, char *argv[]) {
   string input_file_name = properties.getProperty("rosy-input-file");
   string output_file_name = properties.getProperty("posy-output-file");
 
-  uint32_t seed_val = 123;      // populate somehow
-  std::mt19937 rng{seed_val};   // the Mersenne Twister with a popular choice of parameters
+  std::default_random_engine rng{123};   // the Mersenne Twister with a popular choice of parameters
 
   MultiResolutionOptimiser optimiser{properties, rng};
   auto surfel_graph = load_surfel_graph_from_file(input_file_name, rng);

@@ -7,9 +7,8 @@
 
 int main(int argc, const char *argv[]) {
   std::string in_file = argv[1];
-  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
-  uint32_t seed_val = 123;  // populate somehow
-  rng.seed(seed_val);
+  std::default_random_engine rng;         // the Mersenne Twister with a popular choice of parameters
+  rng.seed(123);
 
   auto s = load_surfel_graph_from_file(in_file, rng);
 

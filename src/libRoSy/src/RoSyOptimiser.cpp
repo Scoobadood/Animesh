@@ -10,8 +10,9 @@
 #include <Eigen/Geometry>
 #include <Vote/VoteCounter.h>
 #include <spdlog/spdlog.h>
+#include <iomanip>
 
-RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
+RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::default_random_engine &rng)
     : NodeOptimiser(properties, rng) //
 {
   setup_termination_criteria(
@@ -23,7 +24,6 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
   m_damping_factor = m_properties.getFloatProperty("rosy-damping-factor");
   m_weight_for_error = m_properties.getBooleanProperty("rosy-weight-for-error");
   m_weight_for_error_steps = m_properties.getIntProperty("rosy-weight-for-error-steps");
-  m_randomise_neighour_order = m_properties.getBooleanProperty("rosy-randomise-neighbour-order");
   m_vote_for_best_k = m_properties.getBooleanProperty("rosy-vote-for-best-k");
 
   setup_ssa();
@@ -34,78 +34,27 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::mt19937 &rng)
  * Also sets the number of neighbours it's compared to so that the mean can be computed.
  */
 float
-RoSyOptimiser::compute_node_smoothness_for_frame(
-    const SurfelGraphNodePtr &this_node,
-    size_t frame_index,
-    unsigned int &num_neighbours) const {
+RoSyOptimiser::compute_smoothness_in_frame(
+    const SurfelGraph::Edge &edge,
+    unsigned int frame_idx) const {
 
   using namespace Eigen;
 
-  float frame_smoothness = 0.0f;
-
-  const auto &this_surfel = this_node->data();
-
-  bool should_dump = false;//(this_surfel->id() == "s_32");
-  // START DEBUG
-  if (should_dump) {
-    spdlog::info("Computing smoothness for node {} in frame {}", this_surfel->id(), frame_index);
-  }
-  // END DEBUG
-
+  const auto &this_surfel = edge.from()->data();
   Vector3f vertex, normal, tangent;
-  this_surfel->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
+  this_surfel->get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
 
-  // START DEBUG
-  if (should_dump) {
-    spdlog::info("  Stored tan is ({},{},{})",
-                 this_surfel->tangent()[0], this_surfel->tangent()[1], this_surfel->tangent()[2]);
-    spdlog::info("  In frame is ({},{},{})",
-                 tangent[0], tangent[1], tangent[2]);
-  }
-  // END DEBUG
+  const auto &nbr_surfel = edge.to()->data();
+  Vector3f nbr_vertex, nbr_normal, nbr_tangent;
+  nbr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, nbr_vertex, nbr_tangent, nbr_normal);
 
-  int bad_count = 0, good_count = 0;
-  // For each neighbour in frame...
-  const auto neighbours_in_frame = get_node_neighbours_in_frame(m_surfel_graph, this_node, frame_index);
-  for (const auto &nbr_node: neighbours_in_frame) {
-    const auto &nbr_surfel = nbr_node->data();
-
-    Vector3f nbr_vertex, nbr_normal, nbr_tangent;
-    nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, nbr_vertex, nbr_tangent, nbr_normal);
-
-    // Compute best Ks
-    unsigned short k_ij;
-    unsigned short k_ji;
-    auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
-
-    float theta = degrees_angle_between_vectors(best_pair.first, best_pair.second);
-    if (theta > 45 || theta < -45) {
-      bad_count++;
-    } else {
-      good_count++;
-    }
-    if (should_dump) {
-      spdlog::info("  Edge to ", nbr_surfel->id());
-      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
-      spdlog::info("    V1=[{},{},{}]", vertex[0], vertex[1], vertex[2]);
-      spdlog::info("    N1=[{}, {}, {}]", normal[0], normal[1], normal[2]);
-      spdlog::info("    T1=[{}, {}, {}]", tangent[0], tangent[1], tangent[2]);
-      spdlog::info("    V2=[{},{},{}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
-      spdlog::info("    N2=[{}, {}, {}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
-      spdlog::info("    T2=[{}, {}, {}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
-      spdlog::info("    theta {}", theta);
-    }
-    const auto smoothness = (theta * theta);
-    frame_smoothness += smoothness;
-  }
-
-  if (should_dump) {
-    spdlog::info("Bad {}   Good {} ", bad_count, good_count);
-  }
-
-  num_neighbours = neighbours_in_frame.size();
-  spdlog::debug(" smoothness {:4.3f}", frame_smoothness);
-  return frame_smoothness;
+  // Compute best Ks
+  unsigned short k_ij;
+  unsigned short k_ji;
+  auto best_pair = best_rosy_vector_pair(tangent, normal, k_ij, nbr_tangent, nbr_normal, k_ji);
+  float theta = degrees_angle_between_vectors(best_pair.first, best_pair.second);
+  const auto smoothness = (theta * theta);
+  return smoothness;
 }
 
 bool
@@ -137,7 +86,6 @@ RoSyOptimiser::adjust_weights_based_on_error(const std::shared_ptr<Surfel> &s1,
   }
   ++iterations;
 }
-
 
 void
 RoSyOptimiser::vote_for_best_ks(
@@ -185,6 +133,17 @@ RoSyOptimiser::vote_for_best_ks(
   best_k_ji = winner.second;
 }
 
+void
+RoSyOptimiser::get_weights(const std::shared_ptr<Surfel> &surfel_a,
+                           const std::shared_ptr<Surfel> &surfel_b,
+                           float &weight_a,
+                           float &weight_b) const {
+  weight_a = 1.0f;
+  weight_b = 1.0f;
+  if (m_weight_for_error) {
+    adjust_weights_based_on_error(surfel_a, surfel_b, weight_a, weight_b);
+  }
+}
 /*
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
@@ -198,78 +157,45 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   Vector3f new_tangent{starting_tangent};
 
   bool should_dump = false;//(this_surfel->id() == "s_32");
-  float wsum = 0.0f;
+  float weight_sum = 0.0f;
+
   // For each neighbour of this Surfel
   auto neighbours = m_surfel_graph->neighbours(this_node);
   for (const auto &nbr: neighbours) {
     const auto &nbr_surfel = nbr->data();
 
-    // Get the set of common frames
+    // For each frame where these nodes are neighbours
     auto shared_frames = get_common_frames(this_surfel, nbr_surfel);
-
-    // Optionally generate a set of Ks for all frames
-    unsigned short k_ij = 0;
-    unsigned short k_ji = 0;
-    if (m_vote_for_best_k) {
-      vote_for_best_ks(
-          this_surfel, nbr_surfel, new_tangent,
-          shared_frames, k_ij, k_ji);
-
-      // START DEBUG
-      if (should_dump) {
-        spdlog::info("Voted for edge to {} ", nbr_surfel->id());
-        spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
-      }
-      //END DEBUG
-    }
-
-    // For each frame that the two surfels are neighbours in:
     for (unsigned int frame_index: shared_frames) {
-      Vector3f v1,t1,n1;
+      Vector3f v1, t1, n1;
       this_surfel->get_vertex_tangent_normal_for_frame(frame_index, v1, t1, n1);
-      t1 = this_surfel->frame_data()[frame_index].transform * new_tangent;
+      auto &this_surfel_frame_transform = this_surfel->frame_data()[frame_index].transform;
+      t1 = this_surfel_frame_transform * new_tangent;
 
       Vector3f v2, t2, n2;
       nbr_surfel->get_vertex_tangent_normal_for_frame(frame_index, v2, t2, n2);
-      float this_surfel_weight = 1.0f;
-      float nbr_surfel_weight = 1.0f;
-      if (m_weight_for_error) {
-        adjust_weights_based_on_error(
-            this_surfel,
-            nbr_surfel,
-            this_surfel_weight,
-            nbr_surfel_weight);
-      }
 
-      // Compute the best RoSy pair (or voted pair)
+      float this_weight, nbr_weight;
+      get_weights(this_surfel, nbr_surfel, this_weight, nbr_weight);
+
+      // Compute the best RoSy pair
       std::pair<Vector3f, Vector3f> best_pair;
-      if (m_vote_for_best_k) {
-        best_pair = {
-            vector_by_rotating_around_n(t1, n1, k_ij),
-            vector_by_rotating_around_n(t2, n2, k_ji)
-        };
-      } else {
-        best_pair = best_rosy_vector_pair(
-            t1, n1, k_ij,
-            t2, n2, k_ji);
-        // START DEBUG
-        if (should_dump) {
-          spdlog::info("Computed for edge to {} ", nbr_surfel->id());
-          spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
-        }
-        //END DEBUG
+      unsigned short k_ij, k_ji;
+      best_pair = best_rosy_vector_pair(
+          t1, n1, k_ij,
+          t2, n2, k_ji);
+      // START DEBUG
+      if (should_dump) {
+        spdlog::info("Computed for edge to {} ", nbr_surfel->id());
+        spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
       }
-      wsum += this_surfel_weight;
-      Vector3f v = (best_pair.first * wsum) + (best_pair.second * nbr_surfel_weight);
-      v = this_surfel->frame_data()[frame_index].transform.inverse() * v;
+      //END DEBUG
+
+      weight_sum += this_weight;
+      Vector3f v = (best_pair.first * weight_sum) + (best_pair.second * nbr_weight);
+      v = this_surfel_frame_transform.inverse() * v;
       new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
     } // Next frame
-    set_k(m_surfel_graph, this_node, k_ij, nbr, k_ji);
-    if (should_dump) {
-      spdlog::info("  Storing edge s_32->{} ", nbr->data()->id());
-      spdlog::info("    computed from tan ({}, {}, {})", new_tangent[0], new_tangent[1], new_tangent[2]);
-      spdlog::info("    k_ij = {},   k_ji = {}", k_ij, k_ji);
-    }
   } // Next neighbour
 
   // Handle damping
@@ -277,10 +203,197 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
     new_tangent = (m_damping_factor * starting_tangent) + ((1.0f - m_damping_factor) * new_tangent);
     new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY(), true);
   }
-  this_node->data()->setTangent(new_tangent);
-  this_node->data()->set_rosy_correction(degrees_angle_between_vectors(starting_tangent, new_tangent));
+  this_surfel->setTangent(new_tangent);
+  this_surfel->set_rosy_correction(degrees_angle_between_vectors(starting_tangent, new_tangent));
 }
 
 void RoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {
   node->data()->set_rosy_smoothness(smoothness);
+}
+
+void
+RoSyOptimiser::compute_all_dps(
+    const std::shared_ptr<Surfel> &s1,
+    const std::shared_ptr<Surfel> &s2,
+    unsigned int num_frames,
+    std::vector<std::vector<std::vector<float>>> &dot_prod,
+    std::vector<FrameStat> &frame_stats
+) const {
+  using namespace Eigen;
+
+  for (int f = 0; f < num_frames; ++f) {
+    // Clear dot_prod
+    for (int i = 0; i < 4; ++i) {
+      for (int j = 0; j < 4; ++j) {
+        dot_prod[f][i][j] = 0;
+      }
+    }
+  }
+
+  const auto common_frames = get_common_frames(s1, s2);
+  for (const auto f: common_frames) {
+    Vector3f v_i, t_i, n_i, v_j, t_j, n_j;
+    s1->get_vertex_tangent_normal_for_frame(f, v_i, t_i, n_i);
+    s2->get_vertex_tangent_normal_for_frame(f, v_j, t_j, n_j);
+
+    for (int k_ij = 0; k_ij < 4; ++k_ij) {
+      for (int k_ji = 0; k_ji < 4; ++k_ji) {
+        auto atan_i = vector_by_rotating_around_n(t_i, n_i, k_ij);
+        auto atan_j = vector_by_rotating_around_n(t_j, n_j, k_ji);
+        auto dp = atan_i.dot(atan_j);
+        dot_prod[f][k_ij][k_ji] = dp;
+
+        if (fabsf(dp) > fabsf(frame_stats[f].best_dp)) {
+          frame_stats[f].best_dp = dp;
+          frame_stats[f].best_delta = (k_ji + 4 - k_ij) % 4;
+          frame_stats[f].best_kij = k_ij;
+        }
+      }
+    }
+  }
+}
+
+void RoSyOptimiser::ended_optimisation() {
+  using namespace Eigen;
+  using namespace std;
+
+  vector<FrameStat> frame_stats{m_num_frames};
+  vector<vector<vector<float>>> dot_prod;
+  dot_prod.resize(m_num_frames);
+  for (int i = 0; i < m_num_frames; i++) {
+    dot_prod[i].resize(4);
+    for (int j = 0; j < 4; j++) {
+      dot_prod[i][j].resize(4);
+    }
+  }
+
+  int good_edges = 0;
+  int bad_edges = 0;
+
+  // Label graph edges - only works with meshes right now
+  // TODO: Fix this to handle edges that don't occur in every frame
+  for (const auto &edge: m_surfel_graph->edges()) {
+    const auto &s1 = edge.from()->data();
+    const auto &s2 = edge.to()->data();
+
+    compute_all_dps(s1, s2, m_num_frames, dot_prod, frame_stats);
+
+    // How many 'best' deltas exist for this edge across all frames?
+    set<unsigned short> deltas;
+    for (int f = 0; f < m_num_frames; ++f) {
+      deltas.emplace(frame_stats[f].best_delta);
+    }
+
+    // If one, great, we use it.
+    if (deltas.size() == 1) {
+      good_edges++;
+      if (s1->id() < s2->id()) {
+        edge.data()->set_k_low(frame_stats[0].best_kij);
+        edge.data()->set_k_high((int) (frame_stats[0].best_kij + frame_stats[0].best_delta) % 4);
+      } else {
+        edge.data()->set_k_high(frame_stats[0].best_kij);
+        edge.data()->set_k_low((int) (frame_stats[0].best_kij + frame_stats[0].best_delta) % 4);
+      }
+      continue;
+    }
+
+    // There are multiple conflicting options for delta for this edge. Dump some stats
+    bad_edges++;
+
+    spdlog::warn("Edge : {} --> {}", s1->id(), s2->id());
+    ostringstream m;
+    m << "  " << deltas.size() << "  options (";
+    for (auto d = deltas.begin(); d != deltas.end(); ++d) {
+      if (d != deltas.begin())
+        m << ", ";
+      m << *d;
+    }
+    m << ")";
+    spdlog::warn(m.str());
+
+
+    //   f    d=0     dp     e       d=1     dp        d=2     dp
+    m.str("");
+    m.clear();
+    m << "    f";
+    for (auto d: deltas) {
+      m << "    d=" << d << "     dp     e   ";
+    }
+    spdlog::warn(m.str());
+
+    // For each plausible delta, work out the best kij and dp per frame
+    map<unsigned short, pair<int, float>> scores_per_frame[m_num_frames];
+    for (int f = 0; f < m_num_frames; ++f) {
+      for (auto d: deltas) {
+        int best_kij;
+        int best_kji;
+        float best_dp = 0.0f;
+        for (int kij = 0; kij < 4; ++kij) {
+          int kji = (kij + d) % 4;
+          if (fabsf(dot_prod[f][kij][kji]) > best_dp) {
+            best_kij = kij;
+            best_kji = kji;
+            best_dp = dot_prod[f][kij][kji];
+          }
+        }
+        scores_per_frame[f].emplace(d, make_pair(best_kij, best_dp));
+      }
+    }
+
+    // Dump these results
+    for (int f = 0; f < m_num_frames; ++f) {
+      ostringstream s;
+      s << "    " << setw(1) << f;
+      for (auto d: deltas) {
+        s << "   (" << scores_per_frame[f].at(d).first
+          << ", "
+          << ((scores_per_frame[f].at(d).first + d) % 4) << ")"
+          << "  "
+          << ((scores_per_frame[f].at(d).second >= 0) ? " " : "")
+          << fixed << setw(5) << setprecision(3) << scores_per_frame[f].at(d).second << " [";
+        if (d == frame_stats[f].best_delta) {
+          s << "****";
+        } else {
+          float diff = fabsf(fabsf(scores_per_frame[f].at(d).second) - fabsf(frame_stats[f].best_dp));
+          s << fixed << setw(4) << setprecision(1) << diff;
+        }
+        s << "]";
+      }
+      spdlog::warn("{}", s.str());
+    }
+
+
+    // Vote for the best
+    map<unsigned short, float> votes;
+    for (auto d: deltas) {
+      votes.emplace(d, 0.0f);
+    }
+    for (int f = 0; f < m_num_frames; ++f) {
+      auto sum = 0.0f;
+      for (auto d: deltas) {
+        sum += fabsf(scores_per_frame[f].at(d).second);
+      }
+      for (auto d: deltas) {
+        auto vote = (sum == 0)
+                    ? 0
+                    : fabsf(scores_per_frame[f].at(d).second) / sum;
+        votes.at(d) = votes.at(d) + vote;
+      }
+    }
+    auto best_d = -1;
+    auto best_vote = 0.0f;
+    for( const auto & v : votes) {
+      if( v.second > best_vote ) {
+        best_vote = v.second;
+        best_d=v.first;
+      }
+    }
+    spdlog::warn("Voted to converge on d={}", best_d);
+  }
+
+
+  spdlog::info("Bad edges {} / {}  {}%",
+               bad_edges, (bad_edges + good_edges),
+               (100.0 * bad_edges) / (bad_edges + good_edges)
+  );
 }

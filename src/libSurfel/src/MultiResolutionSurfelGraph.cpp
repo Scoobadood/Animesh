@@ -72,7 +72,7 @@ edge_merge_function(const SurfelGraphEdge &e1, float w1, const SurfelGraphEdge &
 
 MultiResolutionSurfelGraph::MultiResolutionSurfelGraph(
     const SurfelGraphPtr &surfel_graph,
-    std::mt19937 &rng)
+    std::default_random_engine &rng)
     : m_random_engine{rng} //
 {
   m_levels.push_back(surfel_graph);

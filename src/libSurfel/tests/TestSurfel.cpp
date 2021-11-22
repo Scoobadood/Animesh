@@ -13,7 +13,7 @@
 #include <fstream>
 
 void TestSurfel::SetUp() {
-  std::mt19937 rng{123};
+  std::default_random_engine rng{123};
   m_surfel_builder = new SurfelBuilder(rng);
 }
 
@@ -24,7 +24,7 @@ void TestSurfel::TearDown() {
 void TestSurfelIO::SetUp() {
   using namespace std;
 
-  std::mt19937 rng{123};
+  std::default_random_engine rng{123};
   m_surfel_builder = new SurfelBuilder(rng);
   surfel_graph = make_shared<SurfelGraph>();
   Eigen::Matrix3f transform;
@@ -84,7 +84,7 @@ void TestSurfelIO::TearDown() {
 void TestSurfelGraph::SetUp() {
   using namespace std;
 
-  std::mt19937 rng{123};
+  std::default_random_engine rng{123};
   m_surfel_builder = new SurfelBuilder(rng);
   surfel_graph = make_shared<SurfelGraph>();
   Eigen::Matrix3f transform;

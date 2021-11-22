@@ -4,7 +4,7 @@
 
 #include "EdgeOptimiser.h"
 
-EdgeOptimiser::EdgeOptimiser(Properties properties, std::mt19937 &rng)
+EdgeOptimiser::EdgeOptimiser(Properties properties, std::default_random_engine &rng)
     : AbstractOptimiser{properties, rng}//
 {}
 

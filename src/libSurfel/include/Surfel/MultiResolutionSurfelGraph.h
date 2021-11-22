@@ -13,7 +13,7 @@ public:
    * Construct from a given starting graph.
    */
   MultiResolutionSurfelGraph(const SurfelGraphPtr &surfel_graph,
-                             std::mt19937 &rng);
+                             std::default_random_engine &rng);
 
   /**
    * Generate levels (if not already done).
@@ -44,7 +44,7 @@ private:
 
   std::vector<std::map<SurfelGraphNodePtr, std::pair<SurfelGraphNodePtr, SurfelGraphNodePtr>>> m_up_mapping;
 
-  std::mt19937 &m_random_engine;
+  std::default_random_engine &m_random_engine;
 
   /**
    * Generate the next level for this multi-resolution graph.

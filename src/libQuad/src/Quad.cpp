@@ -101,7 +101,7 @@ build_edge_graph(
 
   // Collect all edges, weeding out duplicates.
   auto included_edges = get_unique_edges_in_frame(graph, frame_index);
-  spdlog::info("New graph has potential {} edges from old graph {}", included_edges.size(), graph->edges().size());
+  spdlog::debug("New graph has potential {} edges from old graph {}", included_edges.size(), graph->edges().size());
 
   // For each edge in this list, insert the end vertices if not present, then add the edge.
   map<string, QuadGraphNodePtr> output_graph_nodes_by_surfel_id;
@@ -120,7 +120,7 @@ build_edge_graph(
     auto t_ji = t.second;
     EdgeType edgeType = compute_edge_type(t_ij, t_ji);
     if (edgeType == EDGE_TYPE_NON) {
-      spdlog::info("Skipped edge from {} {}",
+      spdlog::debug("Skipped edge from {} {}",
                    from_surfel_ptr->id(),
                    to_surfel_ptr->id()
       );
@@ -137,7 +137,7 @@ build_edge_graph(
 
     out_graph->add_edge(from_node, to_node, edgeType);
   }
-  spdlog::info("New graph has actual {} edges", out_graph->edges().size());
+  spdlog::debug("New graph has actual {} edges", out_graph->edges().size());
 
   // No edge added
   return out_graph;

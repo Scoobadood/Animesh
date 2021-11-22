@@ -18,7 +18,7 @@ public:
 
 
 protected:
-  AbstractOptimiser(Properties properties, std::mt19937& rng);
+  AbstractOptimiser(Properties properties, std::default_random_engine& rng);
 
   void setup_termination_criteria(
       const std::string &termination_criteria_property,
@@ -38,12 +38,7 @@ protected:
   virtual void smoothing_completed(float smoothness, OptimisationResult result);
   virtual void trace_smoothing(const SurfelGraphPtr &graph) const {};
   virtual void optimise_do_pass() = 0;
-
-  std::vector<SurfelGraphNodePtr> get_neighbours_of_node_in_frame(
-      const SurfelGraphPtr &graph,
-      const SurfelGraphNodePtr &node_ptr,
-      unsigned int frame_index,
-      bool randomise_order = false) const;
+  virtual void ended_optimisation() = 0;
 
   enum OptimisationState {
     UNINITIALISED,
@@ -52,9 +47,10 @@ protected:
     ENDING_OPTIMISATION
   };
 
-  OptimisationResult m_result;
-  OptimisationState m_state;
-  SurfelGraphPtr m_surfel_graph;
+  OptimisationResult    m_result;
+  OptimisationState     m_state;
+  SurfelGraphPtr        m_surfel_graph;
+  unsigned int          m_num_frames;
 
   static std::vector<unsigned int>
   get_common_frames(const std::shared_ptr<Surfel> &s1, const std::shared_ptr<Surfel> &s2) ;
@@ -65,12 +61,8 @@ private:
 
   void optimise_end();
 
-  float compute_mean_smoothness() const;
-  float compute_mean_node_smoothness(const SurfelGraphNodePtr &node_ptr) const;
-  virtual float compute_node_smoothness_for_frame(
-      const SurfelGraphNodePtr &node_ptr,
-      size_t frame_index,
-      unsigned int &num_neighbours) const = 0;
+  void compute_smoothness(float & mean_node_smoothness, std::vector<float> frame_smoothness);
+  virtual float compute_smoothness_in_frame( const SurfelGraph::Edge & edge, unsigned int frame_idx) const = 0;
   virtual void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const = 0;
 
   unsigned short read_termination_criteria(const std::string &termination_criteria);
@@ -80,11 +72,13 @@ private:
 
   static bool check_cancellation(OptimisationResult &result);
 
-  bool maybe_check_convergence(float &latest_smoothness, OptimisationResult &result) const;
+  bool maybe_check_convergence(float smoothness, OptimisationResult &result);
 
   bool maybe_check_iterations(OptimisationResult &result) const;
 
-  bool check_termination_criteria(float &smoothness, OptimisationResult &result) const;
+  bool check_termination_criteria(float &smoothness, OptimisationResult &result);
+
+  void extract_graph_statistics();
 
   // Termination criteria
   static const unsigned short TC_ABSOLUTE = 1 << 0;
@@ -96,6 +90,8 @@ private:
   float                 m_term_crit_relative_smoothness;
   unsigned int          m_term_crit_max_iterations;
   unsigned int          m_num_iterations;
-  unsigned int          m_num_frames;
+  std::vector<int>      m_nodes_per_frame;
+  std::vector<int>      m_edges_per_frame;
   float                 m_last_smoothness;
+  bool                  m_show_progress = true;
 };

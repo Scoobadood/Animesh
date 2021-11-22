@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
   string input_file_name = properties.getProperty("rosy-input-file");
   string output_file_name = properties.getProperty("rosy-output-file");
 
-  std::mt19937 rng{123};         // the Mersenne Twister with a popular choice of parameters
+  std::default_random_engine rng{123};
 
   auto surfel_graph = load_surfel_graph_from_file(input_file_name, rng);
 

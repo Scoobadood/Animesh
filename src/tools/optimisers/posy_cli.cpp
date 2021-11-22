@@ -1,6 +1,5 @@
 
 #include <PoSy/PoSyOptimiser.h>
-#include <PoSy/PoSyEdgeOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/Surfel_IO.h>
 
@@ -31,18 +30,14 @@ int main(int argc, char *argv[]) {
   string input_file_name = properties.getProperty("posy-input-file");
   string output_file_name = properties.getProperty("posy-output-file");
 
-  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
-  uint32_t seed_val = 123;  // populate somehow
-  rng.seed(seed_val);
+  std::default_random_engine rng{123};         // the Mersenne Twister with a popular choice of parameters
 
   Optimiser * poSyOptimiser;
-  if( properties.hasProperty("posy-use-edge-optimiser") &&
-        properties.getBooleanProperty("posy-use-edge-optimiser")) {
-    poSyOptimiser = new PosyEdgeOptimiser(properties, rng);
-  } else {
-    poSyOptimiser = new PoSyOptimiser(properties, rng);
-  }
 
+  if( properties.hasProperty("posy-use-edge-optimiser") ) {
+    warn("posy-use-edge-optimiser is deprecated");
+  }
+  poSyOptimiser = new PoSyOptimiser(properties, rng);
 
   auto surfel_graph = load_surfel_graph_from_file(input_file_name, rng);
   poSyOptimiser->set_data(surfel_graph);

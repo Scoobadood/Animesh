@@ -15,9 +15,7 @@ int main( int argc, const char * argv[] ) {
   }
 
   unsigned short flags;
-  std::mt19937 rng;         // the Mersenne Twister with a popular choice of parameters
-  uint32_t seed_val = 123;  // populate somehow
-  rng.seed(seed_val);
+  std::default_random_engine rng{123};         // the Mersenne Twister with a popular choice of parameters
 
   SurfelGraphPtr graph = load_surfel_graph_from_file(argv[1], flags, rng);
 

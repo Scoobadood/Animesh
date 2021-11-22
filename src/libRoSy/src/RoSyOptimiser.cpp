@@ -99,7 +99,7 @@ RoSyOptimiser::vote_for_best_ks(
   using namespace Eigen;
 
   // Initialise vote
-  VoteCounter<pair<unsigned short, unsigned short>> vote_counter{
+  VoteCounter <pair<unsigned short, unsigned short>> vote_counter{
       // In the event of a tie pick one at random.
       [&](const vector<pair<unsigned short, unsigned short>> &possibilities) -> pair<int, int> {
         uniform_int_distribution <size_t> i(0, possibilities.size() - 1);
@@ -257,8 +257,8 @@ void RoSyOptimiser::ended_optimisation() {
   using namespace Eigen;
   using namespace std;
 
-  vector<FrameStat> frame_stats{m_num_frames};
-  vector<vector<vector<float>>> dot_prod;
+  vector <FrameStat> frame_stats{m_num_frames};
+  vector < vector < vector < float>>> dot_prod;
   dot_prod.resize(m_num_frames);
   for (int i = 0; i < m_num_frames; i++) {
     dot_prod[i].resize(4);
@@ -289,10 +289,10 @@ void RoSyOptimiser::ended_optimisation() {
       good_edges++;
       if (s1->id() < s2->id()) {
         edge.data()->set_k_low(frame_stats[0].best_kij);
-        edge.data()->set_k_high((int) (frame_stats[0].best_kij + frame_stats[0].best_delta) % 4);
+        edge.data()->set_delta(frame_stats[0].best_delta);
       } else {
         edge.data()->set_k_high(frame_stats[0].best_kij);
-        edge.data()->set_k_low((int) (frame_stats[0].best_kij + frame_stats[0].best_delta) % 4);
+        edge.data()->set_delta((4 - frame_stats[0].best_delta) % 4);
       }
       continue;
     }
@@ -382,15 +382,15 @@ void RoSyOptimiser::ended_optimisation() {
     }
     auto best_d = -1;
     auto best_vote = 0.0f;
-    for( const auto & v : votes) {
-      if( v.second > best_vote ) {
+    for (const auto &v: votes) {
+      if (v.second > best_vote) {
         best_vote = v.second;
-        best_d=v.first;
+        best_d = v.first;
       }
     }
+    set_delta(m_surfel_graph, edge.from(), edge.to(), best_d);
     spdlog::warn("Voted to converge on d={}", best_d);
   }
-
 
   spdlog::info("Bad edges {} / {}  {}%",
                bad_edges, (bad_edges + good_edges),

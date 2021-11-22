@@ -315,7 +315,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
       new_lattice_offset = smooth_node_in_frame(//
           frame_idx,
           curr_surfel, new_lattice_offset, weight_sum,
-          nbr_surfel, w_ji, delta );
+          nbr_surfel, w_ji, delta);
       weight_sum += w_ji;
     }
   }
@@ -339,4 +339,60 @@ void PoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothn
   node->data()->set_posy_smoothness(smoothness);
 }
 
-void PoSyOptimiser::ended_optimisation() { }
+void PoSyOptimiser::ended_optimisation() {
+  using namespace Eigen;
+  using namespace std;
+
+  int good_edges = 0;
+  int bad_edges = 0;
+
+  // Label graph edges - only works with meshes right now
+  // TODO: Fix this to handle edges that don't occur in every frame
+  for (const auto &edge: m_surfel_graph->edges()) {
+    const auto &s1 = edge.from()->data();
+    const auto &s2 = edge.to()->data();
+    unsigned short delta = get_delta(m_surfel_graph, edge.from(), edge.to());
+
+    spdlog::warn( "Edge from {} --> {}",
+                  s1->id(), s2->id());
+
+    for (int frame_idx = 0; frame_idx < m_num_frames; ++frame_idx) {
+      Vector3f vertex, tangent, normal, orth_tangent;
+      s1->get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
+      orth_tangent = normal.cross(tangent);
+      Vector2f vertex_lattice_offset = s1->reference_lattice_offset();
+      Vector3f vertex_lattice = vertex
+          + (tangent * vertex_lattice_offset[0])
+          + (orth_tangent * vertex_lattice_offset[1]);
+
+      Vector3f nbr_vertex, nbr_tangent, nbr_normal, nbr_orth_tangent;
+      s2->get_vertex_tangent_normal_for_frame(frame_idx, nbr_vertex, nbr_tangent, nbr_normal);
+      nbr_orth_tangent = nbr_normal.cross(nbr_tangent);
+      Vector2f nbr_vertex_lattice_offset = s2->reference_lattice_offset();
+      Vector3f nbr_vertex_lattice = nbr_vertex
+          + (nbr_tangent * nbr_vertex_lattice_offset[0])
+          + (nbr_orth_tangent * nbr_vertex_lattice_offset[1]);
+
+      Vector3f adjusted_nbr_tangent = vector_by_rotating_around_n(nbr_tangent, nbr_normal, delta);
+      Vector3f adjusted_nbr_orth_tangent = nbr_normal.cross(adjusted_nbr_tangent);
+
+      const auto midpoint = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
+
+      // Compute t_ij and t_ji for each edge
+      const auto t = compute_tij_pair(vertex_lattice,
+                       tangent,
+                       orth_tangent,
+                       nbr_vertex_lattice,
+                       adjusted_nbr_tangent,
+                       adjusted_nbr_orth_tangent,
+                       midpoint,
+                       m_rho);
+
+      spdlog::warn( "  f: {}   t_ij ({}, {})   t_ji ({}, {})",
+                    frame_idx, t.first[0], t.first[1],
+                    t.second[0], t.second[1]);
+      set_t(m_surfel_graph, edge.from(), t.first, edge.to(),t.second );
+    }
+  }
+}
+

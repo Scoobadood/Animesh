@@ -8,7 +8,7 @@
 int main(int argc, const char *argv[]) {
   std::string in_file = argv[1];
   unsigned short flags;
-  std::mt19937 rng;
+  std::default_random_engine rng{123};
   auto s = load_surfel_graph_from_file(in_file, flags, rng);
 
   std::string out_file;

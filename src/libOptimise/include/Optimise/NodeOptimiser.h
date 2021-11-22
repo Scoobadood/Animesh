@@ -9,15 +9,13 @@
 
 class NodeOptimiser : public AbstractOptimiser {
 protected:
-  NodeOptimiser(Properties properties, std::mt19937 &rng);
+  NodeOptimiser(Properties properties, std::default_random_engine &rng);
 
   void optimise_do_pass() override;
 
   virtual void optimise_node(const SurfelGraphNodePtr &this_node) = 0;
 
   virtual bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const = 0;
-
-  bool m_randomise_neighour_order;
 
   virtual const std::string &get_ssa_property_name() const = 0;
 

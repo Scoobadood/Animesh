@@ -307,19 +307,19 @@ void Trackball::key_down(int key) {
 
   if (key == Qt::Key_A && m_rotation_enabled) {
     m_mode = MODE::ROTATE;
-    spdlog::info("Entered rotate");
+    spdlog::debug("Entered rotate");
     return;
   }
 
   if (key == Qt::Key_S && m_zoom_enabled) {
     m_mode = MODE::ZOOM;
-    spdlog::info("Entered zoom");
+    spdlog::debug("Entered zoom");
     return;
   }
 
   if (key == Qt::Key_D && m_pan_enabled) {
     m_mode = MODE::PAN;
-    spdlog::info("Entered pan");
+    spdlog::debug("Entered pan");
     return;
   }
 }

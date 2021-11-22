@@ -14,7 +14,7 @@
 
 class MultiResolutionOptimiser : public Optimiser {
 public:
-  MultiResolutionOptimiser(const Properties &properties, std::mt19937 &rng);
+  MultiResolutionOptimiser(const Properties &properties, std::default_random_engine &rng);
 
   void set_data(const SurfelGraphPtr &surfel_graph) override;
 

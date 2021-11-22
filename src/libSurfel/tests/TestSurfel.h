@@ -25,7 +25,7 @@ public:
 protected:
     SurfelGraphPtr surfel_graph;
     SurfelBuilder * m_surfel_builder;
-    std::mt19937 m_random_engine{123};
+    std::default_random_engine m_random_engine{123};
 };
 
 class TestSurfelGraph : public ::testing::Test {

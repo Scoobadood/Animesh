@@ -6,16 +6,13 @@
 #include "SurfelSelectionAlgorithm.h"
 
 #include <random>
-#include <sstream>
 #include <utility>
 #include <algorithm>    // random_shuffle
-#include <sys/stat.h>
 #include <spdlog/spdlog.h>
 #include <Properties/Properties.h>       // termination criteria set up
 
-NodeOptimiser::NodeOptimiser(Properties properties, std::mt19937& rng)
+NodeOptimiser::NodeOptimiser(Properties properties, std::default_random_engine& rng)
     : AbstractOptimiser{properties, rng}//
-    , m_randomise_neighour_order{false} //
     , m_node_selection_function{nullptr} //
     , m_ssa_percentage{0} //
 {

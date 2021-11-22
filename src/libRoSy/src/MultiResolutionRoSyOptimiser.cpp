@@ -4,7 +4,7 @@
 
 #include "MultiResolutionRoSyOptimiser.h"
 
-MultiResolutionRoSyOptimiser::MultiResolutionRoSyOptimiser(const Properties &properties, std::mt19937& rng) //
+MultiResolutionRoSyOptimiser::MultiResolutionRoSyOptimiser(const Properties &properties, std::default_random_engine& rng) //
     : RoSyOptimiser{properties, rng} //
     , m_multi_res_graph{nullptr} //
     , m_current_level{0} //

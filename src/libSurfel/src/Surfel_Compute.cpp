@@ -230,7 +230,7 @@ generate_surfels(const std::vector<DepthMap> &depth_maps,
                  const std::vector<std::vector<PixelInFrame>> &correspondences,
                  const std::map<PixelInFrame, Eigen::Vector3f> &coordinates_by_pif,
                  const Properties &properties,
-                 std::mt19937 & rng) {
+                 std::default_random_engine & rng) {
     using namespace std;
     assert(!correspondences.empty());
     assert(!depth_maps.empty());

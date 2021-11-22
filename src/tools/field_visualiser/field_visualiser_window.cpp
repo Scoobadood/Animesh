@@ -6,7 +6,7 @@
 #include <utility>
 #include <ArcBall/TrackBall.h>
 
-field_visualiser_window::field_visualiser_window(Properties properties, std::mt19937 &rng, QWidget *parent) //
+field_visualiser_window::field_visualiser_window(Properties properties, std::default_random_engine &rng, QWidget *parent) //
     : QMainWindow(parent) //
     , m_random_engine{rng} //
     , ui(new Ui::field_visualiser_window) //

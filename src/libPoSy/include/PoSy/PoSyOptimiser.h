@@ -10,17 +10,17 @@
 
 class PoSyOptimiser : public NodeOptimiser {
 public:
-  PoSyOptimiser(const Properties &properties, std::mt19937 &rng);
+  PoSyOptimiser(const Properties &properties, std::default_random_engine &rng);
 
   virtual ~PoSyOptimiser() = default;
+
+protected:
+  void ended_optimisation() override;
 
 private:
   bool compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGraphNodePtr &r) const override;
 
-  float compute_node_smoothness_for_frame(
-      const SurfelGraphNodePtr &node_ptr,
-      size_t frame_index,
-      unsigned int &num_neighbours) const override;
+  float compute_smoothness_in_frame(const SurfelGraph::Edge &edge, unsigned int frame_idx) const override;
 
   const std::string &get_ssa_property_name() const override {
     static const std::string SSA_PROPERTY_NAME = "posy-surfel-selection-algorithm";
@@ -46,8 +46,8 @@ private:
                        unsigned int frame_idx,
                        unsigned short k_ij, float w_i,
                        unsigned short k_ji, float w_j,
-                       Eigen::Vector2i & t_ij,
-                       Eigen::Vector2i & t_ji ) const;
+                       Eigen::Vector2i &t_ij,
+                       Eigen::Vector2i &t_ji) const;
 
   static std::vector<unsigned int>
   filter_frames_list(const std::shared_ptr<Surfel> &from_surfel,

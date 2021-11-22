@@ -93,3 +93,17 @@ get_t(
     return (std::make_pair(edge->t_high(), edge->t_low()));
   }
 }
+
+void
+set_delta(const SurfelGraphPtr &graph,
+          const SurfelGraphNodePtr &node1,
+          const SurfelGraphNodePtr &node2,
+          unsigned short delta) {
+  auto &edge = graph->edge(node1, node2);
+  if( node1->data()->id() < node2->data()->id()) {
+    edge->set_delta(delta);
+  } else {
+    edge->set_delta((4 - delta) % 4);
+  }
+}
+

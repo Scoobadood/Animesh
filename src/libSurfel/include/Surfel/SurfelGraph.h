@@ -15,6 +15,9 @@ class SurfelGraphEdge {
   Eigen::Vector2i m_t_low;
   Eigen::Vector2i m_t_high;
 
+  // Delta (from low to high)
+  unsigned short m_delta;
+
 public:
   explicit SurfelGraphEdge(float weight) //
       : m_weight{weight} //
@@ -36,6 +39,11 @@ public:
 
   inline void set_k_high(unsigned int k_high) {
     m_k_high = k_high;
+  }
+
+  inline void set_delta(unsigned short delta) {
+    assert(delta >= 0 && delta <= 3);
+    m_delta = delta;
   }
 
   inline const Eigen::Vector2i &t_low() {
@@ -73,6 +81,12 @@ get_node_neighbours_in_frame(
     unsigned int frame_index);
 
 std::ostream &operator<<(std::ostream &output, const std::shared_ptr<Surfel> &surfel);
+
+void
+set_delta(const SurfelGraphPtr &graph,
+          const SurfelGraphNodePtr &node1,
+          const SurfelGraphNodePtr &node2,
+          unsigned short delta);
 
 void
 set_k(const SurfelGraphPtr &graph,

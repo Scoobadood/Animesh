@@ -48,7 +48,23 @@ private:
                              const std::shared_ptr<Surfel> & surfel_b,
                              float & weight_a,
                              float & weight_b) const;
-  float m_damping_factor;
+
+  // Per edge/per frame
+  struct FrameStat {
+    unsigned short best_kij;
+    unsigned short best_delta;
+    float best_dp;
+  };
+
+  void compute_all_dps(
+      const std::shared_ptr<Surfel> &s1,
+      const std::shared_ptr<Surfel> &s2,
+      unsigned int num_frames,
+      std::vector<std::vector<std::vector<float>>>& dot_prod,
+      std::vector<FrameStat>& frame_stats
+  ) const;
+
+    float m_damping_factor;
   bool m_weight_for_error;
   bool m_vote_for_best_k;
   int m_weight_for_error_steps;

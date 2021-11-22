@@ -35,15 +35,18 @@ public:
 
   inline void set_k_low(unsigned int k_low) {
     m_k_low = k_low;
+    m_delta = (m_k_high - m_k_low + 4) % 4;
   }
 
   inline void set_k_high(unsigned int k_high) {
     m_k_high = k_high;
+    m_delta = (m_k_high - m_k_low + 4) % 4;
   }
 
   inline void set_delta(unsigned short delta) {
     assert(delta >= 0 && delta <= 3);
     m_delta = delta;
+    m_k_high = (m_k_low + m_delta) % 4;
   }
 
   inline const Eigen::Vector2i &t_low() {

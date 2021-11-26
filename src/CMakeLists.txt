@@ -24,9 +24,8 @@ set(CMAKE_CXX_STANDARD 14)
 
 add_definitions(-DGL_SILENCE_DEPRECATION)
 
-# Need spdlog`
-list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party")
-find_package(spdlog REQUIRED)
+# Need spdlog
+include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
 # Need Eigen3
 find_package(Eigen3 REQUIRED)

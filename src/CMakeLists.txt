@@ -27,11 +27,6 @@ add_definitions(-DGL_SILENCE_DEPRECATION)
 # Need spdlog
 include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
-# Need Eigen3
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIR})
-
-
 # Disable building extras we won't need (pure C++ project)
 #set(NANOGUI_BUILD_EXAMPLE OFF CACHE BOOL " " FORCE)
 #set(NANOGUI_BUILD_PYTHON OFF CACHE BOOL " " FORCE)

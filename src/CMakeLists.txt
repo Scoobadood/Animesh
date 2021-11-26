@@ -27,6 +27,11 @@ add_definitions(-DGL_SILENCE_DEPRECATION)
 # Need spdlog
 include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
+# And Eigen
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/eigen/share/eigen3/cmake")
+find_package(eigen3 3.4 REQUIRED)
+
+
 # Disable building extras we won't need (pure C++ project)
 #set(NANOGUI_BUILD_EXAMPLE OFF CACHE BOOL " " FORCE)
 #set(NANOGUI_BUILD_PYTHON OFF CACHE BOOL " " FORCE)
@@ -45,6 +50,7 @@ include_directories(${CMAKE_SOURCE_DIR}/third_party)
 #include_directories(${NANOGUI_EXTRA_INCS})
 
 # GLFW
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/glfw/lib/cmake/glfw3")
 find_package(glfw3 3.2 REQUIRED)
 if (GLFW3_FOUND)
 	include_directories(${GLFW3_INCLUDE_DIRS})
@@ -85,6 +91,9 @@ add_subdirectory("${CMAKE_BINARY_DIR}/googletest-src"
 # Enable Test
 enable_testing()
 
+# Make Qt findable
+list(APPEND CMAKE_PREFIX_PATH "/Users/dave/Qt5.12.11/5.12.11/clang_64/lib/cmake/Qt5")
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 # Add libraries
 #add_subdirectory( QtMain )

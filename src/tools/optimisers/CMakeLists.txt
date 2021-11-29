@@ -9,6 +9,7 @@ target_link_libraries(
 		Properties
 		Surfel
 		Cpd::Library-C++
+		spdlog::spdlog
 )
 
 target_compile_features(
@@ -26,6 +27,7 @@ add_executable(
 target_link_libraries(
 		rosy_cli
 		RoSy
+		spdlog::spdlog
 )
 
 target_compile_features(

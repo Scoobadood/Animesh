@@ -7,7 +7,6 @@ add_executable(
 target_include_directories(
 		leg_tool
 		PRIVATE
-		${PROJECT_SOURCE_DIR}/third_party/include
 )
 
 target_link_libraries(
@@ -15,6 +14,7 @@ target_link_libraries(
 		FileUtils
 		GeomFileUtils
 		Surfel
+		spdlog::spdlog
 )
 
 target_compile_features(

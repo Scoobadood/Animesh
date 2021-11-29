@@ -25,10 +25,14 @@ set(CMAKE_CXX_STANDARD 14)
 add_definitions(-DGL_SILENCE_DEPRECATION)
 
 # Need spdlog
-include_directories(${CMAKE_SOURCE_DIR}/third_party)
+if(NOT TARGET spdlog)
+	# Stand-alone build
+	find_package(spdlog REQUIRED)
+endif()
+
+#include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
 # And Eigen
-list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/eigen/share/eigen3/cmake")
 find_package(eigen3 3.4 REQUIRED)
 
 
@@ -50,7 +54,6 @@ find_package(eigen3 3.4 REQUIRED)
 #include_directories(${NANOGUI_EXTRA_INCS})
 
 # GLFW
-list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/glfw/lib/cmake/glfw3")
 find_package(glfw3 3.2 REQUIRED)
 if (GLFW3_FOUND)
 	include_directories(${GLFW3_INCLUDE_DIRS})
@@ -92,7 +95,7 @@ add_subdirectory("${CMAKE_BINARY_DIR}/googletest-src"
 enable_testing()
 
 # Make Qt findable
-list(APPEND CMAKE_PREFIX_PATH "/Users/dave/Qt5.12.11/5.12.11/clang_64/lib/cmake/Qt5")
+list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/Cellar/qt@5/5.15.2_1/lib/cmake")
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 # Add libraries

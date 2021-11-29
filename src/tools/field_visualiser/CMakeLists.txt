@@ -50,4 +50,5 @@ target_link_libraries(
 		Properties
 		Quad
 		Surfel
+		spdlog::spdlog
 )

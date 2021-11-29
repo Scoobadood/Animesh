@@ -7,11 +7,11 @@ add_executable(
 target_include_directories(
 		multi_res_tool
 		PRIVATE
-		${PROJECT_SOURCE_DIR}/third_party/include
 )
 target_link_libraries(
 		multi_res_tool
 		Surfel
+		spdlog::spdlog
 )
 
 target_compile_features(

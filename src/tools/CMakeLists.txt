@@ -4,7 +4,7 @@ find_package(assimp REQUIRED)
 if (assimp_FOUND)
 	set(ASSIMP_LIBRARY "assimp")
 	set(ASSIMP_LIBRARY_DIRS ${ASSIMP_ROOT_DIR}/lib)
-	add_library(${ASSIMP_LIBRARY} SHARED IMPORTED paths_to_surfel_graph/paths_to_surfels.cpp paths_to_surfel_graph/paths_to_surfels.h)
+	add_library(${ASSIMP_LIBRARY} SHARED IMPORTED paths_to_surfel_graph/paths_to_surfels.cpp paths_to_surfel_graph/paths_to_surfels.h snoopy/snoopy.cpp snoopy/snoopy.h)
 	set_target_properties(${ASSIMP_LIBRARY} PROPERTIES IMPORTED_LOCATION "${ASSIMP_LIBRARY_DIRS}/libassimp.dylib")
 endif (assimp_FOUND)
 
@@ -20,6 +20,7 @@ target_link_libraries(
 		obj_conv
 		FileUtils
 		GeomFileUtils
+		CommonUtilities
 )
 
 target_compile_features(
@@ -120,10 +121,12 @@ target_link_libraries(
 
 add_subdirectory(data_gen)
 add_subdirectory(dmr)
+add_subdirectory(dm_to_graph)
 add_subdirectory(field_visualiser)
 add_subdirectory(leggings_tool)
 add_subdirectory(multi-res-tool)
 add_subdirectory(optimisers)
 add_subdirectory(paths_to_surfel_graph)
 add_subdirectory(quadulator)
+#add_subdirectory(snoopy)
 add_subdirectory(surfel_info)

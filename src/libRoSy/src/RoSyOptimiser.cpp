@@ -169,7 +169,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
     for (unsigned int frame_index: shared_frames) {
       Vector3f v1, t1, n1;
       this_surfel->get_vertex_tangent_normal_for_frame(frame_index, v1, t1, n1);
-      auto &this_surfel_frame_transform = this_surfel->frame_data()[frame_index].transform;
+      auto &this_surfel_frame_transform = this_surfel->transform_for_frame(frame_index);
       t1 = this_surfel_frame_transform * new_tangent;
 
       Vector3f v2, t2, n2;

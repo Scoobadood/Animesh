@@ -12,14 +12,12 @@
 #include <DepthMap/Normals.h>
 
 
-static const char *DEPTH_FILE_NAME_REGEX = R"(\/{0,1}(?:[^\/]*\/)*depth_f[0-9]{2}\.mat)";
-
 std::vector<std::string>
-get_depth_files_in_directory(const std::string &directory_name) {
+get_depth_files_in_directory(const std::string &directory_name, const std::string & DEPTH_FILE_NAME_REGEX) {
     using namespace std;
 
     vector<string> file_names;
-    files_in_directory(directory_name, file_names, [](string name) {
+    files_in_directory(directory_name, file_names, [&](string name) {
         using namespace std;
 
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -38,19 +36,19 @@ get_depth_files_in_directory(const std::string &directory_name) {
 }
 
 std::vector<DepthMap>
-load_depth_maps(const std::string& source_directory, float ts, float tl) {
+load_depth_maps(const std::string& source_directory, const std::string & depth_map_regex, float ts, float tl) {
     using namespace std;
 
     cout << "Loading depth maps from " << source_directory << endl;
 
     vector<DepthMap> depth_maps;
-    vector<string> depth_file_names = get_depth_files_in_directory(source_directory);
+    vector<string> depth_file_names = get_depth_files_in_directory(source_directory, depth_map_regex);
     if (depth_file_names.empty()) {
         throw runtime_error("No depth images found in " + source_directory);
     }
 
-    int count = 0;
-    int target = depth_file_names.size();
+    auto count = 0;
+    auto target = depth_file_names.size();
     for (const auto &file_name : depth_file_names) {
         cout << " \r  " << ++count << " of " << target << flush;
         depth_maps.emplace_back(file_name);

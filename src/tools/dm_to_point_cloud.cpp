@@ -428,7 +428,8 @@ int main(int argc, char *argv[]) {
     size_t num_frames = depth_maps.size();
 
     // Load cameras
-    vector<Camera> cameras = load_cameras(num_frames);
+    string camera_file_template = properties.getProperty("camera-file-template");
+    vector<Camera> cameras = load_cameras(camera_file_template, num_frames);
 
     // Construct the hierarchy: number of levels as specified in properties.
     vector<vector<DepthMap>> depth_map_hierarchy = create_depth_map_hierarchy(properties, depth_maps, cameras);
@@ -477,5 +478,7 @@ int main(int argc, char *argv[]) {
             save_paths_to_file(corresponding_paths_by_level.back(), paths_file_name);
         }
     }
+
+
     return 0;
 }

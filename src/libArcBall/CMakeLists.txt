@@ -11,7 +11,7 @@ add_library(
 		include/ArcBall/TrackBall.h
 
 		include/ArcBall/AbstractArcBall.h
-)
+        ../libCommonUtilities/src/split.cpp ../libCommonUtilities/include/CommonUtilities/split.h)
 
 target_include_directories(
 		ArcBall PUBLIC

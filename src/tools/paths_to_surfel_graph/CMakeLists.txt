@@ -7,6 +7,9 @@ add_executable(
 target_link_libraries(
 		paths_to_surfels
 		FileUtils
+		CommonUtilities
+		Correspondence
+		spdlog::spdlog
 )
 
 target_compile_features(

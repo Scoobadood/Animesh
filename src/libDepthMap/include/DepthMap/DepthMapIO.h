@@ -9,7 +9,7 @@
 #include <DepthMap/DepthMap.h>
 
 std::vector<DepthMap>
-load_depth_maps(const std::string& source_directory, float ts, float tl);
+load_depth_maps(const std::string& source_directory, const std::string & depth_map_regex, float ts, float tl);
 
 void
 save_depth_map_as_pgm(const std::string& file_name, const DepthMap& depth_map);

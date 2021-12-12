@@ -110,6 +110,15 @@ void Surfel::get_all_data_for_surfel_in_frame(
   orth_tangent = normal.cross(tangent);
 }
 
+const Eigen::Matrix3f &Surfel::transform_for_frame(unsigned int frameIdx) const {
+  for (const auto &fd: m_frame_data) {
+    if (fd.pixel_in_frame.frame == frameIdx) {
+      return fd.transform;
+    }
+  }
+  throw std::runtime_error("Surfel " + m_id + " not in frame " + std::to_string(frameIdx));
+}
+
 /*
  * Transform a given surfels normal and tangent into this surfels frame of reference
  * via a specific common frame.

@@ -33,7 +33,7 @@ create_depth_map_hierarchy(const Properties &properties,
  * Load the cameras (one per frame)
  */
 std::vector<Camera>
-load_cameras(unsigned int num_frames);
+load_cameras(const std::string & camera_tenmplate, unsigned int num_frames);
 
 
 /**

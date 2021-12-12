@@ -8,9 +8,6 @@
 #include <DepthMap/DepthMapIO.h>
 #include <Properties/Properties.h>
 #include <Camera/Camera.h>
-//#include "../../mesher/hierarchical_mesher_utilities.h"
-
-const std::string CAMERA_TEMPLATE = "camera_F%02d.txt";
 
 /**
  * Construct the save file name from a given template and level
@@ -55,9 +52,10 @@ load_depth_maps(const Properties &properties) {
     using namespace std;
 
     string source_directory = properties.getProperty("source-directory");
+    string depth_map_regex = properties.getProperty( "depth-map-regex");
     float ts = properties.getFloatProperty("ts");
     float tl = properties.getFloatProperty("tl");
-    vector<DepthMap> depth_maps = load_depth_maps(source_directory, ts, tl);
+    vector<DepthMap> depth_maps = load_depth_maps(source_directory, depth_map_regex, ts, tl);
     return depth_maps;
 }
 
@@ -66,7 +64,7 @@ load_depth_maps(const Properties &properties) {
  * Load the cameras (one per frame)
  */
 std::vector<Camera>
-load_cameras(unsigned int num_frames) {
+load_cameras(const std::string & CAMERA_TEMPLATE, unsigned int num_frames) {
     using namespace std;
 
     std::vector<Camera> cameras;

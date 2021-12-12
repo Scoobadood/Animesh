@@ -19,6 +19,7 @@ struct args {
   std::string ply_file_name;
   std::string anim_file_name;
   std::string surfel_file_name;
+  std::string obj_file_prefix;
   std::vector<int> frames;
 };
 
@@ -27,7 +28,7 @@ args parse_args(int argc, char *argv[]) {
   using namespace std;
 
   try {
-    CmdLine cmd("Convert leggings animation data to surfel graph", ' ', "0.1");
+    CmdLine cmd("Convert leggings animation data to surfel graph", ' ', "0.2");
 
     // Define a value argument and add it to the command line.
     // A value arg defines a flag and a type of value that it expects,
@@ -36,7 +37,9 @@ args parse_args(int argc, char *argv[]) {
     ValueArg<string>
         anim_file("a", "anim_file", "The input text file for animation data", true, "", "file name", cmd);
     ValueArg<string>
-        surf_file("s", "surf_file", "The output surfel graph file", false, "surfel_graph.bin", "file name", cmd);
+        surf_file("s", "surf_file", "The output surfel graph file", false, "", "file name", cmd);
+    ValueArg<string>
+        obj_file_prefix("o", "obj_prefix", "The output OBJ file prefix", false, "", "file name", cmd);
     ValueArg<string> frames
         ("f",
          "frames",
@@ -53,6 +56,7 @@ args parse_args(int argc, char *argv[]) {
     a.ply_file_name = ply_file.getValue();
     a.anim_file_name = anim_file.getValue();
     a.surfel_file_name = surf_file.getValue();
+    a.obj_file_prefix = obj_file_prefix.getValue();
 
     // Convert string of comma-separated ints into vector of int
     if (frames.isSet()) {
@@ -141,7 +145,10 @@ read_vert_data_for_frames(const std::string &anim_file_name,
   std::vector<Eigen::Vector3f> frame_data;
   unsigned int num_frames_in_file = 0;
   unsigned int curr_frame_index_index = 0;
-  unsigned int curr_frame_index = frame_indices[curr_frame_index_index];
+
+  unsigned int curr_frame_index = frame_indices.empty()
+                                  ? 0
+                                  : frame_indices[curr_frame_index_index];
   unsigned int current_frame_start_line = (curr_frame_index * num_vertices) + 1;
   process_file_by_lines(anim_file_name,
                         [&](const std::string &line) {
@@ -162,7 +169,11 @@ read_vert_data_for_frames(const std::string &anim_file_name,
                           }
 
                           // Processed last frame I need to
-                          if (curr_frame_index_index == frame_indices.size()) {
+                          if (!frame_indices.empty()) {
+                            if (curr_frame_index_index == frame_indices.size()) {
+                              return;
+                            }
+                          } else if (curr_frame_index == num_frames_in_file) {
                             return;
                           }
 
@@ -186,16 +197,21 @@ read_vert_data_for_frames(const std::string &anim_file_name,
                               // We finished reading data
                               vertices_by_frame.push_back(frame_data);
                               frame_data.clear();
-                              ++curr_frame_index_index;
-                              if (curr_frame_index_index != frame_indices.size()) {
-                                curr_frame_index = frame_indices[curr_frame_index_index];
+
+                              if (!frame_indices.empty()) {
+                                ++curr_frame_index_index;
+                                if (curr_frame_index_index != frame_indices.size()) {
+                                  curr_frame_index = frame_indices[curr_frame_index_index];
+                                  current_frame_start_line = (curr_frame_index * num_vertices) + 1;
+                                }
+                              } else {
+                                ++curr_frame_index;
                                 current_frame_start_line = (curr_frame_index * num_vertices) + 1;
                               }
                             }
                             return;
                           }
-
-                        }
+                       }
   );
 }
 
@@ -434,7 +450,6 @@ int main(int argc, char *argv[]) {
                : to_string(num_frames),
                args.surfel_file_name
   );
-
   unsigned int num_vertices;
   vector<vector<size_t>> faces;
   vector<vector<Eigen::Vector3f>> vertex_data_by_frame;
@@ -451,46 +466,82 @@ int main(int argc, char *argv[]) {
   // Compute vertex normals by frame
   auto vertex_normals = compute_vertex_normals(faces, vertex_data_by_frame);
 
-  // create a surfel graph
-  SurfelGraphPtr g = make_shared<SurfelGraph>();
+  // Output obj files
+  if (!args.obj_file_prefix.empty()) {
+    for (unsigned int frame_idx = 0; frame_idx < vertex_data_by_frame.size(); ++frame_idx) {
+      std:
+      ostringstream oss;
+      oss << args.obj_file_prefix << "_";
+      oss << ((frame_idx < 10) ? "00" : (frame_idx < 100) ? "0" : "") << frame_idx;
+      oss << ".obj";
+      std::string file_name = oss.str();
 
-  std::default_random_engine rnd{123};
-  auto surfel_builder = new SurfelBuilder(rnd);
-  vector<SurfelGraphNodePtr> node_for_vertex;
-
-  spdlog::info("Building graph");
-
-  spdlog::info("Adding nodes");
-  for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
-    surfel_builder
-        ->reset()
-        ->with_id("s_" + to_string(vertex_idx));
-
-    for (unsigned int frame_idx = 0; frame_idx < num_frames; ++frame_idx) {
-      surfel_builder->with_frame(
-          {0, 0, frame_idx},
-          0.0f,
-          vertex_normals[frame_idx][vertex_idx],
-          vertex_data_by_frame[frame_idx][vertex_idx]
-      );
+      ofstream objfile{file_name};
+      for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+        objfile << "v "
+                << vertex_data_by_frame[frame_idx][vertex_idx][0] << " "
+                << vertex_data_by_frame[frame_idx][vertex_idx][1] << " "
+                << vertex_data_by_frame[frame_idx][vertex_idx][2]
+                << endl;
+        objfile << "vn "
+                << vertex_normals[frame_idx][vertex_idx][0] << " "
+                << vertex_normals[frame_idx][vertex_idx][1] << " "
+                << vertex_normals[frame_idx][vertex_idx][2]
+                << endl;
+      }
+      for (const auto &face: faces) {
+        objfile << "f ";
+        for (const auto &fn: face) {
+          objfile << (fn + 1) << "//" << (fn + 1) << " ";
+        }
+        objfile << endl;
+      }
+      objfile.close();
     }
-    auto n = g->add_node(make_shared<Surfel>(surfel_builder->build()));
-    node_for_vertex.push_back(n);
   }
 
-  // Create neighbours
-  auto vertex_vertex_adjacency = compute_vertex_adjacency_from_faces(faces, num_vertices);
-  spdlog::info("Adding edges");
-  for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
-    for (auto adjacent_vertex_idx: vertex_vertex_adjacency[vertex_idx]) {
-      try {
-        g->add_edge(node_for_vertex[vertex_idx], node_for_vertex[adjacent_vertex_idx], SurfelGraphEdge{1.0f});
-      } catch (runtime_error &e) {
+  if (!args.surfel_file_name.empty()) {
+    // create a surfel graph
+    SurfelGraphPtr g = make_shared<SurfelGraph>();
 
+    std::default_random_engine rnd{123};
+    auto surfel_builder = new SurfelBuilder(rnd);
+    vector<SurfelGraphNodePtr> node_for_vertex;
+
+    spdlog::info("Building graph");
+
+    spdlog::info("Adding nodes");
+    for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+      surfel_builder
+          ->reset()
+          ->with_id("s_" + to_string(vertex_idx));
+
+      for (unsigned int frame_idx = 0; frame_idx < vertex_data_by_frame.size(); ++frame_idx) {
+        surfel_builder->with_frame(
+            {0, 0, frame_idx},
+            0.0f,
+            vertex_normals[frame_idx][vertex_idx],
+            vertex_data_by_frame[frame_idx][vertex_idx]
+        );
+      }
+      auto n = g->add_node(make_shared<Surfel>(surfel_builder->build()));
+      node_for_vertex.push_back(n);
+    }
+
+    // Create neighbours
+    auto vertex_vertex_adjacency = compute_vertex_adjacency_from_faces(faces, num_vertices);
+    spdlog::info("Adding edges");
+    for (int vertex_idx = 0; vertex_idx < num_vertices; ++vertex_idx) {
+      for (auto adjacent_vertex_idx: vertex_vertex_adjacency[vertex_idx]) {
+        try {
+          g->add_edge(node_for_vertex[vertex_idx], node_for_vertex[adjacent_vertex_idx], SurfelGraphEdge{1.0f});
+        } catch (runtime_error &e) {
+
+        }
       }
     }
-  }
 
-  // Save to file
-  save_surfel_graph_to_file(args.surfel_file_name, g);
+    // Save to file
+    save_surfel_graph_to_file(args.surfel_file_name, g);
+  }
 }

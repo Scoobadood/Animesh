@@ -40,6 +40,7 @@ target_link_libraries(
 		Geom
 		GeomFileUtils
 		${PCL_LIBRARIES}
+		spdlog::spdlog
 )
 
 # Include specific tests

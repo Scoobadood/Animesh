@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 DepthMap::DepthMap(const std::string &filename) {
   using namespace std;
@@ -69,12 +70,14 @@ DepthMap::DepthMap(unsigned int width, unsigned int height, float *depth_data) {
 
 float median_value(const std::vector<float> &v) {
   using namespace std;
-  if (v.size() == 0) return 0;
+  if (v.empty()) {
+    return 0;
+  }
 
   vector<float> tmp = v;
   sort(tmp.begin(), tmp.end());
-  int sz = tmp.size();
-  int mid = sz / 2;
+  auto sz = tmp.size();
+  auto mid = sz / 2;
   if (sz % 2 == 0) {
     return (tmp[mid] + tmp[mid - 1]) / 2.0f;
   }
@@ -191,6 +194,9 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
     }
   }
 
+  unsigned int unreliable_count = 0;
+  unsigned int zero_count = (2 * m_width) + (2 * m_height) - 4; // Assume borders are 0
+
   for (unsigned int y = 1; y < m_height - 1; ++y) {
     for (unsigned int x = 1; x < m_width - 1; ++x) {
       float p = m_depth_data[index(x, y)];
@@ -198,6 +204,7 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
       // Handle existing non-depth values
       if (p == 0.0f) {
         reliable[y][x] = false;
+        ++zero_count;
         continue;
       }
 
@@ -233,20 +240,16 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
         // Second case: p near HORIZONTAL discontinutiy. Check VERTICAL neighbours for reliability
         // i.e. we want this pixel to be part of either the upper or lower region, not straddling.
       else if (vp > ts && hp <= tl) {
-        if (fabsf(neighbour_depths[2] - p) <= tl ||
-            fabsf(neighbour_depths[3] - p) <= tl) {
+        if (fabsf(neighbour_depths[2] - p) <= tl || fabsf(neighbour_depths[3] - p) <= tl) {
           rel = true;
-          break;
         }
       }
 
         // Third case: p near VERTICAL discontinutiy. Check HORIZONTAL neighbours for reliability
         // i.e. we want this pixel to be part of either the left or right region, not straddling.
       else if (hp > ts && vp <= tl) {
-        if (fabsf(neighbour_depths[0] - p) <= tl ||
-            fabsf(neighbour_depths[1] - p) <= tl) {
+        if (fabsf(neighbour_depths[0] - p) <= tl || fabsf(neighbour_depths[1] - p) <= tl) {
           rel = true;
-          break;
         }
       }
 
@@ -259,26 +262,28 @@ DepthMap::cull_unreliable_depths(float ts, float tl) {
           }
         }
       }
+      if (!rel) {
+        ++unreliable_count;
+      }
       reliable[y][x] = rel;
     }
   }
 
 // Remove unreliable pixels
-  for (
-      int y = 0;
-      y < m_height;
-      ++y) {
-    for (
-        int x = 0;
-        x < m_width;
-        ++x) {
+  for (int y = 0; y < m_height; ++y) {
+    for (int x = 0; x < m_width; ++x) {
       if (!reliable[y][x]) {
-        m_depth_data[
-            index(x, y
-            )] = 0.0f;
+        m_depth_data[index(x, y)] = 0.0f;
       }
     }
   }
+  float size = m_width * m_height;
+  spdlog::info("Cull:\n Size  {} x {}  ({})\n Zero  {} ({:2.1f})\n Unre  {} ({:2.1f})\n Relx  {} ({:2.1f})",
+               m_width, m_height, size,
+               zero_count, (zero_count * 100.0f / size),
+               unreliable_count, (unreliable_count * 100.0f/ size),
+               (size - zero_count - unreliable_count), (size - zero_count - unreliable_count)  * 100.0f/ size
+  );
 }
 
 /**

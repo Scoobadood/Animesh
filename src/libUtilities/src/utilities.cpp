@@ -15,10 +15,10 @@
  */
 std::string
 file_name_from_template_and_level(const std::string &file_name_template, unsigned int level) {
-    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level);
-    char file_name[bufsz + 1];
-    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level);
-    return file_name;
+  ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level);
+  char file_name[bufsz + 1];
+  snprintf(file_name, bufsz + 1, file_name_template.c_str(), level);
+  return file_name;
 }
 
 /**
@@ -27,11 +27,11 @@ file_name_from_template_and_level(const std::string &file_name_template, unsigne
  */
 std::string
 file_name_from_template_level_and_frame(const std::string &file_name_template, unsigned int level, unsigned int frame) {
-    // We expect 2x %2dL
-    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level, frame);
-    char file_name[bufsz + 1];
-    snprintf(file_name, bufsz + 1, file_name_template.c_str(), level, frame);
-    return file_name;
+  // We expect 2x %2dL
+  ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), level, frame);
+  char file_name[bufsz + 1];
+  snprintf(file_name, bufsz + 1, file_name_template.c_str(), level, frame);
+  return file_name;
 }
 
 /**
@@ -40,44 +40,43 @@ file_name_from_template_level_and_frame(const std::string &file_name_template, u
  */
 std::string
 file_name_from_template_and_frame(const std::string &file_name_template, unsigned int frame) {
-    // We expect %2dL
-    ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), frame);
-    char file_name[bufsz + 1];
-    snprintf(file_name, bufsz + 1, file_name_template.c_str(), frame);
-    return file_name;
+  // We expect %2dL
+  ssize_t bufsz = snprintf(nullptr, 0, file_name_template.c_str(), frame);
+  char file_name[bufsz + 1];
+  snprintf(file_name, bufsz + 1, file_name_template.c_str(), frame);
+  return file_name;
 }
 
 std::vector<DepthMap>
 load_depth_maps(const Properties &properties) {
-    using namespace std;
+  using namespace std;
 
-    string source_directory = properties.getProperty("source-directory");
-    string depth_map_regex = properties.getProperty( "depth-map-regex");
-    float ts = properties.getFloatProperty("ts");
-    float tl = properties.getFloatProperty("tl");
-    vector<DepthMap> depth_maps = load_depth_maps(source_directory, depth_map_regex, ts, tl);
-    return depth_maps;
+  string source_directory = properties.getProperty("source-directory");
+  string depth_map_regex = properties.getProperty("depth-map-regex");
+  float ts = properties.getFloatProperty("ts");
+  float tl = properties.getFloatProperty("tl");
+  vector<DepthMap> depth_maps = load_depth_maps(source_directory, depth_map_regex, ts, tl);
+  return depth_maps;
 }
-
 
 /**
  * Load the cameras (one per frame)
  */
 std::vector<Camera>
-load_cameras(const std::string & CAMERA_TEMPLATE, unsigned int num_frames) {
-    using namespace std;
+load_cameras(const std::string &CAMERA_TEMPLATE, unsigned int num_frames) {
+  using namespace std;
 
-    std::vector<Camera> cameras;
-    cameras.reserve(num_frames);
-    cout << "Loading cameras " << flush;
-    for (unsigned int i = 0; i < num_frames; ++i) {
-        cout << "\rLoading cameras " << (i+1) << " of " << num_frames << "    " << flush;
-        string file_name = file_name_from_template_and_frame(CAMERA_TEMPLATE, i);
-        Camera camera = loadCameraFromFile(file_name);
-        cameras.push_back(camera);
-    }
-    cout << endl;
-    return cameras;
+  std::vector<Camera> cameras;
+  cameras.reserve(num_frames);
+  cout << "Loading cameras " << flush;
+  for (unsigned int i = 0; i < num_frames; ++i) {
+    cout << "\rLoading cameras " << (i + 1) << " of " << num_frames << "    " << flush;
+    string file_name = file_name_from_template_and_frame(CAMERA_TEMPLATE, i);
+    Camera camera = loadCameraFromFile(file_name);
+    cameras.push_back(camera);
+  }
+  cout << endl;
+  return cameras;
 }
 
 /**
@@ -87,53 +86,52 @@ load_cameras(const std::string & CAMERA_TEMPLATE, unsigned int num_frames) {
  */
 std::vector<DepthMap>
 resample_depth_maps(const std::vector<DepthMap> &depth_maps) {
-    using namespace std;
+  using namespace std;
 
-    vector<DepthMap> resampled_depth_maps;
-    resampled_depth_maps.reserve(depth_maps.size());
-    for (const auto &dm : depth_maps) {
-        resampled_depth_maps.push_back(dm.resample());
-    }
-    return resampled_depth_maps;
+  vector<DepthMap> resampled_depth_maps;
+  resampled_depth_maps.reserve(depth_maps.size());
+  for (const auto &dm: depth_maps) {
+    resampled_depth_maps.push_back(dm.resample());
+  }
+  return resampled_depth_maps;
 }
 
-
-tNormalMethod normal_computation_method(const Properties& properties ) {
-    tNormalMethod method;
-    std::string normal_method_name = properties.getProperty("normal-computation-method");
-    if( normal_method_name == "pcl") {
-        method = PCL;
-    } else if ( normal_method_name == "cross-product") {
-        method = CROSS;
-    } else if ( normal_method_name == "planar") {
-        method = PLANAR;
-    } else {
-        throw std::runtime_error("Unrecognised normal computation method ["+normal_method_name+"]");
-    }
-    return method;
+tNormalMethod normal_computation_method(const Properties &properties) {
+  tNormalMethod method;
+  std::string normal_method_name = properties.getProperty("normal-computation-method");
+  if (normal_method_name == "pcl") {
+    method = PCL;
+  } else if (normal_method_name == "cross-product") {
+    method = CROSS;
+  } else if (normal_method_name == "planar") {
+    method = PLANAR;
+  } else {
+    throw std::runtime_error("Unrecognised normal computation method [" + normal_method_name + "]");
+  }
+  return method;
 }
 
 void
 maybe_save_depth_and_normal_maps(const Properties &properties,
                                  const std::vector<std::vector<DepthMap>> &depth_map_hierarchy) {
-    using namespace std;
+  using namespace std;
 
-    int num_levels = depth_map_hierarchy.size();
-    int num_frames = depth_map_hierarchy.at(0).size();
+  int num_levels = depth_map_hierarchy.size();
+  int num_frames = depth_map_hierarchy.at(0).size();
 
-    if (properties.getBooleanProperty("dump-depth-maps")) {
-        string dm_template = properties.getProperty("generated-depth-map-template");
-        string norm_template = properties.getProperty("generated-normal-file-template");
-        cout << " Dumping depth maps" << endl;
-        for (unsigned int level = 0; level < num_levels; ++level) {
-            for (unsigned int frame = 0; frame < num_frames; ++frame) {
-                auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
-                save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
-                auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);
-                save_normals_as_ppm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
-            }
-        }
+  if (properties.getBooleanProperty("dump-depth-maps")) {
+    string dm_template = properties.getProperty("generated-depth-map-template");
+    string norm_template = properties.getProperty("generated-normal-file-template");
+    cout << " Dumping depth maps" << endl;
+    for (unsigned int level = 0; level < num_levels; ++level) {
+      for (unsigned int frame = 0; frame < num_frames; ++frame) {
+        auto dm_file_name = file_name_from_template_level_and_frame(dm_template, level, frame);
+        save_depth_map_as_pgm(dm_file_name, depth_map_hierarchy.at(level).at(frame));
+        auto norm_file_name = file_name_from_template_level_and_frame(norm_template, level, frame);
+        save_normals_as_ppm(norm_file_name, depth_map_hierarchy.at(level).at(frame));
+      }
     }
+  }
 }
 
 /**
@@ -143,36 +141,38 @@ std::vector<std::vector<DepthMap>>
 create_depth_map_hierarchy(const Properties &properties,
                            const std::vector<DepthMap> &depth_maps,
                            const std::vector<Camera> &cameras) {
-    using namespace std;
+  using namespace std;
 
-    int num_levels = properties.getIntProperty("num-levels");
-    cout << "Constructing depth map hierarchy with " << num_levels << " levels." << endl;
+  int num_levels = properties.getIntProperty("num-levels");
+  cout << "Constructing depth map hierarchy with " << num_levels << " levels." << endl;
 
-    vector<vector<DepthMap>> depth_map_hierarchy;
-    depth_map_hierarchy.reserve(num_levels);
-    depth_map_hierarchy.push_back(depth_maps);
-    cout << "1 of " << num_levels << "    " << flush;
-    for (int i = 1; i < num_levels; i++) {
-        cout << "\r" << (i+1) << " of " << num_levels << "    " << flush;
-        depth_map_hierarchy.push_back(resample_depth_maps(depth_map_hierarchy.at(i-1)));
+  vector<vector<DepthMap>> depth_map_hierarchy;
+  depth_map_hierarchy.reserve(num_levels);
+  depth_map_hierarchy.push_back(depth_maps);
+  cout << "1 of " << num_levels << "    " << flush;
+  for (int i = 1; i < num_levels; i++) {
+    cout << "\r" << (i + 1) << " of " << num_levels << "    " << flush;
+    depth_map_hierarchy.push_back(resample_depth_maps(depth_map_hierarchy.at(i - 1)));
+  }
+  cout << endl;
+
+  tNormalMethod method = normal_computation_method(properties);
+
+  //
+  // Compute normals for each level
+  for (auto &level_depth_maps: depth_map_hierarchy) {
+    cout << "1 of " << depth_maps.size() << "    " << flush;
+    for (int f = 0; f < depth_maps.size(); ++f) {
+      cout << "\r" << (f + 1) << " of " << depth_maps.size() << "    " << flush;
+      Camera camera = cameras.at(f);
+      camera.set_image_size(level_depth_maps.at(0).width(), level_depth_maps.at(0).height());
+      level_depth_maps.at(f).compute_normals(camera, method);
     }
-    cout << endl;
+  }
 
-    tNormalMethod method = normal_computation_method(properties);
+  maybe_save_depth_and_normal_maps(properties, depth_map_hierarchy);
 
-    //
-    // Compute normals for each level
-    for (auto & level_depth_maps : depth_map_hierarchy) {
-        for (int f = 0; f < depth_maps.size(); ++f) {
-            Camera camera = cameras.at(f);
-            camera.set_image_size(level_depth_maps.at(0).width(), level_depth_maps.at(0).height());
-            level_depth_maps.at(f).compute_normals(camera, method);
-        }
-    }
-
-    maybe_save_depth_and_normal_maps(properties, depth_map_hierarchy);
-
-    return depth_map_hierarchy;
+  return depth_map_hierarchy;
 }
 
 

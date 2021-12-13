@@ -119,11 +119,14 @@ target_link_libraries(
 		spdlog::spdlog
 )
 
+add_subdirectory(compute_pcl_correspondence)
 add_subdirectory(data_gen)
 add_subdirectory(dmr)
+add_subdirectory(dm_to_data)
 add_subdirectory(dm_to_graph)
 add_subdirectory(field_visualiser)
 add_subdirectory(leggings_tool)
+add_subdirectory(libTool)
 add_subdirectory(multi-res-tool)
 add_subdirectory(optimisers)
 add_subdirectory(paths_to_surfel_graph)

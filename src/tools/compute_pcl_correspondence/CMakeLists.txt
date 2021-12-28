@@ -11,6 +11,7 @@ target_link_libraries(
 		Surfel
 		Tool
 		Utilities
+		Cpd::Library-C++
 )
 
 target_compile_features(

@@ -2,6 +2,9 @@
 // Created by Dave Durbin on 13/12/21.
 //
 
+/*
+ * Generate deptyh and normal maps from the OBJ files
+ */
 #include <Utilities/utilities.h>
 #include <DepthMap/DepthMap.h>
 #include <Properties/Properties.h>

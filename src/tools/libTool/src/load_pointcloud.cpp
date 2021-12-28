@@ -39,6 +39,7 @@ load_pointclouds(const std::string &directory, const std::string &pattern) {
     smatch matches;
     return regex_search(file_name, matches, p);
   });
+  sort(pointcloud_files.begin(), pointcloud_files.end());
 
   map<unsigned int, vector<Vector3f>> pointclouds_by_frame;
   for (const auto &file_name: pointcloud_files) {
@@ -55,4 +56,31 @@ load_pointclouds(const std::string &directory, const std::string &pattern) {
   }
 
   return pointclouds_by_frame;
+}
+
+/**
+ * Load all pointclouds from a directory given a regex pattern.
+ * The regex should include one capture group that identifies the frame
+ * number. This is assumed to be an integer and will be used as the key in the returned map.
+ */
+std::map<unsigned int, Eigen::MatrixX3d>
+load_pointclouds_as_matrices(const std::string &directory, const std::string &pattern) {
+  using namespace std;
+  using namespace Eigen;
+
+  auto pointclouds = load_pointclouds(directory, pattern);
+
+  map<unsigned int, MatrixX3d> clouds;
+  for( const auto & pointcloud : pointclouds) {
+    Eigen::MatrixX3d m{pointcloud.second.size(), 3};
+    unsigned int row = 0;
+    for( const auto & vertex : pointcloud.second) {
+      m(row, 0) = vertex.x();
+      m(row, 1) = vertex.y();
+      m(row, 2) = vertex.z();
+      row++;
+    }
+    clouds.emplace( pointcloud.first, m);
+  }
+  return clouds;
 }

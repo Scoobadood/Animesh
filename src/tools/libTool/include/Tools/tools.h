@@ -18,3 +18,6 @@ load_pointcloud(const std::string& pointcloud_filename);
  */
 std::map<unsigned int, std::vector<Eigen::Vector3f>>
 load_pointclouds(const std::string& directory, const std::string& regex);
+
+std::map<unsigned int, Eigen::MatrixX3d>
+load_pointclouds_as_matrices(const std::string &directory, const std::string &pattern);

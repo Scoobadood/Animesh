@@ -13,6 +13,7 @@ target_link_libraries(
 		FileUtils
 		Properties
 		Surfel
+		Tool
 )
 
 target_compile_features(

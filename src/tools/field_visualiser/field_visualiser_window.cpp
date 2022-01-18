@@ -48,6 +48,10 @@ field_visualiser_window::field_visualiser_window(Properties properties, std::def
           ui->rosyGLWidget, &rosy_gl_widget::renderOtherTangents);
   connect(ui->cbErrorColours, &QCheckBox::toggled,
           ui->rosyGLWidget, &rosy_gl_widget::renderErrorColours);
+  connect(ui->cbShowSplats, &QCheckBox::toggled,
+          ui->rosyGLWidget, &rosy_gl_widget::renderSplats);
+  connect(ui->cbShowPath, &QCheckBox::toggled,
+          ui->rosyGLWidget, &rosy_gl_widget::renderPath);
   connect(ui->slNormalLength, &QSlider::valueChanged,
           this, [&](int value) {
         float spur_length;
@@ -150,6 +154,7 @@ field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
   std::vector<float> triangle_uvs;
   std::vector<unsigned int> fan_sizes;
   std::vector<float> normals;
+  std::vector<float> path;
   std::vector<float> splat_sizes;
   std::vector<float> uvs;
   float scale_factor;
@@ -176,9 +181,10 @@ field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
       tangents,
       normals,
       colours,
+      path,
       scale_factor
   );
-  ui->rosyGLWidget->setRoSyData(positions, normals, tangents, colours, scale_factor);
+  ui->rosyGLWidget->setRoSyData(positions, normals, tangents, colours, path, scale_factor);
 
   std::vector<float> vertices;
   std::vector<std::pair<std::pair<std::string, unsigned int>, std::pair<std::string, unsigned int>>> red_edges;

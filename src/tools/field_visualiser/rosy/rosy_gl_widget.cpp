@@ -9,11 +9,13 @@ rosy_gl_widget::rosy_gl_widget(
     Qt::WindowFlags f) //
     : field_gl_widget{parent, f}, m_normalScaleFactor{1.0f} //
     , m_renderNormals{true} //
-    , m_renderSplats{true} //
+    , m_renderPath{true} //
+    , m_renderSplats{false} //
     , m_renderMainTangents{true} //
     , m_renderOtherTangents{true} //
     , m_renderErrorColours{true} //
     , m_normalColour{QColor{255, 255, 255, 255}} //
+    , m_pathColour{QColor{0, 216, 197, 255}} //
     , m_splatColour{QColor{88, 116, 167, 255}} //
     , m_mainTangentColour{QColor{255, 0, 0, 255}} //
     , m_otherTangentsColour{QColor{0, 255, 0, 255}} //
@@ -25,6 +27,7 @@ rosy_gl_widget::rosy_gl_widget(
       std::vector<float>{0.0f, 1.0f, 0.0f},
       std::vector<float>{0.0f, 0.0f, 1.0f},
       std::vector<float>{0.0f, 1.0f, 0.0f, 1.0f},
+      std::vector<float>{},
       1.0f
   );
 }
@@ -33,13 +36,14 @@ void drawEllipse(float cx, float cy, float cz,
                  float nx, float ny, float nz,
                  float tx, float ty, float tz,
                  float radius,
+                 float offset,
                  int num_segments) {
 
   float angle_delta = (2 * 3.1415926f) / (float) num_segments;
   Eigen::Vector3f axis{nx, ny, nz};
   Eigen::Vector3f point{tx, ty, tz};
   Eigen::Vector3f pos{cx, cy, cz};
-  pos -= (0.05 * axis);
+  pos -= (offset * axis);
 
   glBegin(GL_TRIANGLE_FAN);
   glVertex3f(pos.x(), pos.y(), pos.z());
@@ -83,11 +87,53 @@ rosy_gl_widget::maybeDrawSplats() const {
                 m_tangents.at(i * 3 + 0),
                 m_tangents.at(i * 3 + 1),
                 m_tangents.at(i * 3 + 2),
-                1.0, 10
+                1,
+                0.05f,
+                10
     );
   }
 //  glDisable(GL_LIGHT0);
   checkGLError("maybeDrawSplats");
+}
+
+void
+rosy_gl_widget::maybeDrawPath() const {
+  if (!m_renderPath) {
+    return;
+  }
+  if (m_path.empty()) {
+    return;
+  }
+
+  //  glEnable(GL_LIGHT0);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+  float pos[]{0, 0, 0, 1};
+  glLightfv(GL_LIGHT0, GL_POSITION, pos);
+  float dir[]{0, 0, -1};
+  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
+  glPopMatrix();
+
+  for (unsigned int i = 0; i < m_path.size() / 13; ++i) {
+    glColor4f(m_path.at(i * 13 + 0),
+              m_path.at(i * 13 + 1),
+              m_path.at(i * 13 + 2),
+              m_path.at(i * 13 + 3));
+    drawEllipse(m_path.at(i * 13 + 4),
+                m_path.at(i * 13 + 5),
+                m_path.at(i * 13 + 6),
+                m_path.at(i * 13 + 10),
+                m_path.at(i * 13 + 11),
+                m_path.at(i * 13 + 12),
+                m_path.at(i * 13 + 7),
+                m_path.at(i * 13 + 8),
+                m_path.at(i * 13 + 9),
+                0.25, 0.03f, 10
+    );
+  }
+//  glDisable(GL_LIGHT0);
+  checkGLError("maybeDrawPath");
 }
 
 void
@@ -247,6 +293,8 @@ rosy_gl_widget::do_paint() {
 
   glDepthRange(0.01, 1.0f);
 
+  maybeDrawPath();
+
   maybeDrawSplats();
 }
 
@@ -255,16 +303,19 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
                             const std::vector<float> &normals,
                             const std::vector<float> &tangents,
                             const std::vector<float> &colours,
+                            const std::vector<float> &path,
                             const float normal_scale_factor) {
   m_positions.clear();
   m_tangents.clear();
   m_normals.clear();
   m_colours.clear();
+  m_path.clear();
 
   m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
   m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
   m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
   m_colours.insert(m_colours.begin(), colours.begin(), colours.end());
+  m_path.insert(m_path.begin(), path.begin(), path.end());
   m_normalScaleFactor = normal_scale_factor;
 }
 
@@ -281,6 +332,20 @@ void
 rosy_gl_widget::renderNormals(bool shouldRender) {
   if (m_renderNormals != shouldRender) {
     m_renderNormals = shouldRender;
+  }
+}
+
+void
+rosy_gl_widget::renderPath(bool shouldRender) {
+  if (m_renderPath != shouldRender) {
+    m_renderPath = shouldRender;
+  }
+}
+
+void
+rosy_gl_widget::renderSplats(bool shouldRender) {
+  if (m_renderSplats != shouldRender) {
+    m_renderSplats = shouldRender;
   }
 }
 

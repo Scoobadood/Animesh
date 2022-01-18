@@ -72,4 +72,7 @@ private:
   Eigen::Vector3f ray_direction_for_pixel(unsigned int pixel_x, unsigned int pixel_y);
 
   void maybe_update_projection_matrix();
+  void mousePressEvent(QMouseEvent *event) override;
+  void mouseReleaseEvent(QMouseEvent *event) override;
+  unsigned int pixelX, pixelY;
 };

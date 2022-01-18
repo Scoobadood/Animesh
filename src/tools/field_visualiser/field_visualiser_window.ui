@@ -163,6 +163,26 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="cbShowSplats">
+            <property name="text">
+             <string>Show Splats</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="cbShowPath">
+            <property name="text">
+             <string>Show Path</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QSlider" name="slNormalLength">
             <property name="minimum">
              <number>1</number>

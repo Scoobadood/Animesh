@@ -16,7 +16,7 @@
 #include <spdlog/spdlog.h>
 
 /**
- * Compute correspondences between two point clouda using CPD
+ * Compute correspondences between two point clouds using CPD
  */
 void
 compute_correspondences(const Eigen::MatrixX3d &from_point_cloud,
@@ -128,8 +128,12 @@ int main(int argc, const char *argv[]) {
     }
   }
 
-  ofstream fout{"/Users/dave/Desktop/paths_03.txt"};
+  const auto output_paths = pcloud_directory + "/paths.txt";
+  ofstream fout{output_paths};
   for (const auto &path: paths) {
+    if( path.size() == 1) {
+      continue;
+    }
     for (int i = 0; i < path.size(); ++i) {
       fout << "(" << path.at(i).frame << " " << path.at(i).idx << ")";
       if (i < path.size() - 1) {

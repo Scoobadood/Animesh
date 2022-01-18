@@ -95,6 +95,7 @@ private:
   float m_minDistance;
   float m_maxDistance;
   bool m_enabled;
+  bool m_mouse_moved;
   bool m_no_roll;
   bool m_static_moving;
 };

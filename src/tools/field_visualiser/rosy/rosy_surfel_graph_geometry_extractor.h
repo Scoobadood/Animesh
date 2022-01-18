@@ -21,5 +21,6 @@ public:
                         std::vector<float> &tangents,
                         std::vector<float> &normals,
                         std::vector<float> &colours,
+                        std::vector<float> &path,
                         float &scale_factor) const;
 };

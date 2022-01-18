@@ -102,22 +102,31 @@ get_potential_neighbours( //
     const SurfelGraphNodePtr &node) {
   using namespace std;
 
-  vector<SurfelGraphNodePtr> potential_neighbours;
+  set<SurfelGraphNodePtr> potential_neighbours;
 
   for (const auto &fd: node->data()->frame_data()) {
     const auto &pif = fd.pixel_in_frame;
 
     for (int dx = -1; dx <= 1; ++dx) {
       for (int dy = -1; dy <= 1; ++dy) {
+        // Not my own neighbour
+        if( dx == 0 && dy == 0 ) {
+          continue;
+        }
         const auto &n = pif_to_graph_node.find({pif.pixel.x + dx, pif.pixel.y + dy, pif.frame});
+        // Not an actual node
         if (n == pif_to_graph_node.end()) {
           continue;
         }
-        potential_neighbours.push_back(n->second);
+        // Don't double count.
+        if( potential_neighbours.count(n->second)  > 0 ) {
+          continue;
+        }
+        potential_neighbours.emplace(n->second);
       }
     }
   }
-  return potential_neighbours;
+  return vector<SurfelGraphNodePtr>{begin(potential_neighbours),end(potential_neighbours)};
 }
 
 void
@@ -246,7 +255,7 @@ int main(int argc, const char *argv[]) {
   auto vertices_by_frame = load_pointclouds(source_directory, pattern);
 
   // Load paths
-  auto paths = load_paths("/Users/dave/Desktop/paths_03.txt");
+  auto paths = load_paths("paths.txt");
 
   // Use the paths to generate surfels
   map<PixelInFrame, SurfelGraphNodePtr> pif_to_surfel;

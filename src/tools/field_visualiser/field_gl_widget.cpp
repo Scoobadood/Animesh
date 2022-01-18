@@ -7,6 +7,8 @@
 #include <Geom/Geom.h>
 #include <QVector4D>
 #include <QMatrix4x4>
+#include <QMouseEvent>
+#include <iostream>
 
 #include "field_gl_widget.h"
 
@@ -66,7 +68,6 @@ field_gl_widget::update_model_matrix() {
   }
   checkGLError("update_model_matrix");
 }
-
 
 /**
  * If lighting is enabled, make sure the light is at the eye coordinate
@@ -150,7 +151,7 @@ void
 field_gl_widget::resizeGL(int width, int height) {
   glViewport(0, 0, width, height);
   spdlog::debug("ResizeGL parms: ({}, {}) window: ({}, {})",
-               width, height, this->width(), this->height()
+                width, height, this->width(), this->height()
   );
 
   m_aspectRatio = (float) width / (float) height;
@@ -315,4 +316,17 @@ field_gl_widget::find_closest_edge(unsigned int pixel_x,
   }
   distance = std::sqrtf(distance);
   return closest_idx;
+}
+
+void
+field_gl_widget::mousePressEvent(QMouseEvent *event) {
+  pixelX = event->x();
+  pixelY = event->y();
+}
+
+void
+field_gl_widget::mouseReleaseEvent(QMouseEvent *event) {
+  std::vector<float> items;
+  float distance;
+  find_closest_vertex(pixelX, pixelY, items, distance);
 }

@@ -74,6 +74,7 @@ Trackball::eventFilter(QObject *o, QEvent *e) {
   case QEvent::MouseMove: {//
     auto me = (QMouseEvent *) e;
     mouse_move(me->x(), me->y());
+    m_mouse_moved = true;
     handled = e->isAccepted();
   }
     break;
@@ -81,13 +82,14 @@ Trackball::eventFilter(QObject *o, QEvent *e) {
   case QEvent::MouseButtonPress: {//
     auto me = (QMouseEvent *) e;
     mouse_down(me->button(), me->modifiers(), me->pos().x(), me->pos().y());
-    handled = true;
+    handled = false;
+    m_mouse_moved = false;
   }
     break;
 
   case QEvent::MouseButtonRelease: {
     mouse_up();
-    handled = true;
+    return m_mouse_moved;
   }
     break;
 

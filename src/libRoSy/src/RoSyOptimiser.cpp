@@ -144,17 +144,17 @@ RoSyOptimiser::get_weights(const std::shared_ptr<Surfel> &surfel_a,
     adjust_weights_based_on_error(surfel_a, surfel_b, weight_a, weight_b);
   }
 }
+
 /*
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
 void
-RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
+RoSyOptimiser::optimise_node_with_one_neighbour(const SurfelGraphNodePtr &this_node, //
+                                                const std::shared_ptr<Surfel> &this_surfel,
+                                                Eigen::Vector3f &new_tangent //
+) {
   using namespace std;
   using namespace Eigen;
-
-  const auto &this_surfel = this_node->data();
-  const auto &starting_tangent = this_surfel->tangent();
-  Vector3f new_tangent{starting_tangent};
 
   bool should_dump = false;//(this_surfel->id() == "s_32");
   float weight_sum = 0.0f;
@@ -167,7 +167,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
 
     // Select a random frame containing both surfels
     auto shared_frames = get_common_frames(this_surfel, nbr_surfel);
-    uniform_int_distribution<> dis(0, shared_frames.size()-1);
+    uniform_int_distribution<> dis(0, shared_frames.size() - 1);
     const auto idx = dis(m_random_engine);
     const auto smoothing_frame = shared_frames.at(idx);
 
@@ -201,6 +201,80 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
     v = this_surfel_frame_transform.inverse() * v;
     new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
   } // Next neighbour
+}
+
+/*
+ * Smooth an individual Surfel across temporal and spatial neighbours.
+ */
+void
+RoSyOptimiser::optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_node, //
+                                                const std::shared_ptr<Surfel> &this_surfel,
+                                                Eigen::Vector3f &new_tangent //
+) {
+  using namespace std;
+  using namespace Eigen;
+
+  bool should_dump = false;//(this_surfel->id() == "s_32");
+  float weight_sum = 0.0f;
+
+  // For each neighbour of this Surfel
+  auto neighbours = m_surfel_graph->neighbours(this_node);
+  for (const auto &nbr: neighbours) {
+    const auto &nbr_surfel = nbr->data();
+
+    // Select a random frame containing both surfels
+    auto shared_frames = get_common_frames(this_surfel, nbr_surfel);
+    for (auto frame_idx: shared_frames) {
+
+      // Pick a frame for this surfel
+      Vector3f v1, t1, n1;
+      this_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
+      auto &this_surfel_frame_transform = this_surfel->transform_for_frame(frame_idx);
+      t1 = this_surfel_frame_transform * new_tangent;
+
+      Vector3f v2, t2, n2;
+      nbr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
+
+      float this_weight, nbr_weight;
+      get_weights(this_surfel, nbr_surfel, this_weight, nbr_weight);
+
+      // Compute the best RoSy pair
+      std::pair<Vector3f, Vector3f> best_pair;
+      unsigned short k_ij, k_ji;
+      best_pair = best_rosy_vector_pair(
+          t1, n1, k_ij,
+          t2, n2, k_ji);
+      // START DEBUG
+      if (should_dump) {
+        spdlog::info("Computed for edge to {} ", nbr_surfel->id());
+        spdlog::info("  k_ij = {},   k_ji = {}", k_ij, k_ji);
+      }
+      //END DEBUG
+
+      weight_sum += this_weight;
+      Vector3f v = (best_pair.first * weight_sum) + (best_pair.second * nbr_weight);
+      v = this_surfel_frame_transform.inverse() * v;
+      new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
+    } // Next frame
+  } // Next neighbour
+}
+
+/*
+ * Smooth an individual Surfel across temporal and spatial neighbours.
+ */
+void
+RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
+  using namespace std;
+  using namespace Eigen;
+
+  const auto &this_surfel = this_node->data();
+  const auto &starting_tangent = this_surfel->tangent();
+  Vector3f new_tangent{starting_tangent};
+
+
+  // Actual Optimisation Method
+  optimise_node_with_all_neighbours(this_node, this_surfel, new_tangent);
+  //
 
   // Handle damping
   if (m_damping_factor > 0) {

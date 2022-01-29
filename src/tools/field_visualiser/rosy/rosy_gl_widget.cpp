@@ -369,3 +369,9 @@ rosy_gl_widget::renderErrorColours(bool shouldRender) {
     m_renderErrorColours = shouldRender;
   }
 }
+
+void rosy_gl_widget::click_at(unsigned int x, unsigned int y) {
+  std::vector<float> items;
+  float distance;
+  auto item = find_closest_vertex(x, y, items, distance);
+}

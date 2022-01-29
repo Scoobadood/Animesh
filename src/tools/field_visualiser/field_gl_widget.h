@@ -42,11 +42,15 @@ protected:
 
   void maybe_update_light() const;
 
-private:
+protected:
   int find_closest_vertex(unsigned int pixel_x,
                           unsigned int pixel_y,
                           std::vector<float> &items, /// assumed XYZ triples
                           float &distance);
+
+  virtual void click_at( unsigned int x, unsigned int y){};
+
+ private:
   void get_ray_data(unsigned int pixel_x,
                     unsigned int pixel_y,
                     Eigen::Vector3f &camera_origin,
@@ -74,5 +78,6 @@ private:
   void maybe_update_projection_matrix();
   void mousePressEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
-  unsigned int pixelX, pixelY;
+  unsigned int m_pixel_x;
+  unsigned int m_pixel_y;
 };

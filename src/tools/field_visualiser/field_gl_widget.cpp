@@ -26,6 +26,8 @@ field_gl_widget::field_gl_widget(
     , m_model_view_matrix{} //
     , m_render_mouse_ray{false} //
     , m_light_enabled{false} //
+    , m_pixel_x{0} //
+    , m_pixel_y{0} //
 {
   setFocusPolicy(Qt::FocusPolicy::StrongFocus);
   setFocus();
@@ -285,7 +287,6 @@ field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
       distance = dist2;
       closest_idx = idx;
     }
-
   }
   distance = std::sqrtf(distance);
   return closest_idx;
@@ -320,13 +321,13 @@ field_gl_widget::find_closest_edge(unsigned int pixel_x,
 
 void
 field_gl_widget::mousePressEvent(QMouseEvent *event) {
-  pixelX = event->x();
-  pixelY = event->y();
+  m_pixel_x = event->x();
+  m_pixel_y = event->y();
 }
 
 void
 field_gl_widget::mouseReleaseEvent(QMouseEvent *event) {
-  std::vector<float> items;
-  float distance;
-  find_closest_vertex(pixelX, pixelY, items, distance);
+  click_at(m_pixel_x, m_pixel_y);
 }
+
+

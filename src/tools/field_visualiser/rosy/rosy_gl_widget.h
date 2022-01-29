@@ -18,8 +18,8 @@
  * Maintains state about what to render (normals, tangents, etc.)
  */
 class rosy_gl_widget : public field_gl_widget {
-Q_OBJECT
-public:
+ Q_OBJECT
+ public:
   explicit rosy_gl_widget(QWidget *parent = nullptr, //
                           Qt::WindowFlags f = Qt::WindowFlags());
 
@@ -44,12 +44,14 @@ public:
 
   void set_norm_tan_length(float l);
 
-protected:
+ protected:
   void do_paint() override;
 
   void initializeGL() override;
 
-private:
+  void click_at(unsigned int x, unsigned int y) override;
+
+ private:
   std::vector<float> m_positions;
   std::vector<float> m_tangents;
   std::vector<float> m_normals;

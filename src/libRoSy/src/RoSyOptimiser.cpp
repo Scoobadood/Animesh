@@ -148,7 +148,8 @@ RoSyOptimiser::get_weights(const std::shared_ptr<Surfel> &surfel_a,
 /*
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
-void
+Eigen::Vector3f
+
 RoSyOptimiser::optimise_node_with_one_neighbour(const SurfelGraphNodePtr &this_node, //
                                                 const std::shared_ptr<Surfel> &this_surfel,
                                                 Eigen::Vector3f &new_tangent //
@@ -201,15 +202,16 @@ RoSyOptimiser::optimise_node_with_one_neighbour(const SurfelGraphNodePtr &this_n
     v = this_surfel_frame_transform.inverse() * v;
     new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
   } // Next neighbour
+  return new_tangent;
 }
 
 /*
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
-void
+Eigen::Vector3f
 RoSyOptimiser::optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_node, //
-                                                const std::shared_ptr<Surfel> &this_surfel,
-                                                Eigen::Vector3f &new_tangent //
+                                                 const std::shared_ptr<Surfel> &this_surfel,
+                                                 Eigen::Vector3f &new_tangent //
 ) {
   using namespace std;
   using namespace Eigen;
@@ -225,13 +227,8 @@ RoSyOptimiser::optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_
     // Select a random frame containing both surfels
     auto shared_frames = get_common_frames(this_surfel, nbr_surfel);
     for (auto frame_idx: shared_frames) {
-
-      // Pick a frame for this surfel
       Vector3f v1, t1, n1;
       this_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
-      auto &this_surfel_frame_transform = this_surfel->transform_for_frame(frame_idx);
-      t1 = this_surfel_frame_transform * new_tangent;
-
       Vector3f v2, t2, n2;
       nbr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
 
@@ -253,10 +250,12 @@ RoSyOptimiser::optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_
 
       weight_sum += this_weight;
       Vector3f v = (best_pair.first * weight_sum) + (best_pair.second * nbr_weight);
-      v = this_surfel_frame_transform.inverse() * v;
+      v =this_surfel->transform_for_frame(frame_idx).inverse() * v;
       new_tangent = project_vector_to_plane(v, Vector3f::UnitY()); // Normalizes
+      this_surfel->setTangent(new_tangent);
     } // Next frame
   } // Next neighbour
+  return new_tangent;
 }
 
 /*
@@ -273,7 +272,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
 
 
   // Actual Optimisation Method
-  optimise_node_with_all_neighbours(this_node, this_surfel, new_tangent);
+  new_tangent = optimise_node_with_all_neighbours(this_node, this_surfel, new_tangent);
   //
 
   // Handle damping

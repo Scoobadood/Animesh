@@ -99,7 +99,8 @@ MultiResolutionSurfelGraph::generate_levels(unsigned int num_levels) {
   }
 
   for (unsigned int lvl_idx = 1; lvl_idx < num_levels; ++lvl_idx) {
-    generate_new_level();
+//    generate_new_level();
+    generate_new_level_additive();
   }
 }
 
@@ -138,6 +139,150 @@ MultiResolutionSurfelGraph::compute_scores(
     auto dp = mean_normal_by_node.at(from_id).dot(mean_normal_by_node.at(to_id));
     scores[edge] = a * dp;
   }
+}
+
+/**
+ * Generate the next level for this multi-resolution graph.
+ * Uses an additive approach
+ */
+void
+MultiResolutionSurfelGraph::generate_new_level_additive() {
+  using namespace std;
+
+  /*
+   *  Preprocessing:
+   *  assign a dual area Ai to each vertex i (uniform Ai = 1, or Voronoi area when the input is a mesh).
+   */
+  map<string, int> dual_area_by_node;
+  for (const auto &node: m_levels.back()->nodes()) {
+    dual_area_by_node.insert({node->data()->id(), 1});
+  }
+
+  // Compute mean normal for each vertex
+  map<string, Eigen::Vector3f> mean_normal_by_node;
+  for (const auto &node: m_levels.back()->nodes()) {
+    auto mean_normal = compute_mean_normal(node);
+    mean_normal_by_node[node->data()->id()] = mean_normal;
+  }
+  map<SurfelGraph::Edge, float, SurfelGraphEdgeComparator> scores;
+
+
+  /*
+    2. Repeat the following phases until a fixed point is reached:
+      (a) For each pair of neighboring vertices i,j,
+          assign a score Sij := ⟨ni,nj⟩min(Ai/Aj, Aj/Ai).
+      (b) Traverse Sij in decreasing order and collapse vertices
+          i and j into a new vertex v if neither has been involved
+          in a collapse operation thus far. The new vertex is assigned
+          an area of Av = Ai + Aj , and its other properties are
+          given by area-weighted averages of the vertices that are
+          merged together.
+   */
+  compute_scores(m_levels.back(), dual_area_by_node, mean_normal_by_node, scores);
+  vector<pair<SurfelGraph::Edge, float>> edges_and_scores;
+  edges_and_scores.reserve(scores.size());
+  for (auto &edge_and_score: scores) {
+    edges_and_scores.emplace_back(edge_and_score);
+  }
+  sort(edges_and_scores.begin(),
+       edges_and_scores.end(),
+       [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
+         return a.second > b.second;
+       }
+  );
+
+  SurfelBuilder sb{m_random_engine};
+  map<SurfelGraphNodePtr, SurfelGraphNodePtr> lower_to_upper_mapping;
+  map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> upper_to_lower_mapping;
+
+  SurfelGraphPtr new_graph = make_shared<SurfelGraph>();
+  map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> level_mapping;
+  for (const auto &edge_and_score: edges_and_scores) {
+
+    /*
+     * for edge E in G
+     *    n1, n2 = nodes of E
+     *    if n1 has collapsed or n2 has collapsed
+     *       continue
+     *    make a new node N = n1+n2
+     *    add N to G'
+     *    record that n1 and n2 ==> N
+     * end
+     */
+    const auto first_node = edge_and_score.first.from();
+    const auto second_node = edge_and_score.first.to();
+    const auto first_node_id = first_node->data()->id();
+    const auto second_node_id = second_node->data()->id();
+
+    // Only collapse if neither node has already been involved in a collapse
+    if (lower_to_upper_mapping.count(first_node) > 0) {
+      continue;
+    }
+    if (lower_to_upper_mapping.count(second_node) > 0) {
+      continue;
+    }
+
+    // Make a new node
+    auto new_surfel = surfel_merge_function(first_node->data(),
+                                            (float) dual_area_by_node.at(first_node_id),
+                                            second_node->data(),
+                                            (float) dual_area_by_node.at(second_node_id));
+    auto new_node = new_graph->add_node(new_surfel);
+    lower_to_upper_mapping.emplace(first_node, new_node);
+    lower_to_upper_mapping.emplace(second_node, new_node);
+    upper_to_lower_mapping.emplace(new_node, make_pair<>(first_node, second_node));
+
+    // Update the dual areas
+    auto val = dual_area_by_node.at(first_node_id) + dual_area_by_node.at(second_node_id);
+    dual_area_by_node.erase(first_node_id);
+    dual_area_by_node.erase(second_node_id);
+    dual_area_by_node.insert({new_node->data()->id(), val});
+  } // End of collapsing edges
+
+  /*
+   * for any node n that didn't collapse
+   *   make a new node N = n
+   *   add N to G'
+   *   record that n1 ==> N
+   * end
+   */
+  for (const auto &n: m_levels.back()->nodes()) {
+    if (lower_to_upper_mapping.count(n) > 0) {
+      continue;
+    }
+    auto new_node = new_graph->add_node(n->data());
+    lower_to_upper_mapping.emplace(n, new_node);
+    upper_to_lower_mapping.emplace(new_node, make_pair<>(n, n));
+  }
+
+  /*
+   * For each node n in G
+   *   find N in G' corresponding to n
+   *   w1 = dual_area  for N
+   *   for each neighbour nn in nbr(n)
+   *     find NN in G' corresponding to nn
+   *     w2 = dual_area for NN
+   *
+   *     add edge N, NN to G' with weight
+   *   end
+   * end
+   */
+  for( const auto & n : m_levels.back()->nodes()) {
+    const auto & N = lower_to_upper_mapping.at(n);
+    const auto neighours = m_levels.back()->neighbours(n, true);
+    for( const auto & nn : neighours) {
+      const auto & NN = lower_to_upper_mapping.at(nn);
+      if( new_graph->has_edge(N,NN) ) {
+        continue;
+      }
+      new_graph->add_edge(N, NN, SurfelGraphEdge{1.0f});
+    }
+  }
+
+
+
+  m_up_mapping.push_back(level_mapping);
+  m_levels.push_back(new_graph);
 }
 
 /**

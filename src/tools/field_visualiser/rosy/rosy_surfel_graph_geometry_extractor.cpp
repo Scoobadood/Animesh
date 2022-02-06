@@ -53,15 +53,18 @@ void extract_lines_for_path(const SurfelGraphPtr &graphPtr,
   }
 }
 
-void extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
-                             unsigned int frame,
-                             std::vector<float> &positions,
-                             std::vector<float> &tangents,
-                             std::vector<float> &normals,
-                             std::vector<float> &colours
+void
+rosy_surfel_graph_geometry_extractor::extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
+                                                              unsigned int frame,
+                                                              std::vector<float> &positions,
+                                                              std::vector<float> &tangents,
+                                                              std::vector<float> &normals,
+                                                              std::vector<float> &colours
 ) {
+  m_vertex_to_node.clear();
+
   std::vector<float> errors;
-  for (const auto &node: graphPtr->nodes()) {
+  for (auto &node: graphPtr->nodes()) {
     const auto &surfel = node->data();
     if (!surfel->is_in_frame(frame)) {
       continue;
@@ -69,6 +72,8 @@ void extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
 
     Eigen::Vector3f position, normal, tangent;
     surfel->get_vertex_tangent_normal_for_frame(frame, position, tangent, normal);
+
+    m_vertex_to_node.insert({position, node});
 
     positions.push_back(position.x());
     positions.push_back(position.y());
@@ -100,6 +105,142 @@ void extract_lines_for_frame(const SurfelGraphPtr &graphPtr,
     colours.push_back(1.0f - err); // grn
     colours.push_back(0.0f); // blu
     colours.push_back(1.0f); // alp
+  }
+}
+
+std::vector<size_t>
+sort_neighbours_around_centroid(
+    const Eigen::Vector3f &centroid,
+    const Eigen::Vector3f &normal,
+    const Eigen::Vector3f &t1,
+    const Eigen::Vector3f &t2,
+    const std::vector<Eigen::Vector3f> &points
+) {
+  using namespace std;
+
+  // Make index vector
+  vector<size_t> idx(points.size());
+  iota(idx.begin(), idx.end(), 0);
+
+  // Generate atan2 for each
+  std::vector<double> keys;
+  for (const auto &p: points) {
+    const auto r = p - centroid;
+    const auto t = normal.dot(r.cross(t1));
+    const auto u = normal.dot(r.cross(t2));
+    keys.emplace_back(std::atan2(u, t));
+  }
+
+  stable_sort(begin(idx), end(idx),
+              [&keys](const size_t v1_index, const size_t &v2_index) {
+                return keys.at(v1_index) > keys.at(v2_index);
+              });
+  return idx;
+}
+
+size_t
+find_start(
+    const Eigen::Vector3f &vertex,
+    const Eigen::Vector3f &normal,
+    const std::vector<size_t> &ordered_indices,
+    const std::vector<Eigen::Vector3f> &vertices
+) {
+  using namespace std;
+  // Iterate through the triangles until we find one that is invalid
+  // or else we get back to the start
+  auto tentative_start_index = 0;
+  while (tentative_start_index < ordered_indices.size()) {
+    auto curr_vert_index = ordered_indices.at(tentative_start_index);
+    auto next_vert_index = ordered_indices.at((tentative_start_index + 1) % ordered_indices.size());
+    auto curr_vert = vertices.at(curr_vert_index);
+    auto next_vert = vertices.at(next_vert_index);
+    auto nn = (curr_vert - vertex).cross(next_vert - curr_vert);
+    if (nn.dot(normal) >= 0) {
+      // Found invalid triangle.
+      break;
+    }
+    tentative_start_index++;
+  }
+  return (tentative_start_index == ordered_indices.size())
+         ? 0
+         : (tentative_start_index + 1) % ordered_indices.size();
+}
+
+void rosy_surfel_graph_geometry_extractor::extract_splats_for_frame(
+    const SurfelGraphPtr &graphPtr,
+    unsigned int frame_idx,
+    std::vector<float> &triangle_fan,
+    std::vector<unsigned int> &triangle_fan_sizes
+) {
+  using namespace std;
+  using namespace Eigen;
+
+  for (const auto &node: graphPtr->nodes()) {
+    // Ignore if not in frame
+    if (!node->data()->is_in_frame(frame_idx)) {
+      continue;
+    }
+
+    auto neighbours = get_node_neighbours_in_frame(graphPtr, node, frame_idx);
+    Vector3f vertex, tangent, normal;
+    node->data()->get_vertex_tangent_normal_for_frame(frame_idx, vertex, tangent, normal);
+    Vector3f nbr_vertex, nbr_tangent, nbr_normal;
+    // Ignore single neighbours (for now)
+    if (neighbours.size() == 1) {
+      continue;
+    }
+
+    vector<Vector3f> neighbour_coords;
+    for (const auto &nbr: neighbours) {
+      nbr->data()->get_vertex_tangent_normal_for_frame(frame_idx, nbr_vertex, nbr_tangent, nbr_normal);
+      neighbour_coords.push_back(nbr_vertex);
+    }
+
+    // Compute centroid
+    Vector3f centroid;
+    for (const auto &coord: neighbour_coords) {
+      centroid += coord;
+    }
+    float divisor = 1.0f / (float) neighbour_coords.size();
+    centroid *= divisor;
+
+    // Sort them CCW around normal, returning indices
+    const auto ordered_indices = sort_neighbours_around_centroid(
+        vertex,
+        normal,
+        tangent,
+        normal.cross(tangent),
+        neighbour_coords
+    );
+
+    // Add all the tringgles
+    int fan_size = 0;
+    for (auto idx = 0; idx < ordered_indices.size(); ++idx) {
+      auto curr_vert_index = ordered_indices.at(idx);
+      auto next_vert_index = ordered_indices.at((idx + 1) % ordered_indices.size());
+      auto curr_vert = neighbour_coords.at(curr_vert_index);
+      auto next_vert = neighbour_coords.at(next_vert_index);
+      auto nn = (curr_vert - vertex).cross(next_vert - curr_vert);
+      if (nn.dot(normal) >= 0) {
+        // Found invalid triangle, ignore it.
+        continue;
+      }
+
+      triangle_fan.emplace_back(vertex[0]);
+      triangle_fan.emplace_back(vertex[1]);
+      triangle_fan.emplace_back(vertex[2]);
+
+      triangle_fan.emplace_back(curr_vert[0]);
+      triangle_fan.emplace_back(curr_vert[1]);
+      triangle_fan.emplace_back(curr_vert[2]);
+
+      triangle_fan.emplace_back(next_vert[0]);
+      triangle_fan.emplace_back(next_vert[1]);
+      triangle_fan.emplace_back(next_vert[2]);
+
+      fan_size++;
+    }
+    triangle_fan_sizes.push_back(fan_size);
   }
 }
 
@@ -151,16 +292,102 @@ void rosy_surfel_graph_geometry_extractor::extract_geometry(
     std::vector<float> &normals,
     std::vector<float> &colours,
     std::vector<float> &path,
+    std::vector<float> &triangle_fan,
+    std::vector<unsigned int> &triangle_fan_sizes,
     float &normal_scale
-) const {
+) {
   positions.clear();
   tangents.clear();
   normals.clear();
   path.clear();
   colours.clear();
+  triangle_fan.clear();
+  triangle_fan_sizes.clear();
+  m_vertex_to_node.clear();
+
+  m_graph_ptr = graphPtr;
 
   extract_lines_for_frame(graphPtr, get_frame(), positions, tangents, normals, colours);
+  extract_splats_for_frame(graphPtr, get_frame(), triangle_fan, triangle_fan_sizes);
   std::string vertex = "s_500";
   extract_lines_for_path(graphPtr, get_frame(), vertex, path);
   normal_scale = m_spur_length;
+
+}
+
+void
+rosy_surfel_graph_geometry_extractor::select_item_and_neighbours_at(
+    const Eigen::Vector3f &item_vertex,
+    std::vector<float> &selected_item_data,
+    std::vector<float> &neighbour_data
+) {
+  using namespace std;
+  using namespace Eigen;
+
+
+  auto it = m_vertex_to_node.find(item_vertex);
+  if (it == m_vertex_to_node.end()) {
+    m_selected_node = nullptr;
+    selected_item_data.clear();
+    neighbour_data.clear();
+    return;
+  }
+
+  m_selected_node = it->second;
+  update_selection_and_neighbours(selected_item_data, neighbour_data);
+//    const auto &selected_surfel = m_selected_node->data();
+//    ui->lblSurfelId->setText(QString::fromStdString(selected_surfel->id()));
+//    ui->lblSurfelTanX->setText(QString::number(selected_surfel->tangent()[0]));
+//    ui->lblSurfelTanY->setText(QString::number(selected_surfel->tangent()[1]));
+//    ui->lblSurfelTanZ->setText(QString::number(selected_surfel->tangent()[2]));
+//    ui->lblSurfelCorrection->setText(QString::number(selected_surfel->rosy_correction()));
+//    ui->lblSurfelSmoothness->setText(QString::number(selected_surfel->rosy_smoothness()));
+//
+//    auto nbr_data = m_rosy_geometry_extractor->get_neighbours_for_item(m_graph_ptr, m_selected_node);
+//    ui->rosyGLWidget->setNeighbourData(nbr_data);
+}
+
+void rosy_surfel_graph_geometry_extractor::update_selection_and_neighbours(
+    std::vector<float> &selected_item_data,
+    std::vector<float> &neighbour_data
+) {
+  using namespace Eigen;
+  using namespace std;
+
+  selected_item_data.clear();
+  neighbour_data.clear();
+
+  if (m_selected_node == nullptr) {
+    return;
+  }
+
+  if (!m_selected_node->data()->is_in_frame(get_frame())) {
+    return;
+  }
+
+  Vector3f vertex, tangent, normal;
+  m_selected_node->data()->get_vertex_tangent_normal_for_frame(get_frame(), vertex, tangent, normal);
+
+  // Construct the rectangle enclosing the node
+  selected_item_data.push_back(vertex[0]);
+  selected_item_data.push_back(vertex[1]);
+  selected_item_data.push_back(vertex[2]);
+
+  // Construct the lines to neighbours
+  auto nbrs = m_graph_ptr->neighbours(m_selected_node);
+  for (const auto &nbr: nbrs) {
+    if (!nbr->data()->is_in_frame(get_frame())) {
+      continue;
+    }
+
+    Vector3f nbr_vertex, nbr_tangent, nbr_normal;
+    nbr->data()->get_vertex_tangent_normal_for_frame(get_frame(), nbr_vertex, nbr_tangent, nbr_normal);
+
+    neighbour_data.push_back(vertex[0]);
+    neighbour_data.push_back(vertex[1]);
+    neighbour_data.push_back(vertex[2]);
+    neighbour_data.push_back(nbr_vertex[0]);
+    neighbour_data.push_back(nbr_vertex[1]);
+    neighbour_data.push_back(nbr_vertex[2]);
+  }
 }

@@ -1,0 +1,243 @@
+{
+	"BUILD_DIR" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/field_visualiser_autogen",
+	"CMAKE_BINARY_DIR" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug",
+	"CMAKE_CURRENT_BINARY_DIR" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/Users/dave/Animesh/src/tools/field_visualiser",
+	"CMAKE_EXECUTABLE" : "/Applications/CMake.app/Contents/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/Users/dave/Animesh/src/tools/field_visualiser/CMakeLists.txt",
+		"/Users/dave/Qt/Qt Creator.app/Contents/Resources/package-manager/auto-setup.cmake",
+		"/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/CMakeFiles/3.22.0/CMakeSystem.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeSystemSpecificInitialize.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Darwin-Initialize.cmake",
+		"/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/CMakeFiles/3.22.0/CMakeCCompiler.cmake",
+		"/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/CMakeFiles/3.22.0/CMakeCXXCompiler.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeSystemSpecificInformation.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeGenericSystem.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeInitializeConfigs.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Darwin.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/UnixPaths.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeCInformation.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeLanguageInformation.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/AppleClang-C.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/Clang.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/CMakeCommonCompilerMacros.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/GNU.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/CMakeCommonCompilerMacros.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Apple-AppleClang-C.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Apple-Clang-C.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Apple-Clang.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeCommonLanguageInclude.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeCXXInformation.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeLanguageInformation.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/AppleClang-CXX.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Compiler/Clang.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Apple-AppleClang-CXX.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Apple-Clang-CXX.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/Platform/Apple-Clang.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeCommonLanguageInclude.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigVersion.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfig.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfigVersion.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfig.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigVersion.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfig.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigExtras.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreConfigExtrasMkspecDir.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Core/Qt5CoreMacros.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeParseArguments.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QCocoaIntegrationPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QGifPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QICNSPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QICOPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QJpegPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMacHeifPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMacJp2Plugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QMinimalIntegrationPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QOffscreenIntegrationPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QSvgIconPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QSvgPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTgaPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTiffPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QTuioTouchPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QVirtualKeyboardPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWbmpPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWebGLIntegrationPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QWebpPlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5Gui_QXdgDesktopPortalThemePlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5Widgets_QMacStylePlugin.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsConfigExtras.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5Widgets/Qt5WidgetsMacros.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeParseArguments.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5OpenGL/Qt5OpenGLConfigVersion.cmake",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/cmake/Qt5OpenGL/Qt5OpenGLConfig.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/FindOpenGL.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/FindPackageHandleStandardArgs.cmake",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/FindPackageMessage.cmake"
+	],
+	"CMAKE_SOURCE_DIR" : "/Users/dave/Animesh/src/tools/field_visualiser",
+	"DEP_FILE" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/field_visualiser_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "field_visualiser_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/field_gl_widget.h",
+			"MU",
+			"EWIEGA46WW/moc_field_gl_widget.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/field_visualiser_window.h",
+			"MU",
+			"EWIEGA46WW/moc_field_visualiser_window.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/geometry_extractor.h",
+			"MU",
+			"EWIEGA46WW/moc_geometry_extractor.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/posy/posy_gl_widget.h",
+			"MU",
+			"MAJR2BR6N6/moc_posy_gl_widget.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/posy/posy_surfel_graph_geometry_extractor.h",
+			"MU",
+			"MAJR2BR6N6/moc_posy_surfel_graph_geometry_extractor.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/quad/quad_geometry_extractor.h",
+			"MU",
+			"66KARYQYAJ/moc_quad_geometry_extractor.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/quad/quad_gl_widget.h",
+			"MU",
+			"66KARYQYAJ/moc_quad_gl_widget.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/rosy/rosy_gl_widget.h",
+			"MU",
+			"QMJ2YTHOMJ/moc_rosy_gl_widget.cpp",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/rosy/rosy_surfel_graph_geometry_extractor.h",
+			"MU",
+			"QMJ2YTHOMJ/moc_rosy_surfel_graph_geometry_extractor.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/field_visualiser_autogen/include",
+	"MOC_COMPILATION_FILE" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/field_visualiser_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : [ "QT_CORE_LIB", "QT_GUI_LIB", "QT_OPENGL_LIB", "QT_WIDGETS_LIB" ],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/Users/dave/Animesh/src/tools/field_visualiser",
+		"/Users/dave/Animesh/src/tools/field_visualiser/quad",
+		"/Users/dave/Animesh/src/tools/field_visualiser/rosy",
+		"/Users/dave/Animesh/src/tools/field_visualiser/posy",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtWidgets.framework",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtWidgets.framework/Headers",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtGui.framework",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtGui.framework/Headers",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/OpenGL.framework/Headers",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtCore.framework",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtCore.framework/Headers",
+		"/Users/dave/Qt/5.15.2/clang_64/mkspecs/macx-clang",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtOpenGL.framework",
+		"/Users/dave/Qt/5.15.2/clang_64/lib/QtOpenGL.framework/Headers",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/usr/include/c++/v1",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/13.0.0/include",
+		"/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/usr/include",
+		"/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/clang++",
+		"-dM",
+		"-E",
+		"-c",
+		"/Applications/CMake.app/Contents/share/cmake-3.22/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/field_visualiser_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 10,
+	"PARSE_CACHE_FILE" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/CMakeFiles/field_visualiser_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/Users/dave/Qt/5.15.2/clang_64/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/Users/dave/Qt/5.15.2/clang_64/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"QT_VERSION_MINOR" : 15,
+	"SETTINGS_FILE" : "/Users/dave/Animesh/src/tools/build-field_visualiser-Desktop_Qt_5_15_2_clang_64bit-Debug/CMakeFiles/field_visualiser_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/field_gl_widget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/field_visualiser_window.cpp",
+			"MU",
+			null
+		],
+		[ "/Users/dave/Animesh/src/tools/field_visualiser/main.cpp", "MU", null ],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/posy/posy_gl_widget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/posy/posy_surfel_graph_geometry_extractor.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/quad/quad_geometry_extractor.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/quad/quad_gl_widget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/rosy/rosy_gl_widget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/Users/dave/Animesh/src/tools/field_visualiser/rosy/rosy_surfel_graph_geometry_extractor.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"VERBOSITY" : 0
+}

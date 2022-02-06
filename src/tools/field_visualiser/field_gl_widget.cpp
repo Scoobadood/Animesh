@@ -8,7 +8,6 @@
 #include <QVector4D>
 #include <QMatrix4x4>
 #include <QMouseEvent>
-#include <iostream>
 
 #include "field_gl_widget.h"
 
@@ -24,10 +23,7 @@ field_gl_widget::field_gl_widget(
     , m_projectionMatrixIsDirty{true} //
     , m_projection_matrix{} //
     , m_model_view_matrix{} //
-    , m_render_mouse_ray{false} //
     , m_light_enabled{false} //
-    , m_pixel_x{0} //
-    , m_pixel_y{0} //
 {
   setFocusPolicy(Qt::FocusPolicy::StrongFocus);
   setFocus();
@@ -103,34 +99,6 @@ field_gl_widget::maybe_update_projection_matrix() {
   }
 }
 
-void field_gl_widget::maybe_render_mouse_ray() {
-  if (!m_render_mouse_ray) {
-    return;
-  }
-  glColor4d(1.0, 0.0, 1.0, 1.0);
-
-  float old_line_width;
-  glGetFloatv(GL_LINE_WIDTH, &old_line_width);
-  glLineWidth(15.0f);
-
-  float old_point_size;
-  glGetFloatv(GL_POINT_SIZE, &old_point_size);
-  glPointSize(20.0f);
-
-  glBegin(GL_POINTS);
-  glVertex3f(m_near_point[0], m_near_point[1], m_near_point[2]);
-  glVertex3f(m_far_point[0], m_far_point[1], m_far_point[2]);
-  glEnd();
-  glBegin(GL_LINES);
-  glVertex3f(m_near_point[0], m_near_point[1], m_near_point[2]);
-  glVertex3f(m_far_point[0], m_far_point[1], m_far_point[2]);
-  glEnd();
-
-  checkGLError("maybe_render_mouse_ray");
-  glLineWidth(old_line_width);
-  glPointSize(old_point_size);
-}
-
 void
 field_gl_widget::paintGL() {
   clear();
@@ -140,8 +108,6 @@ field_gl_widget::paintGL() {
   update_model_matrix();
 
   maybe_update_light();
-
-  maybe_render_mouse_ray();
 
   do_paint();
 }
@@ -266,27 +232,45 @@ field_gl_widget::get_ray_data(unsigned int pixel_x,
   );
 }
 
-int
-field_gl_widget::find_closest_vertex(unsigned int pixel_x, unsigned int pixel_y,
-                                     std::vector<float> &items, float &distance) {
-  using namespace Eigen;
-  Vector3f camera_origin, ray_direction;
-  get_ray_data(pixel_x, pixel_y, camera_origin, ray_direction);
 
+
+
+
+/*
+ *
+ */
+int
+field_gl_widget::find_closest_vertex(const Eigen::Vector3f& camera_origin,
+                                     const Eigen::Vector3f& ray_direction,
+                                     std::vector<Eigen::Vector3f> &items,
+                                     float &distance) {
+  using namespace Eigen;
   distance = std::numeric_limits<float>::max();
   int closest_idx = -1;
-  for (int idx = 0; idx < items.size() / 3; ++idx) {
-    const Eigen::Vector3f point{items[idx * 3 + 0],
-                                items[idx * 3 + 1],
-                                items[idx * 3 + 2]};
-    const auto point_vector = (point - camera_origin).normalized();
-    const auto point_vector_u = point_vector.dot(ray_direction) * ray_direction;
-    const auto point_vector_v = point_vector - point_vector_u;
-    auto dist2 = point_vector_v.squaredNorm();
+  int idx = 0;
+  for (const auto& item : items) {
+
+    // CP
+    const auto point_vector = (item - camera_origin);
+
+    // Cos theta
+    const double cos_theta = point_vector.normalized().dot(ray_direction);
+
+    // len(CX)
+    const auto len_cx = cos_theta * point_vector.norm();
+
+    // Vec CX
+    const auto cx = len_cx * ray_direction;
+
+    // Vec XP = CP - CX
+    const auto xp = point_vector - cx;
+
+    auto dist2 = xp.squaredNorm();
     if (dist2 < distance) {
       distance = dist2;
       closest_idx = idx;
     }
+    ++idx;
   }
   distance = std::sqrtf(distance);
   return closest_idx;
@@ -320,14 +304,11 @@ field_gl_widget::find_closest_edge(unsigned int pixel_x,
 }
 
 void
-field_gl_widget::mousePressEvent(QMouseEvent *event) {
-  m_pixel_x = event->x();
-  m_pixel_y = event->y();
-}
-
-void
 field_gl_widget::mouseReleaseEvent(QMouseEvent *event) {
-  click_at(m_pixel_x, m_pixel_y);
+  using namespace Eigen;
+  Vector3f camera_origin, ray_direction;
+  get_ray_data(event->x(), event->y(), camera_origin, ray_direction);
+  select(camera_origin, ray_direction);
 }
 
 

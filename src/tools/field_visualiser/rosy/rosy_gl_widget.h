@@ -28,9 +28,13 @@ class rosy_gl_widget : public field_gl_widget {
                    const std::vector<float> &tangents,
                    const std::vector<float> &colours,
                    const std::vector<float> &path,
+                   const std::vector<float> &triangle_fans,
+                   const std::vector<unsigned int> &triangle_fan_sizes,
                    float scale_factor);
 
   void renderNormals(bool shouldRender);
+
+  void renderNeighbours(bool shouldRender);
 
   void renderMainTangents(bool shouldRender);
 
@@ -49,7 +53,8 @@ class rosy_gl_widget : public field_gl_widget {
 
   void initializeGL() override;
 
-  void click_at(unsigned int x, unsigned int y) override;
+  void select(const Eigen::Vector3f &camera_origin,
+              const Eigen::Vector3f &ray_direction) override;
 
  private:
   std::vector<float> m_positions;
@@ -57,16 +62,23 @@ class rosy_gl_widget : public field_gl_widget {
   std::vector<float> m_normals;
   std::vector<float> m_colours;
   std::vector<float> m_path;
+  std::vector<float> m_neighbour_data;
+  std::vector<float> m_selected_item_data;
+  std::vector<float> m_triangle_fans;
+  std::vector<unsigned int> m_triangle_fan_sizes;
   float m_normalScaleFactor;
   bool m_renderNormals;
   bool m_renderPath;
   bool m_renderSplats;
+  bool m_renderNeighbours;
   bool m_renderMainTangents;
   bool m_renderOtherTangents;
   bool m_renderErrorColours;
   QColor m_normalColour;
   QColor m_pathColour;
+  QColor m_selected_colour;
   QColor m_splatColour;
+  QColor m_neighbourColour;
   QColor m_mainTangentColour;
   QColor m_otherTangentsColour;
 
@@ -77,6 +89,10 @@ class rosy_gl_widget : public field_gl_widget {
   void maybeDrawSplats() const;
 
   void maybeDrawPath() const;
+
+  void maybeHighlightSelectedItem() const;
+
+  void maybeDrawNeighbours() const;
 
   void maybeDrawMainTangents() const;
 

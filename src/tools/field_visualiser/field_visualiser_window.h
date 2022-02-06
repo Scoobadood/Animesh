@@ -17,34 +17,36 @@ namespace Ui { class field_visualiser_window; }
 QT_END_NAMESPACE
 
 class field_visualiser_window : public QMainWindow {
-Q_OBJECT
+ Q_OBJECT
 
-public:
-    field_visualiser_window(Properties properties, std::default_random_engine & rng, QWidget *parent = nullptr);
+ public:
+  rosy_surfel_graph_geometry_extractor *m_rosy_geometry_extractor;
 
-    ~field_visualiser_window() override;
+  field_visualiser_window(Properties properties, std::default_random_engine &rng, QWidget *parent = nullptr);
 
-    void set_graph(SurfelGraphPtr graph_ptr);
+  ~field_visualiser_window() override;
 
-private slots:
+  void set_graph(SurfelGraphPtr graph_ptr);
 
-    void fileOpenAction();
+ private slots:
 
-    void frameChanged(int value);
+  void fileOpenAction();
 
-    void quad_vertex_selected(int i);
+  void frameChanged(int value);
 
-private:
-    std::shared_ptr<AbstractArcBall> m_arc_ball;
-    QTimer * m_timer;
-    std::map<std::pair<std::string,std::string>, std::shared_ptr<SurfelGraphEdge>>m_edge_from_node_names;
+  void quad_vertex_selected(int i);
 
-    std::default_random_engine & m_random_engine;
-    Ui::field_visualiser_window *ui;
-    SurfelGraphPtr m_graph_ptr;
-    Properties m_properties;
-    posy_surfel_graph_geometry_extractor *m_posy_geometry_extractor;
-    rosy_surfel_graph_geometry_extractor *m_rosy_geometry_extractor;
-    quad_geometry_extractor * m_quad_geometry_extractor;
-    void extract_geometry(bool rebuild_edge_graph = true);
+ private:
+  std::shared_ptr<AbstractArcBall> m_arc_ball;
+  QTimer *m_timer;
+  std::map<std::pair<std::string, std::string>, std::shared_ptr<SurfelGraphEdge>> m_edge_from_node_names;
+  std::default_random_engine &m_random_engine;
+  Ui::field_visualiser_window *ui;
+  SurfelGraphNodePtr m_selected_node;
+  bool m_selected_node_is_visible;
+  SurfelGraphPtr m_graph_ptr;
+  Properties m_properties;
+  posy_surfel_graph_geometry_extractor *m_posy_geometry_extractor;
+  quad_geometry_extractor *m_quad_geometry_extractor;
+  void extract_geometry(bool rebuild_edge_graph = true);
 };

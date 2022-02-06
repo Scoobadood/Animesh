@@ -9,15 +9,15 @@
 #include <ArcBall/AbstractArcBall.h>
 
 class field_gl_widget : public QOpenGLWidget {
-Q_OBJECT
-public:
+ Q_OBJECT
+ public:
   explicit field_gl_widget(
       QWidget *parent = nullptr,
       Qt::WindowFlags f = Qt::WindowFlags());
 
   void set_arc_ball(const std::shared_ptr<AbstractArcBall> &arc_ball);
 
-protected:
+ protected:
   void paintGL() override;
 
   virtual void do_paint() = 0;
@@ -42,13 +42,13 @@ protected:
 
   void maybe_update_light() const;
 
-protected:
-  int find_closest_vertex(unsigned int pixel_x,
-                          unsigned int pixel_y,
-                          std::vector<float> &items, /// assumed XYZ triples
+ protected:
+  static int find_closest_vertex(const Eigen::Vector3f &camera_origin,
+                          const Eigen::Vector3f &ray_direction,
+                          std::vector<Eigen::Vector3f> &items,
                           float &distance);
 
-  virtual void click_at( unsigned int x, unsigned int y){};
+  virtual void select(const Eigen::Vector3f &camera_origin, const Eigen::Vector3f &ray_direction) {};
 
  private:
   void get_ray_data(unsigned int pixel_x,
@@ -68,16 +68,11 @@ protected:
 
   Eigen::Vector3f m_near_point;
   Eigen::Vector3f m_far_point;
-  bool m_render_mouse_ray;
   bool m_light_enabled;
-  void maybe_render_mouse_ray();
 
   void update_model_matrix();
   Eigen::Vector3f ray_direction_for_pixel(unsigned int pixel_x, unsigned int pixel_y);
 
   void maybe_update_projection_matrix();
-  void mousePressEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
-  unsigned int m_pixel_x;
-  unsigned int m_pixel_y;
 };

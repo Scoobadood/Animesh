@@ -52,9 +52,16 @@ private:
   void generate_new_level();
 
   /**
-   * Compute the mean normal for the given node across
-   * all frames in which it appears.
-   */
+ * Generate the next level for this multi-resolution graph.
+ * Uses an additive approach
+ */
+  void generate_new_level_additive();
+
+
+    /**
+     * Compute the mean normal for the given node across
+     * all frames in which it appears.
+     */
   static Eigen::Vector3f
   compute_mean_normal(const SurfelGraphNodePtr &graph_node_ptr);
 

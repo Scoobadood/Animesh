@@ -1,5 +1,5 @@
 #include "rosy_gl_widget.h"
-
+#include "field_visualiser_window.h"
 #include <vector>
 #include <QColor>
 #include <Geom/Geom.h>
@@ -11,25 +11,19 @@ rosy_gl_widget::rosy_gl_widget(
     , m_renderNormals{true} //
     , m_renderPath{true} //
     , m_renderSplats{false} //
+    , m_renderNeighbours{false} //
     , m_renderMainTangents{true} //
     , m_renderOtherTangents{true} //
     , m_renderErrorColours{true} //
     , m_normalColour{QColor{255, 255, 255, 255}} //
     , m_pathColour{QColor{0, 216, 197, 255}} //
+    , m_selected_colour{QColor{200, 10, 200, 255}} //
     , m_splatColour{QColor{88, 116, 167, 255}} //
+    , m_neighbourColour{QColor{255, 255, 0, 255}} //
     , m_mainTangentColour{QColor{255, 0, 0, 255}} //
     , m_otherTangentsColour{QColor{0, 255, 0, 255}} //
 {
   setFocus();
-  // Dummy data
-  setRoSyData(
-      std::vector<float>{0.0f, 0.0f, 0.0f},
-      std::vector<float>{0.0f, 1.0f, 0.0f},
-      std::vector<float>{0.0f, 0.0f, 1.0f},
-      std::vector<float>{0.0f, 1.0f, 0.0f, 1.0f},
-      std::vector<float>{},
-      1.0f
-  );
 }
 
 void drawEllipse(float cx, float cy, float cz,
@@ -64,35 +58,27 @@ rosy_gl_widget::maybeDrawSplats() const {
     return;
   }
 
-//  glEnable(GL_LIGHT0);
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-  float pos[]{0, 0, 0, 1};
-  glLightfv(GL_LIGHT0, GL_POSITION, pos);
-  float dir[]{0, 0, -1};
-  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
-  glPopMatrix();
-
   glColor4d(m_splatColour.redF(), m_splatColour.greenF(),
             m_splatColour.blueF(), m_splatColour.alphaF());
 
-  for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
-    drawEllipse(m_positions.at(i * 3 + 0),
-                m_positions.at(i * 3 + 1),
-                m_positions.at(i * 3 + 2),
-                m_normals.at(i * 3 + 0),
-                m_normals.at(i * 3 + 1),
-                m_normals.at(i * 3 + 2),
-                m_tangents.at(i * 3 + 0),
-                m_tangents.at(i * 3 + 1),
-                m_tangents.at(i * 3 + 2),
-                1,
-                0.05f,
-                10
-    );
+  int idx = 0;
+  glBegin(GL_TRIANGLES);
+  for (auto ts : m_triangle_fan_sizes) {
+    for (int i = 0; i < ts; ++i) {
+      glVertex3f(m_triangle_fans[idx],
+                 m_triangle_fans[idx + 1],
+                 m_triangle_fans[idx + 2]);
+      glVertex3f(m_triangle_fans[idx + 3],
+                 m_triangle_fans[idx + 4],
+                 m_triangle_fans[idx + 5]);
+      glVertex3f(m_triangle_fans[idx + 6],
+                 m_triangle_fans[idx + 7],
+                 m_triangle_fans[idx + 8]);
+      idx += 9;
+    }
   }
-//  glDisable(GL_LIGHT0);
+  glEnd();
+
   checkGLError("maybeDrawSplats");
 }
 
@@ -104,16 +90,6 @@ rosy_gl_widget::maybeDrawPath() const {
   if (m_path.empty()) {
     return;
   }
-
-  //  glEnable(GL_LIGHT0);
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-  float pos[]{0, 0, 0, 1};
-  glLightfv(GL_LIGHT0, GL_POSITION, pos);
-  float dir[]{0, 0, -1};
-  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, dir);
-  glPopMatrix();
 
   for (unsigned int i = 0; i < m_path.size() / 13; ++i) {
     glColor4f(m_path.at(i * 13 + 0),
@@ -132,7 +108,6 @@ rosy_gl_widget::maybeDrawPath() const {
                 0.25, 0.03f, 10
     );
   }
-//  glDisable(GL_LIGHT0);
   checkGLError("maybeDrawPath");
 }
 
@@ -194,6 +169,56 @@ rosy_gl_widget::drawPositions() const {
 }
 
 void
+rosy_gl_widget::maybeHighlightSelectedItem() const {
+  if (m_selected_item_data.empty()) {
+    return;
+  }
+  glColor4d(m_selected_colour.redF(),
+            m_selected_colour.greenF(),
+            m_selected_colour.blueF(),
+            m_selected_colour.alphaF());
+
+  float oldPointSize;
+  glGetFloatv(GL_POINT_SIZE, &oldPointSize);
+  glPointSize(5.0f);
+  glEnable(GL_POINT_SMOOTH);
+  glBegin(GL_POINTS);
+  glVertex3f(m_selected_item_data.at(0),
+             m_selected_item_data.at(1),
+             m_selected_item_data.at(2));
+  glEnd();
+  glDisable(GL_POINT_SMOOTH);
+  glPointSize(oldPointSize);
+
+  checkGLError("maybeHighlightSelectedItem");
+}
+
+void
+rosy_gl_widget::maybeDrawNeighbours() const {
+  if (!m_renderNeighbours) {
+    return;
+  }
+  if (m_neighbour_data.empty()) {
+    return;
+  }
+  glColor4d(m_neighbourColour.redF(),
+            m_neighbourColour.greenF(),
+            m_neighbourColour.blueF(),
+            m_neighbourColour.alphaF());
+  glBegin(GL_LINES);
+  for (int i = 0; i < m_neighbour_data.size(); i += 6) {
+    glVertex3f(m_neighbour_data.at(i + 0),
+               m_neighbour_data.at(i + 1),
+               m_neighbour_data.at(i + 2));
+    glVertex3f(m_neighbour_data.at(i + 3),
+               m_neighbour_data.at(i + 4),
+               m_neighbour_data.at(i + 5));
+  }
+  glEnd();
+  checkGLError("maybeDrawNeighbours");
+}
+
+void
 rosy_gl_widget::maybeDrawMainTangents() const {
   if (!m_renderMainTangents) {
     return;
@@ -233,10 +258,10 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
   if (!m_renderOtherTangents) {
     return;
   }
-  glColor4f((GLfloat) m_otherTangentsColour.redF(),
-            (GLfloat) m_otherTangentsColour.greenF(),
-            (GLfloat) m_otherTangentsColour.blueF(),
-            (GLfloat) m_otherTangentsColour.alphaF());
+  glColor4d(m_otherTangentsColour.redF(),
+            m_otherTangentsColour.greenF(),
+            m_otherTangentsColour.blueF(),
+            m_otherTangentsColour.alphaF());
 
   for (unsigned int i = 0; i < m_positions.size() / 3; ++i) {
     if (m_renderErrorColours) {
@@ -244,7 +269,7 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
       auto g = m_colours.at(i * 4 + 1);
       auto b = m_colours.at(i * 4 + 2);
       auto a = m_colours.at(i * 4 + 3);
-      glColor4f(r, g, b, a);
+      glColor4d(r, g, b, a);
     }
     // Get perpendicular tangent by computing cross(norm,tan)
     const auto normX = m_normals.at(i * 3 + 0);
@@ -282,7 +307,6 @@ rosy_gl_widget::maybeDrawOtherTangents() const {
 
 void
 rosy_gl_widget::do_paint() {
-  glDepthRange(0.0, 0.999);
   drawPositions();
 
   maybeDrawNormals();
@@ -291,7 +315,9 @@ rosy_gl_widget::do_paint() {
 
   maybeDrawOtherTangents();
 
-  glDepthRange(0.01, 1.0f);
+  maybeHighlightSelectedItem();
+
+  maybeDrawNeighbours();
 
   maybeDrawPath();
 
@@ -304,19 +330,29 @@ rosy_gl_widget::setRoSyData(const std::vector<float> &positions,
                             const std::vector<float> &tangents,
                             const std::vector<float> &colours,
                             const std::vector<float> &path,
+                            const std::vector<float> &triangle_fans,
+                            const std::vector<unsigned int> &triangle_fan_sizes,
                             const float normal_scale_factor) {
   m_positions.clear();
   m_tangents.clear();
   m_normals.clear();
   m_colours.clear();
   m_path.clear();
+  m_triangle_fans.clear();
+  m_triangle_fan_sizes.clear();
 
   m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
   m_tangents.insert(m_tangents.begin(), tangents.begin(), tangents.end());
   m_normals.insert(m_normals.begin(), normals.begin(), normals.end());
   m_colours.insert(m_colours.begin(), colours.begin(), colours.end());
   m_path.insert(m_path.begin(), path.begin(), path.end());
+  m_triangle_fans.insert(m_triangle_fans.begin(), triangle_fans.begin(), triangle_fans.end());
+  m_triangle_fan_sizes.insert(m_triangle_fan_sizes.begin(), triangle_fan_sizes.begin(), triangle_fan_sizes.end());
   m_normalScaleFactor = normal_scale_factor;
+
+  const auto &w = window();
+  ((field_visualiser_window *) w)->m_rosy_geometry_extractor->update_selection_and_neighbours(m_selected_item_data,
+                                                                                              m_neighbour_data);
 }
 
 void
@@ -325,7 +361,7 @@ rosy_gl_widget::initializeGL() {
   glEnable(GL_NORMALIZE);
   glEnable(GL_COLOR_MATERIAL);
   glLineWidth(3.0f);
-  enable_light();
+//  enable_light();
 }
 
 void
@@ -350,6 +386,13 @@ rosy_gl_widget::renderSplats(bool shouldRender) {
 }
 
 void
+rosy_gl_widget::renderNeighbours(bool shouldRender) {
+  if (m_renderNeighbours != shouldRender) {
+    m_renderNeighbours = shouldRender;
+  }
+}
+
+void
 rosy_gl_widget::renderMainTangents(bool shouldRender) {
   if (m_renderMainTangents != shouldRender) {
     m_renderMainTangents = shouldRender;
@@ -370,8 +413,33 @@ rosy_gl_widget::renderErrorColours(bool shouldRender) {
   }
 }
 
-void rosy_gl_widget::click_at(unsigned int x, unsigned int y) {
-  std::vector<float> items;
+void rosy_gl_widget::select(const Eigen::Vector3f &camera_origin,
+                            const Eigen::Vector3f &ray_direction) {
+  using namespace std;
+  using namespace Eigen;
+
+  vector<Vector3f> items;
+  for (int i = 0; i < m_positions.size(); i += 3) {
+    items.emplace_back(m_positions[i],
+                       m_positions[i + 1],
+                       m_positions[i + 2]);
+  }
+
   float distance;
-  auto item = find_closest_vertex(x, y, items, distance);
+  int selected_item = find_closest_vertex(camera_origin, ray_direction, items, distance);
+  if (selected_item == -1) {
+    m_selected_item_data.clear();
+    m_neighbour_data.clear();
+  }
+  auto selected_vertex = items[selected_item];
+  spdlog::info("Selected item index {} ({:2.2f}, {:2.2f}, {:2.2f})",
+               selected_item,
+               selected_vertex[0],
+               selected_vertex[1],
+               selected_vertex[2]);
+
+  const auto w = window();
+  ((field_visualiser_window *) w)->m_rosy_geometry_extractor->select_item_and_neighbours_at(selected_vertex,
+                                                                                            m_selected_item_data,
+                                                                                            m_neighbour_data);
 }

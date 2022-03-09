@@ -120,6 +120,9 @@ target_link_libraries(
 )
 
 add_subdirectory(compute_pcl_correspondence)
+add_subdirectory(compute_corr_cilantro)
+add_subdirectory(compute_corr_pcl)
+add_subdirectory(compute_corr_teaser)
 add_subdirectory(data_gen)
 add_subdirectory(dmr)
 add_subdirectory(dm_to_data)

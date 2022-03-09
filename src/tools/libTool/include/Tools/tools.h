@@ -9,7 +9,7 @@
  * Load pointcloud from file
  */
 std::vector<Eigen::Vector3f>
-load_pointcloud(const std::string& pointcloud_filename);
+load_vec3f_from_file(const std::string& vec_filename);
 
 /**
  * Load all pointclouds from a directory given a regex pattern.
@@ -17,7 +17,7 @@ load_pointcloud(const std::string& pointcloud_filename);
  * number. This is assumed to be an integer and will be used as the key in the returned map.
  */
 std::map<unsigned int, std::vector<Eigen::Vector3f>>
-load_pointclouds(const std::string& directory, const std::string& regex);
+load_vec3s_from_directory(const std::string& directory, const std::string& pattern);
 
 std::map<unsigned int, Eigen::MatrixX3d>
-load_pointclouds_as_matrices(const std::string &directory, const std::string &pattern);
+load_vec3f_from_directory_as_matrices(const std::string &directory, const std::string &pattern);

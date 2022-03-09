@@ -1,41 +1,67 @@
 //
-// Created by Dave Durbin on 13/12/21.
+// Created by Dave Durbin on 7/3/2022.
 //
 
+#include <Eigen/Core>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl/registration/correspondence_estimation_normal_shooting.h>
 #include <vector>
-#include <map>
-#include <unordered_set>
 #include <fstream>
-
-#include <Surfel/PixelInFrame.h>
-#include <Correspondence/CorrespondenceIO.h>
-#include <Utilities/utilities.h>
-#include <Tools/tools.h>
-#include <cpd/nonrigid.hpp>
-#include <cpd/gauss_transform_fgt.hpp>
 #include <spdlog/spdlog.h>
-#include <cpd/rigid.hpp>
+#include <Properties/Properties.h>
+#include <Tools/tools.h>
+
+pcl::PointCloud<pcl::PointNormal>::Ptr
+convert_matrix_to_point_cloud(const Eigen::MatrixXd &source_cloud,
+                              const Eigen::MatrixXd &source_normals) {
+  using namespace pcl;
+
+  PointCloud<PointNormal>::Ptr cloud(new PointCloud<PointNormal>);
+  for (int i = 0; i < source_cloud.rows(); i++) {
+    pcl::PointNormal temp;
+    temp.x = source_cloud.row(i).x();
+    temp.y = source_cloud.row(i).y();
+    temp.z = source_cloud.row(i).z();
+    temp.normal_x = source_normals.row(i).x();
+    temp.normal_y = source_normals.row(i).y();
+    temp.normal_z = source_normals.row(i).z();
+    cloud->push_back(temp);
+  }
+  return cloud;
+}
 
 /**
- * Compute correspondences between two point clouds using CPD
+ * Compute correspondences between two point clouds using PCL
  */
 void
 compute_correspondences(const Eigen::MatrixX3d &from_point_cloud,
                         const Eigen::MatrixX3d &to_point_cloud,
+                        const Eigen::MatrixX3d &from_normals,
+                        const Eigen::MatrixX3d &to_normals,
                         std::map<unsigned int, unsigned int> &correspondence) {
   using namespace std;
-  using namespace cpd;
+  using namespace pcl;
 
-  Rigid rigid;
-  rigid.gauss_transform(move(unique_ptr<GaussTransform>(new GaussTransformFgt())));
-  rigid.correspondence(true)
-      .max_iterations(20)
-      .normalize(false);
-  RigidResult result = rigid.run(to_point_cloud, from_point_cloud);
-  correspondence.clear();
-  for (unsigned int i = 0; i < result.correspondence.size(); ++i) {
-    correspondence.emplace(i, result.correspondence(i));
-    spdlog::info( "{} -->  {}",i, result.correspondence(i));
+  // ... read or fill in source and target
+  registration::CorrespondenceEstimationNormalShooting<PointNormal, PointNormal, PointNormal> est;
+
+  const auto source = convert_matrix_to_point_cloud(from_point_cloud, from_normals);
+  est.setInputSource(source);
+  est.setSourceNormals(source);
+
+  const auto target = convert_matrix_to_point_cloud(to_point_cloud, to_normals);
+  est.setInputTarget(target);
+
+  // Test the first 10 correspondences for each point in source, and return the best
+  est.setKSearch(10);
+
+  // Determine all correspondences
+  pcl::Correspondences all_correspondences;
+  est.determineCorrespondences(all_correspondences);
+
+  for( const auto & corr : all_correspondences) {
+    correspondence.emplace( corr.index_query, corr.index_match);
   }
 }
 
@@ -47,8 +73,12 @@ int main(int argc, const char *argv[]) {
 
   // Load point clouds
   string pcloud_directory = properties.getProperty("corr-pc-directory");
+
   string pcloud_regex = properties.getProperty("corr-pc-regex");
   auto pointclouds = load_vec3f_from_directory_as_matrices(pcloud_directory, pcloud_regex);
+
+  string normal_regex = properties.getProperty("corr-norm-regex");
+  auto normals = load_vec3f_from_directory_as_matrices(pcloud_directory, normal_regex);
 
   struct frame_index {
     unsigned int frame;
@@ -95,14 +125,18 @@ int main(int argc, const char *argv[]) {
 
     // Compute correspondences
     corr.emplace_back();
-    compute_correspondences(pointclouds[from_frame], pointclouds[to_frame], corr.back());
+    compute_correspondences(pointclouds[from_frame],
+                            pointclouds[to_frame],
+                            normals[from_frame],
+                            normals[to_frame],
+                            corr.back());
 
     // For each correspondence
-    int ii=0;
+    int ii = 0;
     for (const auto &entry: corr.back()) {
       unsigned int from_point_idx = entry.first;
       unsigned int to_point_idx = entry.second;
-      spdlog::info("{}: {}, {}, {}, {}, {}, {} % {}",ii,
+      spdlog::info("{}: {}, {}, {}, {}, {}, {} % {}", ii,
                    pointclouds[from_frame](from_point_idx, 0),
                    pointclouds[from_frame](from_point_idx, 1),
                    pointclouds[from_frame](from_point_idx, 2),

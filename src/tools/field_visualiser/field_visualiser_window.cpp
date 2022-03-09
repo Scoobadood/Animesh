@@ -209,6 +209,9 @@ void
 field_visualiser_window::set_graph(SurfelGraphPtr graph_ptr) {
   using namespace std;
 
+  // Deselect any selected node.
+  m_selected_node = nullptr;
+
   m_quad_geometry_extractor->set_graph(graph_ptr);
   m_graph_ptr = std::move(graph_ptr);
   extract_geometry();
@@ -223,6 +226,10 @@ void field_visualiser_window::fileOpenAction() {
   QString fileName = QFileDialog::getOpenFileName(this,
                                                   tr("Open Graph"), "",
                                                   tr("Surfel Graph Files (*.bin);;All Files (*)"));
+  if( fileName.isNull() || fileName.isEmpty()) {
+    return;
+  }
+
   const auto graphPtr = load_surfel_graph_from_file(fileName.toStdString(),
                                                     m_random_engine);
   set_graph(graphPtr);

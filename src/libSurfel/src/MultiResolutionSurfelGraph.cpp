@@ -196,7 +196,6 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
   map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> upper_to_lower_mapping;
 
   SurfelGraphPtr new_graph = make_shared<SurfelGraph>();
-  map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> level_mapping;
   for (const auto &edge_and_score: edges_and_scores) {
 
     /*
@@ -279,104 +278,7 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
     }
   }
 
-
-
-  m_up_mapping.push_back(level_mapping);
-  m_levels.push_back(new_graph);
-}
-
-/**
- * Generate the next level for this multi-resolution graph.
- */
-void
-MultiResolutionSurfelGraph::generate_new_level() {
-  using namespace std;
-
-  SurfelGraphPtr new_graph = make_shared<SurfelGraph>(*m_levels.back());
-  /*
-   *  Preprocessing:
-   *  assign a dual area Ai to each vertex i (uniform Ai = 1, or Voronoi area when the input is a mesh).
-   */
-  map<string, int> dual_area_by_node;
-  for (const auto &node: new_graph->nodes()) {
-    dual_area_by_node.insert({node->data()->id(), 1});
-  }
-
-  // Compute mean normal for each vertex
-  map<string, Eigen::Vector3f> mean_normal_by_node;
-  for (const auto &node: new_graph->nodes()) {
-    auto mean_normal = compute_mean_normal(node);
-    mean_normal_by_node[node->data()->id()] = mean_normal;
-  }
-  map<SurfelGraph::Edge, float, SurfelGraphEdgeComparator> scores;
-
-
-  /*
-    2. Repeat the following phases until a fixed point is reached:
-      (a) For each pair of neighboring vertices i,j,
-          assign a score Sij := ⟨ni,nj⟩min(Ai/Aj, Aj/Ai).
-      (b) Traverse Sij in decreasing order and collapse vertices
-          i and j into a new vertex v if neither has been involved
-          in a collapse operation thus far. The new vertex is assigned
-          an area of Av = Ai + Aj , and its other properties are
-          given by area-weighted averages of the vertices that are
-          merged together.
-   */
-  compute_scores(new_graph, dual_area_by_node, mean_normal_by_node, scores);
-  vector<pair<SurfelGraph::Edge, float>> edges_and_scores;
-  edges_and_scores.reserve(scores.size());
-  for (auto &edge_and_score: scores) {
-    edges_and_scores.emplace_back(edge_and_score);
-  }
-  sort(edges_and_scores.begin(),
-       edges_and_scores.end(),
-       [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
-         return a.second > b.second;
-       }
-  );
-
-  SurfelBuilder sb{m_random_engine};
-  set<string> collapsed;
-
-  map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> level_mapping;
-  for (const auto &edge_and_score: edges_and_scores) {
-    const auto first_node = edge_and_score.first.from();
-    const auto second_node = edge_and_score.first.to();
-    const auto first_node_id = first_node->data()->id();
-    const auto second_node_id = second_node->data()->id();
-
-    // Only collapse if neither node has already been involved in a collapse
-    if (collapsed.count(first_node_id) > 0 ||
-        collapsed.count(second_node_id) > 0) {
-      continue;
-    }
-
-    // Perform the collapse and remember it.
-    auto new_node = new_graph->collapse_edge(
-        first_node, second_node,
-        [&](const std::shared_ptr<Surfel> &n1,
-            float w1,
-            const std::shared_ptr<Surfel> &n2,
-            float w2) {
-          return surfel_merge_function(n1, w1, n2, w2);
-        },
-        ::edge_merge_function,
-        (float) dual_area_by_node.at(first_node_id),
-        (float) dual_area_by_node.at(second_node_id));
-    collapsed.emplace(first_node_id);
-    collapsed.emplace(second_node_id);
-
-    // Update the dual areas
-    auto val = dual_area_by_node.at(first_node_id) + dual_area_by_node.at(second_node_id);
-    dual_area_by_node.erase(first_node_id);
-    dual_area_by_node.erase(second_node_id);
-    dual_area_by_node.insert({new_node->data()->id(), val});
-
-    // Update the node mapping table
-    level_mapping.insert({new_node, {first_node, second_node}});
-  }
-
-  m_up_mapping.push_back(level_mapping);
+  m_up_mapping.push_back(upper_to_lower_mapping);
   m_levels.push_back(new_graph);
 }
 
@@ -389,19 +291,16 @@ MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
   assert(from_level > 0);
   // For each node in the from_level graph,
   for (const auto &node: m_levels[from_level]->nodes()) {
-    auto mapping = m_up_mapping[from_level - 1].find(node);
+    auto & up_mapping = m_up_mapping[from_level - 1];
+    auto mapping = up_mapping.find(node);
     if (mapping == end(m_up_mapping[from_level - 1])) {
-      // Not found
-      for (auto &parent_node: m_levels[from_level - 1]->nodes()) {
-        if (parent_node->data()->id() == node->data()->id()) {
-          parent_node->data()->setTangent(node->data()->tangent());
-          parent_node->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
-          break;
-        }
-      }
+      spdlog::error( "Didn't find up mapping for node {} in level {}",node->data()->id(), from_level);
     } else {
       auto parents = mapping->second;
       // Find the nodes in the graph
+      spdlog::info( "Found parents for node {} in level {}: {} and {}",node->data()->id(), from_level,
+                    parents.first->data()->id(),
+                    parents.second->data()->id());
       parents.first->data()->setTangent(node->data()->tangent());
       parents.second->data()->setTangent(node->data()->tangent());
 

@@ -35,6 +35,11 @@ endif()
 # And Eigen
 find_package(eigen3 3.4 REQUIRED)
 
+# And PCL
+find_package(PCL 1.11 REQUIRED COMPONENTS common features search)
+include_directories(${PCL_INCLUDE_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 
 # Disable building extras we won't need (pure C++ project)
 #set(NANOGUI_BUILD_EXAMPLE OFF CACHE BOOL " " FORCE)

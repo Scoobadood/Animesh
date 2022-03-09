@@ -33,7 +33,7 @@ std::vector<std::vector<std::pair<unsigned int, unsigned int>>> load_paths(const
     for (const auto &entry: path_entries) {
 
       if (!regex_search(entry, matches, entry_r)) {
-        throw runtime_error("Invalid pth entry  " + entry);
+        throw runtime_error("Invalid path entry  " + entry);
       }
 
       // 0 is the whole string, 1 is fr, 2 is idx
@@ -80,7 +80,6 @@ bool plausible_neighbours( //
       continue;
     }
 
-    ++shared_frames;
     Eigen::Vector3f v1, n1, t1, v2, n2, t2;
     node1->data()->get_vertex_tangent_normal_for_frame(frameIdx, v1, t1, n1);
     node2->data()->get_vertex_tangent_normal_for_frame(frameIdx, v2, t2, n2);
@@ -88,6 +87,8 @@ bool plausible_neighbours( //
     if ((v1 - v2).norm() > nbr_threshold) {
       return false;
     }
+
+    ++shared_frames;
   }
   if (shared_frames == 1) {
     return false;
@@ -177,8 +178,8 @@ unsigned int extract_frame_from_pif_filename(std::string file_name, const std::s
   smatch matches;
   transform(file_name.begin(), file_name.end(), file_name.begin(), ::tolower);
   if (regex_search(file_name, matches, file_name_regex)) {
-    // 0 is the whole string, 1 is the level, 2 is the frame
-    return stoi(matches[2].str());
+    // 0 is the whole string, 1 is the frame
+    return stoi(matches[1].str());
   }
   throw runtime_error("pif file name is invalid " + file_name);
 }
@@ -252,7 +253,7 @@ int main(int argc, const char *argv[]) {
   auto pixel_by_frame = load_pifs(source_directory, pif_regex, num_frames);
   auto normals_by_frame = load_normals(normal_file_template, num_frames, level);
   string pattern = file_name_from_template_and_level("pointcloud_l%02d_f([0-9]{2}).txt", level);
-  auto vertices_by_frame = load_pointclouds(source_directory, pattern);
+  auto vertices_by_frame = load_vec3s_from_directory(source_directory, pattern);
 
   // Load paths
   auto paths = load_paths("paths.txt");

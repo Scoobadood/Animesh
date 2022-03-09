@@ -1,9 +1,6 @@
 # Need PCL
 set(Boost_NO_BOOST_CMAKE)
 #list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/share/pcl-1.11")
-find_package(PCL 1.11 REQUIRED COMPONENTS common features search)
-include_directories(${PCL_INCLUDE_DIRS})
-add_definitions(${PCL_DEFINITIONS})
 
 add_library(
 		DepthMap SHARED

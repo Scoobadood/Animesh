@@ -11,6 +11,8 @@ cmake-build-debug/
 
 reports/
 
+data/
+
 **/CMakeLists.txt.user
 build-QtMain-Desktop_Qt_5_12_0_clang_64bit-Default/
 build-src-Desktop_Qt_5_15_2_clang_64bit-Debug/

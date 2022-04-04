@@ -64,37 +64,151 @@ file_name_from_template_and_level(const std::string &file_name_template, unsigne
   return file_name;
 }
 
-bool plausible_neighbours( //
-    const SurfelGraphNodePtr &node1, //
-    const SurfelGraphNodePtr &node2, //
-    unsigned int num_frames, //
-    float nbr_threshold //
-    ) {
-  // Compute the distance between these nodes to determine if they are neighbours
-  unsigned int shared_frames = 0;
-  for (unsigned int frameIdx = 0; frameIdx < num_frames; ++frameIdx) {
-    if (!node1->data()->is_in_frame(frameIdx)) {
-      continue;
-    }
-    if (!node2->data()->is_in_frame(frameIdx)) {
-      continue;
-    }
+void
+cull_unreasonable_neighbours(
+    const SurfelGraphNodePtr &node,
+    std::vector<SurfelGraphNodePtr> &potential_neighbour_nodes) {
 
-    Eigen::Vector3f v1, n1, t1, v2, n2, t2;
-    node1->data()->get_vertex_tangent_normal_for_frame(frameIdx, v1, t1, n1);
-    node2->data()->get_vertex_tangent_normal_for_frame(frameIdx, v2, t2, n2);
+  auto &this_surfel = node->data();
 
-    if ((v1 - v2).norm() > nbr_threshold) {
-      return false;
-    }
+  bool should_log = (potential_neighbour_nodes.size() >= 8);
 
-    ++shared_frames;
-  }
-  if (shared_frames == 1) {
-    return false;
+  if (should_log) {
+    spdlog::info(
+        "Found a point with {} potential neighbours. Checking for culling of outliers.",
+        potential_neighbour_nodes.size());
   }
 
-  return true;
+  std::set<SurfelGraphNodePtr> cullable_neighbours;
+  for (const auto &neighbour: potential_neighbour_nodes) {
+    auto &that_surfel = neighbour->data();
+    int this_surfel_frame_idx = 0;
+    int that_surfel_frame_idx = 0;
+    std::vector<std::pair<int, float>> frame_to_dist;
+
+    while ((this_surfel_frame_idx < this_surfel->num_frames()) &&
+        (that_surfel_frame_idx < that_surfel->num_frames())) {
+      auto this_surfel_frame = this_surfel->frames()[this_surfel_frame_idx];
+      auto that_surfel_frame = that_surfel->frames()[that_surfel_frame_idx];
+      if (this_surfel_frame < that_surfel_frame) {
+        ++this_surfel_frame_idx;
+        continue;
+      }
+      if (this_surfel_frame > that_surfel_frame) {
+        ++that_surfel_frame_idx;
+        continue;
+      }
+      // Surfels coexist in this frame
+      float delta = (this_surfel->frame_data()[this_surfel_frame_idx].position
+          - that_surfel->frame_data()[this_surfel_frame_idx].position).norm();
+      frame_to_dist.emplace_back(this_surfel_frame, delta);
+      ++this_surfel_frame_idx;
+      ++that_surfel_frame_idx;
+    }
+
+    // OK we have a bunch of frames and associated distances
+    if (frame_to_dist.size() == 1) {
+      if (should_log) {
+        // Only neighbours in one frame - not really trustworthy.
+        spdlog::info("Point is only a neighbour on the basis of a single frame. Culling.");
+      }
+      cullable_neighbours.emplace(neighbour);
+      continue;
+    } else {
+      if (should_log) {
+        spdlog::info(
+            "Neighbour is apparently present in {} frames.",
+            frame_to_dist.size());
+      }
+    }
+
+
+    // Sort frame_to_dist by dist.
+    std::sort(frame_to_dist.begin(),
+              frame_to_dist.end(),
+              [](const std::pair<int, float> &p1, const std::pair<int, float> &p2) {
+                return p1.second < p2.second;
+              });
+
+    // These values...
+    if (should_log) {
+      for (const auto &x: frame_to_dist) {
+        spdlog::info(" [{}, {}] ", x.first, x.second);
+      }
+    }
+
+    // Compute q1 and q3
+    float q1, q2, q3;
+    size_t q2_index = frame_to_dist.size() / 2;
+    size_t q1_index = q2_index / 2;
+    size_t q3_index = q2_index + q1_index + ((frame_to_dist.size() % 2 == 1) ? 1 : 0);
+
+    if (frame_to_dist.size() % 2 == 1) {
+      q2 = frame_to_dist[q2_index].second;
+    } else {
+      q2 = (frame_to_dist[q2_index].second + frame_to_dist[q2_index - 1].second) / 2.0f;
+    }
+    if (q2_index % 2 == 1) {
+      q1 = frame_to_dist[q1_index].second;
+      q3 = frame_to_dist[q3_index].second;
+    } else {
+      q1 = (frame_to_dist[q1_index].second + frame_to_dist[q1_index - 1].second) / 2.0f;
+      q3 = (frame_to_dist[q3_index].second + frame_to_dist[q3_index - 1].second) / 2.0f;
+    }
+
+    // Compute IQR
+    auto iqr = q3 - q1;
+    // Max value is q3.dist + 1.5 * IQR
+    auto max_dist = q3 + (1.0f * iqr);
+    // Anything greater than this is an outlier.
+
+    if (should_log) {
+      spdlog::info(" q1: {}, q2: {}, q3: {}, IQR: {}, max_dist: {}", q1, q2, q3, iqr, max_dist);
+    }
+
+    bool bad_value_present = false;
+    for (const auto &frame_dist: frame_to_dist) {
+      if (frame_dist.second > max_dist) {
+        if (should_log) {
+          spdlog::info("   Distance in {} frame {} is an outlier.", frame_dist.second, frame_dist.first);
+        }
+
+        bad_value_present = true;
+        break;
+      }
+    }
+
+    if (bad_value_present) {
+      cullable_neighbours.emplace(neighbour);
+      if (should_log) {
+        spdlog::info("   Culling this neighbour.");
+      }
+    } else {
+      if (should_log) {
+        spdlog::info("   This neighbour is fine.");
+      }
+    }
+  }
+
+  if (!cullable_neighbours.empty()) {
+    if (should_log) {
+      spdlog::info(" Found {} cullable neighbours.", cullable_neighbours.size());
+    }
+
+    potential_neighbour_nodes.erase(
+        std::remove_if(potential_neighbour_nodes.begin(),
+                             potential_neighbour_nodes.end(),
+                             [&](const SurfelGraphNodePtr &n) {
+                               return cullable_neighbours.count(n) > 0;
+                             }),
+              potential_neighbour_nodes.end()
+    );
+  }
+  if (should_log) {
+    spdlog::info(" Removed {} nodes. Now {} left",
+                 cullable_neighbours.size(),
+                 potential_neighbour_nodes.size());
+  }
 }
 
 std::vector<SurfelGraphNodePtr>
@@ -111,7 +225,7 @@ get_potential_neighbours( //
     for (int dx = -1; dx <= 1; ++dx) {
       for (int dy = -1; dy <= 1; ++dy) {
         // Not my own neighbour
-        if( dx == 0 && dy == 0 ) {
+        if (dx == 0 && dy == 0) {
           continue;
         }
         const auto &n = pif_to_graph_node.find({pif.pixel.x + dx, pif.pixel.y + dy, pif.frame});
@@ -120,14 +234,14 @@ get_potential_neighbours( //
           continue;
         }
         // Don't double count.
-        if( potential_neighbours.count(n->second)  > 0 ) {
+        if (potential_neighbours.count(n->second) > 0) {
           continue;
         }
         potential_neighbours.emplace(n->second);
       }
     }
   }
-  return vector<SurfelGraphNodePtr>{begin(potential_neighbours),end(potential_neighbours)};
+  return vector<SurfelGraphNodePtr>{begin(potential_neighbours), end(potential_neighbours)};
 }
 
 void
@@ -140,12 +254,11 @@ generate_edges( //
   //    Add neighbours based on PIF data
   for (const auto &node: graph->nodes()) {
     auto potential_neighbour_nodes = get_potential_neighbours(pif_to_graph_node, node);
-    for (const auto &potential_neighbour_node: potential_neighbour_nodes) {
-      if (plausible_neighbours(node, potential_neighbour_node, num_frames, nbr_threshold)) {
-        try {
-          graph->add_edge(node, potential_neighbour_node, SurfelGraphEdge{1});
-        } catch (std::runtime_error const &err) {
-        }
+    cull_unreasonable_neighbours(node, potential_neighbour_nodes);
+    for (const auto &neighbour_node: potential_neighbour_nodes) {
+      try {
+        graph->add_edge(node, neighbour_node, SurfelGraphEdge{1});
+      } catch (std::runtime_error const &err) {
       }
     }
   }
@@ -242,21 +355,50 @@ int main(int argc, const char *argv[]) {
   auto pif_regex = properties.getProperty("d2g-pif-regex");
   auto corr_file_template = properties.getProperty("d2g-correspondence-file-template");
   auto normal_file_template = properties.getProperty("d2g-normal-file-template");
-  auto point_cloud_template = properties.getProperty("d2g-point-cloud-file-template");
+  auto point_cloud_regex = properties.getProperty("d2g-point-cloud-regex");
   auto eight_connected = properties.getBooleanProperty("d2g-eight-connected");
   auto source_directory = properties.getProperty("d2g-source-directory");
   auto nbr_threshold = properties.getFloatProperty("d2g-max-neighbour-distance");
 
+  cout << "Running " << argv[0] << " with the following settings:" << endl;
+  cout << "  d2g-level                        : " << level << endl;
+  cout << "  d2g-pif-regex                    : " << pif_regex << endl;
+  cout << "  d2g-correspondence-file-template : " << corr_file_template << endl;
+  cout << "  d2g-normal-file-template         : " << normal_file_template << endl;
+  cout << "  d2g-point-cloud-regex            : " << point_cloud_regex << endl;
+  cout << "  d2g-eight-connected              : " << (eight_connected ? "true" : "false") << endl;
+  cout << "  d2g-source-directory             : " << source_directory << endl;
+  cout << "  d2g-max-neighbour-distance       : " << nbr_threshold << endl;
+
+  string path_file_name;
+  if (properties.hasProperty("d2g-path-template")) {
+    path_file_name = file_name_from_template_and_level(properties.getProperty("d2g-path-template"), level);
+  } else {
+    path_file_name = "paths.txt";
+  }
+  cout << "Loading paths from : " << path_file_name << endl;
+
+  string surfel_file_name;
+  if (properties.hasProperty("d2g-surfel-file-template")) {
+    surfel_file_name = file_name_from_template_and_level(properties.getProperty("d2g-surfel-file-template"), level);
+  } else {
+    surfel_file_name = "surfels.bin";
+  }
+  cout << "Saving output graph to : " << surfel_file_name << endl;
 
   // Load all the data
   unsigned int num_frames = 0;
-  auto pixel_by_frame = load_pifs(source_directory, pif_regex, num_frames);
-  auto normals_by_frame = load_normals(normal_file_template, num_frames, level);
-  string pattern = file_name_from_template_and_level("pointcloud_l%02d_f([0-9]{2}).txt", level);
+  string pattern = file_name_from_template_and_level(pif_regex, level);
+  auto pixel_by_frame = load_pifs(source_directory, pattern, num_frames);
+
+  pattern = file_name_from_template_and_level(point_cloud_regex, level);
   auto vertices_by_frame = load_vec3s_from_directory(source_directory, pattern);
 
+  auto normals_by_frame = load_normals(normal_file_template, num_frames, level);
+
   // Load paths
-  auto paths = load_paths("paths.txt");
+  auto paths = load_paths(path_file_name);
+  cout << "Found " << paths.size() << " paths." << endl;
 
   // Use the paths to generate surfels
   map<PixelInFrame, SurfelGraphNodePtr> pif_to_surfel;
@@ -290,7 +432,7 @@ int main(int argc, const char *argv[]) {
   // Use adjacency of pixels in DMs to establish neighbourhoods
   generate_edges(graph, pif_to_surfel, num_frames, nbr_threshold);
 
-  save_surfel_graph_to_file("sfl_0" + to_string(level) + ".bin", static_cast<const SurfelGraphPtr>(graph));
+  save_surfel_graph_to_file(surfel_file_name, static_cast<const SurfelGraphPtr>(graph));
 
   return 0;
 }

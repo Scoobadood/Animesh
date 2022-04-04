@@ -64,14 +64,6 @@ class RoSyOptimiser : public NodeOptimiser {
       std::vector<FrameStat> &frame_stats
   ) const;
 
-  /*
- * Smooth an individual Surfel across temporal and spatial neighbours.
- */
-  Eigen::Vector3f
-  optimise_node_with_one_neighbour(const SurfelGraphNodePtr &this_node, //
-                                   const std::shared_ptr<Surfel> &this_surfel,
-                                   Eigen::Vector3f &new_tangent //
-  );
   Eigen::Vector3f
   optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_node, //
                                     const std::shared_ptr<Surfel> &this_surfel,
@@ -81,4 +73,5 @@ class RoSyOptimiser : public NodeOptimiser {
   bool m_weight_for_error;
   bool m_vote_for_best_k;
   int m_weight_for_error_steps;
+  bool m_fix_bad_edges;
 };

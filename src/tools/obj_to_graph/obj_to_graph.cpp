@@ -2,8 +2,6 @@
 // Created by Dave Durbin (Old) on 21/6/21.
 //
 
-#include "obj_to_graph.h"
-
 #include <Surfel/Surfel_IO.h>
 #include <Surfel/SurfelGraph.h>
 #include <Surfel/SurfelBuilder.h>

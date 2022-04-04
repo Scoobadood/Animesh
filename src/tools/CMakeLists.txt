@@ -105,7 +105,7 @@ target_link_libraries(
 # Convert an OBJ file to a Surfel graph
 add_executable(
 		obj_to_graph
-		obj_to_graph.h obj_to_graph.cpp
+		obj_to_graph/obj_to_graph.cpp
 )
 target_include_directories(
 		obj_to_graph
@@ -132,5 +132,6 @@ add_subdirectory(leggings_tool)
 add_subdirectory(libTool)
 add_subdirectory(multi-res-tool)
 add_subdirectory(optimisers)
+add_subdirectory(obj_to_graph)
 add_subdirectory(paths_to_surfel_graph)
 add_subdirectory(quadulator)

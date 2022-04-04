@@ -1,8 +1,7 @@
 add_library(PoSy SHARED
 		src/PoSy.cpp include/PoSy/PoSy.h
 		src/PoSyOptimiser.cpp include/PoSy/PoSyOptimiser.h
-		include/PoSy/PoSyEdgeOptimiser.h
-		)
+        )
 
 
 # Define headers for this library. PUBLIC headers are used for

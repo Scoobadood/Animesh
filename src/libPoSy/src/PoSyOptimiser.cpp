@@ -10,8 +10,10 @@
 #include <Eigen/Geometry>
 #include <Surfel/SurfelGraph.h>
 
-PoSyOptimiser::PoSyOptimiser(const Properties &properties, std::default_random_engine &rng)
-    : NodeOptimiser{properties, rng} //
+PoSyOptimiser::PoSyOptimiser( //
+    const Properties &properties, //
+    std::default_random_engine &rng //
+) : NodeOptimiser{properties, rng} //
 {
   m_rho = m_properties.getFloatProperty("rho");
 
@@ -48,6 +50,7 @@ PoSyOptimiser::trace_smoothing(const SurfelGraphPtr &surfel_graph) const {
     }
   }
 }
+
 
 float
 PoSyOptimiser::compute_smoothness_in_frame(
@@ -267,7 +270,8 @@ PoSyOptimiser::filter_frames_list(
     const std::string &filter_name
 ) {
   std::vector<unsigned int> filtered_frames;
-  for (const auto f: frames) {
+  filtered_frames.reserve(frames.size());
+for (const auto f: frames) {
     filtered_frames.push_back(f);
   }
   return filtered_frames;
@@ -313,11 +317,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                                             frames_to_smooth,
                                             m_properties.getProperty("posy-smooth-frame-filter"));
     }
-
-    // DEBUG
-//    frames_to_smooth = {frames_to_smooth[0]};
     Vector2i t_ij, t_ji;
-    // DEBUG
     // For each frame in this list, smooth in that frame
     const auto &k = get_k(m_surfel_graph, node, nbr_node);
     float w_ji = 1.0f;
@@ -350,8 +350,9 @@ PoSyOptimiser::loaded_graph() {
     node->data()->set_reference_lattice_offset({initialisation_vector[0], initialisation_vector[1]});
   }
 }
+
 void PoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {
   node->data()->set_posy_smoothness(smoothness);
 }
 
-void PoSyOptimiser::ended_optimisation() { }
+void PoSyOptimiser::ended_optimisation() {}

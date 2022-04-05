@@ -19,6 +19,7 @@
 #define __ARM_ARCH_8_5__ 1
 #define __ARM_ARCH_ISA_A64 1
 #define __ARM_ARCH_PROFILE 'A'
+#define __ARM_FEATURE_AES 1
 #define __ARM_FEATURE_ATOMICS 1
 #define __ARM_FEATURE_CLZ 1
 #define __ARM_FEATURE_COMPLEX 1
@@ -28,14 +29,20 @@
 #define __ARM_FEATURE_DIV 1
 #define __ARM_FEATURE_DOTPROD 1
 #define __ARM_FEATURE_FMA 1
-#define __ARM_FEATURE_FP16FML 1
+#define __ARM_FEATURE_FP16_FML 1
 #define __ARM_FEATURE_FP16_SCALAR_ARITHMETIC 1
 #define __ARM_FEATURE_FP16_VECTOR_ARITHMETIC 1
+#define __ARM_FEATURE_FRINT 1
 #define __ARM_FEATURE_IDIV 1
 #define __ARM_FEATURE_JCVT 1
 #define __ARM_FEATURE_LDREX 0xF
 #define __ARM_FEATURE_NUMERIC_MAXMIN 1
 #define __ARM_FEATURE_QRDMX 1
+#define __ARM_FEATURE_SHA2 1
+#define __ARM_FEATURE_SHA3 1
+#define __ARM_FEATURE_SHA512 1
+#define __ARM_FEATURE_SM3 1
+#define __ARM_FEATURE_SM4 1
 #define __ARM_FEATURE_UNALIGNED 1
 #define __ARM_FP 0xE
 #define __ARM_FP16_ARGS 1
@@ -131,6 +138,7 @@
 #define __GCC_ATOMIC_SHORT_LOCK_FREE 2
 #define __GCC_ATOMIC_TEST_AND_SET_TRUEVAL 1
 #define __GCC_ATOMIC_WCHAR_T_LOCK_FREE 2
+#define __GCC_HAVE_DWARF2_CFI_ASM 1
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1 1
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 1
 #define __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4 1
@@ -371,7 +379,7 @@
 #define __UINT_LEAST8_MAX__ 255
 #define __UINT_LEAST8_TYPE__ unsigned char
 #define __USER_LABEL_PREFIX__ _
-#define __VERSION__ "Apple LLVM 13.0.0 (clang-1300.0.29.30)"
+#define __VERSION__ "Apple LLVM 13.1.6 (clang-1316.0.21.2)"
 #define __WCHAR_MAX__ 2147483647
 #define __WCHAR_TYPE__ int
 #define __WCHAR_WIDTH__ 32
@@ -379,15 +387,17 @@
 #define __WINT_TYPE__ int
 #define __WINT_WIDTH__ 32
 #define __aarch64__ 1
-#define __apple_build_version__ 13000029
+#define __apple_build_version__ 13160021
 #define __arm64 1
 #define __arm64__ 1
 #define __block __attribute__((__blocks__(byref)))
 #define __clang__ 1
+#define __clang_literal_encoding__ "UTF-8"
 #define __clang_major__ 13
-#define __clang_minor__ 0
-#define __clang_patchlevel__ 0
-#define __clang_version__ "13.0.0 (clang-1300.0.29.30)"
+#define __clang_minor__ 1
+#define __clang_patchlevel__ 6
+#define __clang_version__ "13.1.6 (clang-1316.0.21.2)"
+#define __clang_wide_literal_encoding__ "UTF-32"
 #define __cplusplus 199711L
 #define __cpp_exceptions 199711L
 #define __cpp_impl_destroying_delete 201806L

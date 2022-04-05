@@ -42,6 +42,7 @@ field_visualiser_window::field_visualiser_window(Properties properties,
   connect(ui->cbShowQuads, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_quads);
   connect(ui->cbShowTextures, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_textures);
   connect(ui->cbShowTriangleFans, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_triangle_fans);
+  connect(ui->cbShowLatticePositions, &QCheckBox::toggled, ui->posyGLWidget, &posy_gl_widget::render_lattice_positions);
 
   connect(ui->cbNormals, &QCheckBox::toggled,
           ui->rosyGLWidget, &rosy_gl_widget::renderNormals);
@@ -62,25 +63,25 @@ field_visualiser_window::field_visualiser_window(Properties properties,
         switch (value) {
           case 1:spur_length = 0.01f;
             break;
-          case 2:spur_length = 0.05f;
+          case 2:spur_length = 0.02f;
             break;
-          case 3:spur_length = 0.1f;
+          case 3:spur_length = 0.03f;
             break;
-          case 4:spur_length = 0.2f;
+          case 4:spur_length = 0.04f;
             break;
-          case 5:spur_length = 0.3f;
+          case 5:spur_length = 0.05f;
             break;
-          case 6:spur_length = 0.4f;
+          case 6:spur_length = 0.06f;
             break;
-          case 7:spur_length = 0.5f;
+          case 7:spur_length = 0.07f;
             break;
-          case 8:spur_length = 0.75f;
+          case 8:spur_length = 0.08f;
             break;
           case 9:spur_length = 1.0f;
             break;
           case 10:spur_length = 2.0f;
             break;
-          default:spur_length = 1.0f;
+          default:spur_length = 0.01f;
             break;
         }
         m_rosy_geometry_extractor->set_spur_length(spur_length);
@@ -128,6 +129,7 @@ field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
   using namespace std;
 
   std::vector<float> positions;
+  std::vector<float> lattice_positions;
   std::vector<float> tangents;
   std::vector<float> colours;
   std::vector<float> quads;
@@ -143,6 +145,7 @@ field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
   m_posy_geometry_extractor->extract_geometry(
       m_graph_ptr,
       positions,
+      lattice_positions,
       quads,
       triangle_fans,
       triangle_uvs,
@@ -150,7 +153,7 @@ field_visualiser_window::extract_geometry(bool rebuild_edge_graph) {
       normals,
       splat_sizes,
       uvs);
-  ui->posyGLWidget->setPoSyData(positions, quads,
+  ui->posyGLWidget->setPoSyData(positions, lattice_positions, quads,
                                 triangle_fans,
                                 triangle_uvs,
                                 triangle_fan_sizes,

@@ -122,7 +122,7 @@
           <enum>Qt::LeftToRight</enum>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="RoSyPage">
           <property name="minimumSize">
@@ -374,6 +374,13 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QCheckBox" name="cbShowLatticePositions">
+                <property name="text">
+                 <string>Show lattice</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>
@@ -485,7 +492,7 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="rosyTab">
           <attribute name="title">

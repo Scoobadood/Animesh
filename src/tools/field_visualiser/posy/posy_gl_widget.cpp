@@ -9,6 +9,7 @@ posy_gl_widget::posy_gl_widget(QWidget *parent, Qt::WindowFlags f) //
     , m_render_quads{true} //
     , m_render_textures{false} //
     , m_render_triangle_fans{false} //
+    , m_render_lattice_positions{false} //
     , m_rho{1.0f} //
     , m_splat_scale_factor{1.0f} //
 {
@@ -16,6 +17,10 @@ posy_gl_widget::posy_gl_widget(QWidget *parent, Qt::WindowFlags f) //
   // Dummy data
   setPoSyData(
       std::vector<float>{0.0f, 0.0f, 0.0f},
+      std::vector<float>{-0.4f, 0.0f, -0.4f,
+                         -0.4, 0.0, 0.4f,
+                         0.4f, 0.0f, 0.4f,
+                         0.4f, 0.0f, -0.4f},
       std::vector<float>{-0.4f, 0.0f, -0.4f,
                          -0.4, 0.0, 0.4f,
                          0.4f, 0.0f, 0.4f,
@@ -161,6 +166,32 @@ posy_gl_widget::maybeDrawTriangleFans() const {
 }
 
 void
+posy_gl_widget::maybeDrawLatticePositions() const {
+  if (!m_render_lattice_positions) {
+    return;
+  }
+
+  glColor4d(0.0, 1.0, 1.0, 1.0);
+
+  glEnable(GL_POINT_SMOOTH);
+  float oldPointSize;
+  glGetFloatv(GL_POINT_SIZE, &oldPointSize);
+
+  glPointSize(5.0f);
+  for (unsigned int i = 0; i < m_lattice_positions.size() / 3; ++i) {
+    glBegin(GL_POINTS);
+    glVertex3f(m_lattice_positions.at(i * 3 + 0),
+               m_lattice_positions.at(i * 3 + 1),
+               m_lattice_positions.at(i * 3 + 2));
+    glEnd();
+  }
+  glPointSize(oldPointSize);
+  glDisable(GL_POINT_SMOOTH);
+  checkGLError("maybeDrawLatticePositions");
+}
+
+
+void
 posy_gl_widget::drawPositions() const {
   glColor4d(1.0, 0.0, 0.0, 1.0);
 
@@ -188,10 +219,13 @@ posy_gl_widget::do_paint() {
   maybeDrawQuads();
 
   maybeDrawTriangleFans();
+
+  maybeDrawLatticePositions();
 }
 
 void
 posy_gl_widget::setPoSyData(const std::vector<float> &positions,
+                            const std::vector<float> &lattice_positions,
                             const std::vector<float> &quads,
                             const std::vector<float> &triangle_fans,
                             const std::vector<float> &triangle_uvs,
@@ -201,6 +235,7 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
                             const std::vector<float> &uvs
 ) {
   m_positions.clear();
+  m_lattice_positions.clear();
   m_quads.clear();
   m_triangle_fans.clear();
   m_triangle_uvs.clear();
@@ -210,6 +245,7 @@ posy_gl_widget::setPoSyData(const std::vector<float> &positions,
   m_uvs.clear();
 
   m_positions.insert(m_positions.begin(), positions.begin(), positions.end());
+  m_lattice_positions.insert(m_lattice_positions.begin(), lattice_positions.begin(), lattice_positions.end());
   m_quads.insert(m_quads.begin(), quads.begin(), quads.end());
   m_triangle_fans.insert(m_triangle_fans.begin(), triangle_fans.begin(), triangle_fans.end());
   m_triangle_uvs.insert(m_triangle_uvs.begin(), triangle_uvs.begin(), triangle_uvs.end());

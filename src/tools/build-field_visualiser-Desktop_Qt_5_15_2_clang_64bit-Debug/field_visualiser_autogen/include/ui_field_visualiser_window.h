@@ -13,7 +13,6 @@
 #include <QtWidgets/QAction>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QCheckBox>
-#include <QtWidgets/QFormLayout>
 #include <QtWidgets/QFrame>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
@@ -23,6 +22,7 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSlider>
+#include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QVBoxLayout>
@@ -45,6 +45,9 @@ public:
     QHBoxLayout *horizontalLayout_2;
     QSlider *frameSelector;
     QLabel *lblFrame;
+    QStackedWidget *stackedWidget;
+    QWidget *RoSyPage;
+    QVBoxLayout *RosyPageLayout;
     QGroupBox *gbRoSy;
     QVBoxLayout *verticalLayout_4;
     QCheckBox *cbNormals;
@@ -53,7 +56,10 @@ public:
     QCheckBox *cbErrorColours;
     QCheckBox *cbShowSplats;
     QCheckBox *cbShowPath;
+    QCheckBox *cbShowNeighbours;
     QSlider *slNormalLength;
+    QWidget *PoSyPage;
+    QVBoxLayout *verticalLayout_8;
     QGroupBox *gbPosy;
     QVBoxLayout *verticalLayout;
     QFrame *gbSplatSizeSelector;
@@ -63,26 +69,17 @@ public:
     QCheckBox *cbShowTriangleFans;
     QCheckBox *cbShowQuads;
     QCheckBox *cbShowTextures;
+    QCheckBox *cbShowLatticePositions;
+    QWidget *QuadsPage;
+    QVBoxLayout *quadsPageLayout;
     QGroupBox *gbQuads;
     QVBoxLayout *verticalLayout_5;
     QCheckBox *cbRed;
     QCheckBox *cbBlue;
     QCheckBox *cbAffinities;
-    QGroupBox *gbEdge;
-    QFormLayout *formLayout;
-    QLabel *lblId;
-    QLabel *lblTan;
-    QLabel *lblTij;
-    QLabel *lblTji;
-    QLabel *lblSurfelId;
-    QLabel *lblSurfelTanX;
-    QLabel *lblSurfelTanZ;
-    QLabel *lblKij;
-    QLabel *lblSurfelCorrection;
-    QLabel *lblKji;
-    QLabel *lblSurfelSmoothness;
-    QLabel *lblSurfelTanY;
     QPushButton *btnDecimate;
+    QFrame *rightPanel;
+    QVBoxLayout *verticalLayout_9;
     QTabWidget *viewPanel;
     QWidget *rosyTab;
     QVBoxLayout *verticalLayout_3;
@@ -93,6 +90,18 @@ public:
     QWidget *quadTab;
     QVBoxLayout *verticalLayout_7;
     quad_gl_widget *quadGLWidget;
+    QGroupBox *gbSelection;
+    QHBoxLayout *horizontalLayout_4;
+    QLabel *lblId;
+    QLabel *lblSurfelId;
+    QLabel *lblKij;
+    QLabel *lblSurfelCorrection;
+    QLabel *lblKji;
+    QLabel *lblSurfelSmoothness;
+    QLabel *lblTan;
+    QLabel *lblSurfelTanX;
+    QLabel *lblSurfelTanY;
+    QLabel *lblSurfelTanZ;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QStatusBar *statusbar;
@@ -131,7 +140,7 @@ public:
         gbFrameSelector = new QGroupBox(controlPanel);
         gbFrameSelector->setObjectName(QString::fromUtf8("gbFrameSelector"));
         QSizePolicy sizePolicy2(QSizePolicy::Maximum, QSizePolicy::Maximum);
-        sizePolicy2.setHorizontalStretch(1);
+        sizePolicy2.setHorizontalStretch(20);
         sizePolicy2.setVerticalStretch(0);
         sizePolicy2.setHeightForWidth(gbFrameSelector->sizePolicy().hasHeightForWidth());
         gbFrameSelector->setSizePolicy(sizePolicy2);
@@ -147,6 +156,8 @@ public:
         frameSelector->setMinimum(0);
         frameSelector->setMaximum(0);
         frameSelector->setOrientation(Qt::Horizontal);
+        frameSelector->setTickPosition(QSlider::TicksBelow);
+        frameSelector->setTickInterval(5);
 
         horizontalLayout_2->addWidget(frameSelector);
 
@@ -166,7 +177,17 @@ public:
 
         verticalLayout_2->addWidget(gbFrameSelector);
 
-        gbRoSy = new QGroupBox(controlPanel);
+        stackedWidget = new QStackedWidget(controlPanel);
+        stackedWidget->setObjectName(QString::fromUtf8("stackedWidget"));
+        stackedWidget->setLayoutDirection(Qt::LeftToRight);
+        RoSyPage = new QWidget();
+        RoSyPage->setObjectName(QString::fromUtf8("RoSyPage"));
+        RoSyPage->setMinimumSize(QSize(0, 236));
+        RosyPageLayout = new QVBoxLayout(RoSyPage);
+        RosyPageLayout->setObjectName(QString::fromUtf8("RosyPageLayout"));
+        RosyPageLayout->setSizeConstraint(QLayout::SetMaximumSize);
+        RosyPageLayout->setContentsMargins(-1, 0, -1, -1);
+        gbRoSy = new QGroupBox(RoSyPage);
         gbRoSy->setObjectName(QString::fromUtf8("gbRoSy"));
         QSizePolicy sizePolicy5(QSizePolicy::Preferred, QSizePolicy::Maximum);
         sizePolicy5.setHorizontalStretch(1);
@@ -175,11 +196,12 @@ public:
         gbRoSy->setSizePolicy(sizePolicy5);
         verticalLayout_4 = new QVBoxLayout(gbRoSy);
         verticalLayout_4->setObjectName(QString::fromUtf8("verticalLayout_4"));
+        verticalLayout_4->setSizeConstraint(QLayout::SetMaximumSize);
         cbNormals = new QCheckBox(gbRoSy);
         cbNormals->setObjectName(QString::fromUtf8("cbNormals"));
         cbNormals->setChecked(true);
 
-        verticalLayout_4->addWidget(cbNormals);
+        verticalLayout_4->addWidget(cbNormals, 0, Qt::AlignTop);
 
         cbMainTangent = new QCheckBox(gbRoSy);
         cbMainTangent->setObjectName(QString::fromUtf8("cbMainTangent"));
@@ -197,7 +219,7 @@ public:
         cbErrorColours->setObjectName(QString::fromUtf8("cbErrorColours"));
         cbErrorColours->setChecked(true);
 
-        verticalLayout_4->addWidget(cbErrorColours);
+        verticalLayout_4->addWidget(cbErrorColours, 0, Qt::AlignTop);
 
         cbShowSplats = new QCheckBox(gbRoSy);
         cbShowSplats->setObjectName(QString::fromUtf8("cbShowSplats"));
@@ -211,6 +233,11 @@ public:
 
         verticalLayout_4->addWidget(cbShowPath);
 
+        cbShowNeighbours = new QCheckBox(gbRoSy);
+        cbShowNeighbours->setObjectName(QString::fromUtf8("cbShowNeighbours"));
+
+        verticalLayout_4->addWidget(cbShowNeighbours);
+
         slNormalLength = new QSlider(gbRoSy);
         slNormalLength->setObjectName(QString::fromUtf8("slNormalLength"));
         slNormalLength->setMinimum(1);
@@ -221,14 +248,21 @@ public:
         verticalLayout_4->addWidget(slNormalLength);
 
 
-        verticalLayout_2->addWidget(gbRoSy);
+        RosyPageLayout->addWidget(gbRoSy, 0, Qt::AlignTop);
 
-        gbPosy = new QGroupBox(controlPanel);
+        stackedWidget->addWidget(RoSyPage);
+        PoSyPage = new QWidget();
+        PoSyPage->setObjectName(QString::fromUtf8("PoSyPage"));
+        PoSyPage->setMinimumSize(QSize(0, 236));
+        verticalLayout_8 = new QVBoxLayout(PoSyPage);
+        verticalLayout_8->setObjectName(QString::fromUtf8("verticalLayout_8"));
+        gbPosy = new QGroupBox(PoSyPage);
         gbPosy->setObjectName(QString::fromUtf8("gbPosy"));
         sizePolicy5.setHeightForWidth(gbPosy->sizePolicy().hasHeightForWidth());
         gbPosy->setSizePolicy(sizePolicy5);
         verticalLayout = new QVBoxLayout(gbPosy);
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
+        verticalLayout->setSizeConstraint(QLayout::SetMaximumSize);
         gbSplatSizeSelector = new QFrame(gbPosy);
         gbSplatSizeSelector->setObjectName(QString::fromUtf8("gbSplatSizeSelector"));
         QSizePolicy sizePolicy6(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -293,15 +327,29 @@ public:
 
         verticalLayout->addWidget(cbShowTextures);
 
+        cbShowLatticePositions = new QCheckBox(gbPosy);
+        cbShowLatticePositions->setObjectName(QString::fromUtf8("cbShowLatticePositions"));
 
-        verticalLayout_2->addWidget(gbPosy);
+        verticalLayout->addWidget(cbShowLatticePositions);
 
-        gbQuads = new QGroupBox(controlPanel);
+
+        verticalLayout_8->addWidget(gbPosy, 0, Qt::AlignTop);
+
+        stackedWidget->addWidget(PoSyPage);
+        QuadsPage = new QWidget();
+        QuadsPage->setObjectName(QString::fromUtf8("QuadsPage"));
+        QuadsPage->setMinimumSize(QSize(0, 236));
+        QuadsPage->setLayoutDirection(Qt::LeftToRight);
+        quadsPageLayout = new QVBoxLayout(QuadsPage);
+        quadsPageLayout->setObjectName(QString::fromUtf8("quadsPageLayout"));
+        gbQuads = new QGroupBox(QuadsPage);
         gbQuads->setObjectName(QString::fromUtf8("gbQuads"));
         sizePolicy5.setHeightForWidth(gbQuads->sizePolicy().hasHeightForWidth());
         gbQuads->setSizePolicy(sizePolicy5);
+        gbQuads->setMaximumSize(QSize(16777215, 104));
         verticalLayout_5 = new QVBoxLayout(gbQuads);
         verticalLayout_5->setObjectName(QString::fromUtf8("verticalLayout_5"));
+        verticalLayout_5->setSizeConstraint(QLayout::SetMaximumSize);
         cbRed = new QCheckBox(gbQuads);
         cbRed->setObjectName(QString::fromUtf8("cbRed"));
         cbRed->setChecked(true);
@@ -320,87 +368,11 @@ public:
         verticalLayout_5->addWidget(cbAffinities);
 
 
-        verticalLayout_2->addWidget(gbQuads);
+        quadsPageLayout->addWidget(gbQuads);
 
-        gbEdge = new QGroupBox(controlPanel);
-        gbEdge->setObjectName(QString::fromUtf8("gbEdge"));
-        formLayout = new QFormLayout(gbEdge);
-        formLayout->setObjectName(QString::fromUtf8("formLayout"));
-        formLayout->setContentsMargins(6, 6, 6, 6);
-        lblId = new QLabel(gbEdge);
-        lblId->setObjectName(QString::fromUtf8("lblId"));
-        lblId->setScaledContents(false);
+        stackedWidget->addWidget(QuadsPage);
 
-        formLayout->setWidget(0, QFormLayout::LabelRole, lblId);
-
-        lblTan = new QLabel(gbEdge);
-        lblTan->setObjectName(QString::fromUtf8("lblTan"));
-        lblTan->setScaledContents(false);
-
-        formLayout->setWidget(1, QFormLayout::LabelRole, lblTan);
-
-        lblTij = new QLabel(gbEdge);
-        lblTij->setObjectName(QString::fromUtf8("lblTij"));
-        lblTij->setScaledContents(false);
-
-        formLayout->setWidget(2, QFormLayout::LabelRole, lblTij);
-
-        lblTji = new QLabel(gbEdge);
-        lblTji->setObjectName(QString::fromUtf8("lblTji"));
-        lblTji->setScaledContents(false);
-
-        formLayout->setWidget(3, QFormLayout::LabelRole, lblTji);
-
-        lblSurfelId = new QLabel(gbEdge);
-        lblSurfelId->setObjectName(QString::fromUtf8("lblSurfelId"));
-        lblSurfelId->setScaledContents(false);
-
-        formLayout->setWidget(0, QFormLayout::FieldRole, lblSurfelId);
-
-        lblSurfelTanX = new QLabel(gbEdge);
-        lblSurfelTanX->setObjectName(QString::fromUtf8("lblSurfelTanX"));
-        lblSurfelTanX->setScaledContents(false);
-
-        formLayout->setWidget(1, QFormLayout::FieldRole, lblSurfelTanX);
-
-        lblSurfelTanZ = new QLabel(gbEdge);
-        lblSurfelTanZ->setObjectName(QString::fromUtf8("lblSurfelTanZ"));
-        lblSurfelTanZ->setScaledContents(false);
-
-        formLayout->setWidget(3, QFormLayout::FieldRole, lblSurfelTanZ);
-
-        lblKij = new QLabel(gbEdge);
-        lblKij->setObjectName(QString::fromUtf8("lblKij"));
-        lblKij->setScaledContents(false);
-
-        formLayout->setWidget(4, QFormLayout::LabelRole, lblKij);
-
-        lblSurfelCorrection = new QLabel(gbEdge);
-        lblSurfelCorrection->setObjectName(QString::fromUtf8("lblSurfelCorrection"));
-        lblSurfelCorrection->setScaledContents(false);
-
-        formLayout->setWidget(4, QFormLayout::FieldRole, lblSurfelCorrection);
-
-        lblKji = new QLabel(gbEdge);
-        lblKji->setObjectName(QString::fromUtf8("lblKji"));
-        lblKji->setScaledContents(false);
-
-        formLayout->setWidget(5, QFormLayout::LabelRole, lblKji);
-
-        lblSurfelSmoothness = new QLabel(gbEdge);
-        lblSurfelSmoothness->setObjectName(QString::fromUtf8("lblSurfelSmoothness"));
-        lblSurfelSmoothness->setScaledContents(false);
-
-        formLayout->setWidget(5, QFormLayout::FieldRole, lblSurfelSmoothness);
-
-        lblSurfelTanY = new QLabel(gbEdge);
-        lblSurfelTanY->setObjectName(QString::fromUtf8("lblSurfelTanY"));
-        lblSurfelTanY->setScaledContents(false);
-
-        formLayout->setWidget(2, QFormLayout::FieldRole, lblSurfelTanY);
-
-
-        verticalLayout_2->addWidget(gbEdge);
+        verticalLayout_2->addWidget(stackedWidget, 0, Qt::AlignTop);
 
         btnDecimate = new QPushButton(controlPanel);
         btnDecimate->setObjectName(QString::fromUtf8("btnDecimate"));
@@ -410,13 +382,24 @@ public:
 
         horizontalLayout->addWidget(controlPanel);
 
-        viewPanel = new QTabWidget(centralwidget);
-        viewPanel->setObjectName(QString::fromUtf8("viewPanel"));
-        QSizePolicy sizePolicy9(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        rightPanel = new QFrame(centralwidget);
+        rightPanel->setObjectName(QString::fromUtf8("rightPanel"));
+        QSizePolicy sizePolicy9(QSizePolicy::Expanding, QSizePolicy::Expanding);
         sizePolicy9.setHorizontalStretch(80);
         sizePolicy9.setVerticalStretch(100);
-        sizePolicy9.setHeightForWidth(viewPanel->sizePolicy().hasHeightForWidth());
-        viewPanel->setSizePolicy(sizePolicy9);
+        sizePolicy9.setHeightForWidth(rightPanel->sizePolicy().hasHeightForWidth());
+        rightPanel->setSizePolicy(sizePolicy9);
+        rightPanel->setFrameShape(QFrame::StyledPanel);
+        rightPanel->setFrameShadow(QFrame::Raised);
+        verticalLayout_9 = new QVBoxLayout(rightPanel);
+        verticalLayout_9->setObjectName(QString::fromUtf8("verticalLayout_9"));
+        viewPanel = new QTabWidget(rightPanel);
+        viewPanel->setObjectName(QString::fromUtf8("viewPanel"));
+        QSizePolicy sizePolicy10(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        sizePolicy10.setHorizontalStretch(100);
+        sizePolicy10.setVerticalStretch(100);
+        sizePolicy10.setHeightForWidth(viewPanel->sizePolicy().hasHeightForWidth());
+        viewPanel->setSizePolicy(sizePolicy10);
         viewPanel->setMinimumSize(QSize(0, 0));
         rosyTab = new QWidget();
         rosyTab->setObjectName(QString::fromUtf8("rosyTab"));
@@ -424,11 +407,11 @@ public:
         verticalLayout_3->setObjectName(QString::fromUtf8("verticalLayout_3"));
         rosyGLWidget = new rosy_gl_widget(rosyTab);
         rosyGLWidget->setObjectName(QString::fromUtf8("rosyGLWidget"));
-        QSizePolicy sizePolicy10(QSizePolicy::Preferred, QSizePolicy::Preferred);
-        sizePolicy10.setHorizontalStretch(100);
-        sizePolicy10.setVerticalStretch(50);
-        sizePolicy10.setHeightForWidth(rosyGLWidget->sizePolicy().hasHeightForWidth());
-        rosyGLWidget->setSizePolicy(sizePolicy10);
+        QSizePolicy sizePolicy11(QSizePolicy::Preferred, QSizePolicy::Preferred);
+        sizePolicy11.setHorizontalStretch(100);
+        sizePolicy11.setVerticalStretch(50);
+        sizePolicy11.setHeightForWidth(rosyGLWidget->sizePolicy().hasHeightForWidth());
+        rosyGLWidget->setSizePolicy(sizePolicy11);
         rosyGLWidget->setMinimumSize(QSize(20, 0));
 
         verticalLayout_3->addWidget(rosyGLWidget);
@@ -440,8 +423,8 @@ public:
         verticalLayout_6->setObjectName(QString::fromUtf8("verticalLayout_6"));
         posyGLWidget = new posy_gl_widget(posyTab);
         posyGLWidget->setObjectName(QString::fromUtf8("posyGLWidget"));
-        sizePolicy10.setHeightForWidth(posyGLWidget->sizePolicy().hasHeightForWidth());
-        posyGLWidget->setSizePolicy(sizePolicy10);
+        sizePolicy11.setHeightForWidth(posyGLWidget->sizePolicy().hasHeightForWidth());
+        posyGLWidget->setSizePolicy(sizePolicy11);
         posyGLWidget->setMinimumSize(QSize(0, 10));
         posyGLWidget->setMaximumSize(QSize(16777215, 16777215));
 
@@ -454,14 +437,95 @@ public:
         verticalLayout_7->setObjectName(QString::fromUtf8("verticalLayout_7"));
         quadGLWidget = new quad_gl_widget(quadTab);
         quadGLWidget->setObjectName(QString::fromUtf8("quadGLWidget"));
-        sizePolicy10.setHeightForWidth(quadGLWidget->sizePolicy().hasHeightForWidth());
-        quadGLWidget->setSizePolicy(sizePolicy10);
+        sizePolicy11.setHeightForWidth(quadGLWidget->sizePolicy().hasHeightForWidth());
+        quadGLWidget->setSizePolicy(sizePolicy11);
 
         verticalLayout_7->addWidget(quadGLWidget);
 
         viewPanel->addTab(quadTab, QString());
 
-        horizontalLayout->addWidget(viewPanel);
+        verticalLayout_9->addWidget(viewPanel);
+
+        gbSelection = new QGroupBox(rightPanel);
+        gbSelection->setObjectName(QString::fromUtf8("gbSelection"));
+        horizontalLayout_4 = new QHBoxLayout(gbSelection);
+        horizontalLayout_4->setObjectName(QString::fromUtf8("horizontalLayout_4"));
+        horizontalLayout_4->setContentsMargins(6, 6, 6, 6);
+        lblId = new QLabel(gbSelection);
+        lblId->setObjectName(QString::fromUtf8("lblId"));
+        lblId->setScaledContents(false);
+        lblId->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        horizontalLayout_4->addWidget(lblId);
+
+        lblSurfelId = new QLabel(gbSelection);
+        lblSurfelId->setObjectName(QString::fromUtf8("lblSurfelId"));
+        lblSurfelId->setFrameShape(QFrame::Box);
+        lblSurfelId->setScaledContents(false);
+
+        horizontalLayout_4->addWidget(lblSurfelId);
+
+        lblKij = new QLabel(gbSelection);
+        lblKij->setObjectName(QString::fromUtf8("lblKij"));
+        lblKij->setScaledContents(false);
+        lblKij->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        horizontalLayout_4->addWidget(lblKij);
+
+        lblSurfelCorrection = new QLabel(gbSelection);
+        lblSurfelCorrection->setObjectName(QString::fromUtf8("lblSurfelCorrection"));
+        lblSurfelCorrection->setFrameShape(QFrame::Box);
+        lblSurfelCorrection->setScaledContents(false);
+
+        horizontalLayout_4->addWidget(lblSurfelCorrection);
+
+        lblKji = new QLabel(gbSelection);
+        lblKji->setObjectName(QString::fromUtf8("lblKji"));
+        lblKji->setScaledContents(false);
+        lblKji->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        horizontalLayout_4->addWidget(lblKji);
+
+        lblSurfelSmoothness = new QLabel(gbSelection);
+        lblSurfelSmoothness->setObjectName(QString::fromUtf8("lblSurfelSmoothness"));
+        lblSurfelSmoothness->setFrameShape(QFrame::Box);
+        lblSurfelSmoothness->setScaledContents(false);
+
+        horizontalLayout_4->addWidget(lblSurfelSmoothness);
+
+        lblTan = new QLabel(gbSelection);
+        lblTan->setObjectName(QString::fromUtf8("lblTan"));
+        lblTan->setScaledContents(false);
+        lblTan->setAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
+
+        horizontalLayout_4->addWidget(lblTan);
+
+        lblSurfelTanX = new QLabel(gbSelection);
+        lblSurfelTanX->setObjectName(QString::fromUtf8("lblSurfelTanX"));
+        lblSurfelTanX->setFrameShape(QFrame::Box);
+        lblSurfelTanX->setScaledContents(false);
+
+        horizontalLayout_4->addWidget(lblSurfelTanX);
+
+        lblSurfelTanY = new QLabel(gbSelection);
+        lblSurfelTanY->setObjectName(QString::fromUtf8("lblSurfelTanY"));
+        lblSurfelTanY->setFrameShape(QFrame::Box);
+        lblSurfelTanY->setScaledContents(false);
+
+        horizontalLayout_4->addWidget(lblSurfelTanY);
+
+        lblSurfelTanZ = new QLabel(gbSelection);
+        lblSurfelTanZ->setObjectName(QString::fromUtf8("lblSurfelTanZ"));
+        lblSurfelTanZ->setFrameShape(QFrame::Box);
+        lblSurfelTanZ->setScaledContents(false);
+
+        horizontalLayout_4->addWidget(lblSurfelTanZ);
+
+
+        verticalLayout_9->addWidget(gbSelection);
+
+
+        horizontalLayout->addWidget(rightPanel);
 
         field_visualiser_window->setCentralWidget(centralwidget);
         menuBar = new QMenuBar(field_visualiser_window);
@@ -478,8 +542,10 @@ public:
         menuFile->addAction(actionOpen);
 
         retranslateUi(field_visualiser_window);
+        QObject::connect(viewPanel, SIGNAL(currentChanged(int)), stackedWidget, SLOT(setCurrentIndex(int)));
 
-        viewPanel->setCurrentIndex(2);
+        stackedWidget->setCurrentIndex(1);
+        viewPanel->setCurrentIndex(1);
 
 
         QMetaObject::connectSlotsByName(field_visualiser_window);
@@ -498,32 +564,32 @@ public:
         cbErrorColours->setText(QCoreApplication::translate("field_visualiser_window", "Error Colours", nullptr));
         cbShowSplats->setText(QCoreApplication::translate("field_visualiser_window", "Show Splats", nullptr));
         cbShowPath->setText(QCoreApplication::translate("field_visualiser_window", "Show Path", nullptr));
+        cbShowNeighbours->setText(QCoreApplication::translate("field_visualiser_window", "Show Neighbours", nullptr));
         gbPosy->setTitle(QCoreApplication::translate("field_visualiser_window", "PoSy", nullptr));
         lblSplatSize->setText(QCoreApplication::translate("field_visualiser_window", "01", nullptr));
         cbShowTriangleFans->setText(QCoreApplication::translate("field_visualiser_window", "Show tri-fans", nullptr));
         cbShowQuads->setText(QCoreApplication::translate("field_visualiser_window", "Show quads", nullptr));
         cbShowTextures->setText(QCoreApplication::translate("field_visualiser_window", "Show textures", nullptr));
+        cbShowLatticePositions->setText(QCoreApplication::translate("field_visualiser_window", "Show lattice", nullptr));
         gbQuads->setTitle(QCoreApplication::translate("field_visualiser_window", "Quads", nullptr));
         cbRed->setText(QCoreApplication::translate("field_visualiser_window", "Red", nullptr));
         cbBlue->setText(QCoreApplication::translate("field_visualiser_window", "Blue", nullptr));
         cbAffinities->setText(QCoreApplication::translate("field_visualiser_window", "Affinities", nullptr));
-        gbEdge->setTitle(QCoreApplication::translate("field_visualiser_window", "Selected", nullptr));
-        lblId->setText(QCoreApplication::translate("field_visualiser_window", "id", nullptr));
-        lblTan->setText(QCoreApplication::translate("field_visualiser_window", "tan", nullptr));
-        lblTij->setText(QString());
-        lblTji->setText(QString());
-        lblSurfelId->setText(QString());
-        lblSurfelTanX->setText(QString());
-        lblSurfelTanZ->setText(QString());
-        lblKij->setText(QCoreApplication::translate("field_visualiser_window", "Corr.", nullptr));
-        lblSurfelCorrection->setText(QString());
-        lblKji->setText(QCoreApplication::translate("field_visualiser_window", "Smth.", nullptr));
-        lblSurfelSmoothness->setText(QString());
-        lblSurfelTanY->setText(QString());
         btnDecimate->setText(QCoreApplication::translate("field_visualiser_window", "Decimate", nullptr));
         viewPanel->setTabText(viewPanel->indexOf(rosyTab), QCoreApplication::translate("field_visualiser_window", "RoSy", nullptr));
         viewPanel->setTabText(viewPanel->indexOf(posyTab), QCoreApplication::translate("field_visualiser_window", "PoSy", nullptr));
         viewPanel->setTabText(viewPanel->indexOf(quadTab), QCoreApplication::translate("field_visualiser_window", "Quads", nullptr));
+        gbSelection->setTitle(QCoreApplication::translate("field_visualiser_window", "Selected", nullptr));
+        lblId->setText(QCoreApplication::translate("field_visualiser_window", "id", nullptr));
+        lblSurfelId->setText(QString());
+        lblKij->setText(QCoreApplication::translate("field_visualiser_window", "Corr.", nullptr));
+        lblSurfelCorrection->setText(QString());
+        lblKji->setText(QCoreApplication::translate("field_visualiser_window", "Smth.", nullptr));
+        lblSurfelSmoothness->setText(QString());
+        lblTan->setText(QCoreApplication::translate("field_visualiser_window", "Tan", nullptr));
+        lblSurfelTanX->setText(QString());
+        lblSurfelTanY->setText(QString());
+        lblSurfelTanZ->setText(QString());
         menuFile->setTitle(QCoreApplication::translate("field_visualiser_window", "File", nullptr));
     } // retranslateUi
 

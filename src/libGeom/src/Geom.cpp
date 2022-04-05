@@ -53,6 +53,9 @@ float degrees_angle_between_vectors(const Eigen::Vector3f &v1, const Eigen::Vect
 /**
  * Construct the skew symmetric matrix correesponding to
  * the vector (v1,v2,v3)
+   ssc = [ 0 -v3  v2;
+          v3   0 -v1;
+         -v2  v1   0];
  */
 Eigen::Matrix3f skew_symmetrix_matrix_for(const Eigen::Vector3f &v) {
   Eigen::Matrix3f m;

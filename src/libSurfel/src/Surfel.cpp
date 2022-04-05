@@ -74,8 +74,8 @@ Surfel::get_vertex_tangent_normal_for_frame(
   normal = fd.normal;
   tangent = fd.transform * m_tangent;
   // Force reproject tangent to surface
-  tangent -= tangent.dot(normal) * normal;
   tangent.normalize();
+  tangent -= tangent.dot(normal) * normal;
 }
 
 void Surfel::get_all_data_for_surfel_in_frame(

@@ -1,4 +1,4 @@
-# OBJ File Converter
+# Build a surfel graph from an Obj File.
 add_executable(
 		obj_to_graph
 		obj_to_graph.cpp
@@ -6,9 +6,9 @@ add_executable(
 
 target_link_libraries(
 		obj_to_graph
+		Surfel
 		FileUtils
-		CommonUtilities
-		Correspondence
+		GeomFileUtils
 		spdlog::spdlog
 )
 

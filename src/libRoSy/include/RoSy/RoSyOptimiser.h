@@ -66,8 +66,7 @@ class RoSyOptimiser : public NodeOptimiser {
 
   Eigen::Vector3f
   optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_node, //
-                                    const std::shared_ptr<Surfel> &this_surfel,
-                                    Eigen::Vector3f &new_tangent //
+                                    const std::shared_ptr<Surfel> &this_surfel //
   );
   float m_damping_factor;
   bool m_weight_for_error;

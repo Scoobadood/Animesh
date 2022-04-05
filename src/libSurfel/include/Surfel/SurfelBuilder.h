@@ -41,8 +41,6 @@ public:
     Surfel build();
 
 private:
-    static const Eigen::Vector3f Y_AXIS;
-
     // Random distributions
     std::uniform_real_distribution<float> m_two_pi;
     std::uniform_real_distribution<float> m_unit;

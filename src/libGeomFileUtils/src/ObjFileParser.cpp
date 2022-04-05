@@ -138,15 +138,18 @@ compute_vertex_normals(size_t num_vertices,
     assert(num_vertices > 0);
     assert(face_vertex_indices.size() == face_normal_indices.size());
 
-    for (size_t i = 0; i < num_vertices; ++i) {
-        vertex_normals.emplace_back(Vector3f::Zero());
-    }
+    vertex_normals.clear();
+    vertex_normals.resize(num_vertices);
+    fill(vertex_normals.begin(), vertex_normals.end(), Vector3f::Zero());
 
     for (size_t i = 0; i < face_vertex_indices.size(); ++i) {
         size_t vertex_idx = face_vertex_indices[i];
         size_t normal_idx = face_normal_indices[i];
 
         vertex_normals[vertex_idx] += given_normals[normal_idx];
+    }
+    for( auto & vn : vertex_normals) {
+      vn.normalize();
     }
 }
 

@@ -102,23 +102,6 @@ target_link_libraries(
 		FileUtils
 )
 
-# Convert an OBJ file to a Surfel graph
-add_executable(
-		obj_to_graph
-		obj_to_graph/obj_to_graph.cpp
-)
-target_include_directories(
-		obj_to_graph
-		PUBLIC
-)
-target_link_libraries(
-		obj_to_graph
-		Surfel
-		FileUtils
-		GeomFileUtils
-		spdlog::spdlog
-)
-
 add_subdirectory(compute_pcl_correspondence)
 add_subdirectory(compute_corr_cilantro)
 add_subdirectory(compute_corr_pcl)

@@ -44,27 +44,22 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
  * Given a regular grid with orientation tangent_u,
  * position gridPosition and normal, the following operation rounds a
  * position roundPosition′ to the nearest lattice point.
- * @param gridPosition
- * @param roundPosition
- * @param tangent_u
- * @param tangent_v
- * @param normal
- * @param rho
- * @return
  */
 Eigen::Vector3f
 round_4(const Eigen::Vector3f &normal,
         const Eigen::Vector3f &tangent,
-        const Eigen::Vector3f &lattice_point,
-        const Eigen::Vector3f &vertex,
+        const Eigen::Vector3f &anchor,
+        const Eigen::Vector3f &point_to_correct,
         float rho) {
   const auto inv_rho = 1.0f / rho;
 
   const auto orth_tangent = normal.cross(tangent);
-  const auto diff = (vertex - lattice_point);
-  return lattice_point
-      + tangent * (std::roundf(diff.dot(tangent) * inv_rho) * rho)
-      + orth_tangent * (std::roundf(diff.dot(orth_tangent) * inv_rho) * rho);
+  const auto diff = (point_to_correct - anchor);
+  const auto gamma1 = inv_rho * diff.dot(tangent);
+  const auto gamma2 = inv_rho * diff.dot(orth_tangent);
+  return anchor
+      + tangent * rho * (std::floorf(gamma1 + 0.5f))
+      + orth_tangent * rho * (std::floorf(gamma2 + 0.5f));
 }
 
 Eigen::Vector3f
@@ -150,7 +145,7 @@ compute_qij(
   const double n0n1 = n0.dot(n1);
 
   const auto pl = 1.0 - n0n1 * n0n1;
-  if( std::fabs(pl)  < 1e-4 ) {
+  if (std::fabs(pl) < 1e-4) {
     return 0.5f * (p0 + p1);
   }
   const auto denom = 1.0f / (pl + 1e-4f);
@@ -256,15 +251,24 @@ compute_tij_pair(
       Vector2i((best_j & 1) + nbr_base_lattice_offset[0], ((best_j & 2) >> 1) + nbr_base_lattice_offset[1]));
 }
 
+/*
+ * Inputs; two points believed to be on the lattice by the respective
+ * source and neighbour surfel plus their local UV coordinate system
+ *
+ * A 'common_point' representint q_i in the original paper and which lies on both planes
+ * and is approximately midway between the two lattice points.
+ *
+ * Also rho (a scale)
+ */
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 compute_closest_points(
-    const Eigen::Vector3f &lattice_point,
-    const Eigen::Vector3f &tangent,
-    const Eigen::Vector3f &orth_tangent,
-    const Eigen::Vector3f &nbr_lattice_point,
-    const Eigen::Vector3f &nbr_tangent,
-    const Eigen::Vector3f &nbr_orth_tangent,
-    const Eigen::Vector3f &midpoint,
+    const Eigen::Vector3f &lattice1,
+    const Eigen::Vector3f &lattice1_u,
+    const Eigen::Vector3f &lattice1_v,
+    const Eigen::Vector3f &lattice2,
+    const Eigen::Vector3f &lattice2_u,
+    const Eigen::Vector3f &lattice2_v,
+    const Eigen::Vector3f &common_point,
     float scale,
     std::vector<Eigen::Vector3f> &i_vecs,
     std::vector<Eigen::Vector3f> &j_vecs
@@ -273,21 +277,25 @@ compute_closest_points(
   using namespace std;
 
   // Origin, reptan, normal, point
-  Vector3f this_base_lattice_point = position_floor(lattice_point, tangent, orth_tangent, midpoint, scale);
-  Vector3f that_base_lattice_point =
-      position_floor(nbr_lattice_point, nbr_tangent, nbr_orth_tangent, midpoint, scale);
+  Vector3f this_base_lattice_point = position_floor(lattice1, lattice1_u, lattice1_v, common_point, scale);
+  Vector3f that_base_lattice_point = position_floor(lattice2, lattice2_u, lattice2_v, common_point, scale);
 
-  float best_cost = numeric_limits<float>::infinity();
-  int best_i = -1, best_j = -1;
-
+  // Compute the possible lattice points for each of i and j which surround the common_point
   for (int i = 0; i < 4; ++i) {
-    Vector3f pt = this_base_lattice_point + (tangent * (i & 1) + orth_tangent * ((i & 2) >> 1)) * scale;
+    Vector3f pt = this_base_lattice_point +
+        scale * (lattice1_u * (i & 1)) +
+        scale * (lattice1_v * ((i & 2) >> 1));
     i_vecs.emplace_back(pt);
 
-    pt = that_base_lattice_point + (nbr_tangent * (i & 1) + nbr_orth_tangent * ((i & 2) >> 1)) * scale;
+    pt = that_base_lattice_point +
+        scale * (lattice2_u * (i & 1)) +
+        scale * (lattice2_v * ((i & 2) >> 1));
     j_vecs.emplace_back(pt);
   }
 
+  // Now iterate over all pairs of points to find the two which are closest together
+  auto best_cost = numeric_limits<float>::infinity();
+  auto best_i = -1, best_j = -1;
   for (int i = 0; i < 4; ++i) {
     for (int j = 0; j < 4; ++j) {
       float cost = (i_vecs[i] - j_vecs[j]).squaredNorm();
@@ -299,7 +307,7 @@ compute_closest_points(
     }
   }
 
-  // best_i and best_j are the closest vertices surrounding q_ij
+  // best_i and best_j are the indices of the closest vertices surrounding q_ij
   // we return the pair of closest points on the lattice according to both origins
   return {i_vecs[best_i], j_vecs[best_j]};
 }
@@ -486,18 +494,18 @@ position_floor(
     const Eigen::Vector3f &lattice_point,
     const Eigen::Vector3f &tangent,
     const Eigen::Vector3f &orth_tangent,
-    const Eigen::Vector3f &midpoint,
+    const Eigen::Vector3f &point_to_surround,
     float scale
 ) {
   using namespace Eigen;
   using namespace std;
   auto inv_scale = 1.0f / scale;
 
-  const auto d = midpoint - lattice_point;
+  const auto d = point_to_surround - lattice_point;
   const auto d_tan = tangent.dot(d);
   const auto d_orth_tan = orth_tangent.dot(d);
 
-  // Computes the 'bottom left' lattice point closest to midpoint
+  // Computes the 'bottom left' lattice point closest to point_to_surround
   return lattice_point +
       floorf(d_tan * inv_scale) * scale * tangent +
       floorf(d_orth_tan * inv_scale) * scale * orth_tangent;

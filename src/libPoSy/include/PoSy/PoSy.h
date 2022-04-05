@@ -13,14 +13,14 @@ std::vector<Eigen::Vector3f> compute_lattice_neighbours(
 
 /**
 * Given a regular grid with basis vectors tangent, o_prime,
-* a lattice position lattice_point and vertex, a position possibly not on the lattice,
-* The following operation rounds vertex to the nearest lattice point.
+* a lattice position anchor and point_to_correct, a position possibly not on the lattice,
+* The following operation rounds point_to_correct to the nearest lattice point.
 */
 Eigen::Vector3f
 round_4(const Eigen::Vector3f &normal,
         const Eigen::Vector3f &tangent,
-        const Eigen::Vector3f &lattice_point,
-        const Eigen::Vector3f &vertex,
+        const Eigen::Vector3f &anchor,
+        const Eigen::Vector3f &point_to_correct,
         float rho);
 
 Eigen::Vector3f
@@ -125,13 +125,13 @@ compute_tij_pair(
 
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 compute_closest_points(
-    const Eigen::Vector3f &lattice_point,
-    const Eigen::Vector3f &tangent,
-    const Eigen::Vector3f &orth_tangent,
-    const Eigen::Vector3f &nbr_lattice_point,
-    const Eigen::Vector3f &nbr_tangent,
-    const Eigen::Vector3f &nbr_orth_tangent,
-    const Eigen::Vector3f &midpoint,
+    const Eigen::Vector3f &lattice1,
+    const Eigen::Vector3f &lattice1_u,
+    const Eigen::Vector3f &lattice1_v,
+    const Eigen::Vector3f &lattice2,
+    const Eigen::Vector3f &lattice2_u,
+    const Eigen::Vector3f &lattice2_v,
+    const Eigen::Vector3f &common_point,
     float scale,
     std::vector<Eigen::Vector3f> &i_vecs,
     std::vector<Eigen::Vector3f> &j_vecs
@@ -163,6 +163,6 @@ position_floor(
     const Eigen::Vector3f &lattice_point,
     const Eigen::Vector3f &tangent,
     const Eigen::Vector3f &orth_tangent,
-    const Eigen::Vector3f &midpoint,
+    const Eigen::Vector3f &point_to_surround,
     float scale
 );

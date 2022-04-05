@@ -68,6 +68,13 @@ class RoSyOptimiser : public NodeOptimiser {
   optimise_node_with_all_neighbours(const SurfelGraphNodePtr &this_node, //
                                     const std::shared_ptr<Surfel> &this_surfel //
   );
+
+  void label_edges();
+  void label_edge(SurfelGraph::Edge &edge);
+  void compute_label_for_edge(const SurfelGraph::Edge &edge,
+                              const std::vector<unsigned int>& frames_for_edge,
+                              unsigned short &k_ij,
+                              unsigned short &k_ji) const;
   float m_damping_factor;
   bool m_weight_for_error;
   bool m_vote_for_best_k;

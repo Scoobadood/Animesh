@@ -10,7 +10,7 @@
 #include <Eigen/Geometry>
 #include <Vote/VoteCounter.h>
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <iomanip>
 
 RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::default_random_engine &rng)
@@ -31,10 +31,13 @@ RoSyOptimiser::RoSyOptimiser(const Properties &properties, std::default_random_e
   setup_ssa();
 
   // DEBUG
-  auto optimisation_tracer = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-  optimisation_tracer->set_pattern("[rosy optimiser] [%^%l%$] %v");
-  std::vector<spdlog::sink_ptr> sinks{optimisation_tracer};
-  spdlog::register_logger(std::make_shared<spdlog::logger>("rosy-logger", sinks.begin(), sinks.end()));
+  try {
+    auto logger = spdlog::basic_logger_mt("rosy-optimiser", "logs/rosy-optimiser-trace.txt");
+    logger->set_pattern("[rosy optimiser] [%^%l%$] %v");
+  }
+  catch (const spdlog::spdlog_ex &ex) {
+    std::cout << "Log init failed: " << ex.what() << std::endl;
+  }
 }
 
 /**
@@ -96,52 +99,6 @@ RoSyOptimiser::adjust_weights_based_on_error(const std::shared_ptr<Surfel> &s1,
 }
 
 void
-RoSyOptimiser::vote_for_best_ks(
-    const std::shared_ptr<Surfel> &this_surfel,
-    const std::shared_ptr<Surfel> &that_surfel,
-    const Eigen::Vector3f &tangent,
-    std::vector<unsigned int> &shared_frames,
-    unsigned short &best_k_ij,
-    unsigned short &best_k_ji) const {
-  using namespace std;
-  using namespace Eigen;
-
-  // Initialise vote
-  VoteCounter<pair<unsigned short, unsigned short>> vote_counter{
-      // In the event of a tie pick one at random.
-      [&](const vector<pair<unsigned short, unsigned short>> &possibilities) -> pair<int, int> {
-        uniform_int_distribution<size_t> i(0, possibilities.size() - 1);
-        return possibilities[i(m_random_engine)];
-      }
-  };
-
-  // For each frame that they both appear in
-  for (auto frame_index: shared_frames) {
-    // Compute best k_ij/k_ji and tally vote
-    unsigned short k_ij, k_ji;
-    Vector3f nbr_tan_in_surfel_space;
-    Vector3f nbr_norm_in_surfel_space;
-    this_surfel->transform_surfel_via_frame(
-        that_surfel,
-        frame_index,
-        nbr_norm_in_surfel_space,
-        nbr_tan_in_surfel_space);
-    best_rosy_vector_pair(
-        tangent,
-        Vector3f::UnitY(),
-        k_ij,
-        nbr_tan_in_surfel_space,
-        nbr_norm_in_surfel_space,
-        k_ji);
-    vote_counter.cast_vote({k_ij, k_ji});
-  }
-  auto winner = vote_counter.winner();
-
-  best_k_ij = winner.first;
-  best_k_ji = winner.second;
-}
-
-void
 RoSyOptimiser::get_weights(const std::shared_ptr<Surfel> &surfel_a,
                            const std::shared_ptr<Surfel> &surfel_b,
                            float &weight_a,
@@ -161,7 +118,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   using namespace std;
   using namespace Eigen;
 
-  auto rosy_logger = spdlog::get("rosy-logger");
+  auto rosy_logger = spdlog::get("rosy-optimiser");
 
   std::shared_ptr<Surfel> this_surfel = this_node->data();
   rosy_logger->info("Optimising surfel {}", this_surfel->id());
@@ -269,190 +226,61 @@ void RoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothn
 }
 
 void
-RoSyOptimiser::compute_all_dps(
-    const std::shared_ptr<Surfel> &s1,
-    const std::shared_ptr<Surfel> &s2,
-    unsigned int num_frames,
-    std::vector<std::vector<std::vector<float>>> &dot_prod,
-    std::vector<FrameStat> &frame_stats
-) const {
+RoSyOptimiser::label_edge(SurfelGraph::Edge &edge) {
+  // Frames in which the edge occurs are frames which feature both start and end nodes
+  auto frames_for_edge = get_common_frames(edge.from()->data(), edge.to()->data());
+
+  unsigned short k_ij, k_ji;
+  compute_label_for_edge(edge, frames_for_edge, k_ij, k_ji);
+  set_k(m_surfel_graph, edge.from(), k_ij, edge.to(), k_ji);
+}
+
+void
+RoSyOptimiser::compute_label_for_edge( //
+    const SurfelGraph::Edge &edge, //
+    const std::vector<unsigned int> &frames_for_edge, //
+    unsigned short &k_ij, //
+    unsigned short &k_ji) const //
+{
   using namespace Eigen;
 
-  for (int f = 0; f < num_frames; ++f) {
-    // Clear dot_prod
-    for (int i = 0; i < 4; ++i) {
-      for (int j = 0; j < 4; ++j) {
-        dot_prod[f][i][j] = 0;
-      }
-    }
+  if (frames_for_edge.size() == 1) {
+    Vector3f ignored, t_i, t_j, n_i, n_j;
+    edge.from()->data()->get_vertex_tangent_normal_for_frame(frames_for_edge[0], ignored, t_i, n_i);
+    edge.to()->data()->get_vertex_tangent_normal_for_frame(frames_for_edge[0], ignored, t_j, n_j);
+    best_rosy_vector_pair(t_i, n_i, k_ij, t_j, n_j, k_ji);
+    return;
   }
 
-  const auto common_frames = get_common_frames(s1, s2);
-  for (const auto f: common_frames) {
-    Vector3f v_i, t_i, n_i, v_j, t_j, n_j;
-    s1->get_vertex_tangent_normal_for_frame(f, v_i, t_i, n_i);
-    s2->get_vertex_tangent_normal_for_frame(f, v_j, t_j, n_j);
+  throw std::runtime_error("multi-frame labeling not supported");
+}
 
-    for (int k_ij = 0; k_ij < 4; ++k_ij) {
-      for (int k_ji = 0; k_ji < 4; ++k_ji) {
-        auto atan_i = vector_by_rotating_around_n(t_i, n_i, k_ij);
-        auto atan_j = vector_by_rotating_around_n(t_j, n_j, k_ji);
-        auto dp = atan_i.dot(atan_j);
-        dot_prod[f][k_ij][k_ji] = dp;
+/*
+ * Apply labels to the edge to indicate the relative rotational frames of
+ * the cross field at each end. This is a single integer from 0 .. 3
+ * In a single frame these are guaranteed to be consistent. When there are multiple frames,
+ * it's possible that different frames have different preferences. In this case we must
+ * pick the 'best' orientation. More details on what best means is below.
+ *
+ */
+void
+RoSyOptimiser::label_edges() {
+  using namespace std;
+  using namespace spdlog;
 
-        if (fabsf(dp) > fabsf(frame_stats[f].best_dp)) {
-          frame_stats[f].best_dp = dp;
-          frame_stats[f].best_delta = (k_ji + 4 - k_ij) % 4;
-          frame_stats[f].best_kij = k_ij;
-        }
-      }
-    }
+  auto rosy_logger = spdlog::get("rosy-optimiser");
+  rosy_logger->trace(">> label_edges()");
+
+  for (auto &edge: m_surfel_graph->edges()) {
+    label_edge(edge);
   }
+
+  rosy_logger->trace("<< label_edges()");
 }
 
 void RoSyOptimiser::ended_optimisation() {
   using namespace Eigen;
   using namespace std;
 
-  if (!m_fix_bad_edges) {
-    return;
-  }
-  vector<FrameStat> frame_stats{m_num_frames};
-  vector<vector<vector<float>>> dot_prod;
-  dot_prod.resize(m_num_frames);
-  for (int i = 0; i < m_num_frames; i++) {
-    dot_prod[i].resize(4);
-    for (int j = 0; j < 4; j++) {
-      dot_prod[i][j].resize(4);
-    }
-  }
-
-  int good_edges = 0;
-  int bad_edges = 0;
-
-  // Label graph edges - only works with meshes right now
-  // TODO: Fix this to handle edges that don't occur in every frame
-  for (const auto &edge: m_surfel_graph->edges()) {
-    const auto &s1 = edge.from()->data();
-    const auto &s2 = edge.to()->data();
-
-    compute_all_dps(s1, s2, m_num_frames, dot_prod, frame_stats);
-
-    // How many 'best' deltas exist for this edge across all frames?
-    set<unsigned short> deltas;
-    for (int f = 0; f < m_num_frames; ++f) {
-      deltas.emplace(frame_stats[f].best_delta);
-    }
-
-    // If one, great, we use it.
-    if (deltas.size() == 1) {
-      good_edges++;
-      if (s1->id() < s2->id()) {
-        edge.data()->set_k_low(frame_stats[0].best_kij);
-        edge.data()->set_k_high((int) (frame_stats[0].best_kij + frame_stats[0].best_delta) % 4);
-      } else {
-        edge.data()->set_k_high(frame_stats[0].best_kij);
-        edge.data()->set_k_low((int) (frame_stats[0].best_kij + frame_stats[0].best_delta) % 4);
-      }
-      continue;
-    }
-
-    // There are multiple conflicting options for delta for this edge. Dump some stats
-    bad_edges++;
-
-    spdlog::warn("Edge : {} --> {}", s1->id(), s2->id());
-    ostringstream m;
-    m << "  " << deltas.size() << "  options (";
-    for (auto d = deltas.begin(); d != deltas.end(); ++d) {
-      if (d != deltas.begin())
-        m << ", ";
-      m << *d;
-    }
-    m << ")";
-    spdlog::warn(m.str());
-
-
-    //   f    d=0     dp     e       d=1     dp        d=2     dp
-    m.str("");
-    m.clear();
-    m << "    f";
-    for (auto d: deltas) {
-      m << "    d=" << d << "     dp     e   ";
-    }
-    spdlog::warn(m.str());
-
-    // For each plausible delta, work out the best kij and dp per frame
-    map<unsigned short, pair<int, float>> scores_per_frame[m_num_frames];
-    for (int f = 0; f < m_num_frames; ++f) {
-      for (auto d: deltas) {
-        int best_kij;
-        int best_kji;
-        float best_dp = 0.0f;
-        for (int kij = 0; kij < 4; ++kij) {
-          int kji = (kij + d) % 4;
-          if (fabsf(dot_prod[f][kij][kji]) > best_dp) {
-            best_kij = kij;
-            best_kji = kji;
-            best_dp = dot_prod[f][kij][kji];
-          }
-        }
-        scores_per_frame[f].emplace(d, make_pair(best_kij, best_dp));
-      }
-    }
-
-    // Dump these results
-    for (int f = 0; f < m_num_frames; ++f) {
-      ostringstream s;
-      s << "    " << setw(1) << f;
-      for (auto d: deltas) {
-        s << "   (" << scores_per_frame[f].at(d).first
-          << ", "
-          << ((scores_per_frame[f].at(d).first + d) % 4) << ")"
-          << "  "
-          << ((scores_per_frame[f].at(d).second >= 0) ? " " : "")
-          << fixed << setw(5) << setprecision(3) << scores_per_frame[f].at(d).second << " [";
-        if (d == frame_stats[f].best_delta) {
-          s << "****";
-        } else {
-          float diff = fabsf(fabsf(scores_per_frame[f].at(d).second) - fabsf(frame_stats[f].best_dp));
-          s << fixed << setw(4) << setprecision(1) << diff;
-        }
-        s << "]";
-      }
-      spdlog::warn("{}", s.str());
-    }
-
-
-    // Vote for the best
-    map<unsigned short, float> votes;
-    for (auto d: deltas) {
-      votes.emplace(d, 0.0f);
-    }
-    for (int f = 0; f < m_num_frames; ++f) {
-      auto sum = 0.0f;
-      for (auto d: deltas) {
-        sum += fabsf(scores_per_frame[f].at(d).second);
-      }
-      for (auto d: deltas) {
-        auto vote = (sum == 0)
-                    ? 0
-                    : fabsf(scores_per_frame[f].at(d).second) / sum;
-        votes.at(d) = votes.at(d) + vote;
-      }
-    }
-    auto best_d = -1;
-    auto best_vote = 0.0f;
-    for (const auto &v: votes) {
-      if (v.second > best_vote) {
-        best_vote = v.second;
-        best_d = v.first;
-      }
-    }
-    spdlog::warn("Voted to converge on d={}", best_d);
-  }
-
-  spdlog::info("Bad edges {} / {}  {}%",
-               bad_edges, (bad_edges + good_edges),
-               (100.0 * bad_edges) / (bad_edges + good_edges)
-  );
+  label_edges();
 }

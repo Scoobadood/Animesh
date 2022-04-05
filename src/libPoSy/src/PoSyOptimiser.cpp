@@ -9,6 +9,7 @@
 #include <Geom/Geom.h>
 #include <Eigen/Geometry>
 #include <Surfel/SurfelGraph.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 PoSyOptimiser::PoSyOptimiser( //
     const Properties &properties, //
@@ -24,6 +25,15 @@ PoSyOptimiser::PoSyOptimiser( //
       "posy-term-crit-max-iterations");
 
   setup_ssa();
+
+  try {
+    auto logger = spdlog::basic_logger_mt("posy-optimiser", "logs/posy-optimiser-trace.txt");
+    logger->set_pattern("[posy optimiser] [%^%l%$] %v");
+  }
+  catch (const spdlog::spdlog_ex &ex) {
+    std::cout << "Log init failed: " << ex.what() << std::endl;
+  }
+
 }
 
 void
@@ -50,7 +60,6 @@ PoSyOptimiser::trace_smoothing(const SurfelGraphPtr &surfel_graph) const {
     }
   }
 }
-
 
 float
 PoSyOptimiser::compute_smoothness_in_frame(
@@ -116,17 +125,17 @@ PoSyOptimiser::compute_smoothness_in_frame(
       spdlog::warn("v_i = [{:3}, {:3}, {:3}]", vertex[0], vertex[1], vertex[2]);
       spdlog::warn("tan_i = [{:3}, {:3}, {:3}]", oriented_tangent[0], oriented_tangent[1], oriented_tangent[2]);
       spdlog::warn("otan_i = [{:3}, {:3}, {:3}]", orth_tangent[0], orth_tangent[1], orth_tangent[2]);
-      spdlog::warn("n_i = [{:3f}, {:3f}, {:3f}]", normal[0], normal[1], normal[2]);
+      spdlog::warn("n_i = [{:.3f}, {:.3f}, {:.3f}]", normal[0], normal[1], normal[2]);
       spdlog::warn("v_j = [{:3}, {:3}, {:3}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
       spdlog::warn("tan_j = [{:3}, {:3}, {:3}]", nbr_tangent[0], nbr_tangent[1], nbr_tangent[2]);
       spdlog::warn("otan_j = [{:3}, {:3}, {:3}]", nbr_orth_tangent[0], nbr_orth_tangent[1],
                    nbr_orth_tangent[2]);
-      spdlog::warn("n_j = [{:3f}, {:3f}, {:3f}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
-      spdlog::warn("q_ij = [{:3f}, {:3f}, {:3f}]", q[0], q[1], q[2]);
-      spdlog::warn("cl_i = [{:3f}, {:3f}, {:3f}]", cp_i[0], cp_i[1], cp_i[2]);
-      spdlog::warn("cl_j = [{:3f}, {:3f}, {:3f}]", cp_j[0], cp_j[1], cp_j[2]);
+      spdlog::warn("n_j = [{:.3f}, {:.3f}, {:.3f}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
+      spdlog::warn("q_ij = [{:.3f}, {:.3f}, {:.3f}]", q[0], q[1], q[2]);
+      spdlog::warn("cl_i = [{:.3f}, {:.3f}, {:.3f}]", cp_i[0], cp_i[1], cp_i[2]);
+      spdlog::warn("cl_j = [{:.3f}, {:.3f}, {:.3f}]", cp_j[0], cp_j[1], cp_j[2]);
       spdlog::warn(
-          "Qi = [{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f}]",
+          "Qi = [{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f}]",
           Qi[0][0],
           Qi[0][1],
           Qi[0][2],
@@ -144,7 +153,7 @@ PoSyOptimiser::compute_smoothness_in_frame(
           Qi[0][2]
       );
       spdlog::warn(
-          "Qj = [{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f};\n\t\t\t\t\t\t{:3f}, {:3f}, {:3f}]",
+          "Qj = [{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f};\n\t\t\t\t\t\t{:.3f}, {:.3f}, {:.3f}]",
           Qj[0][0],
           Qj[0][1],
           Qj[0][2],
@@ -161,11 +170,11 @@ PoSyOptimiser::compute_smoothness_in_frame(
           Qj[0][1],
           Qj[0][2]
       );
-      spdlog::warn("curr_lp = [{:3f}, {:3f}, {:3f}]",
+      spdlog::warn("curr_lp = [{:.3f}, {:.3f}, {:.3f}]",
                    nearest_lattice_point[0],
                    nearest_lattice_point[1],
                    nearest_lattice_point[2]);
-      spdlog::warn("nbr_lp = [{:3f}, {:3f}, {:3f}]",
+      spdlog::warn("nbr_lp = [{:.3f}, {:.3f}, {:.3f}]",
                    nbr_nearest_lattice_point[0],
                    nbr_nearest_lattice_point[1],
                    nbr_nearest_lattice_point[2]);
@@ -203,63 +212,109 @@ PoSyOptimiser::smooth_node_in_frame(//
 ) const {
   using namespace Eigen;
 
+  auto posy_logger = spdlog::get("posy-optimiser");
+
   // Compute the lattice offset 3D position in the given frame
-  Vector3f from_vertex, from_tangent, from_normal;
-  from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, from_vertex, from_tangent, from_normal);
-  from_tangent = vector_by_rotating_around_n(from_tangent, from_normal, k_ij);
-  Vector3f from_orth_tangent = from_normal.cross(from_tangent);
-  Vector3f from_lattice_vertex = from_vertex +
-      from_lattice_offset[0] * from_tangent +
-      from_lattice_offset[1] * from_orth_tangent;
+  Vector3f from_surfel_pos, default_from_tangent, from_normal;
+  from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, from_surfel_pos, default_from_tangent, from_normal);
+  const auto default_from_orth_tangent =from_normal.cross(default_from_tangent);
+  // Compute the CLP using default tangent and orth tangent.
+  Vector3f from_clp = from_surfel_pos +
+      from_lattice_offset[0] * default_from_tangent +
+      from_lattice_offset[1] * default_from_orth_tangent;
+
+  // Compute local axes
+  const auto from_u = vector_by_rotating_around_n(default_from_tangent, from_normal, k_ij);
+  const auto from_v = vector_by_rotating_around_n(default_from_orth_tangent, from_normal, k_ij);
 
   // Compute the neighbour's lattice offset 3D position in the given frame
-  Vector3f to_vertex, to_tangent, to_normal;
-  to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, to_vertex, to_tangent, to_normal);
-  to_tangent = vector_by_rotating_around_n(to_tangent, to_normal, k_ji);
-  Vector3f to_orth_tangent = to_normal.cross(to_tangent);
-  Vector3f to_lattice_vertex = to_vertex +
-      to_lattice_offset[0] * to_tangent +
-      to_lattice_offset[1] * to_orth_tangent;
+  Vector3f to_surfel_pos, default_to_tangent, to_normal;
+  to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, to_surfel_pos, default_to_tangent, to_normal);
+  const auto default_to_orth_tangent = to_normal.cross(default_to_tangent);
+  Vector3f to_clp = to_surfel_pos +
+      to_lattice_offset[0] * default_to_tangent +
+      to_lattice_offset[1] * default_to_orth_tangent;
 
-  // Compute the midpoint
-  const auto midpoint = compute_qij(from_vertex, from_normal, to_vertex, to_normal);
-  const auto closest_points = compute_closest_points(
-      from_lattice_vertex, from_tangent, from_orth_tangent,
-      to_lattice_vertex, to_tangent, to_orth_tangent,
-      midpoint, m_rho);
+  const auto to_u = vector_by_rotating_around_n(default_to_tangent, to_normal, k_ji);
+  const auto to_v = vector_by_rotating_around_n(default_to_orth_tangent, to_normal, k_ji);
 
-  // Compute the weighted mean closest point
-  Vector3f new_lattice_vertex = (w_i * closest_points.first) + (w_j * closest_points.second);
-  new_lattice_vertex = new_lattice_vertex / (w_i + w_j);
+  {
+    posy_logger->info("      Frame {}.", frame_idx);
+    posy_logger->info("        from_surfel_pos=[{:.3f} {:.3f} {:.3f}];",
+                      from_surfel_pos[0],
+                      from_surfel_pos[1],
+                      from_surfel_pos[2]);
+    posy_logger->info("        from_surfel_clp=[{:.3f} {:.3f} {:.3f}];",
+                      from_clp[0],
+                      from_clp[1],
+                      from_clp[2]);
+    posy_logger->info("        from_u_axis=[{:.3f} {:.3f} {:.3f}];", from_u[0], from_u[1], from_u[2]);
+    posy_logger->info("        from_v_axis=[{:.3f} {:.3f} {:.3f}];", from_v[0], from_v[1], from_v[2]);
 
-  // Push back to tangent plane. New Lattice Vertex is now where we think the nearest lattice
-  // vertex ought to be
-  new_lattice_vertex = project_vector_to_plane(new_lattice_vertex, from_normal, false);
-
-  // This is A lattice point in the new world but not necessarily the closest
-  // to the vertex. To make it be that we need to subtract the vertex then
-  // then truncate
-  // ????
-  from_lattice_vertex = round_4(from_normal, from_tangent, new_lattice_vertex, from_vertex, m_rho);
-
-  // Convert back to an offset
-  const auto diff = from_lattice_vertex - from_vertex;
-  Vector2f new_lattice_offset = {diff.dot(from_tangent), diff.dot(from_orth_tangent)};
-
-  if ((std::fabsf(new_lattice_offset[0]) - 0.5 > 1e-5) ||
-      (std::fabsf(new_lattice_offset[1]) - 0.5 > 1e-5)) {
-    spdlog::error("new_lattice_offset is invalid ({},{})",
-                  new_lattice_offset[0],
-                  new_lattice_offset[1]);
+    posy_logger->info("        to_surfel_pos=[{:.3f} {:.3f} {:.3f}];",
+                      to_surfel_pos[0],
+                      to_surfel_pos[1],
+                      to_surfel_pos[2]);
+    posy_logger->info("        to_surfel_clp=[{:.3f} {:.3f} {:.3f}];",
+                      to_clp[0],
+                      to_clp[1],
+                      to_clp[2]);
+    posy_logger->info("        to_u_axis=[{:.3f} {:.3f} {:.3f}];", to_u[0], to_u[1], to_u[2]);
+    posy_logger->info("        to_v_axis=[{:.3f} {:.3f} {:.3f}];", to_v[0], to_v[1], to_v[2]);
   }
 
+  // Compute the point that minimizes the distance to vertices while being located in their respective tangent plane
+  const auto midpoint = compute_qij(from_surfel_pos, from_normal, to_surfel_pos, to_normal);
+  posy_logger->info("        midpoint=[{:.3f} {:.3f} {:.3f}];", midpoint[0], midpoint[1], midpoint[2]);
+
+  // The midpoint is contained on both tangent planes. Find the lattice points on both planes
+  // which are closest to each other - checks 4 points surrounding midpoint on both planes
+  std::vector<Vector3f> i_vecs;
+  std::vector<Vector3f> j_vecs;
+  const auto closest_points = compute_closest_points(
+      from_clp, from_u, from_v,
+      to_clp, to_u, to_v,
+      midpoint, m_rho);
+
+  {
+    posy_logger->info("        from_clp=[{:.3f} {:.3f} {:.3f}];",
+                      closest_points.first[0], closest_points.first[1], closest_points.first[2]);
+    posy_logger->info("        to_clp=[{:.3f} {:.3f} {:.3f}];",
+                      closest_points.second[0], closest_points.second[1], closest_points.second[2]);
+  }
+
+  // Compute the weighted mean closest point
+  Vector3f new_lattice_vertex = ((w_i * closest_points.first) + (w_j * closest_points.second))/ (w_i + w_j);
+  posy_logger->info("        new_lattice_vertex=[{:.3f} {:.3f} {:.3f}];",
+                    new_lattice_vertex[0], new_lattice_vertex[1], new_lattice_vertex[2]);
+
+  // new_lattice_vertex is not necessarily on the plane of the from tangents
+  // We may need to correct for this later
+
+  // new_lattice_vertex is now a point that we'd like to assume is on the lattice.
+  // If this defines the lattice, now find the closest lattice point to from_surfel_pos
+  const auto new_from_clp = round_4(from_normal, from_u, new_lattice_vertex, from_surfel_pos, m_rho);
+  posy_logger->info("        new_from_clp=[{:.3f} {:.3f} {:.3f}];",
+                    new_from_clp[0], new_from_clp[1], new_from_clp[2]);
+
+  // Convert this to an offset in default coords for surfel
+  const auto diff = new_from_clp - from_surfel_pos;
+  Vector2f new_from_lattice_offset = {diff.dot(default_from_tangent), diff.dot(default_from_orth_tangent)};
+  posy_logger->info("        new_from_lattice_offset=[{:.3f} {:.3f}];",
+                    new_from_lattice_offset[0],
+                    new_from_lattice_offset[1]);
+
+  // Set it before we finish this frame
+  from_surfel->set_reference_lattice_offset(new_from_lattice_offset);
+
   const auto t_ij_pair = compute_tij_pair(
-      from_lattice_vertex, from_tangent, from_orth_tangent,
-      to_lattice_vertex, to_tangent, to_orth_tangent,
+      new_from_clp, from_u, from_v,
+      to_clp, to_u, to_v,
       midpoint, m_rho);
   t_ij = t_ij_pair.first;
   t_ji = t_ij_pair.second;
-  return new_lattice_offset;
+  posy_logger->info("        t_ij, t_ji : ({}, {}) , ({}, {});", t_ij[0], t_ij[1], t_ji[0], t_ji[1]);
+  return new_from_lattice_offset;
 }
 
 std::vector<unsigned int>
@@ -271,7 +326,7 @@ PoSyOptimiser::filter_frames_list(
 ) {
   std::vector<unsigned int> filtered_frames;
   filtered_frames.reserve(frames.size());
-for (const auto f: frames) {
+  for (const auto f: frames) {
     filtered_frames.push_back(f);
   }
   return filtered_frames;
@@ -292,34 +347,40 @@ void
 PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
   using namespace Eigen;
 
+  auto posy_logger = spdlog::get("posy-optimiser");
+
   const auto &curr_surfel = node->data();
+  posy_logger->info("Optimising surfel {}", curr_surfel->id());
+
+  // Ref latt offset in the default space.
   Vector2f new_lattice_offset = curr_surfel->reference_lattice_offset();
+  posy_logger->info("  starting lattice offset (default) is ({:.3f}, {:.3f})",
+                    new_lattice_offset[0], new_lattice_offset[1]);
 
   // Get all of this node's neighbours
   const auto neighbours = m_surfel_graph->neighbours(node);
+  posy_logger->info("  smoothing with {} neighbours", neighbours.size());
 
-  // Smooth with each neighbour
+  // Smooth with each neighbour - we go by neighbour since the k_ij,k_ji pir are consistent by neighbour
+  // and it saves recomputing.
   float sum_w = 0.0;
   for (const auto &nbr_node: neighbours) {
     const auto &nbr_surfel = nbr_node->data();
-    Vector2f nbr_lattice_offset = nbr_surfel->reference_lattice_offset();
+    const auto &nbr_lattice_offset = nbr_surfel->reference_lattice_offset();
 
     const auto &edge = m_surfel_graph->edge(node, nbr_node);
 
     // Get common frames for this neighbour
-    auto frames_to_smooth = get_common_frames(curr_surfel, nbr_surfel);
+    const auto frames_to_smooth = get_common_frames(curr_surfel, nbr_surfel);
+    const auto &k = get_k(m_surfel_graph, node, nbr_node);
+    posy_logger->info("    smoothing with {} across {} frames with orientation ({},{})",
+                      nbr_surfel->id(), //
+                      frames_to_smooth.size(), //
+                      k.first, k.second //
+    );
 
-    // If we're filtering frames and there's more than one, generate a list of frames to
-    // smooth across.
-    if (m_properties.hasProperty("posy-smooth-frame-filter") && frames_to_smooth.size() > 1) {
-      frames_to_smooth = filter_frames_list(curr_surfel,
-                                            nbr_surfel,
-                                            frames_to_smooth,
-                                            m_properties.getProperty("posy-smooth-frame-filter"));
-    }
     Vector2i t_ij, t_ji;
     // For each frame in this list, smooth in that frame
-    const auto &k = get_k(m_surfel_graph, node, nbr_node);
     float w_ji = 1.0f;
     for (auto frame_idx: frames_to_smooth) {
       new_lattice_offset = smooth_node_in_frame(//
@@ -333,10 +394,6 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
     }
     set_t(m_surfel_graph, node, t_ij, nbr_node, t_ji);
   }
-
-
-  // Store the new offset
-  curr_surfel->set_reference_lattice_offset(new_lattice_offset);
 }
 
 void

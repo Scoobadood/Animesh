@@ -1,6 +1,7 @@
 add_library(PoSy SHARED
 		src/PoSy.cpp include/PoSy/PoSy.h
 		src/PoSyOptimiser.cpp include/PoSy/PoSyOptimiser.h
+		src/MultiResolutionPoSyOptimiser.cpp include/PoSy/MultiResolutionPoSyOptimiser.h
         )
 
 

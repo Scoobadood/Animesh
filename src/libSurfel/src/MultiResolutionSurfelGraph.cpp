@@ -266,12 +266,12 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
    *   end
    * end
    */
-  for( const auto & n : m_levels.back()->nodes()) {
-    const auto & N = lower_to_upper_mapping.at(n);
+  for (const auto &n: m_levels.back()->nodes()) {
+    const auto &N = lower_to_upper_mapping.at(n);
     const auto neighours = m_levels.back()->neighbours(n, true);
-    for( const auto & nn : neighours) {
-      const auto & NN = lower_to_upper_mapping.at(nn);
-      if( new_graph->has_edge(N,NN) ) {
+    for (const auto &nn: neighours) {
+      const auto &NN = lower_to_upper_mapping.at(nn);
+      if (new_graph->has_edge(N, NN)) {
         continue;
       }
       new_graph->add_edge(N, NN, SurfelGraphEdge{1.0f});
@@ -286,30 +286,38 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
  * Up-propagate data from one level to the next.
  */
 void
-MultiResolutionSurfelGraph::propagate(unsigned int from_level) {
+MultiResolutionSurfelGraph::propagate(
+    unsigned int from_level //
+    , bool rosy //
+    , bool posy //
+) {
   assert(from_level <= m_up_mapping.size());
   assert(from_level > 0);
   // For each node in the from_level graph,
   for (const auto &node: m_levels[from_level]->nodes()) {
-    auto & up_mapping = m_up_mapping[from_level - 1];
+    auto &up_mapping = m_up_mapping[from_level - 1];
     auto mapping = up_mapping.find(node);
     if (mapping == end(m_up_mapping[from_level - 1])) {
-      spdlog::error( "Didn't find up mapping for node {} in level {}",node->data()->id(), from_level);
+      spdlog::error("Didn't find up mapping for node {} in level {}", node->data()->id(), from_level);
     } else {
       auto parents = mapping->second;
       // Find the nodes in the graph
-      spdlog::info( "Found parents for node {} in level {}: {} and {}",node->data()->id(), from_level,
-                    parents.first->data()->id(),
-                    parents.second->data()->id());
-      parents.first->data()->setTangent(node->data()->tangent());
-      parents.second->data()->setTangent(node->data()->tangent());
+      spdlog::info("Found parents for node {} in level {}: {} and {}", node->data()->id(), from_level,
+                   parents.first->data()->id(),
+                   parents.second->data()->id());
+      if(rosy) {
+        parents.first->data()->setTangent(node->data()->tangent());
+        parents.second->data()->setTangent(node->data()->tangent());
+      }
 
-      //TODO: Make this better
-      // Right now we up propagate the same offset to both nodes
-      // A better approach would perhaps be to compute the location of this node in 3 space and then
-      // calculate an *actual* offset from the vertices across a single frame or averaged across all frames
-      parents.first->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
-      parents.second->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
+      if(posy) {
+        //TODO: Make this better
+        // Right now we up propagate the same offset to both nodes
+        // A better approach would perhaps be to compute the location of this node in 3 space and then
+        // calculate an *actual* offset from the vertices across a single frame or averaged across all frames
+        parents.first->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
+        parents.second->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
+      }
     }
   }
 }

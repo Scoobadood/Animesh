@@ -23,7 +23,7 @@ public:
   /**
    * Up-propagate data from one level to the next.
    */
-  void propagate(unsigned int from_level);
+  void propagate(unsigned int from_level, bool rosy = true, bool posy = true);
 
   /**
    * Return a reference to the specified level of the graph

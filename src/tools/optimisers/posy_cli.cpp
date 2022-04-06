@@ -1,5 +1,6 @@
 
 #include <PoSy/PoSyOptimiser.h>
+#include <PoSy/MultiResolutionPoSyOptimiser.h>
 #include <Properties/Properties.h>
 #include <Surfel/Surfel_IO.h>
 
@@ -37,7 +38,13 @@ int main(int argc, char *argv[]) {
   if( properties.hasProperty("posy-use-edge-optimiser") ) {
     warn("posy-use-edge-optimiser is deprecated");
   }
-  poSyOptimiser = new PoSyOptimiser(properties, rng);
+
+  if (properties.hasProperty("enable-multi-resolution") &&
+      properties.getBooleanProperty("enable-multi-resolution")) {
+    poSyOptimiser = new MultiResolutionPoSyOptimiser(properties, rng);
+  } else {
+    poSyOptimiser = new PoSyOptimiser(properties, rng);
+  }
 
   auto surfel_graph = load_surfel_graph_from_file(input_file_name, rng);
   poSyOptimiser->set_data(surfel_graph);

@@ -21,6 +21,7 @@ protected:
 
 private:
   MultiResolutionSurfelGraph * m_multi_res_graph;
+  bool m_save_interim_graphs;
   unsigned int m_num_levels;
   unsigned int m_current_level;
 };

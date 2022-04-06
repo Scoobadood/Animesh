@@ -271,6 +271,10 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
     const auto neighours = m_levels.back()->neighbours(n, true);
     for (const auto &nn: neighours) {
       const auto &NN = lower_to_upper_mapping.at(nn);
+      // eliminate 'self' edges
+      if( N == NN ) {
+        continue;
+      }
       if (new_graph->has_edge(N, NN)) {
         continue;
       }

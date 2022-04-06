@@ -18,3 +18,10 @@ make
 
 
 
+# Release Notes
+Implementing dumping of hierarchical graphs when we do multi-resolution smoothing because we're getting results that seem unlikely.
+In particular, high level smoothing is not fixing conflicts in lower level graphs.
+
+Possible issues are a problem with the MultiResolutionGraph (propagation or otherwise) or else with the order in which it's bult - if nodes are not randomised.
+
+* Removed issue where multi-resolution graphs had self links

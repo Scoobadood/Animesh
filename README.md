@@ -25,3 +25,4 @@ In particular, high level smoothing is not fixing conflicts in lower level graph
 Possible issues are a problem with the MultiResolutionGraph (propagation or otherwise) or else with the order in which it's bult - if nodes are not randomised.
 
 * Removed issue where multi-resolution graphs had self links
+* Modified Posy propagation code to more reasonably reflect UV coords for parents.

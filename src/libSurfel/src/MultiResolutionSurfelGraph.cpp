@@ -319,8 +319,39 @@ MultiResolutionSurfelGraph::propagate(
         // Right now we up propagate the same offset to both nodes
         // A better approach would perhaps be to compute the location of this node in 3 space and then
         // calculate an *actual* offset from the vertices across a single frame or averaged across all frames
-        parents.first->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
-        parents.second->data()->set_reference_lattice_offset(node->data()->reference_lattice_offset());
+        // Compute the 3D coordinate
+
+        // Get common frames for parents
+        std::set<unsigned int> s1_frames, s2_frames;
+        s1_frames.insert(begin(parents.first->data()->frames()), end(parents.first->data()->frames()));
+        s2_frames.insert(begin(parents.second->data()->frames()), end(parents.second->data()->frames()));
+        std::vector<unsigned int> shared_frames(std::min(s1_frames.size(), s2_frames.size()));
+        auto it = set_intersection(s1_frames.begin(), s1_frames.end(),
+                                   s2_frames.begin(), s2_frames.end(),
+                                   shared_frames.begin());
+        shared_frames.resize(it - shared_frames.begin());
+
+        // Use position in first shared frame to manage
+        const auto reference_frame = *shared_frames.begin();
+        Eigen::Vector3f ref_position, ref_u, ref_v, ref_n, ref_lattice_position;
+        node->data()->get_all_data_for_surfel_in_frame(reference_frame, ref_position, ref_u, ref_v, ref_n, ref_lattice_position);
+
+        Eigen::Vector3f p1_position, p1_t, p1_n;
+        parents.first->data()->get_vertex_tangent_normal_for_frame(reference_frame, p1_position, p1_t, p1_n);
+        Eigen::Vector3f p2_position, p2_t, p2_n;
+        parents.second->data()->get_vertex_tangent_normal_for_frame(reference_frame, p2_position, p2_t, p2_n);
+
+        // TODO Fix these to account for RHO and handle values that wind outisde [-0.5, 0.5)
+        const auto p1_rel_position = ref_lattice_position - p1_position;
+        const auto p1_u = p1_rel_position.dot(p1_t);
+        const auto p2_u = p1_rel_position.dot(p2_t);
+
+        const auto p2_rel_position = ref_lattice_position - p2_position;
+        const auto p1_v = p2_rel_position.dot(p1_n.cross(p1_t));
+        const auto p2_v = p2_rel_position.dot(p2_n.cross(p2_t));
+
+        parents.first->data()->set_reference_lattice_offset({p1_u, p1_v});
+        parents.second->data()->set_reference_lattice_offset({p2_u, p2_v});
       }
     }
   }

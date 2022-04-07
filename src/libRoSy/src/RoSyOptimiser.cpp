@@ -279,8 +279,5 @@ RoSyOptimiser::label_edges() {
 }
 
 void RoSyOptimiser::ended_optimisation() {
-  using namespace Eigen;
-  using namespace std;
-
   label_edges();
 }

@@ -175,21 +175,6 @@ position_floor_4(const Eigen::Vector3f &lattice_origin, // Origin
       orth_tangent * std::floor(orth_tangent.dot(d) * inv_scale) * scale;
 }
 
-std::vector<unsigned int>
-PoSyOptimiser::filter_frames_list(
-    const std::shared_ptr<Surfel> &from_surfel,
-    const std::shared_ptr<Surfel> &to_surfel,
-    const std::vector<unsigned int> &frames,
-    const std::string &filter_name
-) {
-  std::vector<unsigned int> filtered_frames;
-  filtered_frames.reserve(frames.size());
-  for (const auto f: frames) {
-    filtered_frames.push_back(f);
-  }
-  return filtered_frames;
-}
-
 /**
  * Optimise this GraphNode by considering all neighbours and allowing them all to
  * 'push' this node slightly to an agreed common position.
@@ -350,4 +335,52 @@ void PoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothn
   node->data()->set_posy_smoothness(smoothness);
 }
 
-void PoSyOptimiser::ended_optimisation() {}
+void
+PoSyOptimiser::label_edge(SurfelGraph::Edge &edge) {
+  // Frames in which the edge occurs are frames which feature both start and end nodes
+  auto frames_for_edge = get_common_frames(edge.from()->data(), edge.to()->data());
+
+  Eigen::Vector2i t_ij, t_ji;
+  compute_label_for_edge(edge, frames_for_edge, t_ij, t_ji);
+  set_t(m_surfel_graph, edge.from(), t_ij, edge.to(), t_ji);
+}
+
+void
+PoSyOptimiser::compute_label_for_edge( //
+    const SurfelGraph::Edge &edge, //
+    const std::vector<unsigned int> &frames_for_edge, //
+    Eigen::Vector2i &t_ij, //
+    Eigen::Vector2i &t_ji) const //
+{
+  using namespace Eigen;
+
+  if (frames_for_edge.size() == 1) {
+    return;
+  }
+
+  throw std::runtime_error("multi-frame labeling not supported");
+}
+
+/*
+ * Apply t_ij, t_ji labels to the edge to indicate the relative rotational frames of
+ * In a single frame these are guaranteed to be consistent. When there are multiple frames,
+ * it's possible that different frames have different preferences. In this case we must
+ * pick the 'best' orientation. More details on what best means is below.
+ *
+ */
+void
+PoSyOptimiser::label_edges() {
+  using namespace std;
+  using namespace spdlog;
+
+  auto posy_logger = spdlog::get("posy-optimiser");
+  posy_logger->trace(">> label_edges()");
+  for (auto &edge: m_surfel_graph->edges()) {
+    label_edge(edge);
+  }
+  posy_logger->trace("<< label_edges()");
+}
+
+void PoSyOptimiser::ended_optimisation() {
+  label_edges();
+}

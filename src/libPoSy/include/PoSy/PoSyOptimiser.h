@@ -38,21 +38,13 @@ private:
 
   void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
 
-  Eigen::Vector2f
-  smooth_node_in_frame(const std::shared_ptr<Surfel> &from_surfel,
-                       const Eigen::Vector2f &from_lattice_offset,
-                       const std::shared_ptr<Surfel> &to_surfel,
-                       const Eigen::Vector2f &to_lattice_offset,
-                       unsigned int frame_idx,
-                       unsigned short k_ij, float w_i,
-                       unsigned short k_ji, float w_j,
-                       Eigen::Vector2i &t_ij,
-                       Eigen::Vector2i &t_ji) const;
-
+  void label_edge(SurfelGraph::Edge &edge);
+  void compute_label_for_edge( //
+      const SurfelGraph::Edge &edge, //
+      const std::vector<unsigned int> &frames_for_edge, //
+      Eigen::Vector2i &t_ij, //
+      Eigen::Vector2i &t_ji) const;
+  void label_edges();
   static std::vector<unsigned int>
-  filter_frames_list(const std::shared_ptr<Surfel> &from_surfel,
-                     const std::shared_ptr<Surfel> &to_surfel,
-                     const std::vector<unsigned int> &frames,
-                     const std::string &filter_name);
   float m_rho;
 };

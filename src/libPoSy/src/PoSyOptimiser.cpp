@@ -176,16 +176,16 @@ position_floor_4(const Eigen::Vector3f &lattice_origin, // Origin
 }
 
 /**
- * Optimise this GraphNode by considering all neighbours and allowing them all to
- * 'push' this node slightly to an agreed common position.
- * For a given pair of neighbours we can optimise for
- * "Smallest error" frame only
- * "Largest error" frame only
- * Always first frame
- * All frames
- * Any frame at random.
- * @param node
- */
+* Optimise this GraphNode by considering all neighbours and allowing them all to
+* 'push' this node slightly to an agreed common position.
+* For a given pair of neighbours we can optimise for
+* "Smallest error" frame only
+* "Largest error" frame only
+* Always first frame
+* All frames
+* Any frame at random.
+* @param node
+*/
 void
 PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
   using namespace Eigen;
@@ -355,6 +355,60 @@ PoSyOptimiser::compute_label_for_edge( //
   using namespace Eigen;
 
   if (frames_for_edge.size() == 1) {
+    const auto frame_idx = frames_for_edge[0];
+    // Get the k_ij and k_ji values
+    auto k = get_k(m_surfel_graph, edge.from(), edge.to());
+
+    // Then compute CLP for both vertices in this frame
+    const auto &surfel1 = edge.from()->data();
+    const auto &clp_offset1 = surfel1->reference_lattice_offset();
+    Vector3f v1, t1, n1;
+    surfel1->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
+    auto clp1 = v1 +
+        m_rho * clp_offset1[0] * t1 +
+        m_rho * clp_offset1[1] * (n1.cross(t1));
+
+    const auto &surfel2 = edge.to()->data();
+    const auto &clp_offset2 = surfel2->reference_lattice_offset();
+    Vector3f v2, t2, n2;
+    surfel2->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
+    auto clp2 = v2 +
+        m_rho * clp_offset2[0] * t2 +
+        m_rho * clp_offset2[1] * (n2.cross(t2));
+
+    auto midpoint = compute_qij(v1, n1, v2, n2);
+
+    Vector3f delta = midpoint - clp1;
+    Vector2i t_ij_to_middle = Vector2i(
+        (int) std::floor(t1.dot(delta) / m_rho),
+        (int) std::floor(n1.cross(t1).dot(delta) / m_rho));
+
+    delta = midpoint - clp2;
+    Vector2i t_ji_to_middle = Vector2i(
+        (int) std::floor(t2.dot(delta) / m_rho),
+        (int) std::floor(n2.cross(t2).dot(delta) / m_rho));
+
+    float best_cost = std::numeric_limits<float>::infinity();
+    int best_i = -1, best_j = -1;
+    for (int i = 0; i < 4; ++i) {
+      Vector3f o0t = clp1 +
+          (t1 * ((i & 1) + t_ij_to_middle[0]) +
+              n1.cross(t1) * (((i & 2) >> 1) + t_ij_to_middle[1])) * m_rho;
+      for (int j = 0; j < 4; ++j) {
+        Vector3f o1t = clp2 + (t2 * ((j & 1) + t_ji_to_middle[0]) +
+            n2.cross(t2) * (((j & 2) >> 1) + t_ji_to_middle[1])) * m_rho;
+        float cost = (o0t - o1t).squaredNorm();
+        if (cost < best_cost) {
+          best_i = i;
+          best_j = j;
+          best_cost = cost;
+        }
+      }
+    }
+
+    // Then compute t_ij and t_ji
+    t_ij = Vector2i((best_i & 1) + t_ij_to_middle[0], ((best_i & 2) >> 1) + t_ij_to_middle[1]);
+    t_ji = Vector2i((best_j & 1) + t_ji_to_middle[0], ((best_j & 2) >> 1) + t_ji_to_middle[1]);
     return;
   }
 

@@ -45,6 +45,5 @@ private:
       Eigen::Vector2i &t_ij, //
       Eigen::Vector2i &t_ji) const;
   void label_edges();
-  static std::vector<unsigned int>
   float m_rho;
 };

@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
   auto graph = load_graph(input_file_name, num_levels);
 
   auto optimiser = std::make_shared<FieldOptimiser>();
+  optimiser->set_graph(graph);
 
   auto start_time = chrono::system_clock::now();
   while (!optimiser->optimise_once());

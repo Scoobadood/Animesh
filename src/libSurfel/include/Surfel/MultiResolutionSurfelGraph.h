@@ -25,6 +25,10 @@ class MultiResolutionSurfelGraph {
    */
   void propagate(unsigned int from_level, bool rosy = true, bool posy = true);
 
+  inline size_t num_levels() const {
+    return m_levels.size();
+  }
+
   /**
    * Return a reference to the specified level of the graph
    */

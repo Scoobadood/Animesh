@@ -126,7 +126,10 @@ PoSyOptimiser::compute_smoothness_in_frame(
       spdlog::warn("otan_i = [{:3}, {:3}, {:3}]", orth_tangent[0], orth_tangent[1], orth_tangent[2]);
       spdlog::warn("n_i = [{:.3f}, {:.3f}, {:.3f}]", normal[0], normal[1], normal[2]);
       spdlog::warn("v_j = [{:3}, {:3}, {:3}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
-      spdlog::warn("tan_j = [{:3}, {:3}, {:3}]", nbr_default_tangent[0], nbr_default_tangent[1], nbr_default_tangent[2]);
+      spdlog::warn("tan_j = [{:3}, {:3}, {:3}]",
+                   nbr_default_tangent[0],
+                   nbr_default_tangent[1],
+                   nbr_default_tangent[2]);
       spdlog::warn("otan_j = [{:3}, {:3}, {:3}]", nbr_orth_tangent[0], nbr_orth_tangent[1],
                    nbr_orth_tangent[2]);
       spdlog::warn("n_j = [{:.3f}, {:.3f}, {:.3f}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
@@ -156,6 +159,22 @@ PoSyOptimiser::compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGrap
   return l->data()->posy_smoothness() > r->data()->posy_smoothness();
 }
 
+Eigen::Vector3f
+position_floor_4(const Eigen::Vector3f &lattice_origin, // Origin
+                 const Eigen::Vector3f &tangent, // Rep tan
+                 const Eigen::Vector3f &normal, // Normal
+                 const Eigen::Vector3f &midpoint, // Point
+                 float scale, float inv_scale) {
+  using namespace Eigen;
+
+  Vector3f orth_tangent = normal.cross(tangent);
+  Vector3f d = midpoint - lattice_origin;
+  // Computes the 'bottom left' lattice point closest to midpoint
+  return lattice_origin +
+      tangent * std::floor(tangent.dot(d) * inv_scale) * scale +
+      orth_tangent * std::floor(orth_tangent.dot(d) * inv_scale) * scale;
+}
+
 /**
  * Smooth the given node with it's neighbour in the specific frame
  * The input ref_lattice_offset is used.
@@ -181,7 +200,7 @@ PoSyOptimiser::smooth_node_in_frame(//
   // Compute the lattice offset 3D position in the given frame
   Vector3f from_surfel_pos, default_from_tangent, from_normal;
   from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, from_surfel_pos, default_from_tangent, from_normal);
-  const auto default_from_orth_tangent =from_normal.cross(default_from_tangent);
+  const auto default_from_orth_tangent = from_normal.cross(default_from_tangent);
   // Compute the CLP using default tangent and orth tangent.
   Vector3f from_clp = from_surfel_pos +
       from_lattice_offset[0] * default_from_tangent +
@@ -233,12 +252,31 @@ PoSyOptimiser::smooth_node_in_frame(//
 
   // The midpoint is contained on both tangent planes. Find the lattice points on both planes
   // which are closest to each other - checks 4 points surrounding midpoint on both planes
-  std::vector<Vector3f> i_vecs;
-  std::vector<Vector3f> j_vecs;
-  const auto closest_points = compute_closest_points(
-      from_clp, from_u, from_v,
-      to_clp, to_u, to_v,
-      midpoint, m_rho);
+  // Origin, reptan, normal, point
+  Vector3f this_base_lattice_point = position_floor_4(from_clp, default_from_tangent, from_normal, midpoint, m_rho, 1.0f / m_rho);
+  Vector3f that_base_lattice_point = position_floor_4(to_clp, default_to_tangent, to_normal, midpoint, m_rho, 1.0f / m_rho);
+
+  auto best_cost = std::numeric_limits<float>::infinity();
+  int best_i = -1, best_j = -1;
+  for (int i = 0; i < 4; ++i) {
+    // Derive ,o0t (test)  sequentiall, the other bounds of 1_ij in first plane
+    Vector3f o0t = this_base_lattice_point + (default_from_tangent * (i & 1) + default_from_orth_tangent * ((i & 2) >> 1)) * m_rho;
+    for (int j = 0; j < 4; ++j) {
+      Vector3f o1t = that_base_lattice_point + (default_to_tangent * (j & 1) + default_to_orth_tangent * ((j & 2) >> 1)) * m_rho;
+      auto cost = (o0t - o1t).squaredNorm();
+      if (cost < best_cost) {
+        best_i = i;
+        best_j = j;
+        best_cost = cost;
+      }
+    }
+  }
+
+  // best_i and best_j are the closest vertices surrounding q_ij
+  // we return the pair of closest points on the lattice according to both origins
+  auto closest_points = std::make_pair(
+      this_base_lattice_point + (default_from_tangent * (best_i & 1) + default_from_orth_tangent * ((best_i & 2) >> 1)) * m_rho,
+      that_base_lattice_point + (default_to_tangent * (best_j & 1) + default_to_orth_tangent * ((best_j & 2) >> 1)) * m_rho);
 
   {
     posy_logger->info("        from_clp=[{:.3f} {:.3f} {:.3f}];",
@@ -248,16 +286,17 @@ PoSyOptimiser::smooth_node_in_frame(//
   }
 
   // Compute the weighted mean closest point
-  Vector3f new_lattice_vertex = ((w_i * closest_points.first) + (w_j * closest_points.second))/ (w_i + w_j);
+  Vector3f new_lattice_vertex = ((w_i * closest_points.first) + (w_j * closest_points.second)) / (w_i + w_j);
   posy_logger->info("        new_lattice_vertex=[{:.3f} {:.3f} {:.3f}];",
                     new_lattice_vertex[0], new_lattice_vertex[1], new_lattice_vertex[2]);
 
   // new_lattice_vertex is not necessarily on the plane of the from tangents
   // We may need to correct for this later
+  new_lattice_vertex -= from_normal.dot(new_lattice_vertex - from_surfel_pos) * from_normal;
 
   // new_lattice_vertex is now a point that we'd like to assume is on the lattice.
   // If this defines the lattice, now find the closest lattice point to from_surfel_pos
-  const auto new_from_clp = round_4(from_normal, from_u, new_lattice_vertex, from_surfel_pos, m_rho);
+  const auto new_from_clp = round_4(from_normal, default_from_tangent, new_lattice_vertex, from_surfel_pos, m_rho);
   posy_logger->info("        new_from_clp=[{:.3f} {:.3f} {:.3f}];",
                     new_from_clp[0], new_from_clp[1], new_from_clp[2]);
 
@@ -325,7 +364,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
   const auto neighbours = m_surfel_graph->neighbours(node);
   posy_logger->info("  smoothing with {} neighbours", neighbours.size());
 
-  // Smooth with each neighbour - we go by neighbour since the k_ij,k_ji pir are consistent by neighbour
+  // Smooth with each neighbour - we go by neighbour since the k_ij,k_ji pair are consistent by neighbour
   // and it saves recomputing.
   float sum_w = 0.0;
   for (const auto &nbr_node: neighbours) {

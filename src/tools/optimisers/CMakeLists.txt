@@ -37,17 +37,18 @@ target_compile_features(
 )
 
 add_executable(
-		multi_res_cli
-		multi_res_cli.cpp
+		opt_cli
+		opt_cli.cpp
 )
 
 target_link_libraries(
-		multi_res_cli
-		MultiResolutionOptimiser
+		opt_cli
+		Surfel
+		spdlog::spdlog
 )
 
 target_compile_features(
-		multi_res_cli
+		opt_cli
 		PUBLIC
 		cxx_std_11
 )

@@ -51,15 +51,27 @@ round_4(const Eigen::Vector3f &normal,
         const Eigen::Vector3f &anchor,
         const Eigen::Vector3f &point_to_correct,
         float rho) {
+
+
+  /*
+   Vector3f t = n.cross(q);
+    // d is the direction vector from o to p
+    Vector3f d = p - o;
+
+    return o +
+           q * std::round(q.dot(d) * inv_scale) * scale +
+           t * std::round(t.dot(d) * inv_scale) * scale;
+
+   */
   const auto inv_rho = 1.0f / rho;
 
   const auto orth_tangent = normal.cross(tangent);
   const auto diff = (point_to_correct - anchor);
-  const auto gamma1 = inv_rho * diff.dot(tangent);
-  const auto gamma2 = inv_rho * diff.dot(orth_tangent);
+  const auto gamma1 = std::roundf(inv_rho * diff.dot(tangent));
+  const auto gamma2 = std::roundf(inv_rho * diff.dot(orth_tangent));
   return anchor
-      + tangent * rho * (std::floorf(gamma1 + 0.5f))
-      + orth_tangent * rho * (std::floorf(gamma2 + 0.5f));
+      + (tangent * rho * gamma1)
+      + (orth_tangent * rho * gamma2);
 }
 
 Eigen::Vector3f
@@ -130,41 +142,14 @@ compute_qij(
     const Eigen::Vector3f &p1,
     const Eigen::Vector3f &n1
 ) {
-  /*
-   *  Float
-            denom = 1.0f / (1.0f - n0n1 * n0n1 + 1e-4f),
-            lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom,
-            lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
-
-    return 0.5f * (p0 + p1) - 0.25f * (n0 * lambda_0 + n1 * lambda_1);
-   */
-  const double n0p0 = n0.dot(p0);
-  const double n0p1 = n0.dot(p1);
-  const double n1p0 = n1.dot(p0);
-  const double n1p1 = n1.dot(p1);
-  const double n0n1 = n0.dot(n1);
-
-  const auto pl = 1.0 - n0n1 * n0n1;
-  if (std::fabs(pl) < 1e-4) {
-    return 0.5f * (p0 + p1);
-  }
-  const auto denom = 1.0f / (pl + 1e-4f);
-
-  const auto lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom;
-  const auto lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
+  auto n0p0 = n0.dot(p0), n0p1 = n0.dot(p1),
+      n1p0 = n1.dot(p0), n1p1 = n1.dot(p1),
+      n0n1 = n0.dot(n1),
+      denom = 1.0f / (1.0f - n0n1 * n0n1 + 1e-4f),
+      lambda_0 = 2.0f * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) * denom,
+      lambda_1 = 2.0f * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) * denom;
 
   return 0.5f * (p0 + p1) - 0.25f * (n0 * lambda_0 + n1 * lambda_1);
-
-  // If planes are parallel, pick the midpoint
-//  const double denom = 1.0 - (n0n1 * n0n1);
-//  Eigen::Vector3f q = (p0 + p1) * 0.5;
-//  if (abs(denom) > 1e-2) {
-//    const double lambda_i = 2.0 * (n0p1 - n0p0 - n0n1 * (n1p0 - n1p1)) / denom;
-//    const double lambda_j = 2.0 * (n1p0 - n1p1 - n0n1 * (n0p1 - n0p0)) / denom;
-//    q -= (((lambda_i * n0) + (lambda_j * n1)) * 0.25);
-//  }
-//  // It's possible that q_ij is not in the plane defined by n0 so correct for that
-//  return q;
 }
 
 void

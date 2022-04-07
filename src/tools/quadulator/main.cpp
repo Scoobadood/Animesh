@@ -64,7 +64,7 @@ void save_ply_body_as_bin(const std::shared_ptr<animesh::Graph<QuadGraphVertex, 
   int vertex_index = 0;
   ofstream output_file{file_name, ios_base::app | ios::binary};
   map<const shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>, int> node_id_to_vertex_index;
-  for (const auto &node : graph->nodes()) {
+  for (const auto &node: graph->nodes()) {
     node_id_to_vertex_index.insert({node, vertex_index});
     float x = node->data().location[0];
     float y = node->data().location[1];
@@ -74,7 +74,7 @@ void save_ply_body_as_bin(const std::shared_ptr<animesh::Graph<QuadGraphVertex, 
     output_file.write(reinterpret_cast<char *>(&z), 4);
     vertex_index++;
   }
-  for (const auto &edge : graph->edges()) {
+  for (const auto &edge: graph->edges()) {
     int from = node_id_to_vertex_index.at(edge.from());
     int to = node_id_to_vertex_index.at(edge.to());
     output_file.write(reinterpret_cast<char *>(&from), 4);
@@ -97,7 +97,7 @@ void save_ply_body_as_ascii(const std::shared_ptr<animesh::Graph<QuadGraphVertex
   ofstream output_file{file_name, ios_base::app};
   map<const shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>, int> node_id_to_vertex_index;
   int vertex_index = 0;
-  for (const auto &node : graph->nodes()) {
+  for (const auto &node: graph->nodes()) {
     node_id_to_vertex_index.insert({node, vertex_index});
     output_file <<
                 node->data().location[0] << " " <<
@@ -105,7 +105,7 @@ void save_ply_body_as_ascii(const std::shared_ptr<animesh::Graph<QuadGraphVertex
                 node->data().location[2] << endl;
     vertex_index++;
   }
-  for (const auto &edge : graph->edges()) {
+  for (const auto &edge: graph->edges()) {
     output_file << node_id_to_vertex_index.at(edge.from())
                 << " "
                 << node_id_to_vertex_index.at(edge.to())
@@ -143,7 +143,7 @@ parse_args(int argc, char *argv[]) {
 
     SwitchArg ascii_ply("a", "ascii", "Save PLY file as ascii", cmd, false);
     UnlabeledValueArg<std::string> inputFile("in_file.bin",
-                                             "Data will be frad from here",
+                                             "Data will be read from here",
                                              true,
                                              "",
                                              "infile.graph");
@@ -167,7 +167,15 @@ parse_args(int argc, char *argv[]) {
   }
 }
 
-
+//void orient_face(std::vector<QuadGraphNodePtr> &face) {
+//  // Compute the centroid
+//  using namespace Eigen;
+//
+//  Eigen::Vector3f norm = (face[1]->data().location - face[0]->data().location)
+//      .cross(face[2]->data().location - face[1]->data().location);
+//  if( norm)
+//}
+//
 int main(int argc, char *argv[]) {
   using namespace std;
   using namespace Eigen;
@@ -177,6 +185,8 @@ int main(int argc, char *argv[]) {
   // Load graph
   std::default_random_engine rng{123};         // the Mersenne Twister with a popular choice of parameters
   auto graph = load_surfel_graph_from_file(args.in_file_name, rng);
+
+  const auto root = args.save_file_name;
 
   // Make an interim graph per frame
   for (auto frame_index = 0; frame_index < get_num_frames(graph); ++frame_index) {
@@ -188,11 +198,32 @@ int main(int argc, char *argv[]) {
     set<pair<int, int>> edges;
     set<tuple<int, int, int, int>> faces;
     set<vector<QuadGraphNodePtr>> cycles;
-//    animesh::CycleExtractor<QuadGraphVertex, EdgeType> ce;
-//    ce.extract_cycles(out_graph, cycles);
+    animesh::CycleExtractor<QuadGraphVertex, EdgeType> ce;
+    ce.extract_cycles(out_graph, cycles);
 
-//    save_as_ply(vertices, edges, faces, args.save_file_name, !args.is_ascii);
+    const auto file_name = args.save_file_name + to_string(frame_index + 1) + ".obj";
+    ofstream output_file{file_name, ios_base::app};
+
+    std::map<string, int> name_to_index;
+    int vertex_id = 0;
+    for (const auto &n: out_graph->nodes()) {
+      output_file << "v " << n->data().location[0] << " " << n->data().location[1] << " " << n->data().location[2]
+                  << endl;
+      name_to_index.emplace(n->data().surfel_id, ++vertex_id);
+    }
+
+    for (const auto &c: cycles) {
+      if (c.size() > 4) {
+        continue;
+      }
+      output_file << "f ";
+      for (const auto &v: c) {
+        output_file << name_to_index[v->data().surfel_id] << " ";
+      }
+      output_file << endl;
+    }
+    output_file.close();
   }
 
-  return -1;
+  return 1;
 }

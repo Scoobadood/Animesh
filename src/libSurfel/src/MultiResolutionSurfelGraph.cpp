@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <map>
+#include <Eigen/Core>
 
 struct MultiResolutionSurfelGraph::SurfelGraphEdgeComparator {
   bool operator()(const SurfelGraph::Edge &lhs, const SurfelGraph::Edge &rhs) const {
@@ -43,17 +44,17 @@ MultiResolutionSurfelGraph::surfel_merge_function(
   auto *sb = new SurfelBuilder(m_random_engine);
   auto new_id = "(" + n1->id() + " + " + n2->id() + ")";
   auto new_tangent = ((n1->tangent() * w1) + (n2->tangent() * w2)).normalized();
-  auto new_offset = ((n1->reference_lattice_offset() * w1) + (n2->reference_lattice_offset() * w2)) / (w1 + w2);
   sb->with_id(new_id)
       ->with_tangent(new_tangent)
-      ->with_reference_lattice_offset(new_offset);
+      ->with_reference_lattice_offset({0.1, 0.1});
   for (const auto frame: common_frames) {
     Eigen::Vector3f vert1, tan1, norm1;
     Eigen::Vector3f vert2, tan2, norm2;
     n1->get_vertex_tangent_normal_for_frame(frame, vert1, tan1, norm1);
     n2->get_vertex_tangent_normal_for_frame(frame, vert2, tan2, norm2);
     auto frame_norm = (norm1 * w1 + norm2 * w2).normalized();
-    auto frame_pos = ((vert1 * w1) + (vert2 * w2)) / (w1 + w2);
+    auto frame_pos = vert1 + ((vert2 - vert1) * (w1 / (w1 + w2)));
+
     sb->with_frame(
         {0, 0, frame},
         0.0f,
@@ -62,13 +63,6 @@ MultiResolutionSurfelGraph::surfel_merge_function(
   }
   return make_shared<Surfel>(sb->build());
 }
-
-SurfelGraphEdge
-edge_merge_function(const SurfelGraphEdge &e1, float w1, const SurfelGraphEdge &e2, float w2) {
-  return SurfelGraphEdge{
-      ((e1.weight() * w1) + (e2.weight() * w2)) / (w1 + w2)
-  };
-};
 
 MultiResolutionSurfelGraph::MultiResolutionSurfelGraph(
     const SurfelGraphPtr &surfel_graph,
@@ -99,7 +93,6 @@ MultiResolutionSurfelGraph::generate_levels(unsigned int num_levels) {
   }
 
   for (unsigned int lvl_idx = 1; lvl_idx < num_levels; ++lvl_idx) {
-//    generate_new_level();
     generate_new_level_additive();
   }
 }
@@ -186,13 +179,16 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
   }
   sort(edges_and_scores.begin(),
        edges_and_scores.end(),
-       [=](pair<SurfelGraph::Edge, float> &a, pair<SurfelGraph::Edge, float> &b) {
+       [&](const pair<SurfelGraph::Edge, float> &a, const pair<SurfelGraph::Edge, float> &b) {
          return a.second > b.second;
        }
   );
 
   SurfelBuilder sb{m_random_engine};
+  // Map from each node in this level to  node in the next level.
   map<SurfelGraphNodePtr, SurfelGraphNodePtr> lower_to_upper_mapping;
+
+  // Map from each node in the upper level to the parents in the lower level
   map<SurfelGraphNodePtr, pair<SurfelGraphNodePtr, SurfelGraphNodePtr>> upper_to_lower_mapping;
 
   SurfelGraphPtr new_graph = make_shared<SurfelGraph>();
@@ -239,22 +235,6 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
   } // End of collapsing edges
 
   /*
-   * for any node n that didn't collapse
-   *   make a new node N = n
-   *   add N to G'
-   *   record that n1 ==> N
-   * end
-   */
-  for (const auto &n: m_levels.back()->nodes()) {
-    if (lower_to_upper_mapping.count(n) > 0) {
-      continue;
-    }
-    auto new_node = new_graph->add_node(n->data());
-    lower_to_upper_mapping.emplace(n, new_node);
-    upper_to_lower_mapping.emplace(new_node, make_pair<>(n, n));
-  }
-
-  /*
    * For each node n in G
    *   find N in G' corresponding to n
    *   w1 = dual_area  for N
@@ -267,11 +247,22 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
    * end
    */
   for (const auto &n: m_levels.back()->nodes()) {
-    const auto &N = lower_to_upper_mapping.at(n);
+    const auto it = lower_to_upper_mapping.find(n);
+    // Orphan. Ignore.
+    if (it == lower_to_upper_mapping.end()) {
+      continue;
+    }
+
+    const auto &N = it->second;
     const auto neighours = m_levels.back()->neighbours(n, true);
     for (const auto &nn: neighours) {
-      const auto &NN = lower_to_upper_mapping.at(nn);
-      // eliminate 'self' edges
+      const auto it_nn = lower_to_upper_mapping.find(nn);
+      // Orphan. Ignore.
+      if (it_nn == lower_to_upper_mapping.end()) {
+        continue;
+      }
+      const auto &NN = it_nn->second;
+      // No selfies.
       if( N == NN ) {
         continue;
       }
@@ -284,6 +275,16 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
 
   m_up_mapping.push_back(upper_to_lower_mapping);
   m_levels.push_back(new_graph);
+}
+
+void
+fix_value( float &value) {
+  if ( value >= 0.5f) {
+    value -= 1.0f;
+  }
+  if( value < -0.5f) {
+    value += 1.0f;
+  }
 }
 
 /**
@@ -309,18 +310,12 @@ MultiResolutionSurfelGraph::propagate(
       spdlog::info("Found parents for node {} in level {}: {} and {}", node->data()->id(), from_level,
                    parents.first->data()->id(),
                    parents.second->data()->id());
-      if(rosy) {
+      if (rosy) {
         parents.first->data()->setTangent(node->data()->tangent());
         parents.second->data()->setTangent(node->data()->tangent());
       }
 
-      if(posy) {
-        //TODO: Make this better
-        // Right now we up propagate the same offset to both nodes
-        // A better approach would perhaps be to compute the location of this node in 3 space and then
-        // calculate an *actual* offset from the vertices across a single frame or averaged across all frames
-        // Compute the 3D coordinate
-
+      if (posy) {
         // Get common frames for parents
         std::set<unsigned int> s1_frames, s2_frames;
         s1_frames.insert(begin(parents.first->data()->frames()), end(parents.first->data()->frames()));
@@ -334,24 +329,45 @@ MultiResolutionSurfelGraph::propagate(
         // Use position in first shared frame to manage
         const auto reference_frame = *shared_frames.begin();
         Eigen::Vector3f ref_position, ref_u, ref_v, ref_n, ref_lattice_position;
-        node->data()->get_all_data_for_surfel_in_frame(reference_frame, ref_position, ref_u, ref_v, ref_n, ref_lattice_position);
+        node->data()->get_all_data_for_surfel_in_frame(reference_frame,
+                                                       ref_position,
+                                                       ref_u,
+                                                       ref_v,
+                                                       ref_n,
+                                                       ref_lattice_position);
 
         Eigen::Vector3f p1_position, p1_t, p1_n;
         parents.first->data()->get_vertex_tangent_normal_for_frame(reference_frame, p1_position, p1_t, p1_n);
         Eigen::Vector3f p2_position, p2_t, p2_n;
         parents.second->data()->get_vertex_tangent_normal_for_frame(reference_frame, p2_position, p2_t, p2_n);
 
-        // TODO Fix these to account for RHO and handle values that wind outisde [-0.5, 0.5)
-        const auto p1_rel_position = ref_lattice_position - p1_position;
-        const auto p1_u = p1_rel_position.dot(p1_t);
-        const auto p2_u = p1_rel_position.dot(p2_t);
+        // TODO Fix these to account for RHO and handle values that wind outisde [-0.5, 0.5)* Rho
+        Eigen::Vector3f p1_rel_position = ref_lattice_position - p1_position;
+        p1_rel_position -= (p1_n * p1_n.dot(p1_rel_position));
+        auto p1_u = p1_rel_position.dot(p1_t);
+        auto p1_v = p1_rel_position.dot(p1_n.cross(p1_t));
 
-        const auto p2_rel_position = ref_lattice_position - p2_position;
-        const auto p1_v = p2_rel_position.dot(p1_n.cross(p1_t));
-        const auto p2_v = p2_rel_position.dot(p2_n.cross(p2_t));
+        Eigen::Vector3f  p2_rel_position = ref_lattice_position - p2_position;
+        p2_rel_position -= (p2_n * p2_n.dot(p2_rel_position));
+        auto p2_u = p2_rel_position.dot(p2_t);
+        auto p2_v = p2_rel_position.dot(p2_n.cross(p2_t));
 
         parents.first->data()->set_reference_lattice_offset({p1_u, p1_v});
         parents.second->data()->set_reference_lattice_offset({p2_u, p2_v});
+        fix_value( p1_u);
+        fix_value( p2_u);
+        fix_value( p1_v);
+        fix_value( p2_v);
+
+        if( fabsf(p1_u) > 0.5f ||
+            fabsf(p1_v) > 0.5f ||
+            fabsf(p2_u) > 0.5f ||
+            fabsf(p2_v) > 0.5f
+        ) {
+          spdlog::warn("One of these p1=({:3f}, {:3f}), p2=({:3f}, {:3f}) is out of range propagating from {}",
+               p1_u, p1_v, p2_u, p2_v, from_level
+               );
+        }
       }
     }
   }

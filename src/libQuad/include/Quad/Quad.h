@@ -25,6 +25,11 @@ struct QuadGraphVertex {
       << v.location[2] << ")";
     return o;
   }
+
+  bool operator<( const QuadGraphVertex& other) const {
+    return surfel_id < other.surfel_id;
+  }
+
 };
 using QuadGraph = animesh::Graph<QuadGraphVertex, EdgeType>;
 using QuadGraphPtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>>;

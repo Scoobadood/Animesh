@@ -8,7 +8,7 @@
 #include <vector>
 
 class MultiResolutionSurfelGraph {
-public:
+ public:
   /**
    * Construct from a given starting graph.
    */
@@ -37,7 +37,7 @@ public:
                         const std::shared_ptr<Surfel> &n2,
                         float w2);
 
-private:
+ private:
   struct SurfelGraphEdgeComparator;
 
   std::vector<SurfelGraphPtr> m_levels;
@@ -47,21 +47,15 @@ private:
   std::default_random_engine &m_random_engine;
 
   /**
-   * Generate the next level for this multi-resolution graph.
-   */
-  void generate_new_level();
-
-  /**
  * Generate the next level for this multi-resolution graph.
  * Uses an additive approach
  */
   void generate_new_level_additive();
 
-
-    /**
-     * Compute the mean normal for the given node across
-     * all frames in which it appears.
-     */
+  /**
+   * Compute the mean normal for the given node across
+   * all frames in which it appears.
+   */
   static Eigen::Vector3f
   compute_mean_normal(const SurfelGraphNodePtr &graph_node_ptr);
 

@@ -22,4 +22,5 @@ class MultiResolutionPoSyOptimiser  : public PoSyOptimiser {
   MultiResolutionSurfelGraph * m_multi_res_graph;
   unsigned int m_num_levels;
   unsigned int m_current_level;
+  bool m_save_interim_graphs;
 };

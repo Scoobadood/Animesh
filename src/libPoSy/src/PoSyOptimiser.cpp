@@ -364,6 +364,7 @@ PoSyOptimiser::compute_label_for_edge( //
     const auto &clp_offset1 = surfel1->reference_lattice_offset();
     Vector3f v1, t1, n1;
     surfel1->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
+//    t1 = vector_by_rotating_around_n(t1, n1, k.first);
     auto clp1 = v1 +
         m_rho * clp_offset1[0] * t1 +
         m_rho * clp_offset1[1] * (n1.cross(t1));
@@ -372,6 +373,7 @@ PoSyOptimiser::compute_label_for_edge( //
     const auto &clp_offset2 = surfel2->reference_lattice_offset();
     Vector3f v2, t2, n2;
     surfel2->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
+//    t2 = vector_by_rotating_around_n(t2, n2, k.second);
     auto clp2 = v2 +
         m_rho * clp_offset2[0] * t2 +
         m_rho * clp_offset2[1] * (n2.cross(t2));

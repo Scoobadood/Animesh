@@ -7,6 +7,7 @@
 #include <Properties/Properties.h>
 #include <Surfel/MultiResolutionSurfelGraph.h>
 #include <Surfel/Surfel_IO.h>
+#include "FieldOptimiser.h"
 
 std::shared_ptr<MultiResolutionSurfelGraph>
 load_graph(const std::string &file_name, int num_levels) {
@@ -23,12 +24,15 @@ load_graph(const std::string &file_name, int num_levels) {
 }
 
 void
-check_properties(const std::shared_ptr<Properties> properties) {
+check_properties(const std::shared_ptr<Properties>& properties) {
   if (properties == nullptr) {
     throw std::invalid_argument("Properties cannot be null");
   }
   if (!properties->hasProperty("input-file")) {
-    throw std::invalid_argument("Missing property 'input-file')");
+    throw std::invalid_argument("Missing property 'input-file'");
+  }
+  if (!properties->hasProperty("output-file")) {
+    throw std::invalid_argument("Missing property 'output-file'");
   }
 }
 
@@ -38,6 +42,17 @@ load_properties(const std::string &properties_file_name) {
   auto properties = std::make_shared<Properties>(properties_file_name);
   check_properties(properties);
   return properties;
+}
+
+void
+report_timing(const std::chrono::time_point<std::chrono::system_clock> &start_time, //
+              const std::chrono::time_point<std::chrono::system_clock> &end_time //
+) {
+  using namespace std::chrono;
+  auto elapsed_time = duration_cast<seconds>(end_time - start_time).count();
+  auto mins = (int) elapsed_time / 60;
+  auto secs = elapsed_time - (mins * 60);
+  spdlog::info("Total time {}s ({:02d}:{:02d})", elapsed_time, mins, secs);
 }
 
 int main(int argc, char *argv[]) {
@@ -50,9 +65,20 @@ int main(int argc, char *argv[]) {
   string input_file_name = properties->getProperty("input-file");
 
   auto num_levels = properties->hasProperty("num-levels")
-      ? properties->getIntProperty("num-levels")
-      : 1;
+                    ? properties->getIntProperty("num-levels")
+                    : 1;
   auto graph = load_graph(input_file_name, num_levels);
 
-  
+  auto optimiser = std::make_shared<FieldOptimiser>();
+
+  auto start_time = chrono::system_clock::now();
+  while (!optimiser->optimise_once());
+  auto end_time = chrono::system_clock::now();
+  report_timing(start_time, end_time);
+
+  string output_file_name = properties->getProperty("output-file");
+  save_surfel_graph_to_file(output_file_name, (*graph)[0], true, true);
+
+  return 0;
+
 }

@@ -39,6 +39,7 @@ target_compile_features(
 add_executable(
 		opt_cli
 		opt_cli.cpp
+		FieldOptimiser.h FieldOptimiser.cpp
 )
 
 target_link_libraries(

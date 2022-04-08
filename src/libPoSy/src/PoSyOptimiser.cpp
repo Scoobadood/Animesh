@@ -77,21 +77,9 @@ PoSyOptimiser::compute_smoothness_in_frame(
   Eigen::Vector3f nbr_vertex, nbr_normal, nbr_default_tangent;
   nbr_surfel->get_vertex_tangent_normal_for_frame(frame_idx, nbr_vertex, nbr_default_tangent, nbr_normal);
 
-  unsigned short k_ij, k_ji;
-  if (surfel->id() < nbr_surfel->id()) {
-    k_ij = edge.data()->k_low();
-    k_ji = edge.data()->k_high();
-  } else {
-    k_ij = edge.data()->k_high();
-    k_ji = edge.data()->k_low();
-  }
-  // Orient tangents appropriately for frame based on k_ij and k_ji
-  const auto &oriented_tangent = vector_by_rotating_around_n(default_tangent, normal, k_ij);
-  const auto &nbr_oriented_tangent = vector_by_rotating_around_n(nbr_default_tangent, nbr_normal, k_ji);
-
   // Compute orth tangents
-  const auto &orth_tangent = normal.cross(oriented_tangent);
-  const auto &nbr_orth_tangent = nbr_normal.cross(nbr_oriented_tangent);
+  const auto &orth_tangent = normal.cross(default_tangent);
+  const auto &nbr_orth_tangent = nbr_normal.cross(nbr_default_tangent);
 
   // Compute lattice points for this node and neighbour (use defaults
   const auto nearest_lattice_point = vertex +
@@ -101,13 +89,9 @@ PoSyOptimiser::compute_smoothness_in_frame(
       nbr_surfel_lattice_offset[0] * nbr_default_tangent +
       nbr_surfel_lattice_offset[1] * nbr_normal.cross(nbr_default_tangent);
 
-  // Compute q_ij ... the midpoint on the intersection of the default_tangent planes
-
-  const auto q = compute_qij(vertex, normal, nbr_vertex, nbr_normal);
-  const auto closest_points = compute_closest_points(
-      nearest_lattice_point, oriented_tangent, orth_tangent,
-      nbr_nearest_lattice_point, nbr_oriented_tangent, nbr_orth_tangent,
-      q, m_rho);
+  const auto closest_points = compute_closest_lattice_points(
+      vertex, normal, default_tangent, orth_tangent, nearest_lattice_point,
+      nbr_vertex, nbr_normal, nbr_default_tangent, nbr_orth_tangent, nbr_nearest_lattice_point, m_rho);
 
   const auto cp_i = closest_points.first;
   auto cp_j = closest_points.second;
@@ -115,38 +99,6 @@ PoSyOptimiser::compute_smoothness_in_frame(
   // The smoothness is how much difference there is in the
   // agreement of the closest points to the lattice
   const auto delta = (cp_j - cp_i).squaredNorm();
-  if (m_properties.getBooleanProperty("diagnose_dodgy_deltas")) {
-    // Closest points should be at most m_rho  * / sqrt(2) apart
-    static double MAX_D = (m_rho * m_rho * 0.5);
-    if (delta >= MAX_D) {
-      spdlog::warn("Unlikely looking closest distance {:4} for surfels {} and {}", delta,
-                   surfel->id(), nbr_surfel->id());
-      spdlog::warn("v_i = [{:3}, {:3}, {:3}]", vertex[0], vertex[1], vertex[2]);
-      spdlog::warn("tan_i = [{:3}, {:3}, {:3}]", oriented_tangent[0], oriented_tangent[1], oriented_tangent[2]);
-      spdlog::warn("otan_i = [{:3}, {:3}, {:3}]", orth_tangent[0], orth_tangent[1], orth_tangent[2]);
-      spdlog::warn("n_i = [{:.3f}, {:.3f}, {:.3f}]", normal[0], normal[1], normal[2]);
-      spdlog::warn("v_j = [{:3}, {:3}, {:3}]", nbr_vertex[0], nbr_vertex[1], nbr_vertex[2]);
-      spdlog::warn("tan_j = [{:3}, {:3}, {:3}]",
-                   nbr_default_tangent[0],
-                   nbr_default_tangent[1],
-                   nbr_default_tangent[2]);
-      spdlog::warn("otan_j = [{:3}, {:3}, {:3}]", nbr_orth_tangent[0], nbr_orth_tangent[1],
-                   nbr_orth_tangent[2]);
-      spdlog::warn("n_j = [{:.3f}, {:.3f}, {:.3f}]", nbr_normal[0], nbr_normal[1], nbr_normal[2]);
-      spdlog::warn("q_ij = [{:.3f}, {:.3f}, {:.3f}]", q[0], q[1], q[2]);
-      spdlog::warn("cl_i = [{:.3f}, {:.3f}, {:.3f}]", cp_i[0], cp_i[1], cp_i[2]);
-      spdlog::warn("cl_j = [{:.3f}, {:.3f}, {:.3f}]", cp_j[0], cp_j[1], cp_j[2]);
-
-      spdlog::warn("curr_lp = [{:.3f}, {:.3f}, {:.3f}]",
-                   nearest_lattice_point[0],
-                   nearest_lattice_point[1],
-                   nearest_lattice_point[2]);
-      spdlog::warn("nbr_lp = [{:.3f}, {:.3f}, {:.3f}]",
-                   nbr_nearest_lattice_point[0],
-                   nbr_nearest_lattice_point[1],
-                   nbr_nearest_lattice_point[2]);
-    }
-  }
   return delta;
 }
 
@@ -226,51 +178,17 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
                         nbr_surfel_clp[1],
                         nbr_surfel_clp[2]);
 
-      // Compute the point that minimizes the distance to vertices while being located in their respective tangent plane
-      const auto midpoint = compute_qij(curr_surfel_pos, curr_surfel_normal, nbr_surfel_pos, nbr_surfel_normal);
-      posy_logger->info("        midpoint=[{:.3f} {:.3f} {:.3f}];", midpoint[0], midpoint[1], midpoint[2]);
-
-      // The midpoint is contained on both tangent planes. Find the lattice points on both planes
-      // which are closest to each other - checks 4 points surrounding midpoint on both planes
-      // Origin, reptan, normal, point
-      auto curr_surfel_base =
-          position_floor(working_clp, curr_surfel_tangent, curr_surfel_normal, midpoint, m_rho);
-      auto nbr_surfel_base =
-          position_floor(nbr_surfel_clp, nbr_surfel_tangent, nbr_surfel_normal, midpoint, m_rho);
-
-      auto best_cost = std::numeric_limits<float>::infinity();
-      int best_i = -1, best_j = -1;
-      for (int i = 0; i < 4; ++i) {
-        // Derive ,o0t (test)  sequentiall, the other bounds of 1_ij in first plane
-        Vector3f o0t =
-            curr_surfel_base + (curr_surfel_tangent * (i & 1) + curr_surfel_orth_tangent * ((i & 2) >> 1)) * m_rho;
-        for (int j = 0; j < 4; ++j) {
-          Vector3f o1t =
-              nbr_surfel_base
-                  + (nbr_surfel_tangent * (j & 1) + nbr_surfel_orth_tangent * ((j & 2) >> 1)) * m_rho;
-          auto cost = (o0t - o1t).squaredNorm();
-          if (cost < best_cost) {
-            best_i = i;
-            best_j = j;
-            best_cost = cost;
-          }
-        }
-      }
-
-      // best_i and best_j are the closest vertices surrounding q_ij
-      // we return the pair of closest points on the lattice according to both origins
-      auto closest_points = std::make_pair(
-          curr_surfel_base
-              + (curr_surfel_tangent * (best_i & 1) + curr_surfel_orth_tangent * ((best_i & 2) >> 1)) * m_rho,
-          nbr_surfel_base
-              + (nbr_surfel_tangent * (best_j & 1) + nbr_surfel_orth_tangent * ((best_j & 2) >> 1)) * m_rho);
-
-      {
-        posy_logger->info("        curr_closest=[{:.3f} {:.3f} {:.3f}];",
-                          closest_points.first[0], closest_points.first[1], closest_points.first[2]);
-        posy_logger->info("        nbr_closest=[{:.3f} {:.3f} {:.3f}];",
-                          closest_points.second[0], closest_points.second[1], closest_points.second[2]);
-      }
+      auto closest_points = compute_closest_lattice_points(curr_surfel_pos,
+                                     curr_surfel_normal,
+                                     curr_surfel_tangent,
+                                     curr_surfel_orth_tangent,
+                                     working_clp,
+                                     nbr_surfel_pos,
+                                     nbr_surfel_normal,
+                                     nbr_surfel_tangent,
+                                     nbr_surfel_orth_tangent,
+                                     nbr_surfel_clp,
+                                     m_rho);
 
       // Compute the weighted mean closest point
       float w_j = 1.0f;
@@ -286,7 +204,7 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
 
       // new_lattice_vertex is now a point that we'd like to assume is on the lattice.
       // If this defines the lattice, now find the closest lattice point to curr_surfel_pos
-      working_clp = round_4(curr_surfel_normal, curr_surfel_tangent, working_clp, curr_surfel_pos, m_rho);
+      working_clp = position_round(working_clp, curr_surfel_tangent, curr_surfel_orth_tangent, curr_surfel_pos, m_rho);
       posy_logger->info("        rounded and normalised working_clp=[{:.3f} {:.3f} {:.3f}];",
                         working_clp[0], working_clp[1], working_clp[2]);
 

@@ -10,10 +10,12 @@
 #include <PoSy/PoSy.h>
 
 FieldOptimiser::FieldOptimiser( //
+    std::default_random_engine &rng,
     int target_iterations //
     , float rho //
 ) //
-    : m_graph{nullptr} //
+    : m_random_engine{rng} //
+    , m_graph{nullptr} //
     , m_state{UNINITIALISED} //
     , m_num_iterations{0} //
     , m_target_iterations{target_iterations} //
@@ -115,57 +117,16 @@ FieldOptimiser::optimise_posy() {
                         nbr_surfel_clp[1],
                         nbr_surfel_clp[2]);
 
-        // Compute the point that minimizes the distance to vertices while being located in their respective tangent plane
-        const auto midpoint = compute_qij(curr_surfel_pos, curr_surfel_normal, nbr_surfel_pos, nbr_surfel_normal);
-        trace_log->info("        midpoint=[{:.3f} {:.3f} {:.3f}];", midpoint[0], midpoint[1], midpoint[2]);
-
-        // The midpoint is contained on both tangent planes. Find the lattice points on both planes
-        // which are closest to each other - checks 4 points surrounding midpoint on both planes
-        // Origin, reptan, normal, point
-        auto curr_surfel_base =
-            position_floor(working_clp, curr_surfel_tangent, curr_surfel_normal, midpoint, m_rho);
-        auto nbr_surfel_base =
-            position_floor(nbr_surfel_clp, nbr_surfel_tangent, nbr_surfel_normal, midpoint, m_rho);
-
-        auto best_cost = std::numeric_limits<float>::infinity();
-        int best_i = -1, best_j = -1;
-        for (int i = 0; i < 4; ++i) {
-          // Derive ,o0t (test)  sequentiall, the other bounds of 1_ij in first plane
-          Vector3f o0t =
-              curr_surfel_base + (curr_surfel_tangent * (i & 1) + curr_surfel_orth_tangent * ((i & 2) >> 1)) * m_rho;
-          for (int j = 0; j < 4; ++j) {
-            Vector3f o1t =
-                nbr_surfel_base
-                    + (nbr_surfel_tangent * (j & 1) + nbr_surfel_orth_tangent * ((j & 2) >> 1)) * m_rho;
-            auto cost = (o0t - o1t).squaredNorm();
-            if (cost < best_cost) {
-              best_i = i;
-              best_j = j;
-              best_cost = cost;
-            }
-          }
-        }
-
-        // best_i and best_j are the closest vertices surrounding q_ij
-        // we return the pair of closest points on the lattice according to both origins
-        auto closest_points = std::make_pair(
-            curr_surfel_base
-                + (curr_surfel_tangent * (best_i & 1) + curr_surfel_orth_tangent * ((best_i & 2) >> 1)) * m_rho,
-            nbr_surfel_base
-                + (nbr_surfel_tangent * (best_j & 1) + nbr_surfel_orth_tangent * ((best_j & 2) >> 1)) * m_rho);
-
-        {
-          trace_log->info("        curr_closest=[{:.3f} {:.3f} {:.3f}];",
-                          closest_points.first[0], closest_points.first[1], closest_points.first[2]);
-          trace_log->info("        nbr_closest=[{:.3f} {:.3f} {:.3f}];",
-                          closest_points.second[0], closest_points.second[1], closest_points.second[2]);
-        }
+        auto closest_points = compute_closest_lattice_points(
+            curr_surfel_pos, curr_surfel_normal, curr_surfel_tangent, curr_surfel_orth_tangent, working_clp,
+            nbr_surfel_pos, nbr_surfel_normal, nbr_surfel_tangent, nbr_surfel_orth_tangent, nbr_surfel_clp, m_rho);
 
         // Compute the weighted mean closest point
         float w_j = 1.0f;
         working_clp = ((sum_w * closest_points.first) + (w_j * closest_points.second));
         sum_w += w_j;
         working_clp /= sum_w;
+
         trace_log->info("        updated working_clp=[{:.3f} {:.3f} {:.3f}];",
                         working_clp[0], working_clp[1], working_clp[2]);
 
@@ -175,7 +136,8 @@ FieldOptimiser::optimise_posy() {
 
         // new_lattice_vertex is now a point that we'd like to assume is on the lattice.
         // If this defines the lattice, now find the closest lattice point to curr_surfel_pos
-        working_clp = round_4(curr_surfel_normal, curr_surfel_tangent, working_clp, curr_surfel_pos, m_rho);
+        working_clp =
+            position_round(working_clp, curr_surfel_tangent, curr_surfel_orth_tangent, curr_surfel_pos, m_rho);
         trace_log->info("        rounded and normalised working_clp=[{:.3f} {:.3f} {:.3f}];",
                         working_clp[0], working_clp[1], working_clp[2]);
 
@@ -203,18 +165,24 @@ FieldOptimiser::optimise_posy() {
  */
 void
 FieldOptimiser::optimise_rosy() {
+  using namespace std;
+  using namespace Eigen;
+
   auto trace_log = spdlog::get("optimiser");
   trace_log->trace("optimise_rosy()");
 
   auto &graph = (*m_graph)[m_current_level];
 
   spdlog::info("  RoSy pass {}", m_num_iterations + 1);
-  for (const auto &this_node: graph->nodes()) {
-    using namespace std;
-    using namespace Eigen;
 
+  const auto &nodes = graph->nodes();
+  vector<size_t> indices(nodes.size());
+  iota(begin(indices), end(indices), 0);
+  shuffle(begin(indices), end(indices), m_random_engine);
 
-    std::shared_ptr<Surfel> this_surfel = this_node->data();
+  for (auto node_index: indices) {
+    auto this_node = nodes[node_index];
+    shared_ptr<Surfel> this_surfel = this_node->data();
     trace_log->info("Optimising surfel {}", this_surfel->id());
 
     const auto starting_tangent = this_surfel->tangent();
@@ -385,8 +353,8 @@ get_common_frames(
 
 void
 FieldOptimiser::compute_k_for_edge( //
-    const std::shared_ptr<Surfel>& from_surfel,
-    const std::shared_ptr<Surfel>& to_surfel,
+    const std::shared_ptr<Surfel> &from_surfel,
+    const std::shared_ptr<Surfel> &to_surfel,
     unsigned int frame_idx,
     unsigned short &k_ij, //
     unsigned short &k_ji) const //
@@ -399,8 +367,8 @@ FieldOptimiser::compute_k_for_edge( //
 
 void
 FieldOptimiser::compute_t_for_edge( //
-    const std::shared_ptr<Surfel>& from_surfel, //
-    const std::shared_ptr<Surfel>& to_surfel, //
+    const std::shared_ptr<Surfel> &from_surfel, //
+    const std::shared_ptr<Surfel> &to_surfel, //
     unsigned int frame_idx, //
     Eigen::Vector2i &t_ij, //
     Eigen::Vector2i &t_ji) const//
@@ -422,39 +390,13 @@ FieldOptimiser::compute_t_for_edge( //
       m_rho * clp_offset2[0] * t2 +
       m_rho * clp_offset2[1] * (n2.cross(t2));
 
-  auto midpoint = compute_qij(v1, n1, v2, n2);
+  auto t = compute_tij_tji(v1, n1, t1, n1.cross(t1), clp1,
+                           v2, n2, t2, n2.cross(t2), clp2, m_rho);
 
-  Vector3f delta = midpoint - clp1;
-  Vector2i t_ij_to_middle = Vector2i(
-      (int) std::floor(t1.dot(delta) / m_rho),
-      (int) std::floor(n1.cross(t1).dot(delta) / m_rho));
-
-  delta = midpoint - clp2;
-  Vector2i t_ji_to_middle = Vector2i(
-      (int) std::floor(t2.dot(delta) / m_rho),
-      (int) std::floor(n2.cross(t2).dot(delta) / m_rho));
-
-  float best_cost = std::numeric_limits<float>::infinity();
-  int best_i = -1, best_j = -1;
-  for (int i = 0; i < 4; ++i) {
-    Vector3f o0t = clp1 +
-        (t1 * ((i & 1) + t_ij_to_middle[0]) +
-            n1.cross(t1) * (((i & 2) >> 1) + t_ij_to_middle[1])) * m_rho;
-    for (int j = 0; j < 4; ++j) {
-      Vector3f o1t = clp2 + (t2 * ((j & 1) + t_ji_to_middle[0]) +
-          n2.cross(t2) * (((j & 2) >> 1) + t_ji_to_middle[1])) * m_rho;
-      float cost = (o0t - o1t).squaredNorm();
-      if (cost < best_cost) {
-        best_i = i;
-        best_j = j;
-        best_cost = cost;
-      }
-    }
-  }
 
   // Then compute t_ij and t_ji
-  t_ij = Vector2i((best_i & 1) + t_ij_to_middle[0], ((best_i & 2) >> 1) + t_ij_to_middle[1]);
-  t_ji = Vector2i((best_j & 1) + t_ji_to_middle[0], ((best_j & 2) >> 1) + t_ji_to_middle[1]);
+  t_ij = t.first;
+  t_ji = t.second;
 }
 
 void

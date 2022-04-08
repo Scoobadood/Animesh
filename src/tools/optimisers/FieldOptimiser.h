@@ -9,7 +9,10 @@
 
 class FieldOptimiser {
  public:
-  explicit FieldOptimiser(int target_iterations, float rho);
+  explicit FieldOptimiser(
+      std::default_random_engine &rng,
+      int target_iterations,
+      float rho);
 
   bool optimise_once();
 
@@ -66,6 +69,7 @@ class FieldOptimiser {
     DONE,
   };
 
+  std::default_random_engine m_random_engine;
   std::shared_ptr<MultiResolutionSurfelGraph> m_graph;
   OptimisationState m_state;
   /* Number of iterations performed in current smoothing phase */

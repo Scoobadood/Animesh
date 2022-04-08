@@ -10,11 +10,10 @@
 #include "FieldOptimiser.h"
 
 std::shared_ptr<MultiResolutionSurfelGraph>
-load_graph(const std::string &file_name, int num_levels) {
+load_graph(std::default_random_engine &rng, const std::string &file_name, int num_levels) {
   if (num_levels <= 0) {
     throw std::runtime_error("Must be at least one level");
   }
-  std::default_random_engine rng{123};
   auto surfel_graph = load_surfel_graph_from_file(file_name, rng);
   auto multi_res = std::make_shared<MultiResolutionSurfelGraph>(surfel_graph, rng);
   if (num_levels > 1) {
@@ -75,14 +74,15 @@ int main(int argc, char *argv[]) {
   auto num_levels = properties->hasProperty("num-levels")
                     ? properties->getIntProperty("num-levels")
                     : 1;
-  auto graph = load_graph(input_file_name, num_levels);
+  std::default_random_engine rng{123};
+  auto graph = load_graph(rng, input_file_name, num_levels);
 
   auto num_iterations = properties->getIntProperty("num-iterations");
   auto rho = (properties->hasProperty("rho"))
       ? properties->getFloatProperty("rho")
       : 1.0f;
 
-  auto optimiser = std::make_shared<FieldOptimiser>(num_iterations, rho);
+  auto optimiser = std::make_shared<FieldOptimiser>(rng, num_iterations, rho);
   optimiser->set_graph(graph);
 
   auto start_time = chrono::system_clock::now();

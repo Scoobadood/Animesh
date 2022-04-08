@@ -22,11 +22,9 @@ target_link_libraries(PoSy
 
 add_executable(testPoSy
 		tests/main.cpp
-		tests/TestPoSy.cpp tests/TestPoSy.h
-		tests/TestPoSyOptimiser.cpp tests/TestPoSyOptimiser.h
+        tests/TestPoSyOptimiser.cpp tests/TestPoSyOptimiser.h
 		tests/TestPoSyQij.cpp tests/TestPoSyQij.h
-		tests/TestPoSyLatticeNeighbours.cpp tests/TestPoSyLatticeNeighbours.h
-		)
+        )
 
 target_link_libraries(testPoSy
 		PoSy

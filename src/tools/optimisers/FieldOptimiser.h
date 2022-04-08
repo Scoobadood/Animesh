@@ -9,7 +9,7 @@
 
 class FieldOptimiser {
  public:
-  FieldOptimiser();
+  explicit FieldOptimiser(int target_iterations);
 
   bool optimise_once();
 
@@ -22,7 +22,10 @@ class FieldOptimiser {
   /* Smooth an individual Surfel across temporal and spatial neighbours. */
   void optimise_rosy();
 
-  /* Get weights for nodes when smoothing */
+  /* Smooth an individual Surfel across temporal and spatial neighbours. */
+  void optimise_posy();
+
+    /* Get weights for nodes when smoothing */
   void get_weights(const std::shared_ptr<Surfel> &surfel_a,
                    const std::shared_ptr<Surfel> &surfel_b,
                    float &weight_a,
@@ -32,13 +35,17 @@ class FieldOptimiser {
     UNINITIALISED,
     INITIALISED,
     OPTIMISING_ROSY,
+    OPTIMISING_POSY,
   };
 
   std::shared_ptr<MultiResolutionSurfelGraph> m_graph;
   OptimisationState m_state;
-  /* Number of optimisation passes at this level */
+  /* Number of iterations performed in current smoothing phase */
   int m_num_iterations;
 
-  size_t m_current_level;
+  /* Number of optimisation passes to perform */
+  int m_target_iterations;
 
+  /* The level of the mres graph being optimised */
+  size_t m_current_level;
 };

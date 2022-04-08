@@ -45,8 +45,7 @@ FieldOptimiser::optimise_begin() {
   assert(m_state == INITIALISED);
 
   m_current_level = m_graph->num_levels() - 1;
-  m_num_iterations = 0;
-  m_state = OPTIMISING_ROSY;
+  m_state = STARTING_NEW_LEVEL;
 }
 
 /*
@@ -192,6 +191,11 @@ FieldOptimiser::optimise_posy() {
       node->data()->set_reference_lattice_offset({u, v});
     } // Next frame
   }
+
+  ++m_num_iterations;
+  if (m_num_iterations == m_target_iterations) {
+    m_state = ENDING_LEVEL;
+  }
 }
 
 /*
@@ -305,22 +309,179 @@ FieldOptimiser::optimise_rosy() {
 
     this_surfel->set_rosy_correction(corrn);
   }
+
+  ++m_num_iterations;
+  if (m_num_iterations == m_target_iterations) {
+    m_num_iterations = 0;
+    m_state = OPTIMISING_POSY;
+  }
 }
 
-bool
-FieldOptimiser::propagate_values() {
+void
+FieldOptimiser::end_level() {
   using namespace Eigen;
 
   auto trace_log = spdlog::get("optimiser");
-  trace_log->trace("propagate_values()");
-  if( m_current_level == 0) {
-    return true;
+  trace_log->trace("end_level()");
+  if (m_current_level == 0) {
+    m_state = LABEL_EDGES;
+    return;
   }
 
   m_graph->propagate(m_current_level, true, true);
   --m_current_level;
+  m_state = STARTING_NEW_LEVEL;
+}
+
+void
+FieldOptimiser::start_level() {
+  auto trace_log = spdlog::get("optimiser");
+  trace_log->trace("starting_level()");
+  spdlog::info("Starting level {}", m_current_level);
+  m_num_iterations = 0;
   m_state = OPTIMISING_ROSY;
-  return false;
+}
+
+/*
+ * Apply labels to the edge to indicate the relative rotational frames of
+ * the cross field at each end. This is a single integer from 0 .. 3
+ * In a single frame these are guaranteed to be consistent. When there are multiple frames,
+ * it's possible that different frames have different preferences. In this case we must
+ * pick the 'best' orientation. More details on what best means is below.
+ *
+ */
+void
+FieldOptimiser::label_edges() {
+  using namespace std;
+  using namespace spdlog;
+
+  auto trace_log = spdlog::get("optimiser");
+  trace_log->trace("label_edges()");
+
+  for (auto &edge: (*m_graph)[0]->edges()) {
+    label_edge(edge);
+  }
+
+  m_state = DONE;
+}
+
+std::vector<unsigned int>
+get_common_frames(
+    const std::shared_ptr<Surfel> &s1,
+    const std::shared_ptr<Surfel> &s2
+) {
+  using namespace std;
+
+  set<unsigned int> s1_frames, s2_frames;
+  s1_frames.insert(begin(s1->frames()), end(s1->frames()));
+  s2_frames.insert(begin(s2->frames()), end(s2->frames()));
+  vector<unsigned int> shared_frames(min(s1_frames.size(), s2_frames.size()));
+  auto it = set_intersection(s1_frames.begin(), s1_frames.end(),
+                             s2_frames.begin(), s2_frames.end(),
+                             shared_frames.begin());
+  shared_frames.resize(it - shared_frames.begin());
+  return shared_frames;
+}
+
+void
+FieldOptimiser::compute_k_for_edge( //
+    const std::shared_ptr<Surfel>& from_surfel,
+    const std::shared_ptr<Surfel>& to_surfel,
+    unsigned int frame_idx,
+    unsigned short &k_ij, //
+    unsigned short &k_ji) const //
+{
+  Eigen::Vector3f ignored, t_i, t_j, n_i, n_j;
+  from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, ignored, t_i, n_i);
+  to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, ignored, t_j, n_j);
+  best_rosy_vector_pair(t_i, n_i, k_ij, t_j, n_j, k_ji);
+}
+
+void
+FieldOptimiser::compute_t_for_edge( //
+    const std::shared_ptr<Surfel>& from_surfel, //
+    const std::shared_ptr<Surfel>& to_surfel, //
+    unsigned int frame_idx, //
+    Eigen::Vector2i &t_ij, //
+    Eigen::Vector2i &t_ji) const//
+{
+  using namespace Eigen;
+
+  // Then compute CLP for both vertices in this frame
+  const auto &clp_offset1 = from_surfel->reference_lattice_offset();
+  Vector3f v1, t1, n1;
+  from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
+  auto clp1 = v1 +
+      m_rho * clp_offset1[0] * t1 +
+      m_rho * clp_offset1[1] * (n1.cross(t1));
+
+  const auto &clp_offset2 = to_surfel->reference_lattice_offset();
+  Vector3f v2, t2, n2;
+  to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
+  auto clp2 = v2 +
+      m_rho * clp_offset2[0] * t2 +
+      m_rho * clp_offset2[1] * (n2.cross(t2));
+
+  auto midpoint = compute_qij(v1, n1, v2, n2);
+
+  Vector3f delta = midpoint - clp1;
+  Vector2i t_ij_to_middle = Vector2i(
+      (int) std::floor(t1.dot(delta) / m_rho),
+      (int) std::floor(n1.cross(t1).dot(delta) / m_rho));
+
+  delta = midpoint - clp2;
+  Vector2i t_ji_to_middle = Vector2i(
+      (int) std::floor(t2.dot(delta) / m_rho),
+      (int) std::floor(n2.cross(t2).dot(delta) / m_rho));
+
+  float best_cost = std::numeric_limits<float>::infinity();
+  int best_i = -1, best_j = -1;
+  for (int i = 0; i < 4; ++i) {
+    Vector3f o0t = clp1 +
+        (t1 * ((i & 1) + t_ij_to_middle[0]) +
+            n1.cross(t1) * (((i & 2) >> 1) + t_ij_to_middle[1])) * m_rho;
+    for (int j = 0; j < 4; ++j) {
+      Vector3f o1t = clp2 + (t2 * ((j & 1) + t_ji_to_middle[0]) +
+          n2.cross(t2) * (((j & 2) >> 1) + t_ji_to_middle[1])) * m_rho;
+      float cost = (o0t - o1t).squaredNorm();
+      if (cost < best_cost) {
+        best_i = i;
+        best_j = j;
+        best_cost = cost;
+      }
+    }
+  }
+
+  // Then compute t_ij and t_ji
+  t_ij = Vector2i((best_i & 1) + t_ij_to_middle[0], ((best_i & 2) >> 1) + t_ij_to_middle[1]);
+  t_ji = Vector2i((best_j & 1) + t_ji_to_middle[0], ((best_j & 2) >> 1) + t_ji_to_middle[1]);
+}
+
+void
+FieldOptimiser::label_edge(SurfelGraph::Edge &edge) {
+  // Frames in which the edge occurs are frames which feature both start and end nodes
+  auto frames_for_edge = get_common_frames(edge.from()->data(), edge.to()->data());
+  if (frames_for_edge.size() > 1) {
+    throw std::logic_error("No common frames for edge between " +
+        edge.from()->data()->id() +
+        " and " +
+        edge.to()->data()->id());
+  }
+  if (frames_for_edge.size() > 1) {
+    throw std::runtime_error("multi-frame labeling not supported");
+  }
+
+  auto from_surfel = edge.from()->data();
+  auto to_surfel = edge.to()->data();
+  auto frame_idx = frames_for_edge[0];
+
+  unsigned short k_ij, k_ji;
+  compute_k_for_edge(from_surfel, to_surfel, frame_idx, k_ij, k_ji);
+  set_k((*m_graph)[0], edge.from(), k_ij, edge.to(), k_ji);
+
+  Eigen::Vector2i t_ij, t_ji;
+  compute_t_for_edge(from_surfel, to_surfel, frame_idx, t_ij, t_ji);
+  set_t((*m_graph)[0], edge.from(), t_ij, edge.to(), t_ji);
 }
 
 bool
@@ -331,24 +492,22 @@ FieldOptimiser::optimise_once() {
     case UNINITIALISED:throw std::logic_error("Can't optimise when no graph is set");
     case INITIALISED:optimise_begin();
       break;
+    case STARTING_NEW_LEVEL:start_level();
+      break;
+
     case OPTIMISING_ROSY:optimise_rosy();
-      ++m_num_iterations;
-      if (m_num_iterations == m_target_iterations) {
-        m_num_iterations = 0;
-        m_state = OPTIMISING_POSY;
-      }
       break;
 
     case OPTIMISING_POSY:optimise_posy();
-      ++m_num_iterations;
-      if (m_num_iterations == m_target_iterations) {
-        m_num_iterations = 0;
-        m_state = PROPAGATE_VALUES;
-      }
       break;
 
-    case PROPAGATE_VALUES:optimisation_complete = propagate_values();
+    case ENDING_LEVEL: end_level();
       break;
+
+    case LABEL_EDGES: label_edges();
+      break;
+
+    case DONE:optimisation_complete = true;
   }
   return optimisation_complete;
 }

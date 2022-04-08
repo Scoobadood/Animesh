@@ -31,11 +31,15 @@ class FieldOptimiser {
                    float &weight_a,
                    float &weight_b) const;
 
+  /* Propagate mred results down wards */
+  bool propagate_values();
+
   enum OptimisationState {
     UNINITIALISED,
     INITIALISED,
     OPTIMISING_ROSY,
     OPTIMISING_POSY,
+    PROPAGATE_VALUES,
   };
 
   std::shared_ptr<MultiResolutionSurfelGraph> m_graph;

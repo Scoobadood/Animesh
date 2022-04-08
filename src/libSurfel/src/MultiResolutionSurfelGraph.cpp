@@ -307,7 +307,7 @@ MultiResolutionSurfelGraph::propagate(
     } else {
       auto parents = mapping->second;
       // Find the nodes in the graph
-      spdlog::info("Found parents for node {} in level {}: {} and {}", node->data()->id(), from_level,
+      spdlog::debug("Found parents for node {} in level {}: {} and {}", node->data()->id(), from_level,
                    parents.first->data()->id(),
                    parents.second->data()->id());
       if (rosy) {

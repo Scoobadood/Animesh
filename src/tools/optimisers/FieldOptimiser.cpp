@@ -69,7 +69,7 @@ FieldOptimiser::optimise_posy() {
     // Ref latt offset in the default space.
     Vector2f curr_lattice_offset = curr_surfel->reference_lattice_offset();
     trace_log->info("  starting lattice offset (default) is ({:.3f}, {:.3f})",
-                      curr_lattice_offset[0], curr_lattice_offset[1]);
+                    curr_lattice_offset[0], curr_lattice_offset[1]);
 
     // For each frame
     trace_log->info("  surfel is present in {} frames", curr_surfel->frames().size());
@@ -108,13 +108,13 @@ FieldOptimiser::optimise_posy() {
             nbr_lattice_offset[0] * nbr_surfel_tangent +
             nbr_lattice_offset[1] * nbr_surfel_orth_tangent;
         trace_log->info("      Neighbour {} at ({:.3f} {:.3f} {:.3f}) thinks CLP is at ({:.3f} {:.3f} {:.3f})",
-                          nbr_surfel->id(),
-                          nbr_surfel_pos[0],
-                          nbr_surfel_pos[1],
-                          nbr_surfel_pos[2],
-                          nbr_surfel_clp[0],
-                          nbr_surfel_clp[1],
-                          nbr_surfel_clp[2]);
+                        nbr_surfel->id(),
+                        nbr_surfel_pos[0],
+                        nbr_surfel_pos[1],
+                        nbr_surfel_pos[2],
+                        nbr_surfel_clp[0],
+                        nbr_surfel_clp[1],
+                        nbr_surfel_clp[2]);
 
         // Compute the point that minimizes the distance to vertices while being located in their respective tangent plane
         const auto midpoint = compute_qij(curr_surfel_pos, curr_surfel_normal, nbr_surfel_pos, nbr_surfel_normal);
@@ -157,9 +157,9 @@ FieldOptimiser::optimise_posy() {
 
         {
           trace_log->info("        curr_closest=[{:.3f} {:.3f} {:.3f}];",
-                            closest_points.first[0], closest_points.first[1], closest_points.first[2]);
+                          closest_points.first[0], closest_points.first[1], closest_points.first[2]);
           trace_log->info("        nbr_closest=[{:.3f} {:.3f} {:.3f}];",
-                            closest_points.second[0], closest_points.second[1], closest_points.second[2]);
+                          closest_points.second[0], closest_points.second[1], closest_points.second[2]);
         }
 
         // Compute the weighted mean closest point
@@ -168,7 +168,7 @@ FieldOptimiser::optimise_posy() {
         sum_w += w_j;
         working_clp /= sum_w;
         trace_log->info("        updated working_clp=[{:.3f} {:.3f} {:.3f}];",
-                          working_clp[0], working_clp[1], working_clp[2]);
+                        working_clp[0], working_clp[1], working_clp[2]);
 
         // new_lattice_vertex is not necessarily on the plane of the from tangents
         // We may need to correct for this later
@@ -178,7 +178,7 @@ FieldOptimiser::optimise_posy() {
         // If this defines the lattice, now find the closest lattice point to curr_surfel_pos
         working_clp = round_4(curr_surfel_normal, curr_surfel_tangent, working_clp, curr_surfel_pos, m_rho);
         trace_log->info("        rounded and normalised working_clp=[{:.3f} {:.3f} {:.3f}];",
-                          working_clp[0], working_clp[1], working_clp[2]);
+                        working_clp[0], working_clp[1], working_clp[2]);
 
         // Convert the new LP into a
       } // Next neighbour
@@ -308,6 +308,22 @@ FieldOptimiser::optimise_rosy() {
 }
 
 bool
+FieldOptimiser::propagate_values() {
+  using namespace Eigen;
+
+  auto trace_log = spdlog::get("optimiser");
+  trace_log->trace("propagate_values()");
+  if( m_current_level == 0) {
+    return true;
+  }
+
+  m_graph->propagate(m_current_level, true, true);
+  --m_current_level;
+  m_state = OPTIMISING_ROSY;
+  return false;
+}
+
+bool
 FieldOptimiser::optimise_once() {
   bool optimisation_complete = false;
 
@@ -326,9 +342,12 @@ FieldOptimiser::optimise_once() {
     case OPTIMISING_POSY:optimise_posy();
       ++m_num_iterations;
       if (m_num_iterations == m_target_iterations) {
-        m_state = OPTIMISING_POSY;
-        optimisation_complete = true;
+        m_num_iterations = 0;
+        m_state = PROPAGATE_VALUES;
       }
+      break;
+
+    case PROPAGATE_VALUES:optimisation_complete = propagate_values();
       break;
   }
   return optimisation_complete;

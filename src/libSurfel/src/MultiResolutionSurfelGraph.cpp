@@ -279,10 +279,10 @@ MultiResolutionSurfelGraph::generate_new_level_additive() {
 
 void
 fix_value( float &value) {
-  if ( value >= 0.5f) {
+  while ( value >= 0.5f) {
     value -= 1.0f;
   }
-  if( value < -0.5f) {
+  while( value < -0.5f) {
     value += 1.0f;
   }
 }

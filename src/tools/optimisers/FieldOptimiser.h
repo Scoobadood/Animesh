@@ -19,6 +19,15 @@ class FieldOptimiser {
   /* After initialisation, set up ready for first pass */
   void optimise_begin();
 
+  /* Smooth an individual Surfel across temporal and spatial neighbours. */
+  void optimise_rosy();
+
+  /* Get weights for nodes when smoothing */
+  void get_weights(const std::shared_ptr<Surfel> &surfel_a,
+                   const std::shared_ptr<Surfel> &surfel_b,
+                   float &weight_a,
+                   float &weight_b) const;
+
   enum OptimisationState {
     UNINITIALISED,
     INITIALISED,

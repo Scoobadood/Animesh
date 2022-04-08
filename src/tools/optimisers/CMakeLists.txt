@@ -45,6 +45,8 @@ add_executable(
 target_link_libraries(
 		opt_cli
 		Surfel
+		Geom
+		RoSy
 		spdlog::spdlog
 )
 

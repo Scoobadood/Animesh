@@ -159,22 +159,6 @@ PoSyOptimiser::compare_worst_first(const SurfelGraphNodePtr &l, const SurfelGrap
   return l->data()->posy_smoothness() > r->data()->posy_smoothness();
 }
 
-Eigen::Vector3f
-position_floor_4(const Eigen::Vector3f &lattice_origin, // Origin
-                 const Eigen::Vector3f &tangent, // Rep tan
-                 const Eigen::Vector3f &normal, // Normal
-                 const Eigen::Vector3f &midpoint, // Point
-                 float scale, float inv_scale) {
-  using namespace Eigen;
-
-  Vector3f orth_tangent = normal.cross(tangent);
-  Vector3f d = midpoint - lattice_origin;
-  // Computes the 'bottom left' lattice point closest to midpoint
-  return lattice_origin +
-      tangent * std::floor(tangent.dot(d) * inv_scale) * scale +
-      orth_tangent * std::floor(orth_tangent.dot(d) * inv_scale) * scale;
-}
-
 /**
 * Optimise this GraphNode by considering all neighbours and allowing them all to
 * 'push' this node slightly to an agreed common position.
@@ -250,9 +234,9 @@ PoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
       // which are closest to each other - checks 4 points surrounding midpoint on both planes
       // Origin, reptan, normal, point
       auto curr_surfel_base =
-          position_floor_4(working_clp, curr_surfel_tangent, curr_surfel_normal, midpoint, m_rho, 1.0f / m_rho);
+          position_floor(working_clp, curr_surfel_tangent, curr_surfel_normal, midpoint, m_rho);
       auto nbr_surfel_base =
-          position_floor_4(nbr_surfel_clp, nbr_surfel_tangent, nbr_surfel_normal, midpoint, m_rho, 1.0f / m_rho);
+          position_floor(nbr_surfel_clp, nbr_surfel_tangent, nbr_surfel_normal, midpoint, m_rho);
 
       auto best_cost = std::numeric_limits<float>::infinity();
       int best_i = -1, best_j = -1;

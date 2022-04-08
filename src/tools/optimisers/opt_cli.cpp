@@ -37,6 +37,11 @@ check_properties(const std::shared_ptr<Properties>& properties) {
   if (!properties->hasProperty("num-iterations")) {
     throw std::invalid_argument("Missing property 'num-iterations'");
   }
+  if(properties->hasProperty("rho")) {
+    if( properties->getFloatProperty("rho") <= 0.0f) {
+      throw std::invalid_argument("Bad value for 'rho'");
+    }
+  }
 }
 
 std::shared_ptr<Properties>
@@ -73,7 +78,11 @@ int main(int argc, char *argv[]) {
   auto graph = load_graph(input_file_name, num_levels);
 
   auto num_iterations = properties->getIntProperty("num-iterations");
-  auto optimiser = std::make_shared<FieldOptimiser>(num_iterations);
+  auto rho = (properties->hasProperty("rho"))
+      ? properties->getFloatProperty("rho")
+      : 1.0f;
+
+  auto optimiser = std::make_shared<FieldOptimiser>(num_iterations, rho);
   optimiser->set_graph(graph);
 
   auto start_time = chrono::system_clock::now();

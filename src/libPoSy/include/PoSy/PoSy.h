@@ -5,11 +5,11 @@
  * Given a point in space, a normal, tangent vector and rho (lattice spacing) compute the 8 nearest vertices on the lattice
  */
 std::vector<Eigen::Vector3f> compute_lattice_neighbours(
-        const Eigen::Vector3f &lattice_origin,
-        const Eigen::Vector3f &point,
-        const Eigen::Vector3f &tangent,
-        const Eigen::Vector3f &orth_tangent,
-        float rho);
+    const Eigen::Vector3f &lattice_origin,
+    const Eigen::Vector3f &point,
+    const Eigen::Vector3f &tangent,
+    const Eigen::Vector3f &orth_tangent,
+    float rho);
 
 /**
 * Given a regular grid with basis vectors tangent, o_prime,
@@ -51,36 +51,36 @@ translate_4(const Eigen::Vector3f &p,
  */
 Eigen::Vector3f
 compute_qij(
-        const Eigen::Vector3f &p0,
-        const Eigen::Vector3f &n0,
-        const Eigen::Vector3f &p1,
-        const Eigen::Vector3f &n1
+    const Eigen::Vector3f &p0,
+    const Eigen::Vector3f &n0,
+    const Eigen::Vector3f &p1,
+    const Eigen::Vector3f &n1
 );
 
 /**
  */
 void
 compute_t_ij(
-        const Eigen::Vector3f &p_i,
-        const Eigen::Vector3f &n_i,
-        const Eigen::Vector3f &o_i,
-        const std::vector<Eigen::Vector2i> &Qij,
+    const Eigen::Vector3f &p_i,
+    const Eigen::Vector3f &n_i,
+    const Eigen::Vector3f &o_i,
+    const std::vector<Eigen::Vector2i> &Qij,
 
-        const Eigen::Vector3f &p_j,
-        const Eigen::Vector3f &n_j,
-        const Eigen::Vector3f &o_j,
-        const std::vector<Eigen::Vector2i> &Qji,
+    const Eigen::Vector3f &p_j,
+    const Eigen::Vector3f &n_j,
+    const Eigen::Vector3f &o_j,
+    const std::vector<Eigen::Vector2i> &Qji,
 
-        Eigen::Vector2i &t_ij,
-        Eigen::Vector2i &t_ji,
+    Eigen::Vector2i &t_ij,
+    Eigen::Vector2i &t_ji,
 
-        float rho);
+    float rho);
 
 Eigen::Vector3f rotate_pj_into_n(
-        const Eigen::Vector3f &n_i,
-        const Eigen::Vector3f &n_j,
-        const Eigen::Vector3f &p_j,
-        const Eigen::Vector3f &q_ij);
+    const Eigen::Vector3f &n_i,
+    const Eigen::Vector3f &n_j,
+    const Eigen::Vector3f &p_j,
+    const Eigen::Vector3f &q_ij);
 
 std::pair<Eigen::Vector3f, Eigen::Vector3f>
 find_closest_points(const std::vector<Eigen::Vector3f> &points_a, const std::vector<Eigen::Vector3f> &points_b);
@@ -102,12 +102,12 @@ best_posy_offset_vertices(const Eigen::Vector3f &this_vertex,
                           const Eigen::Vector3f &this_tangent,
                           const Eigen::Vector3f &this_normal,
                           const Eigen::Vector2f &this_offset,
-                          Eigen::Vector2i& t_ij,
+                          Eigen::Vector2i &t_ij,
                           const Eigen::Vector3f &that_vertex,
                           const Eigen::Vector3f &that_tangent,
                           const Eigen::Vector3f &that_normal,
                           const Eigen::Vector2f &that_offset,
-                          Eigen::Vector2i& t_ji,
+                          Eigen::Vector2i &t_ji,
                           float rho
 );
 
@@ -159,10 +159,8 @@ position_floor_index(
 );
 
 Eigen::Vector3f
-position_floor(
-    const Eigen::Vector3f &lattice_point,
-    const Eigen::Vector3f &tangent,
-    const Eigen::Vector3f &orth_tangent,
-    const Eigen::Vector3f &point_to_surround,
-    float scale
-);
+position_floor(const Eigen::Vector3f &anchor, // Origin
+               const Eigen::Vector3f &tangent, // Rep tan
+               const Eigen::Vector3f &normal, // Normal
+               const Eigen::Vector3f &point_to_floor, // Point
+               float scale);

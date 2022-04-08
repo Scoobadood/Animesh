@@ -9,7 +9,7 @@
 
 class FieldOptimiser {
  public:
-  explicit FieldOptimiser(int target_iterations);
+  explicit FieldOptimiser(int target_iterations, float rho);
 
   bool optimise_once();
 
@@ -48,4 +48,7 @@ class FieldOptimiser {
 
   /* The level of the mres graph being optimised */
   size_t m_current_level;
+
+  /* Mesh spacing */
+  float m_rho;
 };

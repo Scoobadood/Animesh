@@ -475,24 +475,19 @@ position_floor_index(
 }
 
 Eigen::Vector3f
-position_floor(
-    const Eigen::Vector3f &lattice_point,
-    const Eigen::Vector3f &tangent,
-    const Eigen::Vector3f &orth_tangent,
-    const Eigen::Vector3f &point_to_surround,
-    float scale
-) {
+position_floor(const Eigen::Vector3f &anchor, // Origin
+               const Eigen::Vector3f &tangent, // Rep tan
+               const Eigen::Vector3f &normal, // Normal
+               const Eigen::Vector3f &point_to_floor, // Point
+               float scale) {
   using namespace Eigen;
-  using namespace std;
-  auto inv_scale = 1.0f / scale;
 
-  const auto d = point_to_surround - lattice_point;
-  const auto d_tan = tangent.dot(d);
-  const auto d_orth_tan = orth_tangent.dot(d);
+  float inv_scale = 1.0f / scale;
 
-  // Computes the 'bottom left' lattice point closest to point_to_surround
-  return lattice_point +
-      floorf(d_tan * inv_scale) * scale * tangent +
-      floorf(d_orth_tan * inv_scale) * scale * orth_tangent;
+  Vector3f orth_tangent = normal.cross(tangent);
+  Vector3f d = point_to_floor - anchor;
+  // Computes the 'bottom left' lattice point closest to point_to_floor
+  return anchor +
+      tangent * std::floor(tangent.dot(d) * inv_scale) * scale +
+      orth_tangent * std::floor(orth_tangent.dot(d) * inv_scale) * scale;
 }
-

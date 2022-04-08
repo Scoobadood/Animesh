@@ -47,6 +47,7 @@ target_link_libraries(
 		Surfel
 		Geom
 		RoSy
+		PoSy
 		spdlog::spdlog
 )
 

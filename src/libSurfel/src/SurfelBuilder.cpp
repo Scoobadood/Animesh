@@ -68,6 +68,18 @@ SurfelBuilder *SurfelBuilder::with_frame(const PixelInFrame &pif,
   return this;
 }
 
+SurfelBuilder *SurfelBuilder::with_surfel(const std::shared_ptr<Surfel>& s) {
+  m_id = s->id(); m_id_set = true;
+  m_tangent = s->tangent(); m_tangent_set = true;
+  m_reference_lattice_offset = s->reference_lattice_offset(); m_reference_lattice_offset_set = true;
+  m_frames.clear();
+  for( const auto & fd : s->frame_data() ) {
+    m_frames.emplace_back(fd);
+  }
+  return this;
+}
+
+
 SurfelBuilder *SurfelBuilder::with_frame( //
     const PixelInFrame &pif, //
     float depth, //

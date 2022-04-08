@@ -38,6 +38,8 @@ public:
                               const Eigen::Vector3f &norm,
                               const Eigen::Vector3f &pos);
 
+    SurfelBuilder *with_surfel(const std::shared_ptr<Surfel>& s);
+
     Surfel build();
 
 private:

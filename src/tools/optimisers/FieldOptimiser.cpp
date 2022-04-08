@@ -3,6 +3,7 @@
 //
 
 #include "FieldOptimiser.h"
+#include <Eigen/Geometry>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <Geom/Geom.h>
@@ -62,7 +63,12 @@ FieldOptimiser::optimise_posy() {
 
   auto &graph = (*m_graph)[m_current_level];
   spdlog::info("  PoSy pass {}", m_num_iterations + 1);
-  for (const auto &node: graph->nodes()) {
+
+  const auto &nodes = graph->nodes();
+  auto indices = randomise_indices(nodes.size());
+
+  for (auto node_index: indices) {
+    auto node = nodes[node_index];
 
     const auto &curr_surfel = node->data();
     trace_log->info("Optimising surfel {}", curr_surfel->id());
@@ -118,8 +124,17 @@ FieldOptimiser::optimise_posy() {
                         nbr_surfel_clp[2]);
 
         auto closest_points = compute_closest_lattice_points(
-            curr_surfel_pos, curr_surfel_normal, curr_surfel_tangent, curr_surfel_orth_tangent, working_clp,
-            nbr_surfel_pos, nbr_surfel_normal, nbr_surfel_tangent, nbr_surfel_orth_tangent, nbr_surfel_clp, m_rho);
+            curr_surfel_pos,
+            curr_surfel_normal,
+            curr_surfel_tangent,
+            curr_surfel_orth_tangent,
+            working_clp,
+            nbr_surfel_pos,
+            nbr_surfel_normal,
+            nbr_surfel_tangent,
+            nbr_surfel_orth_tangent,
+            nbr_surfel_clp,
+            m_rho);
 
         // Compute the weighted mean closest point
         float w_j = 1.0f;
@@ -140,8 +155,6 @@ FieldOptimiser::optimise_posy() {
             position_round(working_clp, curr_surfel_tangent, curr_surfel_orth_tangent, curr_surfel_pos, m_rho);
         trace_log->info("        rounded and normalised working_clp=[{:.3f} {:.3f} {:.3f}];",
                         working_clp[0], working_clp[1], working_clp[2]);
-
-        // Convert the new LP into a
       } // Next neighbour
 
       // Convert back to offset.
@@ -160,6 +173,15 @@ FieldOptimiser::optimise_posy() {
   }
 }
 
+std::vector<size_t>
+FieldOptimiser::randomise_indices(unsigned long number) {
+  using namespace std;
+  vector<size_t> indices(number);
+  iota(begin(indices), end(indices), 0);
+  shuffle(begin(indices), end(indices), m_random_engine);
+  return indices;
+}
+
 /*
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
@@ -176,9 +198,7 @@ FieldOptimiser::optimise_rosy() {
   spdlog::info("  RoSy pass {}", m_num_iterations + 1);
 
   const auto &nodes = graph->nodes();
-  vector<size_t> indices(nodes.size());
-  iota(begin(indices), end(indices), 0);
-  shuffle(begin(indices), end(indices), m_random_engine);
+  auto indices = randomise_indices(nodes.size());
 
   for (auto node_index: indices) {
     auto this_node = nodes[node_index];
@@ -198,11 +218,11 @@ FieldOptimiser::optimise_rosy() {
     // For each frame in which this node exists
     for (auto current_frame_idx: this_surfel->frames()) {
       // Get my transformation matrix
-      Vector3f v, this_surfel_normal_in_frame;
+      Vector3f this_surfel_position, this_surfel_normal;
       this_surfel->get_vertex_tangent_normal_for_frame(current_frame_idx,
-                                                       v,
+                                                       this_surfel_position,
                                                        new_tangent,
-                                                       this_surfel_normal_in_frame);
+                                                       this_surfel_normal);
       auto this_surfel_transform = this_surfel->transform_for_frame(current_frame_idx);
       trace_log->info("  transform = [{:3f} {:3f} {:3f}; {:3f} {:3f} {:3f}; {:3f} {:3f} {:3f};]",
                       this_surfel_transform(0, 0), this_surfel_transform(0, 1), this_surfel_transform(0, 2),//
@@ -212,7 +232,6 @@ FieldOptimiser::optimise_rosy() {
       trace_log->info("  tangent_in_frame = [{:3f} {:3f} {:3f}]",
                       new_tangent[0], new_tangent[1], new_tangent[2]);
 
-
       // Get the neighbours of this node in the current frame
       auto
           neighbours = get_node_neighbours_in_frame(graph, this_node, current_frame_idx);
@@ -220,15 +239,16 @@ FieldOptimiser::optimise_rosy() {
       // Smooth with each neighbour in turn
       for (const auto &nbr: neighbours) {
         const auto &nbr_surfel = nbr->data();
-        Vector3f nbr_tangent_in_frame, nbr_normal_in_frame;
-        nbr_surfel->get_vertex_tangent_normal_for_frame(current_frame_idx, v,
-                                                        nbr_tangent_in_frame,
-                                                        nbr_normal_in_frame);
+        Vector3f nbr_position, nbr_tangent, nbr_normal;
+        nbr_surfel->get_vertex_tangent_normal_for_frame(current_frame_idx,
+                                                        nbr_position,
+                                                        nbr_tangent,
+                                                        nbr_normal);
 
         trace_log->info("  smoothing new_tangent ({:3f} {:3f} {:3f}) with {} ({:3f} {:3f} {:3f}) in frame {}",
                         new_tangent[0], new_tangent[1], new_tangent[2], //
                         nbr_surfel->id(), //
-                        nbr_tangent_in_frame[0], nbr_tangent_in_frame[1], nbr_tangent_in_frame[2], //
+                        nbr_tangent[0], nbr_tangent[1], nbr_tangent[2], //
                         current_frame_idx);
 
         float this_weight, nbr_weight;
@@ -238,24 +258,24 @@ FieldOptimiser::optimise_rosy() {
         pair<Vector3f, Vector3f> best_pair;
         unsigned short k_ij, k_ji;
         best_pair = best_rosy_vector_pair(
-            new_tangent, this_surfel_normal_in_frame, k_ij,
-            nbr_tangent_in_frame, nbr_normal_in_frame, k_ji);
+            new_tangent, this_surfel_normal, k_ij,
+            nbr_tangent, nbr_normal, k_ji);
 
         trace_log->info("    best pair ({:3f} {:3f} {:3f}), ({:3f} {:3f} {:3f}) [{}, {}]",
                         best_pair.first[0], best_pair.first[1], best_pair.first[2], //
                         best_pair.second[0], best_pair.second[1], best_pair.second[2], //
                         k_ij, k_ji);
 
-        weight_sum += this_weight;
         new_tangent = (best_pair.first * weight_sum + best_pair.second * nbr_weight);
-        new_tangent = project_vector_to_plane(new_tangent, this_surfel_normal_in_frame); // Normalizes
+        weight_sum += this_weight;
+        new_tangent = project_vector_to_plane(new_tangent, this_surfel_normal); // Normalizes
 
         trace_log->info("    new_tangent -> ({:3f} {:3f} {:3f})",
                         new_tangent[0], new_tangent[1], new_tangent[2] //
         );
 
       } // Next neighbour
-      new_tangent = this_surfel_transform * new_tangent;
+      new_tangent = this_surfel_transform.inverse() * new_tangent;
       new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY()); // Normalizes
       this_surfel->setTangent(new_tangent);
 

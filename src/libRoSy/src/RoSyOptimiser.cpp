@@ -114,16 +114,16 @@ RoSyOptimiser::get_weights(const std::shared_ptr<Surfel> &surfel_a,
  * Smooth an individual Surfel across temporal and spatial neighbours.
  */
 void
-RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
+RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &node) {
   using namespace std;
   using namespace Eigen;
 
   auto rosy_logger = spdlog::get("rosy-optimiser");
 
-  std::shared_ptr<Surfel> this_surfel = this_node->data();
-  rosy_logger->info("Optimising surfel {}", this_surfel->id());
+  std::shared_ptr<Surfel> surfel = node->data();
+  rosy_logger->info("Optimising surfel {}", surfel->id());
 
-  const auto starting_tangent = this_surfel->tangent();
+  const auto starting_tangent = surfel->tangent();
   rosy_logger->info("  Starting tangent ({:3f} {:3f} {:3f})",
                     starting_tangent[0],
                     starting_tangent[1],
@@ -134,15 +134,16 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   float weight_sum = 0.0f;
 
   // For each frame in which this node exists
-  for (auto current_frame_idx: this_surfel->frames()) {
-    // Get my transformation matrix
-    Vector3f v, this_surfel_normal_in_frame;
-    this_surfel->get_vertex_tangent_normal_for_frame(current_frame_idx, v, new_tangent, this_surfel_normal_in_frame);
-    auto this_surfel_transform = this_surfel->transform_for_frame(current_frame_idx);
+  for (auto current_frame_idx: surfel->frames()) {
+
+    // Get surfel stats
+    Vector3f position, normal;
+    surfel->get_vertex_tangent_normal_for_frame(current_frame_idx, position, new_tangent, normal);
+    auto transform = surfel->transform_for_frame(current_frame_idx);
     rosy_logger->info("  transform = [{:3f} {:3f} {:3f}; {:3f} {:3f} {:3f}; {:3f} {:3f} {:3f};]",
-                      this_surfel_transform(0, 0), this_surfel_transform(0, 1), this_surfel_transform(0, 2),//
-                      this_surfel_transform(1, 0), this_surfel_transform(1, 1), this_surfel_transform(1, 2),//
-                      this_surfel_transform(2, 0), this_surfel_transform(2, 1), this_surfel_transform(2, 2));
+                      transform(0, 0), transform(0, 1), transform(0, 2),//
+                      transform(1, 0), transform(1, 1), transform(1, 2),//
+                      transform(2, 0), transform(2, 1), transform(2, 2));
 
     rosy_logger->info("  tangent_in_frame = [{:3f} {:3f} {:3f}]",
                       new_tangent[0], new_tangent[1], new_tangent[2]);
@@ -150,65 +151,58 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
 
     // Get the neighbours of this node in the current frame
     auto
-        neighbours = get_node_neighbours_in_frame(m_surfel_graph, this_node, current_frame_idx);
+        neighbours = get_node_neighbours_in_frame(m_surfel_graph, node, current_frame_idx);
 
     // Smooth with each neighbour in turn
     for (const auto &nbr: neighbours) {
       const auto &nbr_surfel = nbr->data();
-      Vector3f nbr_tangent_in_frame, nbr_normal_in_frame;
-      nbr_surfel->get_vertex_tangent_normal_for_frame(current_frame_idx, v,
-                                                      nbr_tangent_in_frame,
-                                                      nbr_normal_in_frame);
+      Vector3f nbr_position, nbr_tangent, nbr_normal;
+      nbr_surfel->get_vertex_tangent_normal_for_frame(current_frame_idx,
+                                                      nbr_position,
+                                                      nbr_tangent,
+                                                      nbr_normal);
 
       rosy_logger->info("  smoothing new_tangent ({:3f} {:3f} {:3f}) with {} ({:3f} {:3f} {:3f}) in frame {}",
                         new_tangent[0], new_tangent[1], new_tangent[2], //
                         nbr_surfel->id(), //
-                        nbr_tangent_in_frame[0], nbr_tangent_in_frame[1], nbr_tangent_in_frame[2], //
+                        nbr_tangent[0], nbr_tangent[1], nbr_tangent[2], //
                         current_frame_idx);
 
       float this_weight, nbr_weight;
-      get_weights(this_surfel, nbr_surfel, this_weight, nbr_weight);
+      get_weights(surfel, nbr_surfel, this_weight, nbr_weight);
 
       // Compute the best RoSy pair
-      pair<Vector3f, Vector3f> best_pair;
       unsigned short k_ij, k_ji;
-      best_pair = best_rosy_vector_pair(
-          new_tangent, this_surfel_normal_in_frame, k_ij,
-          nbr_tangent_in_frame, nbr_normal_in_frame, k_ji);
+      auto best_pair = best_rosy_vector_pair(
+          new_tangent, normal, k_ij,
+          nbr_tangent, nbr_normal, k_ji);
 
       rosy_logger->info("    best pair ({:3f} {:3f} {:3f}), ({:3f} {:3f} {:3f}) [{}, {}]",
                         best_pair.first[0], best_pair.first[1], best_pair.first[2], //
                         best_pair.second[0], best_pair.second[1], best_pair.second[2], //
                         k_ij, k_ji);
 
-      weight_sum += this_weight;
       new_tangent = (best_pair.first * weight_sum + best_pair.second * nbr_weight);
-      new_tangent = project_vector_to_plane(new_tangent, this_surfel_normal_in_frame); // Normalizes
+      weight_sum += this_weight;
+      new_tangent = project_vector_to_plane(new_tangent, normal); // Normalizes
 
       rosy_logger->info("    new_tangent -> ({:3f} {:3f} {:3f})",
                         new_tangent[0], new_tangent[1], new_tangent[2] //
       );
 
     } // Next neighbour
-    new_tangent = this_surfel_transform * new_tangent;
+
+    // Push back into default space
+    new_tangent = transform.inverse() * new_tangent;
     new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY()); // Normalizes
-    this_surfel->setTangent(new_tangent);
+    surfel->setTangent(new_tangent);
 
     rosy_logger->info("  Tangent at end of frame {} tangent ({:3f} {:3f} {:3f})",
                       current_frame_idx,
                       new_tangent[0],
                       new_tangent[1],
                       new_tangent[2]);
-
   } // Next frame
-
-// NEWLINES
-
-  // Handle damping
-//  if (m_damping_factor > 0) {
-//    new_tangent = (m_damping_factor * starting_tangent) + ((1.0f - m_damping_factor) * new_tangent);
-//    new_tangent = project_vector_to_plane(new_tangent, Vector3f::UnitY(), true);
-//  }
 
   rosy_logger->info("  Ending tangent ({:3f} {:3f} {:3f})",
                     new_tangent[0],
@@ -218,7 +212,7 @@ RoSyOptimiser::optimise_node(const SurfelGraphNodePtr &this_node) {
   auto corrn = degrees_angle_between_vectors(starting_tangent, new_tangent);
   rosy_logger->info("  Correction {:3f}", corrn);
 
-  this_surfel->set_rosy_correction(corrn);
+  surfel->set_rosy_correction(corrn);
 }
 
 void RoSyOptimiser::store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const {

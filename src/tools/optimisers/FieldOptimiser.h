@@ -30,11 +30,13 @@ class FieldOptimiser {
 
   void start_level();
 
-    /* Get weights for nodes when smoothing */
+  /* Get weights for nodes when smoothing */
   void get_weights(const std::shared_ptr<Surfel> &surfel_a,
                    const std::shared_ptr<Surfel> &surfel_b,
                    float &weight_a,
                    float &weight_b) const;
+
+  std::vector<size_t> randomise_indices(unsigned long number);
 
   /* Propagate mred results down wards */
   void end_level();
@@ -45,15 +47,15 @@ class FieldOptimiser {
   void label_edge(SurfelGraph::Edge &edge);
 
   void compute_k_for_edge( //
-      const std::shared_ptr<Surfel>& from_surfel,
-      const std::shared_ptr<Surfel>& to_surfel,
+      const std::shared_ptr<Surfel> &from_surfel,
+      const std::shared_ptr<Surfel> &to_surfel,
       unsigned int frame_idx,
       unsigned short &k_ij, //
       unsigned short &k_ji) const;
 
   void compute_t_for_edge( //
-      const std::shared_ptr<Surfel>& from_surfel,
-      const std::shared_ptr<Surfel>& to_surfel,
+      const std::shared_ptr<Surfel> &from_surfel,
+      const std::shared_ptr<Surfel> &to_surfel,
       unsigned int frame_idx,
       Eigen::Vector2i &t_ij, //
       Eigen::Vector2i &t_ji) const;

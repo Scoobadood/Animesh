@@ -38,7 +38,7 @@ class RoSyOptimiser : public NodeOptimiser {
       unsigned short &best_k_ij,
       unsigned short &best_k_ji) const;
 
-  void optimise_node(const SurfelGraphNodePtr &this_node) override;
+  void optimise_node(const SurfelGraphNodePtr &node) override;
   void store_mean_smoothness(SurfelGraphNodePtr node, float smoothness) const override;
   void adjust_weights_based_on_error(const std::shared_ptr<Surfel> &s1,
                                      const std::shared_ptr<Surfel> &s2,

@@ -153,7 +153,7 @@ compute_closest_lattice_points(
     const Eigen::Vector3f &other_vertex, // Vertex 1
     const Eigen::Vector3f &other_normal, // Normal in second plane
     const Eigen::Vector3f &other_tangent, // Tan in second plane
-    const Eigen::Vector3f &othert_orth_tangent, // Tan in second plane
+    const Eigen::Vector3f &other_orth_tangent, // Tan in second plane
     const Eigen::Vector3f &other_lattice_vertex, // Origin in second plane
     float scale) {
   using namespace Eigen;
@@ -163,16 +163,15 @@ compute_closest_lattice_points(
 
   // Origin, reptan, normal, point
   auto this_base_lattice_point = position_floor(lattice_vertex, tangent, orth_tangent, middle, scale);
-  auto that_base_lattice_point = position_floor(other_lattice_vertex, other_tangent, othert_orth_tangent, middle, scale);
+  auto that_base_lattice_point = position_floor(other_lattice_vertex, other_tangent, other_orth_tangent, middle, scale);
 
   auto best_cost = std::numeric_limits<float>::infinity();
   int best_i = -1, best_j = -1;
 
   for (int i = 0; i < 4; ++i) {
-    // Derive ,o0t (test)  sequentiall, the other bounds of 1_ij in first plane
     Vector3f o0t = this_base_lattice_point + (tangent * (i & 1) + orth_tangent * ((i & 2) >> 1)) * scale;
     for (int j = 0; j < 4; ++j) {
-      Vector3f o1t = that_base_lattice_point + (other_tangent * (j & 1) + othert_orth_tangent * ((j & 2) >> 1)) * scale;
+      Vector3f o1t = that_base_lattice_point + (other_tangent * (j & 1) + other_orth_tangent * ((j & 2) >> 1)) * scale;
       auto cost = (o0t - o1t).squaredNorm();
 
       if (cost < best_cost) {
@@ -187,5 +186,5 @@ compute_closest_lattice_points(
   // we return the pair of closest points on the lattice according to both origins
   return std::make_pair(
       this_base_lattice_point + (tangent * (best_i & 1) + orth_tangent * ((best_i & 2) >> 1)) * scale,
-      that_base_lattice_point + (other_tangent * (best_j & 1) + othert_orth_tangent * ((best_j & 2) >> 1)) * scale);
+      that_base_lattice_point + (other_tangent * (best_j & 1) + other_orth_tangent * ((best_j & 2) >> 1)) * scale);
 }

@@ -24,7 +24,7 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_closest_lattice_points(
     const Eigen::Vector3f &other_vertex,
     const Eigen::Vector3f &other_normal,
     const Eigen::Vector3f &other_tangent,
-    const Eigen::Vector3f &othert_orth_tangent,
+    const Eigen::Vector3f &other_orth_tangent,
     const Eigen::Vector3f &other_lattice_vertex,
     float scale);
 

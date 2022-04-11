@@ -88,11 +88,7 @@ EdgeType compute_edge_type(const Eigen::Vector2i &t_ij,
 }
 
 QuadGraphPtr
-build_edge_graph(
-    int frame_index,
-    const SurfelGraphPtr &graph,
-    float rho
-) {
+build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
   using namespace Eigen;
   using namespace std;
 

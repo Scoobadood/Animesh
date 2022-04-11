@@ -18,7 +18,7 @@ quad_geometry_extractor::extract_geometry(
   using namespace std;
 
   if( rebuild_edge_graph) {
-    m_graph = build_edge_graph(get_frame(), m_surfel_graph, m_rho);
+    m_graph = build_consensus_graph(m_surfel_graph, get_frame(), m_rho);
   }
 
   vertices.clear();

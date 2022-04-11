@@ -36,11 +36,7 @@ using QuadGraphPtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>>;
 using QuadGraphNodePtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>;
 
 QuadGraphPtr
-build_edge_graph(
-    int frame_index,
-    const SurfelGraphPtr &graph,
-    float rho
-);
+build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho);
 
 void
 collapse(const QuadGraphPtr &graph,

@@ -1,5 +1,6 @@
 
 build-animesh-Desktop_Qt_5_15_2_clang_64bit-Debug/
+qt-debug-build/
 
 # Qt-es
 object_script.*.Release

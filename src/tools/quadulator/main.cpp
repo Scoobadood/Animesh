@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 
   // Make an interim graph per frame
   for (auto frame_index = 0; frame_index < get_num_frames(graph); ++frame_index) {
-    auto out_graph = build_edge_graph(frame_index, graph, args.rho);
+    auto out_graph = build_consensus_graph(graph, frame_index, args.rho);
     collapse(out_graph, 1.0f);
 
     // Extract the mesh

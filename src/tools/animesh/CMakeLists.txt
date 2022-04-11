@@ -33,6 +33,7 @@ target_link_libraries(
 		spdlog::spdlog
 		ArcBall
 		Properties
+		Quad
 		Surfel
 		Tool
 )

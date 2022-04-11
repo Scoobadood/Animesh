@@ -24,6 +24,16 @@ class AnimeshGLWidget : public QOpenGLWidget {
     update();
   }
 
+  inline void toggle_posy_vertices() {
+    m_show_posy_vertices = !m_show_posy_vertices;
+    update();
+  }
+
+  inline void toggle_consensus_graph() {
+    m_show_consensus_graph = !m_show_consensus_graph;
+    update();
+  }
+
   inline void set_scale( float scale ) {
     if( m_scale == scale ) {
       return;
@@ -42,10 +52,13 @@ class AnimeshGLWidget : public QOpenGLWidget {
   static void clear() ;
   void update_model_matrix();
   void maybe_update_projection_matrix();
-  static void draw_vertex_positions() ;
+  void draw_vertex_positions() ;
   void maybe_draw_normals() const;
   void maybe_draw_tangents() const;
   void maybe_draw_main_tangents() const;
+  void maybe_draw_posy_vertices() const;
+  void maybe_draw_consensus_graph() const;
+
   static void set_drawing_colour(const QColor &colour) ;
   static void checkGLError(const std::string &context) ;
 
@@ -58,13 +71,17 @@ class AnimeshGLWidget : public QOpenGLWidget {
   float m_model_view_matrix[16];
   std::shared_ptr<AbstractArcBall> m_arc_ball;
 
+  QColor m_vertex_colour;
   QColor m_normal_colour;
   QColor m_tangent_colour;
   QColor m_main_tangent_colour;
+  QColor m_posy_vertex_colour;
 
   bool m_show_normals;
   bool m_show_tangents;
   bool m_show_main_tangents;
+  bool m_show_posy_vertices;
+  bool m_show_consensus_graph;
   float m_scale;
 
 };

@@ -34,9 +34,13 @@ AnimeshWindow::AnimeshWindow(QWidget *parent) //
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_tangents);
   connect(ui->cbShowMainTangents, &QCheckBox::toggled,
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_main_tangents);
+  connect(ui->cbShowPoSy, &QCheckBox::toggled,
+          ui->animeshGLWidget, &AnimeshGLWidget::toggle_posy_vertices);
 
   connect(ui->btnSolve, &QPushButton::clicked, this, &AnimeshWindow::start_solving);
   connect(ui->slScale, &QSlider::valueChanged, this, &AnimeshWindow::change_scale);
+  connect(ui->btnReset, &QPushButton::clicked, this, &AnimeshWindow::reset_graph);
+  connect(ui->btnExportMesh, &QPushButton::clicked, this, &AnimeshWindow::export_mesh);
 
   auto &random = ((AnimeshApp *) QCoreApplication::instance())->random_engine();
   m_field_optimiser = std::make_unique<FieldOptimiser>(random, 10, 1.0f);
@@ -84,6 +88,7 @@ AnimeshWindow::set_graph(SurfelGraphPtr &graph) {
   m_graph = graph;
   auto rng = ((AnimeshApp *) QCoreApplication::instance())->random_engine();
   m_multi_res_graph = std::make_shared<MultiResolutionSurfelGraph>(graph, rng);
+  m_multi_res_graph->generate_levels(6);
   m_field_optimiser->set_graph(m_multi_res_graph);
   m_arc_ball->reset();
   reset_scale_factor();
@@ -119,4 +124,16 @@ void AnimeshWindow::start_solving() {
     }
     ui->btnSolve->setEnabled(true);
   });
+}
+
+void
+AnimeshWindow::export_mesh() {
+  if( m_multi_res_graph == nullptr) {
+    return;
+  }if( m_consensus_graph != nullptr ) {
+    return;
+  }
+  m_consensus_graph = build_consensus_graph((*m_multi_res_graph)[0], 0, 1.0f);
+}
+void AnimeshWindow::reset_graph() {
 }

@@ -20,9 +20,11 @@ AnimeshGLWidget::AnimeshGLWidget(
     , m_projection_matrix_is_dirty{true} //
     , m_projection_matrix{} //
     , m_model_view_matrix{} //
-    , m_normal_colour(255, 0, 0) //
-    , m_tangent_colour(255, 255, 255, 255) //
-    , m_main_tangent_colour(127, 127, 127) //
+    , m_vertex_colour(255, 255, 255, 255) //
+    , m_normal_colour(255, 0, 0, 255) //
+    , m_tangent_colour(127, 127, 127, 255) //
+    , m_main_tangent_colour(255, 255, 255, 255) //
+    , m_posy_vertex_colour(0, 255, 127, 255) //
     , m_show_normals{false} //
     , m_show_tangents{false} //
     , m_show_main_tangents{false} //
@@ -36,9 +38,9 @@ AnimeshGLWidget::AnimeshGLWidget(
 void
 AnimeshGLWidget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_NORMALIZE);
-  glEnable(GL_COLOR_MATERIAL);
-  glLineWidth(3.0f);
+  glEnable(GL_POINT_SMOOTH);
+  glLineWidth(1.0f);
+  checkGLError("initialiseGL");
 }
 
 void
@@ -88,6 +90,14 @@ AnimeshGLWidget::maybe_update_projection_matrix() {
 }
 
 void
+AnimeshGLWidget::set_drawing_colour(const QColor &colour) {
+  glColor4f(static_cast<float>(colour.redF()),
+            static_cast<float>(colour.greenF()),
+            static_cast<float>(colour.blueF()),
+            1.0f);
+}
+
+void
 AnimeshGLWidget::draw_vertex_positions() {
   auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
   if (window == nullptr) {
@@ -99,13 +109,13 @@ AnimeshGLWidget::draw_vertex_positions() {
     return;
   }
 
-  glEnable(GL_POINT_SMOOTH);
   float old_point_size;
   glGetFloatv(GL_POINT_SIZE, &old_point_size);
 
   glPointSize(3.0f);
 
   Eigen::Vector3f v, t, n;
+  set_drawing_colour(m_vertex_colour);
   glBegin(GL_POINTS);
   for (const auto &node: graph->nodes()) {
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
@@ -113,7 +123,6 @@ AnimeshGLWidget::draw_vertex_positions() {
   }
   glEnd();
   glPointSize(old_point_size);
-  glDisable(GL_POINT_SMOOTH);
   checkGLError("draw_vertex_positions");
 }
 
@@ -182,12 +191,18 @@ AnimeshGLWidget::maybe_draw_tangents() const {
   checkGLError("maybe_draw_tangents");
 }
 
-void
-AnimeshGLWidget::set_drawing_colour(const QColor &colour) {
-  glColor4f(static_cast<float>(colour.redF()),
-            static_cast<float>(colour.greenF()),
-            static_cast<float>(colour.blueF()),
-            1.0f);
+void AnimeshGLWidget::maybe_draw_consensus_graph() const {
+  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  if (window == nullptr) {
+    return;
+  }
+
+  auto consensus_graph = window->consensus_graph();
+  if (consensus_graph == nullptr) {
+    return;
+  }
+
+  // TODO: Draw it
 }
 
 void
@@ -218,6 +233,43 @@ AnimeshGLWidget::maybe_draw_main_tangents() const {
   glEnd();
   checkGLError("maybe_draw_main_tangents");
 }
+
+void
+AnimeshGLWidget::maybe_draw_posy_vertices() const {
+  if (!m_show_posy_vertices) {
+    return;
+  }
+
+  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  if (window == nullptr) {
+    return;
+  }
+
+  auto graph = window->graph();
+  if (graph == nullptr) {
+    return;
+  }
+
+  float old_point_size;
+  glGetFloatv(GL_POINT_SIZE, &old_point_size);
+  glPointSize(3.0f);
+
+  Eigen::Vector3f v, t, n;
+  glBegin(GL_POINTS);
+  set_drawing_colour(m_posy_vertex_colour);
+  for (const auto &node: graph->nodes()) {
+    node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
+    auto offset = node->data()->reference_lattice_offset();
+    auto posy_vertex = v + (t * offset[0]) + (n.cross(t) * offset[1]);
+    glVertex3f(posy_vertex.x(), posy_vertex.y(), posy_vertex.z());
+  }
+  glEnd();
+
+  glPointSize(old_point_size);
+  checkGLError("maybe_draw_posy_vertices");
+}
+
+
 void
 AnimeshGLWidget::paintGL() {
   clear();
@@ -231,6 +283,7 @@ AnimeshGLWidget::paintGL() {
   maybe_draw_normals();
   maybe_draw_tangents();
   maybe_draw_main_tangents();
+  maybe_draw_posy_vertices();
 }
 
 /**

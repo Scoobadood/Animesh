@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <AnimeshWindow.h>
 #include <ArcBall/AbstractArcBall.h>
+#include <Quad/Quad.h>
 
 const float DEG2RAD = (3.14159265358979323846264f / 180.0f);
 
@@ -192,6 +193,10 @@ AnimeshGLWidget::maybe_draw_tangents() const {
 }
 
 void AnimeshGLWidget::maybe_draw_consensus_graph() const {
+  if( !m_show_consensus_graph ) {
+    return;
+  }
+
   auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
   if (window == nullptr) {
     return;
@@ -203,6 +208,21 @@ void AnimeshGLWidget::maybe_draw_consensus_graph() const {
   }
 
   // TODO: Draw it
+  glBegin(GL_LINES);
+
+  for (const auto &edge: consensus_graph->edges()) {
+    if (*edge.data() == EDGE_TYPE_RED) {
+      set_drawing_colour(QColorConstants::Red);
+    } else if (*edge.data() == EDGE_TYPE_BLU) {
+      set_drawing_colour(QColorConstants::Blue);
+    }
+
+    const auto &v1 = edge.from()->data().location;
+    const auto &v2 = edge.to()->data().location;
+    glVertex3f(v1.x(), v1.y(), v1.z());
+    glVertex3f(v2.x(), v2.y(), v2.z());
+  }
+  glEnd();
 }
 
 void
@@ -228,7 +248,7 @@ AnimeshGLWidget::maybe_draw_main_tangents() const {
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
     t = t * m_scale;
     glVertex3f(v.x(), v.y(), v.z());
-    glVertex3f(v.x() + t.x(),v.y() + t.y(), v.z() + t.z());
+    glVertex3f(v.x() + t.x(), v.y() + t.y(), v.z() + t.z());
   }
   glEnd();
   checkGLError("maybe_draw_main_tangents");
@@ -269,7 +289,6 @@ AnimeshGLWidget::maybe_draw_posy_vertices() const {
   checkGLError("maybe_draw_posy_vertices");
 }
 
-
 void
 AnimeshGLWidget::paintGL() {
   clear();
@@ -284,6 +303,7 @@ AnimeshGLWidget::paintGL() {
   maybe_draw_tangents();
   maybe_draw_main_tangents();
   maybe_draw_posy_vertices();
+  maybe_draw_consensus_graph();
 }
 
 /**

@@ -98,7 +98,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QCheckBox" name="cbConsensusGraph">
+         <widget class="QCheckBox" name="cbShowConsensusGraph">
           <property name="text">
            <string>Consensus Graph</string>
           </property>

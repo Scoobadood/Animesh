@@ -36,11 +36,15 @@ AnimeshWindow::AnimeshWindow(QWidget *parent) //
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_main_tangents);
   connect(ui->cbShowPoSy, &QCheckBox::toggled,
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_posy_vertices);
+  connect(ui->cbShowConsensusGraph, &QCheckBox::toggled,
+          ui->animeshGLWidget, &AnimeshGLWidget::toggle_consensus_graph);
 
   connect(ui->btnSolve, &QPushButton::clicked, this, &AnimeshWindow::start_solving);
   connect(ui->slScale, &QSlider::valueChanged, this, &AnimeshWindow::change_scale);
   connect(ui->btnReset, &QPushButton::clicked, this, &AnimeshWindow::reset_graph);
   connect(ui->btnExportMesh, &QPushButton::clicked, this, &AnimeshWindow::export_mesh);
+
+  set_ui_for_initialised();
 
   auto &random = ((AnimeshApp *) QCoreApplication::instance())->random_engine();
   m_field_optimiser = std::make_unique<FieldOptimiser>(random, 10, 1.0f);
@@ -108,6 +112,7 @@ AnimeshWindow::fileOpenAction() {
   auto app = (AnimeshApp *) (QCoreApplication::instance());
   auto graphPtr = load_surfel_graph_from_file(fileName.toStdString(), app->random_engine());
   set_graph(graphPtr);
+  set_ui_for_graph_loaded();
 }
 
 void AnimeshWindow::start_solving() {
@@ -117,12 +122,12 @@ void AnimeshWindow::start_solving() {
   if (m_field_optimiser == nullptr) {
     return;
   }
-  ui->btnSolve->setDisabled(true);
+  set_ui_for_solving();
   QtConcurrent::run([&](){
     while(!m_field_optimiser->optimise_once()) {
       ui->animeshGLWidget->update();
     }
-    ui->btnSolve->setEnabled(true);
+    set_ui_for_solved();
   });
 }
 
@@ -130,10 +135,71 @@ void
 AnimeshWindow::export_mesh() {
   if( m_multi_res_graph == nullptr) {
     return;
-  }if( m_consensus_graph != nullptr ) {
-    return;
   }
   m_consensus_graph = build_consensus_graph((*m_multi_res_graph)[0], 0, 1.0f);
+  set_ui_for_export();
 }
+
 void AnimeshWindow::reset_graph() {
+  set_ui_for_graph_loaded();
+}
+
+void AnimeshWindow::set_ui_for_initialised() {
+  ui->cbShowNormals->setEnabled(false);
+  ui->cbShowTangents->setEnabled(false);
+  ui->cbShowMainTangents->setEnabled(false);
+  ui->cbShowPoSy->setEnabled(false);
+  ui->cbShowConsensusGraph->setEnabled(false);
+
+  ui->btnReset->setEnabled(false);
+  ui->btnSolve->setEnabled(false);
+  ui->btnExportMesh->setEnabled(false);
+}
+
+void AnimeshWindow::set_ui_for_graph_loaded() {
+  ui->cbShowNormals->setEnabled(true);
+  ui->cbShowTangents->setEnabled(true);
+  ui->cbShowMainTangents->setEnabled(true);
+  ui->cbShowPoSy->setEnabled(true);
+  ui->cbShowConsensusGraph->setEnabled(false);
+
+  ui->btnReset->setEnabled(false);
+  ui->btnSolve->setEnabled(true);
+  ui->btnExportMesh->setEnabled(false);
+}
+
+void AnimeshWindow::set_ui_for_solving() {
+  ui->cbShowNormals->setEnabled(false);
+  ui->cbShowTangents->setEnabled(false);
+  ui->cbShowMainTangents->setEnabled(false);
+  ui->cbShowPoSy->setEnabled(false);
+  ui->cbShowConsensusGraph->setEnabled(false);
+
+  ui->btnReset->setEnabled(false);
+  ui->btnSolve->setEnabled(false);
+  ui->btnExportMesh->setEnabled(false);
+}
+
+void AnimeshWindow::set_ui_for_solved() {
+  ui->cbShowNormals->setEnabled(true);
+  ui->cbShowTangents->setEnabled(true);
+  ui->cbShowMainTangents->setEnabled(true);
+  ui->cbShowPoSy->setEnabled(true);
+  ui->cbShowConsensusGraph->setEnabled(false);
+
+  ui->btnReset->setEnabled(true);
+  ui->btnSolve->setEnabled(false);
+  ui->btnExportMesh->setEnabled(true);
+}
+
+void AnimeshWindow::set_ui_for_export() {
+  ui->cbShowNormals->setEnabled(true);
+  ui->cbShowTangents->setEnabled(true);
+  ui->cbShowMainTangents->setEnabled(true);
+  ui->cbShowPoSy->setEnabled(true);
+  ui->cbShowConsensusGraph->setEnabled(true);
+
+  ui->btnReset->setEnabled(true);
+  ui->btnSolve->setEnabled(false);
+  ui->btnExportMesh->setEnabled(false);
 }

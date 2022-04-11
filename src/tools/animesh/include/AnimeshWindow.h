@@ -33,6 +33,12 @@ class AnimeshWindow : public QMainWindow {
   void change_scale(int value);
   void export_mesh();
   void reset_graph();
+  void set_ui_for_initialised();
+  void set_ui_for_graph_loaded();
+  void set_ui_for_solving();
+  void set_ui_for_solved();
+  void set_ui_for_export();
+
 
   Ui::AnimeshWindow *ui;
 

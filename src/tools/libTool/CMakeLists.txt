@@ -2,6 +2,7 @@ add_library(
 		Tool
 		SHARED
 		src/load_pointcloud.cpp include/Tools/tools.h
+		src/FieldOptimiser.cpp include/Tools/FieldOptimiser.h
 )
 
 target_include_directories(
@@ -18,6 +19,9 @@ target_link_libraries(
 		Tool
 		CommonUtilities
 		FileUtils
+		Surfel
+		PoSy
+		RoSy
 )
 
 target_compile_features(

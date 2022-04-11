@@ -46,6 +46,12 @@ Trackball::Trackball(
     , m_static_moving(true) //
 {}
 
+void Trackball::reset() {
+  m_cam_up = {0.0f, 1.0f, 0.0f};
+  m_cam_location = {10, 0, 0};
+  m_cam_view_matrix_is_dirty = true;
+}
+
 void
 Trackball::get_model_view_matrix(float mat[16]) {
   maybe_update_matrix();

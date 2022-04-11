@@ -10,6 +10,7 @@ target_link_libraries(
 		Surfel
 		Cpd::Library-C++
 		spdlog::spdlog
+		Tool
 )
 
 target_compile_features(
@@ -39,7 +40,7 @@ target_compile_features(
 add_executable(
 		opt_cli
 		opt_cli.cpp
-		FieldOptimiser.h FieldOptimiser.cpp
+		../libTool/include/Tools/FieldOptimiser.h ../libTool/src/FieldOptimiser.cpp
 )
 
 target_link_libraries(

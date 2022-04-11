@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>AnimeshWindow</class>
+ <widget class="QMainWindow" name="AnimeshWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>AnimeshWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="AnimeshGLWidget" name="animeshGLWidget">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>20</y>
+      <width>521</width>
+      <height>391</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QToolBox" name="toolBox">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>40</y>
+      <width>151</width>
+      <height>371</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <widget class="QWidget" name="RoSy">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>151</width>
+       <height>303</height>
+      </rect>
+     </property>
+     <attribute name="label">
+      <string>Page 1</string>
+     </attribute>
+     <widget class="QCheckBox" name="cbShowNormals">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>85</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Normals</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="cbShowTangents">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>85</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Tangents</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="cbShowMainTangents">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>70</y>
+        <width>85</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Main Tangents</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="slScale">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>100</y>
+        <width>121</width>
+        <height>25</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>9</number>
+      </property>
+      <property name="pageStep">
+       <number>0</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="tickPosition">
+       <enum>QSlider::TicksBelow</enum>
+      </property>
+      <property name="tickInterval">
+       <number>1</number>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="Solving">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>151</width>
+       <height>303</height>
+      </rect>
+     </property>
+     <attribute name="label">
+      <string>Page 2</string>
+     </attribute>
+     <widget class="QPushButton" name="btnSolve">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>30</y>
+        <width>100</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Solve</string>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>37</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionOpen"/>
+   </widget>
+   <addaction name="menuFile"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open...</string>
+   </property>
+  </action>
+  <action name="actionNormals">
+   <property name="text">
+    <string>Normals</string>
+   </property>
+  </action>
+  <action name="actionTangents">
+   <property name="text">
+    <string>Tangents</string>
+   </property>
+  </action>
+  <action name="actionMain_Tangents">
+   <property name="text">
+    <string>Main Tangents</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>AnimeshGLWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>AnimeshGLWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -26,6 +26,8 @@ public:
       int m_screen_height = 100 //
   );
 
+  void reset();
+
   // --- Event Handling ---
   bool eventFilter(QObject *o, QEvent *e) override;
   void mouse_up();

@@ -102,6 +102,7 @@ target_link_libraries(
 		FileUtils
 )
 
+add_subdirectory(animesh)
 add_subdirectory(compute_pcl_correspondence)
 add_subdirectory(compute_corr_cilantro)
 add_subdirectory(compute_corr_pcl)

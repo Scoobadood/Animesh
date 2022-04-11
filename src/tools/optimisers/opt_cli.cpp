@@ -7,7 +7,7 @@
 #include <Properties/Properties.h>
 #include <Surfel/MultiResolutionSurfelGraph.h>
 #include <Surfel/Surfel_IO.h>
-#include "FieldOptimiser.h"
+#include "../libTool/include/Tools/FieldOptimiser.h"
 
 std::shared_ptr<MultiResolutionSurfelGraph>
 load_graph(std::default_random_engine &rng, const std::string &file_name, int num_levels) {

@@ -305,6 +305,20 @@ fix_value(float &value) {
  * Up-propagate data from one level to the next.
  */
 void
+MultiResolutionSurfelGraph::propagate_completely(
+    unsigned int from_level //
+    , bool rosy //
+    , bool posy //
+) {
+  for (unsigned int l = from_level; l != 0; --l) {
+    propagate(l, rosy, posy);
+  }
+}
+
+/**
+ * Up-propagate data from one level to the next.
+ */
+void
 MultiResolutionSurfelGraph::propagate(
     unsigned int from_level //
     , bool rosy //
@@ -312,6 +326,7 @@ MultiResolutionSurfelGraph::propagate(
 ) {
   assert(from_level <= m_up_mapping.size());
   assert(from_level > 0);
+
   // For each node in the from_level graph,
   for (const auto &node: m_levels[from_level]->nodes()) {
     auto &up_mapping = m_up_mapping[from_level - 1];

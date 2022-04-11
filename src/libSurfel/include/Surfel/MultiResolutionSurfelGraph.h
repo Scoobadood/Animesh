@@ -20,10 +20,19 @@ class MultiResolutionSurfelGraph {
    */
   void generate_levels(unsigned int num_levels);
 
+  void propagate_completely(
+      unsigned int from_level //
+      , bool rosy //
+      , bool posy //
+  );
+
   /**
    * Up-propagate data from one level to the next.
    */
-  void propagate(unsigned int from_level, bool rosy = true, bool posy = true);
+  void propagate(
+      unsigned int from_level,
+      bool rosy = true,
+      bool posy = true);
 
   inline size_t num_levels() const {
     return m_levels.size();

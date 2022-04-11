@@ -316,7 +316,7 @@ FieldOptimiser::end_level() {
     return;
   }
 
-  m_graph->propagate(m_current_level, true, true);
+  m_graph->propagate_completely(m_current_level, true, true);
   --m_current_level;
   m_state = STARTING_NEW_LEVEL;
 }

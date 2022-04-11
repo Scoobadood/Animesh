@@ -4,6 +4,8 @@
 #include <QAbstractButton>
 #include <QPushButton>
 #include <QSlider>
+#include <QtConcurrent/QtConcurrent>
+#include <utility>
 #include <ArcBall/TrackBall.h>
 
 #include <Surfel/Surfel_IO.h>
@@ -111,6 +113,11 @@ void AnimeshWindow::start_solving() {
   if (m_field_optimiser == nullptr) {
     return;
   }
-  m_field_optimiser->optimise_once();
-  update();
+  ui->btnSolve->setDisabled(true);
+  QtConcurrent::run([&](){
+    while(!m_field_optimiser->optimise_once()) {
+      ui->animeshGLWidget->update();
+    }
+    ui->btnSolve->setEnabled(true);
+  });
 }

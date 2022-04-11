@@ -5,7 +5,6 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QtConcurrent/QtConcurrent>
-#include <utility>
 #include <ArcBall/TrackBall.h>
 
 #include <Surfel/Surfel_IO.h>
@@ -62,7 +61,7 @@ AnimeshWindow::reset_scale_factor() {
     return;
   }
   int count = 0;
-  float total = total;
+  float total = 0.0;
   for (const auto &node: m_graph->nodes()) {
     Eigen::Vector3f t, n, v;
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);

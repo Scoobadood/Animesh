@@ -7,12 +7,17 @@ add_library(
 
 target_include_directories(
 		Tool
-		PUBLIC
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
-		${EIGEN3_INCLUDE_DIR}
 		PRIVATE
-		include/Tools
+		${CMAKE_CURRENT_SOURCE_DIR}/include/Tools
+		${EIGEN3_INCLUDE_DIR}
+#		INTERFACE
+#		include
+)
+
+target_include_directories(
+		Tool
+		PUBLIC
+		include
 )
 
 target_link_libraries(

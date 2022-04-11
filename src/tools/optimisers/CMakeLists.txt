@@ -40,7 +40,6 @@ target_compile_features(
 add_executable(
 		opt_cli
 		opt_cli.cpp
-		../libTool/include/Tools/FieldOptimiser.h ../libTool/src/FieldOptimiser.cpp
 )
 
 target_link_libraries(
@@ -49,6 +48,7 @@ target_link_libraries(
 		Geom
 		RoSy
 		PoSy
+		Tool
 		spdlog::spdlog
 )
 

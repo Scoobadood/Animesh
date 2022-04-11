@@ -37,7 +37,8 @@ AnimeshWindow::AnimeshWindow(QWidget *parent) //
   connect(ui->btnSolve, &QPushButton::clicked, this, &AnimeshWindow::start_solving);
   connect(ui->slScale, &QSlider::valueChanged, this, &AnimeshWindow::change_scale);
 
-  m_field_optimiser = std::make_unique<FieldOptimiser>(10, 1.0f);
+  auto &random = ((AnimeshApp *) QCoreApplication::instance())->random_engine();
+  m_field_optimiser = std::make_unique<FieldOptimiser>(random, 10, 1.0f);
 }
 
 AnimeshWindow::~AnimeshWindow() {

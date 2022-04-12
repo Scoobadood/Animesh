@@ -14,11 +14,11 @@ typedef enum {
   EDGE_TYPE_BLU
 } EdgeType;
 
-struct QuadGraphVertex {
+struct ConsensusGraphVertex {
   std::string surfel_id;
   Eigen::Vector3f location;
 
-  friend std::ostream &operator<<(std::ostream &o, const QuadGraphVertex & v) {
+  friend std::ostream &operator<<(std::ostream &o, const ConsensusGraphVertex & v) {
     o << v.surfel_id << "("
       << v.location[0] << ", "
       << v.location[1] << ", "
@@ -26,14 +26,14 @@ struct QuadGraphVertex {
     return o;
   }
 
-  bool operator<( const QuadGraphVertex& other) const {
+  bool operator<( const ConsensusGraphVertex& other) const {
     return surfel_id < other.surfel_id;
   }
 
 };
-using QuadGraph = animesh::Graph<QuadGraphVertex, EdgeType>;
-using QuadGraphPtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>>;
-using QuadGraphNodePtr = std::shared_ptr<animesh::Graph<QuadGraphVertex, EdgeType>::GraphNode>;
+using QuadGraph = animesh::Graph<ConsensusGraphVertex, EdgeType>;
+using QuadGraphPtr = std::shared_ptr<animesh::Graph<ConsensusGraphVertex, EdgeType>>;
+using ConsensusGraphNodePtr = std::shared_ptr<animesh::Graph<ConsensusGraphVertex, EdgeType>::GraphNode>;
 
 QuadGraphPtr
 build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho);

@@ -10,12 +10,12 @@
 #include <queue>
 #include <Eigen/Geometry>
 
-QuadGraphNodePtr
+ConsensusGraphNodePtr
 maybe_insert_node_in_graph( //
     const std::shared_ptr<Surfel> &surfel_ptr, //
     unsigned int frame_index, //
     const QuadGraphPtr &out_graph,
-    std::map<std::string, QuadGraphNodePtr> &out_nodes_by_surfel_id //
+    std::map<std::string, ConsensusGraphNodePtr> &out_nodes_by_surfel_id //
 ) {
   using namespace Eigen;
   using namespace std;
@@ -47,11 +47,13 @@ maybe_insert_node_in_graph( //
   return node;
 }
 
-std::map<std::pair<std::string, std::string>, SurfelGraph::Edge>
-get_unique_edges_in_frame(const SurfelGraphPtr graph, int frame_index) {
+std::vector<SurfelGraph::Edge>
+get_edges_in_frame(const SurfelGraphPtr graph, int frame_index) {
   using namespace std;
 
-  map<pair<string, string>, SurfelGraph::Edge> included_edges;
+  set<pair<string, string>> checked_edges;
+  vector<SurfelGraph::Edge> edges_in_frame;
+
   for (const auto &edge: graph->edges()) {
     const auto from_surfel = edge.from()->data();
     const auto to_surfel = edge.to()->data();
@@ -62,14 +64,15 @@ get_unique_edges_in_frame(const SurfelGraphPtr graph, int frame_index) {
     // If we already considered this edge (usually its inverse), skip it
     const string from_id = from_surfel->id();
     const string to_id = to_surfel->id();
-    if ((included_edges.count({from_id, to_id}) == 1) || (included_edges.count({to_id, from_id}) == 1)) {
+    if ((checked_edges.count({from_id, to_id}) == 1) || (checked_edges.count({to_id, from_id}) == 1)) {
       continue;
     }
 
     // Otherwise add this to the list of edges we'll include in the graph
-    included_edges.emplace(make_pair(from_id, to_id), edge);
+    checked_edges.emplace(make_pair(from_id, to_id));
+    edges_in_frame.emplace_back(edge);
   }
-  return included_edges;
+  return edges_in_frame;
 }
 
 EdgeType compute_edge_type(const Eigen::Vector2i &t_ij,
@@ -92,50 +95,71 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
   using namespace Eigen;
   using namespace std;
 
-  // Make the output graph
-  QuadGraphPtr out_graph = make_shared<animesh::Graph<QuadGraphVertex, EdgeType>>(true);
+  spdlog::info("Building consensus graph from graph with {} nodes and {} edges",
+               graph->num_nodes(),
+               graph->num_edges());
 
-  // Collect all edges, weeding out duplicates.
-  auto included_edges = get_unique_edges_in_frame(graph, frame_index);
-  spdlog::debug("New graph has potential {} edges from old graph {}", included_edges.size(), graph->edges().size());
+  // Make the output graph
+  QuadGraphPtr out_graph = make_shared<animesh::Graph<ConsensusGraphVertex, EdgeType>>(false);
+
+  // For each edge with end nodes in this frame
+  auto edges = get_edges_in_frame(graph, frame_index);
+  spdlog::info("  Found {} uniue edges", edges.size());
 
   // For each edge in this list, insert the end vertices if not present, then add the edge.
-  map<string, QuadGraphNodePtr> output_graph_nodes_by_surfel_id;
-  for (const auto &edge_entry: included_edges) {
-    const auto edge = edge_entry.second;
-    const auto from_surfel_ptr = edge.from()->data();
-    const auto from_node = maybe_insert_node_in_graph(from_surfel_ptr, frame_index,
-                                                      out_graph, output_graph_nodes_by_surfel_id);
+  map<string, ConsensusGraphNodePtr> output_graph_nodes_by_surfel_id;
+  for (const auto &edge: edges) {
+    // Create a node for the from_node if there's not one already.
+    const auto &from_surfel = edge.from()->data();
+    const auto &to_surfel = edge.to()->data();
+    ConsensusGraphNodePtr from_node, to_node;
+    Eigen::Vector3f v, t, n;
 
-    const auto to_surfel_ptr = edge.to()->data();
-    const auto to_node = maybe_insert_node_in_graph(to_surfel_ptr, frame_index,
-                                                    out_graph, output_graph_nodes_by_surfel_id);
-
-    auto t = get_t(graph, edge.from(), edge.to());
-    auto t_ij = t.first;
-    auto t_ji = t.second;
-    EdgeType edgeType = compute_edge_type(t_ij, t_ji);
-    if (edgeType == EDGE_TYPE_NON) {
-      spdlog::debug("Skipped edge from {} {}",
-                   from_surfel_ptr->id(),
-                   to_surfel_ptr->id()
-      );
-      continue;
+    // Possible add from node
+    if (output_graph_nodes_by_surfel_id.count(from_surfel->id()) == 0) {
+      ConsensusGraphVertex cgv;
+      cgv.surfel_id = from_surfel->id();
+      const auto & offset = from_surfel->reference_lattice_offset();
+      from_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
+      cgv.location = v + (offset[0] * t * rho) + (offset[1] * n.cross(t) * rho);
+      from_node = out_graph->add_node(cgv);
+      output_graph_nodes_by_surfel_id.emplace(from_surfel->id(), from_node);
+    } else {
+      from_node = output_graph_nodes_by_surfel_id[from_surfel->id()];
     }
 
-    spdlog::debug("Adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
+    // Possible add to node
+    if (output_graph_nodes_by_surfel_id.count(to_surfel->id()) == 0) {
+      ConsensusGraphVertex cgv;
+      cgv.surfel_id = to_surfel->id();
+      const auto & offset = to_surfel->reference_lattice_offset();
+      to_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
+      cgv.location = v + (offset[0] * t * rho) + (offset[1] * n.cross(t) * rho);
+      to_node = out_graph->add_node(cgv);
+      output_graph_nodes_by_surfel_id.emplace(to_surfel->id(), to_node);
+    } else {
+      to_node = output_graph_nodes_by_surfel_id[to_surfel->id()];
+    }
+
+    auto ts = get_t(graph, edge.from(), edge.to());
+    auto t_ij = ts.first;
+    auto t_ji = ts.second;
+    auto edgeType = compute_edge_type(t_ij, t_ji);
+    if (edgeType == EDGE_TYPE_NON) {
+      spdlog::info("  skipped edge from {} {}", from_surfel->id(), to_surfel->id());
+      continue;
+    }
+    spdlog::info("  adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
                   edgeType == EDGE_TYPE_BLU ? "blue" : "red",
-                  from_surfel_ptr->id(),
-                  to_surfel_ptr->id(),
+                  from_surfel->id(),
+                  to_surfel->id(),
                   t_ij[0], t_ij[1],
                   t_ji[0], t_ji[1],
                   (from_node->data().location - to_node->data().location).norm());
 
     out_graph->add_edge(from_node, to_node, edgeType);
   }
-  spdlog::debug("New graph has actual {} edges", out_graph->edges().size());
-
-  // No edge added
+  spdlog::info("New graph has {} edges", out_graph->edges().size());
   return out_graph;
 }
 
@@ -159,18 +183,18 @@ collapse(const QuadGraphPtr &graph,
   };
 
   auto node_merge_function = [&]( //
-      const QuadGraphVertex &n1,
+      const ConsensusGraphVertex &n1,
       float weight1,
-      const QuadGraphVertex &n2,
+      const ConsensusGraphVertex &n2,
       float weight2) {
 
-    return QuadGraphVertex{(n1.surfel_id + n2.surfel_id),
-                           ((n1.location * weight1) + (n2.location * weight2)) / (weight1 + weight2)};
+    return ConsensusGraphVertex{(n1.surfel_id + n2.surfel_id),
+                                ((n1.location * weight1) + (n2.location * weight2)) / (weight1 + weight2)};
   };
 
   auto edge_sort_pred = [](
-      const pair<QuadGraphNodePtr, QuadGraphNodePtr> &e1,
-      const pair<QuadGraphNodePtr, QuadGraphNodePtr> &e2
+      const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &e1,
+      const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &e2
   ) -> bool {
     auto l1 = (e2.second->data().location - e2.first->data().location).squaredNorm();
     auto l2 = (e1.second->data().location - e1.first->data().location).squaredNorm();
@@ -179,10 +203,10 @@ collapse(const QuadGraphPtr &graph,
   };
 
   // Extract blue edges
-  priority_queue<pair<QuadGraphNodePtr, QuadGraphNodePtr>,
-                 vector<pair<QuadGraphNodePtr, QuadGraphNodePtr>>,
-                 auto (*)(const pair<QuadGraphNodePtr, QuadGraphNodePtr> &,
-                          const pair<QuadGraphNodePtr, QuadGraphNodePtr> &)->bool> blue_edges{edge_sort_pred};
+  priority_queue<pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr>,
+                 vector<pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr>>,
+                 auto (*)(const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &,
+                          const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &)->bool> blue_edges{edge_sort_pred};
 
   for (const auto &edge: graph->edges()) {
     // Collapse the blue edges

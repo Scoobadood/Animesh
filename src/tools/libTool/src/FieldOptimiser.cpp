@@ -18,6 +18,7 @@ FieldOptimiser::FieldOptimiser( //
     : m_random_engine{rng} //
     , m_graph{nullptr} //
     , m_state{UNINITIALISED} //
+    , m_mode{ROSY} //
     , m_num_iterations{0} //
     , m_target_iterations{target_iterations} //
     , m_current_level{0} //
@@ -45,7 +46,7 @@ FieldOptimiser::get_weights(const std::shared_ptr<Surfel> &surfel_a,
 void
 FieldOptimiser::optimise_begin() {
   spdlog::get("optimiser")->trace("optimise_begin()");
-  assert(m_state == INITIALISED);
+  assert(m_state == INITIALISED || m_state == DONE);
 
   m_current_level = m_graph->num_levels() - 1;
   m_state = STARTING_NEW_LEVEL;
@@ -301,7 +302,7 @@ FieldOptimiser::optimise_rosy() {
   ++m_num_iterations;
   if (m_num_iterations == m_target_iterations) {
     m_num_iterations = 0;
-    m_state = OPTIMISING_POSY;
+    m_state = ENDING_LEVEL;
   }
 }
 
@@ -312,11 +313,15 @@ FieldOptimiser::end_level() {
   auto trace_log = spdlog::get("optimiser");
   trace_log->trace("end_level()");
   if (m_current_level == 0) {
-    m_state = LABEL_EDGES;
+    if (m_mode == ROSY) {
+      m_state = DONE;
+    } else {
+      m_state = LABEL_EDGES;
+    }
     return;
   }
 
-  m_graph->propagate_completely(m_current_level, true, true);
+  m_graph->propagate_completely(m_current_level, m_mode == ROSY, m_mode == POSY);
   --m_current_level;
   m_state = STARTING_NEW_LEVEL;
 }
@@ -327,7 +332,11 @@ FieldOptimiser::start_level() {
   trace_log->trace("starting_level()");
   spdlog::info("Starting level {}", m_current_level);
   m_num_iterations = 0;
-  m_state = OPTIMISING_ROSY;
+  if (m_mode == ROSY) {
+    m_state = OPTIMISING_ROSY;
+  } else {
+    m_state = OPTIMISING_POSY;
+  }
 }
 
 /*
@@ -387,14 +396,13 @@ FieldOptimiser::compute_k_for_edge( //
 
 void
 FieldOptimiser::compute_t_for_edge( //
-    const std::shared_ptr<Surfel> &from_surfel, //
-    const std::shared_ptr<Surfel> &to_surfel, //
-    unsigned int frame_idx, //
+    const std::shared_ptr<Surfel> &from_surfel,
+    const std::shared_ptr<Surfel> &to_surfel,
+    unsigned int frame_idx,
     unsigned short k_ij, //
     unsigned short k_ji, //
     Eigen::Vector2i &t_ij, //
-    Eigen::Vector2i &t_ji) const//
-{
+    Eigen::Vector2i &t_ji) const {
   using namespace Eigen;
 
   // Then compute CLP for both vertices in this frame
@@ -416,8 +424,6 @@ FieldOptimiser::compute_t_for_edge( //
 
   auto t = compute_tij_tji(v1, n1, t1, n1.cross(t1), clp1,
                            v2, n2, t2, n2.cross(t2), clp2, m_rho);
-
-
   // Then compute t_ij and t_ji
   t_ij = t.first;
   t_ji = t.second;
@@ -444,7 +450,6 @@ FieldOptimiser::label_edge(SurfelGraph::Edge &edge) {
   unsigned short k_ij, k_ji;
   compute_k_for_edge(from_surfel, to_surfel, frame_idx, k_ij, k_ji);
   set_k((*m_graph)[0], edge.from(), k_ij, edge.to(), k_ji);
-
 
   Eigen::Vector2i t_ij, t_ji;
   compute_t_for_edge(from_surfel, to_surfel, frame_idx, k_ij, k_ji, t_ij, t_ji);
@@ -475,6 +480,8 @@ FieldOptimiser::optimise_once() {
       break;
 
     case DONE:optimisation_complete = true;
+      m_state = INITIALISED;
+      break;
   }
   return optimisation_complete;
 }

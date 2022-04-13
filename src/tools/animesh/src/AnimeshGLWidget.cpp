@@ -28,10 +28,14 @@ AnimeshGLWidget::AnimeshGLWidget(
     , m_tangent_colour(127, 127, 127, 255) //
     , m_main_tangent_colour(255, 255, 255, 255) //
     , m_posy_vertex_colour(0, 255, 127, 255) //
-    , m_posy_surface_colour(0, 150, 80, 255) //
+    , m_surface_colour(100, 150, 200, 255) //
+    , m_show_vertices{false} //
+    , m_show_surface{false} //
     , m_show_normals{false} //
     , m_show_tangents{false} //
     , m_show_main_tangents{false} //
+    , m_show_posy_vertices{false} //
+    , m_show_consensus_graph{false} //
     , m_scale{1.0f} //
 {
   // Forces capture of keyboard input
@@ -97,14 +101,13 @@ AnimeshGLWidget::maybe_update_projection_matrix() {
 
 void
 AnimeshGLWidget::set_drawing_colour(const QColor &colour) {
-  glColor4f(static_cast<float>(colour.redF()),
+  glColor3f(static_cast<float>(colour.redF()),
             static_cast<float>(colour.greenF()),
-            static_cast<float>(colour.blueF()),
-            1.0f);
+            static_cast<float>(colour.blueF()));
 }
 
 AnimeshWindow *
-AnimeshGLWidget::get_main_window() const {
+AnimeshGLWidget::get_main_window() {
   AnimeshWindow *window = nullptr;
   const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
   for (QWidget *widget: topLevelWidgets) {
@@ -335,12 +338,34 @@ AnimeshGLWidget::maybe_draw_surface() {
     return;
   }
 
+  glEnable(GL_LIGHTING);
+  glShadeModel(GL_SMOOTH);
+  const float global_ambient[] = {0.5f, 0.5f, 0.5f, 1.0f};
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+  glEnable(GL_LIGHT0);
+  const float specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
+  glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+  const float position[] = {
+      m_arc_ball->get_camera_origin()[0],
+      m_arc_ball->get_camera_origin()[1],
+      m_arc_ball->get_camera_origin()[2]};
+  glLightfv(GL_LIGHT0, GL_POSITION, position);
+  glEnable(GL_COLOR_MATERIAL);
+  glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+  set_drawing_colour(m_surface_colour);
+  const float spec_reflection[] = { 0.8f, 0.8f, 0.8f, 1.0f };
+  glMaterialfv(GL_FRONT, GL_SPECULAR, spec_reflection);
+  glMateriali(GL_FRONT, GL_SHININESS, 100);
   glBegin(GL_TRIANGLES);
-  set_drawing_colour(m_posy_surface_colour);
-  for (int f = 0; f < surface.size(); f += 3) {
+  for (int f = 0; f < surface.size(); f += 6) {
+    glNormal3f(surface[f + 3], surface[f + 4], surface[f + 5]);
     glVertex3f(surface[f], surface[f + 1], surface[f + 2]);
   }
   glEnd();
+
+  glDisable(GL_COLOR_MATERIAL);
+  glDisable(GL_LIGHT0);
+  glDisable(GL_LIGHTING);
 
   checkGLError("maybe_draw_surface");
 

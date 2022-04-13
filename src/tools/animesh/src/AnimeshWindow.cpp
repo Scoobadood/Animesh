@@ -43,7 +43,8 @@ AnimeshWindow::AnimeshWindow(QWidget *parent) //
   connect(ui->cbShowSurface, &QCheckBox::toggled,
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_surface);
 
-  connect(ui->btnSolve, &QPushButton::clicked, this, &AnimeshWindow::start_solving);
+  connect(ui->btnSolveRoSy, &QPushButton::clicked, this, &AnimeshWindow::start_solving_rosy);
+  connect(ui->btnSolvePoSy, &QPushButton::clicked, this, &AnimeshWindow::start_solving_posy);
   connect(ui->slScale, &QSlider::valueChanged, this, &AnimeshWindow::change_scale);
   connect(ui->btnReset, &QPushButton::clicked, this, &AnimeshWindow::reset_graph);
   connect(ui->btnExportMesh, &QPushButton::clicked, this, &AnimeshWindow::export_mesh);
@@ -121,7 +122,14 @@ AnimeshWindow::fileOpenAction() {
   set_ui_for_graph_loaded();
 }
 
-void AnimeshWindow::start_solving() {
+void AnimeshWindow::start_solving_rosy() {
+  start_solving(FieldOptimiser::ROSY);
+}
+void AnimeshWindow::start_solving_posy() {
+  start_solving(FieldOptimiser::POSY);
+}
+
+void AnimeshWindow::start_solving(FieldOptimiser::SolveMode mode) {
   if (m_graph == nullptr) {
     return;
   }
@@ -129,11 +137,16 @@ void AnimeshWindow::start_solving() {
     return;
   }
   set_ui_for_solving();
+  m_field_optimiser->set_mode(mode);
   QtConcurrent::run([&]() {
     while (!m_field_optimiser->optimise_once()) {
       ui->animeshGLWidget->update();
     }
-    set_ui_for_solved();
+    if( m_field_optimiser->mode() == FieldOptimiser::ROSY ) {
+      set_ui_for_rosy_solved();
+    } else {
+      set_ui_for_posy_solved();
+    }
   });
 }
 
@@ -195,31 +208,44 @@ AnimeshWindow::generate_surface() {
             m_surface_faces.emplace_back(v.x());
             m_surface_faces.emplace_back(v.y());
             m_surface_faces.emplace_back(v.z());
+            m_surface_faces.emplace_back(n.x());
+            m_surface_faces.emplace_back(n.y());
+            m_surface_faces.emplace_back(n.z());
             const auto fn = ((vn1 - v).cross(vn2 - vn1));
             if (fn.dot(n) > 0) {
               m_surface_faces.emplace_back(vn1.x());
               m_surface_faces.emplace_back(vn1.y());
               m_surface_faces.emplace_back(vn1.z());
+              m_surface_faces.emplace_back(nn1.x());
+              m_surface_faces.emplace_back(nn1.y());
+              m_surface_faces.emplace_back(nn1.z());
               m_surface_faces.emplace_back(vn2.x());
               m_surface_faces.emplace_back(vn2.y());
               m_surface_faces.emplace_back(vn2.z());
+              m_surface_faces.emplace_back(nn2.x());
+              m_surface_faces.emplace_back(nn2.y());
+              m_surface_faces.emplace_back(nn2.z());
             } else {
               m_surface_faces.emplace_back(vn2.x());
               m_surface_faces.emplace_back(vn2.y());
               m_surface_faces.emplace_back(vn2.z());
+              m_surface_faces.emplace_back(nn2.x());
+              m_surface_faces.emplace_back(nn2.y());
+              m_surface_faces.emplace_back(nn2.z());
               m_surface_faces.emplace_back(vn1.x());
               m_surface_faces.emplace_back(vn1.y());
               m_surface_faces.emplace_back(vn1.z());
+              m_surface_faces.emplace_back(nn1.x());
+              m_surface_faces.emplace_back(nn1.y());
+              m_surface_faces.emplace_back(nn1.z());
             }
+            // Emplace the normal
 
             known_triangles.emplace(test);
           }
         }
       }
     }
-  }
-  for (const auto &tri: known_triangles) {
-    spdlog::info("Triangle {} {} {}", tri[0], tri[1], tri[2]);
   }
 }
 
@@ -233,7 +259,8 @@ void AnimeshWindow::set_ui_for_initialised() {
   ui->cbShowConsensusGraph->setEnabled(false);
 
   ui->btnReset->setEnabled(false);
-  ui->btnSolve->setEnabled(false);
+  ui->btnSolveRoSy->setEnabled(false);
+  ui->btnSolvePoSy->setEnabled(false);
   ui->btnExportMesh->setEnabled(false);
 }
 
@@ -249,7 +276,8 @@ void AnimeshWindow::set_ui_for_graph_loaded() {
   ui->cbShowConsensusGraph->setEnabled(false);
 
   ui->btnReset->setEnabled(false);
-  ui->btnSolve->setEnabled(true);
+  ui->btnSolveRoSy->setEnabled(true);
+  ui->btnSolvePoSy->setEnabled(false);
   ui->btnExportMesh->setEnabled(false);
 
 }
@@ -264,11 +292,12 @@ void AnimeshWindow::set_ui_for_solving() {
   ui->cbShowConsensusGraph->setEnabled(false);
 
   ui->btnReset->setEnabled(false);
-  ui->btnSolve->setEnabled(false);
+  ui->btnSolveRoSy->setEnabled(false);
+  ui->btnSolvePoSy->setEnabled(false);
   ui->btnExportMesh->setEnabled(false);
 }
 
-void AnimeshWindow::set_ui_for_solved() {
+void AnimeshWindow::set_ui_for_rosy_solved() {
   ui->cbShowVertices->setEnabled(true);
   ui->cbShowSurface->setEnabled(true);
 
@@ -279,7 +308,24 @@ void AnimeshWindow::set_ui_for_solved() {
   ui->cbShowConsensusGraph->setEnabled(false);
 
   ui->btnReset->setEnabled(true);
-  ui->btnSolve->setEnabled(false);
+  ui->btnSolveRoSy->setEnabled(false);
+  ui->btnSolvePoSy->setEnabled(true);
+  ui->btnExportMesh->setEnabled(true);
+}
+
+void AnimeshWindow::set_ui_for_posy_solved() {
+  ui->cbShowVertices->setEnabled(true);
+  ui->cbShowSurface->setEnabled(true);
+
+  ui->cbShowNormals->setEnabled(true);
+  ui->cbShowTangents->setEnabled(true);
+  ui->cbShowMainTangents->setEnabled(true);
+  ui->cbShowPoSy->setEnabled(true);
+  ui->cbShowConsensusGraph->setEnabled(false);
+
+  ui->btnReset->setEnabled(true);
+  ui->btnSolveRoSy->setEnabled(true);
+  ui->btnSolvePoSy->setEnabled(false);
   ui->btnExportMesh->setEnabled(true);
 }
 
@@ -294,6 +340,7 @@ void AnimeshWindow::set_ui_for_export() {
   ui->cbShowConsensusGraph->setEnabled(true);
 
   ui->btnReset->setEnabled(true);
-  ui->btnSolve->setEnabled(false);
+  ui->btnSolveRoSy->setEnabled(false);
+  ui->btnSolvePoSy->setEnabled(false);
   ui->btnExportMesh->setEnabled(false);
 }

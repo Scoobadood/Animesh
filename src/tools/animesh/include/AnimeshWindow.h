@@ -32,7 +32,9 @@ class AnimeshWindow : public QMainWindow {
     return m_surface_faces;
   }
 
-  void start_solving();
+  void start_solving_rosy();
+  void start_solving_posy();
+  void start_solving(FieldOptimiser::SolveMode mode);
 
  private:
   void fileOpenAction();
@@ -43,7 +45,8 @@ class AnimeshWindow : public QMainWindow {
   void set_ui_for_initialised();
   void set_ui_for_graph_loaded();
   void set_ui_for_solving();
-  void set_ui_for_solved();
+  void set_ui_for_rosy_solved();
+  void set_ui_for_posy_solved();
   void set_ui_for_export();
   void generate_surface();
 

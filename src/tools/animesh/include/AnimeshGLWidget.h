@@ -76,7 +76,7 @@ class AnimeshGLWidget : public QOpenGLWidget {
 
   static void set_drawing_colour(const QColor &colour) ;
   static void checkGLError(const std::string &context) ;
-  AnimeshWindow * get_main_window() const;
+  static AnimeshWindow * get_main_window() ;
 
   float m_fov;
   float m_z_near;
@@ -92,7 +92,7 @@ class AnimeshGLWidget : public QOpenGLWidget {
   QColor m_tangent_colour;
   QColor m_main_tangent_colour;
   QColor m_posy_vertex_colour;
-  QColor m_posy_surface_colour;
+  QColor m_surface_colour;
 
   bool m_show_vertices;
   bool m_show_surface;

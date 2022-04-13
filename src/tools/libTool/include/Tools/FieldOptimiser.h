@@ -14,9 +14,27 @@ class FieldOptimiser {
       int target_iterations,
       float rho);
 
+  enum SolveMode {
+    ROSY,
+    POSY
+  };
+
   bool optimise_once();
 
   void set_graph(std::shared_ptr<MultiResolutionSurfelGraph> graph);
+
+  void set_mode( FieldOptimiser::SolveMode & mode ) {
+    if( m_state != INITIALISED && m_state != UNINITIALISED) {
+      return;
+    }
+    if( m_mode == mode) {
+      return;
+    }
+    m_mode = mode;
+  }
+  inline SolveMode mode() const {
+    return m_mode;
+  }
 
  private:
   /* After initialisation, set up ready for first pass */
@@ -38,7 +56,9 @@ class FieldOptimiser {
 
   std::vector<size_t> randomise_indices(unsigned long number);
 
-  /* Propagate mred results down wards */
+  void next_state();
+
+    /* Propagate mred results down wards */
   void end_level();
 
   /* Apply K and T values to edges */
@@ -76,6 +96,9 @@ class FieldOptimiser {
   std::default_random_engine m_random_engine;
   std::shared_ptr<MultiResolutionSurfelGraph> m_graph;
   OptimisationState m_state;
+
+  SolveMode m_mode;
+
   /* Number of iterations performed in current smoothing phase */
   int m_num_iterations;
 

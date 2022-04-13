@@ -162,7 +162,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QPushButton" name="btnSolve">
+           <widget class="QPushButton" name="btnSolveRoSy">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -170,7 +170,14 @@
              </sizepolicy>
             </property>
             <property name="text">
-             <string>Solve</string>
+             <string>Solve RoSy</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnSolvePoSy">
+            <property name="text">
+             <string>Solve PoSy</string>
             </property>
            </widget>
           </item>
@@ -224,7 +231,7 @@
      <x>0</x>
      <y>0</y>
      <width>841</width>
-     <height>22</height>
+     <height>37</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

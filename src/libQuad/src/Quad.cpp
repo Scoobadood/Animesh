@@ -6,6 +6,7 @@
 
 #include <PoSy/PoSy.h>
 #include <Surfel/SurfelGraph.h>
+#include <Geom/Geom.h>
 #include <map>
 #include <queue>
 #include <Eigen/Geometry>
@@ -115,12 +116,16 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
     ConsensusGraphNodePtr from_node, to_node;
     Eigen::Vector3f v, t, n;
 
+    const auto ks = get_k(graph, edge.from(), edge.to());
+
     // Possible add from node
     if (output_graph_nodes_by_surfel_id.count(from_surfel->id()) == 0) {
       ConsensusGraphVertex cgv;
       cgv.surfel_id = from_surfel->id();
       const auto & offset = from_surfel->reference_lattice_offset();
       from_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
+      t = vector_by_rotating_around_n(t, n, ks.first);
+
       cgv.location = v + (offset[0] * t * rho) + (offset[1] * n.cross(t) * rho);
       from_node = out_graph->add_node(cgv);
       output_graph_nodes_by_surfel_id.emplace(from_surfel->id(), from_node);
@@ -134,6 +139,7 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
       cgv.surfel_id = to_surfel->id();
       const auto & offset = to_surfel->reference_lattice_offset();
       to_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
+      t = vector_by_rotating_around_n(t, n, ks.second);
       cgv.location = v + (offset[0] * t * rho) + (offset[1] * n.cross(t) * rho);
       to_node = out_graph->add_node(cgv);
       output_graph_nodes_by_surfel_id.emplace(to_surfel->id(), to_node);

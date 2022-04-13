@@ -390,6 +390,8 @@ FieldOptimiser::compute_t_for_edge( //
     const std::shared_ptr<Surfel> &from_surfel, //
     const std::shared_ptr<Surfel> &to_surfel, //
     unsigned int frame_idx, //
+    unsigned short k_ij, //
+    unsigned short k_ji, //
     Eigen::Vector2i &t_ij, //
     Eigen::Vector2i &t_ji) const//
 {
@@ -399,6 +401,7 @@ FieldOptimiser::compute_t_for_edge( //
   const auto &clp_offset1 = from_surfel->reference_lattice_offset();
   Vector3f v1, t1, n1;
   from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
+  t1 = vector_by_rotating_around_n(t1, n1, k_ij);
   auto clp1 = v1 +
       m_rho * clp_offset1[0] * t1 +
       m_rho * clp_offset1[1] * (n1.cross(t1));
@@ -406,6 +409,7 @@ FieldOptimiser::compute_t_for_edge( //
   const auto &clp_offset2 = to_surfel->reference_lattice_offset();
   Vector3f v2, t2, n2;
   to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
+  t2 = vector_by_rotating_around_n(t2, n2, k_ji);
   auto clp2 = v2 +
       m_rho * clp_offset2[0] * t2 +
       m_rho * clp_offset2[1] * (n2.cross(t2));
@@ -441,8 +445,9 @@ FieldOptimiser::label_edge(SurfelGraph::Edge &edge) {
   compute_k_for_edge(from_surfel, to_surfel, frame_idx, k_ij, k_ji);
   set_k((*m_graph)[0], edge.from(), k_ij, edge.to(), k_ji);
 
+
   Eigen::Vector2i t_ij, t_ji;
-  compute_t_for_edge(from_surfel, to_surfel, frame_idx, t_ij, t_ji);
+  compute_t_for_edge(from_surfel, to_surfel, frame_idx, k_ij, k_ji, t_ij, t_ji);
   set_t((*m_graph)[0], edge.from(), t_ij, edge.to(), t_ji);
 }
 

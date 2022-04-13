@@ -57,6 +57,8 @@ class FieldOptimiser {
       const std::shared_ptr<Surfel> &from_surfel,
       const std::shared_ptr<Surfel> &to_surfel,
       unsigned int frame_idx,
+      unsigned short k_ij, //
+      unsigned short k_ji, //
       Eigen::Vector2i &t_ij, //
       Eigen::Vector2i &t_ji) const;
 

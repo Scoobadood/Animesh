@@ -16,6 +16,7 @@ target_include_directories(Quad
 
 target_link_libraries(
 		Quad
+		Geom
 		PoSy
 		RoSy
 		Surfel

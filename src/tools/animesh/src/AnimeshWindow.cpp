@@ -38,6 +38,10 @@ AnimeshWindow::AnimeshWindow(QWidget *parent) //
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_posy_vertices);
   connect(ui->cbShowConsensusGraph, &QCheckBox::toggled,
           ui->animeshGLWidget, &AnimeshGLWidget::toggle_consensus_graph);
+  connect(ui->cbShowVertices, &QCheckBox::toggled,
+          ui->animeshGLWidget, &AnimeshGLWidget::toggle_vertices);
+  connect(ui->cbShowSurface, &QCheckBox::toggled,
+          ui->animeshGLWidget, &AnimeshGLWidget::toggle_surface);
 
   connect(ui->btnSolve, &QPushButton::clicked, this, &AnimeshWindow::start_solving);
   connect(ui->slScale, &QSlider::valueChanged, this, &AnimeshWindow::change_scale);
@@ -94,6 +98,8 @@ AnimeshWindow::set_graph(SurfelGraphPtr &graph) {
   m_multi_res_graph = std::make_shared<MultiResolutionSurfelGraph>(graph, rng);
   m_multi_res_graph->generate_levels(6);
   m_field_optimiser->set_graph(m_multi_res_graph);
+  m_consensus_graph = nullptr;
+  m_surface_faces.clear();
   m_arc_ball->reset();
   reset_scale_factor();
   change_scale(ui->slScale->value());
@@ -123,8 +129,8 @@ void AnimeshWindow::start_solving() {
     return;
   }
   set_ui_for_solving();
-  QtConcurrent::run([&](){
-    while(!m_field_optimiser->optimise_once()) {
+  QtConcurrent::run([&]() {
+    while (!m_field_optimiser->optimise_once()) {
       ui->animeshGLWidget->update();
     }
     set_ui_for_solved();
@@ -133,7 +139,7 @@ void AnimeshWindow::start_solving() {
 
 void
 AnimeshWindow::export_mesh() {
-  if( m_multi_res_graph == nullptr) {
+  if (m_multi_res_graph == nullptr) {
     return;
   }
   m_consensus_graph = build_consensus_graph((*m_multi_res_graph)[0], 0, 1.0f);
@@ -144,7 +150,82 @@ void AnimeshWindow::reset_graph() {
   set_ui_for_graph_loaded();
 }
 
+void
+AnimeshWindow::generate_surface() {
+  using namespace std;
+  if (m_graph == nullptr) {
+    return;
+  }
+
+  /*
+   * For each node, find neighbours.
+   * Generate a sequence of triangles making sure that the orientation is correct and they are closed
+   * Add a canonical tuple of IDs for the triangle to a set to track them (and prevent generating again)
+   * add the triangle to the surface.
+   */
+  Eigen::Vector3f v, t, n;
+  set<vector<string>> known_triangles;
+
+  for (const auto &node: m_graph->nodes()) {
+    node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
+    std::vector<Eigen::Vector3f> neighbour_locations;
+    const auto neighbours = get_node_neighbours_in_frame(m_graph, node, 0);
+    // Not enough to triangulate
+    if (neighbours.size() < 2) {
+      continue;
+    }
+    for (int i = 0; i < neighbours.size() - 1; ++i) {
+      const auto &n1 = neighbours[i];
+
+      for (int j = i + 1; j < neighbours.size(); ++j) {
+        const auto &n2 = neighbours[j];
+
+        if (m_graph->has_edge(n1, n2)) {
+          const auto &s0 = node->data()->id();
+          const auto &s1 = n1->data()->id();
+          const auto &s2 = n2->data()->id();
+          vector<string> test{s0, s1, s2};
+          sort(test.begin(), test.end());
+          if (known_triangles.count(test) == 0) {
+            Eigen::Vector3f vn1, tn1, nn1, vn2, tn2, nn2;
+            n1->data()->get_vertex_tangent_normal_for_frame(0, vn1, tn1, nn1);
+            n2->data()->get_vertex_tangent_normal_for_frame(0, vn2, tn2, nn2);
+
+            // Order the vertices correctly. We want normal of the face to align with normal of the node
+            m_surface_faces.emplace_back(v.x());
+            m_surface_faces.emplace_back(v.y());
+            m_surface_faces.emplace_back(v.z());
+            const auto fn = ((vn1 - v).cross(vn2 - vn1));
+            if (fn.dot(n) > 0) {
+              m_surface_faces.emplace_back(vn1.x());
+              m_surface_faces.emplace_back(vn1.y());
+              m_surface_faces.emplace_back(vn1.z());
+              m_surface_faces.emplace_back(vn2.x());
+              m_surface_faces.emplace_back(vn2.y());
+              m_surface_faces.emplace_back(vn2.z());
+            } else {
+              m_surface_faces.emplace_back(vn2.x());
+              m_surface_faces.emplace_back(vn2.y());
+              m_surface_faces.emplace_back(vn2.z());
+              m_surface_faces.emplace_back(vn1.x());
+              m_surface_faces.emplace_back(vn1.y());
+              m_surface_faces.emplace_back(vn1.z());
+            }
+
+            known_triangles.emplace(test);
+          }
+        }
+      }
+    }
+  }
+  for (const auto &tri: known_triangles) {
+    spdlog::info("Triangle {} {} {}", tri[0], tri[1], tri[2]);
+  }
+}
+
 void AnimeshWindow::set_ui_for_initialised() {
+  ui->cbShowVertices->setEnabled(false);
+  ui->cbShowSurface->setEnabled(false);
   ui->cbShowNormals->setEnabled(false);
   ui->cbShowTangents->setEnabled(false);
   ui->cbShowMainTangents->setEnabled(false);
@@ -157,6 +238,10 @@ void AnimeshWindow::set_ui_for_initialised() {
 }
 
 void AnimeshWindow::set_ui_for_graph_loaded() {
+  ui->cbShowVertices->setEnabled(true);
+  ui->cbShowVertices->toggle();
+  ui->cbShowSurface->setEnabled(true);
+
   ui->cbShowNormals->setEnabled(true);
   ui->cbShowTangents->setEnabled(true);
   ui->cbShowMainTangents->setEnabled(true);
@@ -166,9 +251,12 @@ void AnimeshWindow::set_ui_for_graph_loaded() {
   ui->btnReset->setEnabled(false);
   ui->btnSolve->setEnabled(true);
   ui->btnExportMesh->setEnabled(false);
+
 }
 
 void AnimeshWindow::set_ui_for_solving() {
+  ui->cbShowVertices->setEnabled(false);
+  ui->cbShowSurface->setEnabled(false);
   ui->cbShowNormals->setEnabled(false);
   ui->cbShowTangents->setEnabled(false);
   ui->cbShowMainTangents->setEnabled(false);
@@ -181,6 +269,9 @@ void AnimeshWindow::set_ui_for_solving() {
 }
 
 void AnimeshWindow::set_ui_for_solved() {
+  ui->cbShowVertices->setEnabled(true);
+  ui->cbShowSurface->setEnabled(true);
+
   ui->cbShowNormals->setEnabled(true);
   ui->cbShowTangents->setEnabled(true);
   ui->cbShowMainTangents->setEnabled(true);
@@ -193,6 +284,9 @@ void AnimeshWindow::set_ui_for_solved() {
 }
 
 void AnimeshWindow::set_ui_for_export() {
+  ui->cbShowVertices->setEnabled(true);
+  ui->cbShowSurface->setEnabled(true);
+
   ui->cbShowNormals->setEnabled(true);
   ui->cbShowTangents->setEnabled(true);
   ui->cbShowMainTangents->setEnabled(true);

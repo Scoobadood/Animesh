@@ -25,6 +25,13 @@ class AnimeshWindow : public QMainWindow {
     return m_consensus_graph;
   }
 
+  inline const std::vector<float> &surface() {
+    if (m_surface_faces.empty()) {
+      generate_surface();
+    }
+    return m_surface_faces;
+  }
+
   void start_solving();
 
  private:
@@ -38,7 +45,7 @@ class AnimeshWindow : public QMainWindow {
   void set_ui_for_solving();
   void set_ui_for_solved();
   void set_ui_for_export();
-
+  void generate_surface();
 
   Ui::AnimeshWindow *ui;
 
@@ -47,5 +54,6 @@ class AnimeshWindow : public QMainWindow {
   std::unique_ptr<FieldOptimiser> m_field_optimiser;
   std::shared_ptr<MultiResolutionSurfelGraph> m_multi_res_graph;
   QuadGraphPtr m_consensus_graph;
+  std::vector<float> m_surface_faces;
   float m_scale_factor;
 };

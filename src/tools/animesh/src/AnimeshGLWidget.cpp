@@ -7,8 +7,10 @@
 #include <AnimeshWindow.h>
 #include <ArcBall/AbstractArcBall.h>
 #include <Quad/Quad.h>
+#include <Eigen/Geometry>
 
 const float DEG2RAD = (3.14159265358979323846264f / 180.0f);
+const float FIELD_OFFSET_FACTOR = 0.1f;
 
 AnimeshGLWidget::AnimeshGLWidget(
     QWidget *parent, //
@@ -26,6 +28,7 @@ AnimeshGLWidget::AnimeshGLWidget(
     , m_tangent_colour(127, 127, 127, 255) //
     , m_main_tangent_colour(255, 255, 255, 255) //
     , m_posy_vertex_colour(0, 255, 127, 255) //
+    , m_posy_surface_colour(0, 150, 80, 255) //
     , m_show_normals{false} //
     , m_show_tangents{false} //
     , m_show_main_tangents{false} //
@@ -40,6 +43,8 @@ void
 AnimeshGLWidget::initializeGL() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_POINT_SMOOTH);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
   glLineWidth(1.0f);
   checkGLError("initialiseGL");
 }
@@ -99,8 +104,20 @@ AnimeshGLWidget::set_drawing_colour(const QColor &colour) {
 }
 
 void
-AnimeshGLWidget::draw_vertex_positions() {
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+AnimeshGLWidget::maybe_draw_vertex_positions() const {
+  if (!m_show_vertices) {
+    return;
+  }
+
+  AnimeshWindow *window = nullptr;
+  const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
+  for (QWidget *widget: topLevelWidgets) {
+    if ("AnimeshWindow" == widget->objectName()) {
+      window = qobject_cast<AnimeshWindow *>(widget);
+      break;
+    }
+  }
+
   if (window == nullptr) {
     return;
   }
@@ -120,11 +137,12 @@ AnimeshGLWidget::draw_vertex_positions() {
   glBegin(GL_POINTS);
   for (const auto &node: graph->nodes()) {
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
+    v = v + (n * m_scale * FIELD_OFFSET_FACTOR);
     glVertex3f(v.x(), v.y(), v.z());
   }
   glEnd();
   glPointSize(old_point_size);
-  checkGLError("draw_vertex_positions");
+  checkGLError("maybe_draw_vertex_positions");
 }
 
 void
@@ -149,6 +167,7 @@ AnimeshGLWidget::maybe_draw_normals() const {
   for (const auto &node: graph->nodes()) {
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
     n = n * m_scale;
+    v = v + (n * m_scale * FIELD_OFFSET_FACTOR);
     glVertex3f(v.x(), v.y(), v.z());
     glVertex3f(v.x() + n.x(), v.y() + n.y(), v.z() + n.z());
   }
@@ -177,6 +196,7 @@ AnimeshGLWidget::maybe_draw_tangents() const {
   set_drawing_colour(m_tangent_colour);
   for (const auto &node: graph->nodes()) {
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
+    v = v + (n * m_scale * FIELD_OFFSET_FACTOR);
     t = t * m_scale;
     glVertex3f(v.x(), v.y(), v.z());
     glVertex3f(v.x() + t.x(), v.y() + t.y(), v.z() + t.z());
@@ -193,7 +213,7 @@ AnimeshGLWidget::maybe_draw_tangents() const {
 }
 
 void AnimeshGLWidget::maybe_draw_consensus_graph() const {
-  if( !m_show_consensus_graph ) {
+  if (!m_show_consensus_graph) {
     return;
   }
 
@@ -246,6 +266,7 @@ AnimeshGLWidget::maybe_draw_main_tangents() const {
   set_drawing_colour(m_main_tangent_colour);
   for (const auto &node: graph->nodes()) {
     node->data()->get_vertex_tangent_normal_for_frame(0, v, t, n);
+    v = v + (n * m_scale * FIELD_OFFSET_FACTOR);
     t = t * m_scale;
     glVertex3f(v.x(), v.y(), v.z());
     glVertex3f(v.x() + t.x(), v.y() + t.y(), v.z() + t.z());
@@ -290,6 +311,92 @@ AnimeshGLWidget::maybe_draw_posy_vertices() const {
 }
 
 void
+AnimeshGLWidget::maybe_draw_surface() {
+  if (!m_show_surface) {
+    return;
+  }
+
+  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  if (window == nullptr) {
+    return;
+  }
+
+  auto graph = window->graph();
+  if (graph == nullptr) {
+    return;
+  }
+
+  auto surface = window->surface();
+  if (surface.empty()) {
+    return;
+  }
+
+  glBegin(GL_TRIANGLES);
+  set_drawing_colour(m_posy_surface_colour);
+  for (int f = 0; f < surface.size(); f += 3) {
+    glVertex3f(surface[f], surface[f + 1], surface[f + 2]);
+  }
+  glEnd();
+
+  checkGLError("maybe_draw_surface");
+
+}
+
+/*
+ * Taken from https://stackoverflow.com/questions/47949485/sorting-a-list-of-3d-points-in-clockwise-order
+ * let n be the normal vector
+r := vertices[0] - c // use an arbitrary vector as the twelve o’clock reference
+p := cross(r, n)     // get the half-plane partition vector
+
+// returns true if v1 is clockwise from v2 around c
+function less(v1, v2):
+    u1 := v1 - c
+    u2 := v2 - c
+    h1 := dot(u1, p)
+    h2 := dot(u2, p)
+
+    if      h2 ≤ 0 and h1 > 0:
+        return false
+
+    else if h1 ≤ 0 and h2 > 0:
+        return true
+
+    else if h1 = 0 and h2 = 0:
+        return dot(u1, r) > 0 and dot(u2, r) < 0
+
+    else:
+        return dot(cross(u1, u2), c) > 0
+
+    //           h2 > 0     h2 = 0     h2 < 0
+    //          ————————   ————————   ————————
+    //  h1 > 0 |   *        v1 > v2    v1 > v2
+    //  h1 = 0 | v1 < v2       †          *
+    //  h1 < 0 | v1 < v2       *          *
+
+    //  *   means we can use the triple product because the (cylindrical)
+    //      angle between u1 and u2 is less than π
+    //  †   means u1 and u2 are either 0 or π around from the zero reference
+    //      in which case u1 < u2 only if dot(u1, r) > 0 and dot(u2, r) < 0
+ */
+void
+order_3d_points(const Eigen::Vector3f &normal, const Eigen::Vector3f &centre, std::vector<Eigen::Vector3f> points) {
+  const auto r = points[0] - centre; // use an arbitrary vector as the twelve o’clock reference
+  const auto p = r.cross(normal);     // get the half-plane partition vector
+  std::sort(points.begin(), points.end(), [&](const Eigen::Vector3f &v1, const Eigen::Vector3f &v2) {
+    const auto u1 = v1 - centre;
+    const auto u2 = v2 - centre;
+    const auto h1 = u1.dot(p);
+    const auto h2 = u2.dot(p);
+    if (h2 <= 0 && h1 > 0) return false;
+    if (h1 <= 0 && h2 > 0) return true;
+    if (h1 == 0 && h2 == 0) {
+      return u1.dot(r) > 0 && u2.dot(r) < 0;
+    }
+    return u1.cross(u2).dot(centre) > 0;
+  });
+}
+
+void
 AnimeshGLWidget::paintGL() {
   clear();
 
@@ -298,7 +405,8 @@ AnimeshGLWidget::paintGL() {
   update_model_matrix();
 
   // Actual painting follows here
-  draw_vertex_positions();
+  maybe_draw_surface();
+  maybe_draw_vertex_positions();
   maybe_draw_normals();
   maybe_draw_tangents();
   maybe_draw_main_tangents();

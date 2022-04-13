@@ -103,21 +103,25 @@ AnimeshGLWidget::set_drawing_colour(const QColor &colour) {
             1.0f);
 }
 
+AnimeshWindow *
+AnimeshGLWidget::get_main_window() const {
+  AnimeshWindow *window = nullptr;
+  const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
+  for (QWidget *widget: topLevelWidgets) {
+    if ("AnimeshWindow" == widget->objectName()) {
+      return qobject_cast<AnimeshWindow *>(widget);
+    }
+  }
+  return nullptr;
+}
+
 void
 AnimeshGLWidget::maybe_draw_vertex_positions() const {
   if (!m_show_vertices) {
     return;
   }
 
-  AnimeshWindow *window = nullptr;
-  const QWidgetList topLevelWidgets = QApplication::topLevelWidgets();
-  for (QWidget *widget: topLevelWidgets) {
-    if ("AnimeshWindow" == widget->objectName()) {
-      window = qobject_cast<AnimeshWindow *>(widget);
-      break;
-    }
-  }
-
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }
@@ -151,7 +155,7 @@ AnimeshGLWidget::maybe_draw_normals() const {
     return;
   }
 
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }
@@ -181,7 +185,7 @@ AnimeshGLWidget::maybe_draw_tangents() const {
     return;
   }
 
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }
@@ -217,7 +221,7 @@ void AnimeshGLWidget::maybe_draw_consensus_graph() const {
     return;
   }
 
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }
@@ -251,7 +255,7 @@ AnimeshGLWidget::maybe_draw_main_tangents() const {
     return;
   }
 
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }
@@ -281,7 +285,7 @@ AnimeshGLWidget::maybe_draw_posy_vertices() const {
     return;
   }
 
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }
@@ -316,7 +320,7 @@ AnimeshGLWidget::maybe_draw_surface() {
     return;
   }
 
-  auto window = qobject_cast<AnimeshWindow *>(QApplication::topLevelWidgets()[0]);
+  const auto window = get_main_window();
   if (window == nullptr) {
     return;
   }

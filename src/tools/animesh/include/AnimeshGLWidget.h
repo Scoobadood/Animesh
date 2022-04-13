@@ -3,6 +3,7 @@
 #include <QOpenGLWidget>
 #include <ArcBall/AbstractArcBall.h>
 #include <Surfel/SurfelGraph.h>
+#include "AnimeshWindow.h"
 
 class AnimeshGLWidget : public QOpenGLWidget {
  Q_OBJECT
@@ -75,6 +76,7 @@ class AnimeshGLWidget : public QOpenGLWidget {
 
   static void set_drawing_colour(const QColor &colour) ;
   static void checkGLError(const std::string &context) ;
+  AnimeshWindow * get_main_window() const;
 
   float m_fov;
   float m_z_near;

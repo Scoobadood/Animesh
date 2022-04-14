@@ -32,12 +32,12 @@ public:
   }
 
   void collapse() {
-      ::collapse(m_graph, m_rho);
+    ::collapse(m_graph);
   }
 
 private:
   float m_rho;
-  QuadGraphPtr m_graph;
+  ConsensusGraphPtr m_graph;
   SurfelGraphPtr m_surfel_graph;
   std::vector<std::pair<std::string,std::string>> m_red_edges;
   std::vector<std::pair<std::string,std::string>> m_blue_edges;

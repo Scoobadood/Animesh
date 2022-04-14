@@ -91,9 +91,7 @@ FieldOptimiser::optimise_posy() {
                                                        curr_surfel_tangent,
                                                        curr_surfel_normal);
       const auto curr_surfel_orth_tangent = curr_surfel_normal.cross(curr_surfel_tangent);
-      Vector3f working_clp = curr_surfel_pos +
-          curr_lattice_offset[0] * curr_surfel_tangent +
-          curr_lattice_offset[1] * curr_surfel_orth_tangent;
+      Vector3f working_clp = curr_surfel->reference_lattice_vertex_in_frame(frame_idx, m_rho);
       trace_log->info("    CLP starts at ({:3f} {:3f} {:3f})", working_clp[0], working_clp[1], working_clp[2]);
 
       // Get the neighbours of this surfel in this frame
@@ -112,9 +110,7 @@ FieldOptimiser::optimise_posy() {
                                                         nbr_surfel_tangent,
                                                         nbr_surfel_normal);
         const auto nbr_surfel_orth_tangent = nbr_surfel_normal.cross(nbr_surfel_tangent);
-        Vector3f nbr_surfel_clp = nbr_surfel_pos +
-            nbr_lattice_offset[0] * nbr_surfel_tangent +
-            nbr_lattice_offset[1] * nbr_surfel_orth_tangent;
+        Vector3f nbr_surfel_clp = nbr_surfel->reference_lattice_vertex_in_frame(frame_idx, m_rho);
         trace_log->info("      Neighbour {} at ({:.3f} {:.3f} {:.3f}) thinks CLP is at ({:.3f} {:.3f} {:.3f})",
                         nbr_surfel->id(),
                         nbr_surfel_pos[0],
@@ -405,23 +401,19 @@ FieldOptimiser::compute_t_for_edge( //
     Eigen::Vector2i &t_ji) const {
   using namespace Eigen;
 
-  // Then compute CLP for both vertices in this frame
-  const auto &clp_offset1 = from_surfel->reference_lattice_offset();
+  // Compute CLP for both vertices in this frame
+  const auto clp1 = from_surfel->reference_lattice_vertex_in_frame(frame_idx, m_rho);
+  const auto clp2 = to_surfel->reference_lattice_vertex_in_frame(frame_idx, m_rho);
+
+  // Now gen best RoSy pair
   Vector3f v1, t1, n1;
   from_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v1, t1, n1);
-  t1 = vector_by_rotating_around_n(t1, n1, k_ij);
-  auto clp1 = v1 +
-      m_rho * clp_offset1[0] * t1 +
-      m_rho * clp_offset1[1] * (n1.cross(t1));
-
-  const auto &clp_offset2 = to_surfel->reference_lattice_offset();
   Vector3f v2, t2, n2;
   to_surfel->get_vertex_tangent_normal_for_frame(frame_idx, v2, t2, n2);
-  t2 = vector_by_rotating_around_n(t2, n2, k_ji);
-  auto clp2 = v2 +
-      m_rho * clp_offset2[0] * t2 +
-      m_rho * clp_offset2[1] * (n2.cross(t2));
 
+  // Get best RoSy pair using k values
+  t1 = vector_by_rotating_around_n(t1, n1, k_ij);
+  t2 = vector_by_rotating_around_n(t2, n2, k_ji);
   auto t = compute_tij_tji(v1, n1, t1, n1.cross(t1), clp1,
                            v2, n2, t2, n2.cross(t2), clp2, m_rho);
   // Then compute t_ij and t_ji

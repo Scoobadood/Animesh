@@ -21,7 +21,7 @@ class AnimeshWindow : public QMainWindow {
   inline const SurfelGraphPtr &graph() const {
     return m_graph;
   }
-  inline const QuadGraphPtr &consensus_graph() const {
+  inline const ConsensusGraphPtr &consensus_graph() const {
     return m_consensus_graph;
   }
 
@@ -56,7 +56,7 @@ class AnimeshWindow : public QMainWindow {
   std::shared_ptr<Trackball> m_arc_ball;
   std::unique_ptr<FieldOptimiser> m_field_optimiser;
   std::shared_ptr<MultiResolutionSurfelGraph> m_multi_res_graph;
-  QuadGraphPtr m_consensus_graph;
+  ConsensusGraphPtr m_consensus_graph;
   std::vector<float> m_surface_faces;
   float m_scale_factor;
 };

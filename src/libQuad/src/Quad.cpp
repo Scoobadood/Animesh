@@ -6,50 +6,11 @@
 
 #include <PoSy/PoSy.h>
 #include <Surfel/SurfelGraph.h>
-#include <Geom/Geom.h>
 #include <map>
 #include <queue>
-#include <Eigen/Geometry>
-
-ConsensusGraphNodePtr
-maybe_insert_node_in_graph( //
-    const std::shared_ptr<Surfel> &surfel_ptr, //
-    unsigned int frame_index, //
-    const QuadGraphPtr &out_graph,
-    std::map<std::string, ConsensusGraphNodePtr> &out_nodes_by_surfel_id //
-) {
-  using namespace Eigen;
-  using namespace std;
-
-  const string &surfel_id = surfel_ptr->id();
-
-  // If it's in our output map, return early with the map's value
-  const auto found_iter = out_nodes_by_surfel_id.find(surfel_id);
-  if (found_iter != out_nodes_by_surfel_id.end()) {
-    spdlog::debug("   Ignored insert for node {}", surfel_id);
-    return found_iter->second;
-  }
-
-  auto offset = surfel_ptr->reference_lattice_offset();
-  Vector3f vertex, tangent, normal;
-  surfel_ptr->get_vertex_tangent_normal_for_frame(frame_index, vertex, tangent, normal);
-  Vector3f orth_tangent = normal.cross(tangent);
-  auto lattice_position = vertex +
-      (tangent * offset[0]) +
-      (orth_tangent * offset[1]);
-  spdlog::debug("Inserted node {} at ({}, {}, {})",
-                surfel_id,
-                lattice_position[0],
-                lattice_position[1],
-                lattice_position[2]);
-
-  auto node = out_graph->add_node({surfel_id, lattice_position});
-  out_nodes_by_surfel_id.insert({surfel_id, node});
-  return node;
-}
 
 std::vector<SurfelGraph::Edge>
-get_edges_in_frame(const SurfelGraphPtr graph, int frame_index) {
+get_edges_in_frame(const SurfelGraphPtr& graph, int frame_index) {
   using namespace std;
 
   set<pair<string, string>> checked_edges;
@@ -91,7 +52,28 @@ EdgeType compute_edge_type(const Eigen::Vector2i &t_ij,
   }
 }
 
-QuadGraphPtr
+ConsensusGraphNodePtr
+add_or_retrieve_node(const ConsensusGraphPtr &out_graph,
+                     std::map<std::string,
+                              ConsensusGraphNodePtr> &output_graph_nodes_by_surfel_id,
+                     unsigned int frame_idx,
+                     const std::shared_ptr<Surfel> &surfel,
+                     float rho) {
+  ConsensusGraphNodePtr node;
+  std::string surfel_id = surfel->id();
+  if (output_graph_nodes_by_surfel_id.count(surfel_id) == 0) {
+    ConsensusGraphVertex cgv;
+    cgv.surfel_id = surfel_id;
+    cgv.location = surfel->reference_lattice_vertex_in_frame(frame_idx, rho);
+    node = out_graph->add_node(cgv);
+    output_graph_nodes_by_surfel_id.emplace(surfel_id, node);
+  } else {
+    node = output_graph_nodes_by_surfel_id[surfel_id];
+  }
+  return node;
+}
+
+ConsensusGraphPtr
 build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
   using namespace Eigen;
   using namespace std;
@@ -101,11 +83,11 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
                graph->num_edges());
 
   // Make the output graph
-  QuadGraphPtr out_graph = make_shared<animesh::Graph<ConsensusGraphVertex, EdgeType>>(false);
+  ConsensusGraphPtr out_graph = make_shared<animesh::Graph<ConsensusGraphVertex, EdgeType>>(false);
 
   // For each edge with end nodes in this frame
   auto edges = get_edges_in_frame(graph, frame_index);
-  spdlog::info("  Found {} uniue edges", edges.size());
+  spdlog::info("  Found {} unique edges", edges.size());
 
   // For each edge in this list, insert the end vertices if not present, then add the edge.
   map<string, ConsensusGraphNodePtr> output_graph_nodes_by_surfel_id;
@@ -113,40 +95,16 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
     // Create a node for the from_node if there's not one already.
     const auto &from_surfel = edge.from()->data();
     const auto &to_surfel = edge.to()->data();
-    ConsensusGraphNodePtr from_node, to_node;
-    Eigen::Vector3f v, t, n;
-
-    const auto ks = get_k(graph, edge.from(), edge.to());
-
-    // Possible add from node
-    if (output_graph_nodes_by_surfel_id.count(from_surfel->id()) == 0) {
-      ConsensusGraphVertex cgv;
-      cgv.surfel_id = from_surfel->id();
-      const auto & offset = from_surfel->reference_lattice_offset();
-      from_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
-      t = vector_by_rotating_around_n(t, n, ks.first);
-
-      cgv.location = v + (offset[0] * t * rho) + (offset[1] * n.cross(t) * rho);
-      from_node = out_graph->add_node(cgv);
-      output_graph_nodes_by_surfel_id.emplace(from_surfel->id(), from_node);
-    } else {
-      from_node = output_graph_nodes_by_surfel_id[from_surfel->id()];
-    }
-
-    // Possible add to node
-    if (output_graph_nodes_by_surfel_id.count(to_surfel->id()) == 0) {
-      ConsensusGraphVertex cgv;
-      cgv.surfel_id = to_surfel->id();
-      const auto & offset = to_surfel->reference_lattice_offset();
-      to_surfel->get_vertex_tangent_normal_for_frame(frame_index, v, t, n);
-      t = vector_by_rotating_around_n(t, n, ks.second);
-      cgv.location = v + (offset[0] * t * rho) + (offset[1] * n.cross(t) * rho);
-      to_node = out_graph->add_node(cgv);
-      output_graph_nodes_by_surfel_id.emplace(to_surfel->id(), to_node);
-    } else {
-      to_node = output_graph_nodes_by_surfel_id[to_surfel->id()];
-    }
-
+    const auto from_node = add_or_retrieve_node(out_graph,
+                                                output_graph_nodes_by_surfel_id,
+                                                frame_index,
+                                                from_surfel,
+                                                rho);
+    const auto to_node = add_or_retrieve_node(out_graph,
+                                              output_graph_nodes_by_surfel_id,
+                                              frame_index,
+                                              to_surfel,
+                                              rho);
     auto ts = get_t(graph, edge.from(), edge.to());
     auto t_ij = ts.first;
     auto t_ji = ts.second;
@@ -156,12 +114,12 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
       continue;
     }
     spdlog::info("  adding {} edge {}->{} :: t_ij:({},{}) , t_ji:({},{}, length: {})",
-                  edgeType == EDGE_TYPE_BLU ? "blue" : "red",
-                  from_surfel->id(),
-                  to_surfel->id(),
-                  t_ij[0], t_ij[1],
-                  t_ji[0], t_ji[1],
-                  (from_node->data().location - to_node->data().location).norm());
+                 edgeType == EDGE_TYPE_BLU ? "blue" : "red",
+                 from_surfel->id(),
+                 to_surfel->id(),
+                 t_ij[0], t_ij[1],
+                 t_ji[0], t_ji[1],
+                 (from_node->data().location - to_node->data().location).norm());
 
     out_graph->add_edge(from_node, to_node, edgeType);
   }
@@ -170,9 +128,7 @@ build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho) {
 }
 
 void
-collapse(const QuadGraphPtr &graph,
-         float rho
-) {
+collapse(const ConsensusGraphPtr &graph) {
   using namespace std;
 
   auto edge_merge_function = [&]( //

@@ -26,6 +26,8 @@ class Surfel {
 
   inline const Eigen::Vector2f &reference_lattice_offset() const { return m_reference_lattice_offset; }
 
+  Eigen::Vector3f reference_lattice_vertex_in_frame(unsigned int frame_idx, float rho) const;
+
   inline void
   set_reference_lattice_offset(
       const Eigen::Vector2f &reference_offset) {

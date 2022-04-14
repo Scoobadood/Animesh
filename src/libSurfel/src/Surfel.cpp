@@ -16,15 +16,6 @@ std::map<std::string, std::shared_ptr<Surfel>> Surfel::m_surfel_by_id = [] {
   return std::map<std::string, std::shared_ptr<Surfel>>{};
 }();
 
-//std::shared_ptr<Surfel> Surfel::surfel_for_id(const std::string &id) {
-//    auto it = m_surfel_by_id.find(id);
-//    if (it != m_surfel_by_id.end()) {
-//        return it->second;
-//    }
-//    std::cerr << "No surfel found for ID " << id << std::endl;
-//    throw std::runtime_error("Bad surfel id");
-//}
-//
 Surfel::Surfel(std::string id,
                const std::vector<FrameData> &frames,
                Eigen::Vector3f tangent,
@@ -77,6 +68,20 @@ Surfel::get_vertex_tangent_normal_for_frame(
   tangent.normalize();
   tangent -= tangent.dot(normal) * normal;
 }
+
+Eigen::Vector3f
+Surfel::reference_lattice_vertex_in_frame(unsigned int frame_idx, float rho) const {
+  const auto &fd = frame_data_for_frame(frame_idx);
+
+  Eigen::Vector3f tangent = fd.transform * m_tangent;
+  tangent.normalize();
+  tangent -= tangent.dot(fd.normal) * fd.normal;
+  auto orth_tangent = fd.normal.cross(tangent);
+  return fd.position +
+      (m_reference_lattice_offset[0] * tangent * rho) +
+      (m_reference_lattice_offset[1] * orth_tangent * rho);
+}
+
 
 void Surfel::get_all_data_for_surfel_in_frame(
     unsigned int frame_idx,

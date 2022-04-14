@@ -32,13 +32,11 @@ struct ConsensusGraphVertex {
 
 };
 using QuadGraph = animesh::Graph<ConsensusGraphVertex, EdgeType>;
-using QuadGraphPtr = std::shared_ptr<animesh::Graph<ConsensusGraphVertex, EdgeType>>;
+using ConsensusGraphPtr = std::shared_ptr<animesh::Graph<ConsensusGraphVertex, EdgeType>>;
 using ConsensusGraphNodePtr = std::shared_ptr<animesh::Graph<ConsensusGraphVertex, EdgeType>::GraphNode>;
 
-QuadGraphPtr
+ConsensusGraphPtr
 build_consensus_graph(const SurfelGraphPtr &graph, int frame_index, float rho);
 
 void
-collapse(const QuadGraphPtr &graph,
-         float rho
-);
+collapse(const ConsensusGraphPtr &graph);

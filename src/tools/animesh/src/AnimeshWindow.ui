@@ -207,6 +207,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="btnCollapse">
+            <property name="text">
+             <string>Collapse</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

@@ -49,6 +49,7 @@ class AnimeshWindow : public QMainWindow {
   void set_ui_for_posy_solved();
   void set_ui_for_export();
   void generate_surface();
+  void collapse_consensus();
 
   Ui::AnimeshWindow *ui;
 

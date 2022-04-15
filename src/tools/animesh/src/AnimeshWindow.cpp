@@ -48,6 +48,7 @@ AnimeshWindow::AnimeshWindow(QWidget *parent) //
   connect(ui->slScale, &QSlider::valueChanged, this, &AnimeshWindow::change_scale);
   connect(ui->btnReset, &QPushButton::clicked, this, &AnimeshWindow::reset_graph);
   connect(ui->btnExportMesh, &QPushButton::clicked, this, &AnimeshWindow::export_mesh);
+  connect(ui->btnCollapse, &QPushButton::clicked, this, &AnimeshWindow::collapse_consensus);
 
   set_ui_for_initialised();
 
@@ -90,6 +91,12 @@ AnimeshWindow::reset_scale_factor() {
   // We'd like the ability to scale up to overlap a tangent with a neighbour
   // So at '10' the length of a tangent should be more than the mean inter-node distance
   m_scale_factor = mean_dist / 8.0f;
+}
+
+void
+AnimeshWindow::collapse_consensus() {
+  collapse(m_consensus_graph);
+  update();
 }
 
 void

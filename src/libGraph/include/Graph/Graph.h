@@ -639,24 +639,35 @@ class Graph {
 /**
  * Return the edge from from_node to to_node
  */
-  std::vector<EdgeData> edges_from(const GraphNodePtr &node) {
+  std::vector<Edge> edges_from(const GraphNodePtr &node, const GraphNodePtr & excluding = nullptr) {
     using namespace std;
 
     check_has_node(node);
 
-    vector<EdgeData> edges_from_node;
+    vector<Edge> edges_from_node;
     auto key_range = m_nodes_accessible_from.equal_range(node);
     for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
       const auto &neighbour = map_iter->second;
-      if (neighbour == node) {
+
+      if (neighbour == excluding) {
         continue;
       }
+
       auto iter = m_edges.find({node, neighbour});
-      if (iter != end(m_edges)) {
-        edges_from_node.emplace(iter->second);
-      } else {
-        edges_from_node.emplace(m_edges.at({neighbour, node}));
+      if( m_is_directed) {
+        edges_from_node.emplace_back(iter->first.first, iter->first.second, iter->second);
+        continue;
       }
+
+      if (iter != end(m_edges)) {
+        edges_from_node.emplace_back(iter->first.first, iter->first.second, iter->second);
+        continue;
+      } else {
+        iter = m_edges.find({neighbour, node});
+        edges_from_node.emplace_back(iter->first.second, iter->first.first, iter->second);
+        continue;
+      }
+      throw runtime_error("Should have been an edge here");
     }
     return edges_from_node;
   }
@@ -836,12 +847,9 @@ class Graph {
  private:
   bool m_is_directed;
   // Set of all nodes
-//  std::function<bool(const GraphNodePtr &, const GraphNodePtr &)>
-//      cmp = [](const GraphNodePtr &p1, const GraphNodePtr &p2) { return p1->data() < p2->data(); };
-//  std::set<GraphNodePtr, decltype(cmp)> m_nodes{cmp};
   std::vector<GraphNodePtr> m_nodes;
 
-// Which nodes are adjacent to a given node?
+  // Which nodes are adjacent to a given node?
   std::multimap<GraphNodePtr, GraphNodePtr> m_nodes_accessible_from;
   std::multimap<GraphNodePtr, GraphNodePtr> m_nodes_linking_to;
 

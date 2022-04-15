@@ -21,6 +21,7 @@ target_include_directories(
 		animesh
 		PRIVATE
 		include
+		${EIGEN3_INCLUDE_DIR}
 		../build-animesh-Desktop_Qt_5_15_2_clang_64bit-Debug/animesh_autogen/include
 )
 

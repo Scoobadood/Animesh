@@ -11,6 +11,7 @@
 #include "AnimeshWindow.h"
 #include "AnimeshApp.h"
 #include "AnimeshGLWidget.h"
+#include <Eigen/Geometry>
 
 #include "ui_AnimeshWindow.h"
 

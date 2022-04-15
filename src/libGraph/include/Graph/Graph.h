@@ -639,7 +639,7 @@ class Graph {
 /**
  * Return the edge from from_node to to_node
  */
-  std::vector<Edge> edges_from(const GraphNodePtr &node, const GraphNodePtr & excluding = nullptr) {
+  std::vector<Edge> edges_from(const GraphNodePtr &node, const GraphNodePtr &excluding = nullptr) {
     using namespace std;
 
     check_has_node(node);
@@ -653,21 +653,25 @@ class Graph {
         continue;
       }
 
+      // If there's a forward edge just add it.
       auto iter = m_edges.find({node, neighbour});
-      if( m_is_directed) {
-        edges_from_node.emplace_back(iter->first.first, iter->first.second, iter->second);
-        continue;
-      }
-
       if (iter != end(m_edges)) {
         edges_from_node.emplace_back(iter->first.first, iter->first.second, iter->second);
         continue;
-      } else {
-        iter = m_edges.find({neighbour, node});
+      }
+      if (m_is_directed) {
+        throw runtime_error("Bad state. Expected edge");
+      }
+
+      // Not directed so we search for the opposite direction
+      iter = m_edges.find({neighbour, node});
+      if (iter != end(m_edges)) {
         edges_from_node.emplace_back(iter->first.second, iter->first.first, iter->second);
         continue;
       }
-      throw runtime_error("Should have been an edge here");
+
+      // Error again.
+      throw runtime_error("Bad state. Expected edge");
     }
     return edges_from_node;
   }

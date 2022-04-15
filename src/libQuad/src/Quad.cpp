@@ -191,8 +191,8 @@ collapse(const ConsensusGraphPtr &graph) {
     auto to_node = next_edge.second;
 
     // Check that the edge is still present as it may not be
-    vector<QuadGraph::Edge> removed_edges;
-    vector<QuadGraph::Edge> created_edges;
+    vector<ConsensusGraph::Edge> removed_edges;
+    vector<ConsensusGraph::Edge> created_edges;
     if (graph->has_edge(from_node, to_node)) {
       graph->collapse_edge(from_node, to_node,
                            node_merge_function,
@@ -209,8 +209,12 @@ collapse(const ConsensusGraphPtr &graph) {
   }
 }
 
-std::vector<std::vector<unsigned int>>
-extract_faces(const ConsensusGraphPtr &graph) {
+void
+extract_faces(const ConsensusGraphPtr &graph,
+              std::vector<Eigen::Vector3f> &vertices,
+              std::vector<Eigen::Vector3f> &vertex_normals,
+              std::vector<std::vector<unsigned long>> &faces
+) {
   /*
    - Pick an edge
 - add it to a tentative result.
@@ -240,6 +244,7 @@ extract_faces(const ConsensusGraphPtr &graph) {
    */
   using namespace std;
 
+  map<string, unsigned long> vertex_name_to_index;
   set<pair<string, string>> used_edges;
 
   for (const auto &edge: graph->edges()) {
@@ -249,25 +254,63 @@ extract_faces(const ConsensusGraphPtr &graph) {
       continue;
     }
 
+
     // Get possible next edges from 'to'
     bool success = false;
-    auto potential_next_edges = graph->edges_from(edge.to(), edge.from());
-    for (const auto &pne: potential_next_edges) {
-      assert(pne.from() == edge.to());
-      if (used_edges.count({to_node_id, pne.to()->data().surfel_id}) > 0) {
-        continue;
+    vector<ConsensusGraph::Edge> result;
+    result.emplace_back(edge);
+
+    while (true) {
+      auto last_node = result.back().to();
+      auto last_but_one_node = result.back().from();
+      auto vec1 = last_node->data().location - last_but_one_node->data().location;
+
+      auto potential_next_edges = graph->edges_from(last_node, last_but_one_node);
+      bool added_edge = false;
+      for (const auto &pne: potential_next_edges) {
+        assert(pne.from() == last_node);
+        if (used_edges.count({last_node->data().surfel_id, pne.to()->data().surfel_id}) > 0) {
+          continue;
+        }
+        auto vec2 = pne.to()->data().location - pne.from()->data().location;
+        // compute triple product
+        auto triple = vec1.cross(vec2).dot(last_node->data().normal);
+        if (triple > 0) {
+          // Add to tentative result
+          result.emplace_back(pne);
+          added_edge = true;
+          break;
+        }
       }
-      auto vec1 = edge.to()->data().location - edge.from()->data().location;
-      auto vec2 = pne.to()->data().location - pne.from()->data().location;
-      // compute triple product
-      auto triple = vec1.cross(vec2).dot(edge.to()->data().normal);
-      if (triple < 0) {
-        // Add to tentative result
-        // If we've closed a cycle and its the right length, success
+
+      if (!added_edge) {
+        break;
+      }
+
+      // If we've closed a cycle and its the right length, success
+      if (result.size() == 4) {
+        // Was loop closed?
+        if (result.back().to() == edge.from()) {
+          success = true;
+        }
+        break;
       }
     }
+
     if (success) {
       // Mark all used as used.
+      // Add to faces
+      // Mark each edge as complete
+      faces.emplace_back();
+      for (const auto &edge: result) {
+        used_edges.emplace(make_pair(edge.from()->data().surfel_id, edge.to()->data().surfel_id));
+        if (vertex_name_to_index.find(edge.from()->data().surfel_id) == vertex_name_to_index.end()) {
+          vertices.emplace_back(edge.from()->data().location);
+          vertex_normals.emplace_back(edge.from()->data().normal);
+          vertex_name_to_index.emplace(edge.from()->data().surfel_id, vertices.size());
+        }
+        faces.back().emplace_back(vertex_name_to_index[edge.from()->data().surfel_id]);
+      }
     }
   }
 }

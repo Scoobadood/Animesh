@@ -6,6 +6,7 @@
 
 #include <PoSy/PoSy.h>
 #include <Surfel/SurfelGraph.h>
+#include <Geom/Geom.h>
 #include <map>
 #include <queue>
 
@@ -65,6 +66,9 @@ add_or_retrieve_node(const ConsensusGraphPtr &out_graph,
     ConsensusGraphVertex cgv;
     cgv.surfel_id = surfel_id;
     cgv.location = surfel->reference_lattice_vertex_in_frame(frame_idx, rho);
+    Eigen::Vector3f ignored1, ignored2, normal;
+    surfel->get_vertex_tangent_normal_for_frame(frame_idx, ignored1, ignored2, normal);
+    cgv.normal = normal;
     node = out_graph->add_node(cgv);
     output_graph_nodes_by_surfel_id.emplace(surfel_id, node);
   } else {
@@ -151,7 +155,9 @@ collapse(const ConsensusGraphPtr &graph) {
       float weight2) {
 
     return ConsensusGraphVertex{(n1.surfel_id + n2.surfel_id),
-                                ((n1.location * weight1) + (n2.location * weight2)) / (weight1 + weight2)};
+                                ((n1.location * weight1) + (n2.location * weight2)) / (weight1 + weight2),
+                                ((n1.normal * weight1) + (n2.normal * weight2)).normalized()
+    };
   };
 
   auto edge_sort_pred = [](
@@ -199,6 +205,69 @@ collapse(const ConsensusGraphPtr &graph) {
       if (*(c_edge.data()) == EDGE_TYPE_BLU) {
         blue_edges.emplace(c_edge.from(), c_edge.to());
       }
+    }
+  }
+}
+
+std::vector<std::vector<unsigned int>>
+extract_faces(const ConsensusGraphPtr &graph) {
+  /*
+   - Pick an edge
+- add it to a tentative result.
+- do
+	- it has a 'from' and a 'to'.
+	- for the to, get the edges that go from there.
+		- For each one
+
+			- if it's this one skip
+
+			- if it's been used skip
+
+			- Find the winding angle
+
+				- We have the node normal and the edge - it should be 90, 180 or -90
+
+			- If it's not 90 skip
+
+			- else add to result
+
+			- if the other end of this edge is the start node we're done success
+
+
+		- if not success done fail
+- write the face and mark the resulting edges as done
+
+   */
+  using namespace std;
+
+  set<pair<string, string>> used_edges;
+
+  for (const auto &edge: graph->edges()) {
+    auto from_node_id = edge.from()->data().surfel_id;
+    auto to_node_id = edge.to()->data().surfel_id;
+    if (used_edges.count({from_node_id, to_node_id}) > 0) {
+      continue;
+    }
+
+    // Get possible next edges from 'to'
+    bool success = false;
+    auto potential_next_edges = graph->edges_from(edge.to(), edge.from());
+    for (const auto &pne: potential_next_edges) {
+      assert(pne.from() == edge.to());
+      if (used_edges.count({to_node_id, pne.to()->data().surfel_id}) > 0) {
+        continue;
+      }
+      auto vec1 = edge.to()->data().location - edge.from()->data().location;
+      auto vec2 = pne.to()->data().location - pne.from()->data().location;
+      // compute triple product
+      auto triple = vec1.cross(vec2).dot(edge.to()->data().normal);
+      if (triple < 0) {
+        // Add to tentative result
+        // If we've closed a cycle and its the right length, success
+      }
+    }
+    if (success) {
+      // Mark all used as used.
     }
   }
 }

@@ -10,7 +10,7 @@
 #include <queue>
 
 std::vector<SurfelGraph::Edge>
-get_edges_in_frame(const SurfelGraphPtr& graph, int frame_index) {
+get_edges_in_frame(const SurfelGraphPtr &graph, int frame_index) {
   using namespace std;
 
   set<pair<string, string>> checked_edges;
@@ -168,10 +168,10 @@ collapse(const ConsensusGraphPtr &graph) {
   priority_queue<pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr>,
                  vector<pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr>>,
                  auto (*)(const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &,
-                          const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &)->bool> blue_edges{edge_sort_pred};
+                          const pair<ConsensusGraphNodePtr, ConsensusGraphNodePtr> &)->bool>
+      blue_edges{edge_sort_pred};
 
   for (const auto &edge: graph->edges()) {
-    // Collapse the blue edges
     if (*(edge.data()) == EDGE_TYPE_BLU) {
       blue_edges.emplace(edge.from(), edge.to());
     }
@@ -179,23 +179,16 @@ collapse(const ConsensusGraphPtr &graph) {
 
   // Iterate over the list, deleting edges and adding in newly generated ones
   while (!blue_edges.empty()) {
-    cout << blue_edges.size() << endl;
-    auto next = blue_edges.top();
+    auto next_edge = blue_edges.top();
     blue_edges.pop();
-    auto from_node = next.first;
-    auto to_node = next.second;
+    auto from_node = next_edge.first;
+    auto to_node = next_edge.second;
 
     // Check that the edge is still present as it may not be
     vector<QuadGraph::Edge> removed_edges;
     vector<QuadGraph::Edge> created_edges;
     if (graph->has_edge(from_node, to_node)) {
       graph->collapse_edge(from_node, to_node,
-                           node_merge_function,
-                           edge_merge_function,
-                           removed_edges,
-                           created_edges);
-    } else if (graph->has_edge(to_node, from_node)) {
-      graph->collapse_edge(to_node, from_node,
                            node_merge_function,
                            edge_merge_function,
                            removed_edges,

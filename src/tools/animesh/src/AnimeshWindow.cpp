@@ -97,6 +97,23 @@ void
 AnimeshWindow::collapse_consensus() {
   collapse(m_consensus_graph);
   update();
+
+  std::vector<Eigen::Vector3f>vertices;
+  std::vector<Eigen::Vector3f>vertex_normals;
+  std::vector<std::vector<unsigned long>> faces;
+  extract_faces(m_consensus_graph, vertices,vertex_normals,  faces);
+  for( auto vi =0; vi < vertices.size(); ++vi) {
+    std::cout << "v " << vertices[vi][0] << " " << vertices[vi][1] << " " << vertices[vi][2] << std::endl;
+    std::cout << "vn " << vertex_normals[vi][0] << " " << vertex_normals[vi][1] << " " << vertex_normals[vi][2] << std::endl;
+  }
+  for( const auto & f : faces) {
+    std::cout << "f ";
+    for ( auto fv : f ) {
+      std::cout << fv << " ";
+    }
+    std::cout << std::endl;
+  }
+
 }
 
 void

@@ -80,5 +80,5 @@ int main(int argc, char *argv[]) {
       added_edges.emplace(adj.first, adj.second);
     }
   }
-  save_surfel_graph_to_file(outfile_name, make_shared<SurfelGraph>(graph));
+  save_surfel_graph_to_file(outfile_name, make_shared<SurfelGraph>(graph), false, true);
 }

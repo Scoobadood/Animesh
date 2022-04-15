@@ -20,14 +20,15 @@ namespace animesh {
 * A Graph representation that can handle hierarchical graphs.
 * The Graph is constructed over a set of Nodes and Edges
 */
-template<class NodeData, class EdgeData> class Graph {
-public:
+template<class NodeData, class EdgeData>
+class Graph {
+ public:
   /**
    * A node in the graph.
    * Nodes are containers for the data they represent
    */
   class GraphNode {
-  public:
+   public:
     /**
      * Construct a GraphNode from data
      */
@@ -43,7 +44,7 @@ public:
      */
     inline void set_data(const NodeData &data) { m_data = data; }
 
-  private:
+   private:
     /** The data held in this node */
     NodeData m_data;
   };
@@ -60,7 +61,7 @@ public:
    * An edge in the graph
    */
   class Edge {
-  public:
+   public:
     Edge(const GraphNodePtr from_node, const GraphNodePtr to_node, const std::shared_ptr<EdgeData> edge_data)
         : m_from_node{from_node}, m_to_node{to_node}, m_edge_data{edge_data} {};
 
@@ -74,7 +75,7 @@ public:
       return m_edge_data < rhs.m_edge_data;
     }
 
-  private:
+   private:
     GraphNodePtr m_from_node;
     GraphNodePtr m_to_node;
     std::shared_ptr<EdgeData> m_edge_data;
@@ -265,7 +266,7 @@ public:
       }
     }
   }
-private:
+ private:
   void add_new_edges(const std::map<GraphNodePtr, std::shared_ptr<EdgeData>> &from_node_edges,
                      const GraphNodePtr to_node,
                      const GraphNodePtr exclude_node,
@@ -511,7 +512,7 @@ private:
     }
   }
 
-public:
+ public:
   /**
  * Collapse an edge merging the two vertices that bound it into a single new vertex.
  * This is done by creating a new blended vertex (using a callback provided bu the client)
@@ -636,6 +637,31 @@ public:
   }
 
 /**
+ * Return the edge from from_node to to_node
+ */
+  std::vector<EdgeData> edges_from(const GraphNodePtr &node) {
+    using namespace std;
+
+    check_has_node(node);
+
+    vector<EdgeData> edges_from_node;
+    auto key_range = m_nodes_accessible_from.equal_range(node);
+    for (auto &map_iter = key_range.first; map_iter != key_range.second; ++map_iter) {
+      const auto &neighbour = map_iter->second;
+      if (neighbour == node) {
+        continue;
+      }
+      auto iter = m_edges.find({node, neighbour});
+      if (iter != end(m_edges)) {
+        edges_from_node.emplace(iter->second);
+      } else {
+        edges_from_node.emplace(m_edges.at({neighbour, node}));
+      }
+    }
+    return edges_from_node;
+  }
+
+  /**
  * @return the number of edges in this graph
  */
   size_t num_edges() const {
@@ -807,7 +833,7 @@ public:
     return cycle_vector;
   }
 
-private:
+ private:
   bool m_is_directed;
   // Set of all nodes
 //  std::function<bool(const GraphNodePtr &, const GraphNodePtr &)>

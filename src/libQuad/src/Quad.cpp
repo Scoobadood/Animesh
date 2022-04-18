@@ -6,6 +6,7 @@
 
 #include <PoSy/PoSy.h>
 #include <Surfel/SurfelGraph.h>
+#include <Geom/Geom.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <map>
@@ -210,12 +211,62 @@ collapse(const ConsensusGraphPtr &graph) {
   }
 }
 
-void
-extract_face(const ConsensusGraphPtr &graph,
-              std::vector<Eigen::Vector3f> &vertices,
-              std::vector<Eigen::Vector3f> &vertex_normals,
-              std::vector<std::vector<unsigned long>> &faces
+int get_next_best_edge( //
+    const std::vector<ConsensusGraph::Edge> &potential_next_edges, //
+    std::set<std::pair<std::string, std::string>> used_edges, //
+    const Eigen::Vector3f &last_edge_vector //
 ) {
+  using namespace std;
+
+  vector<pair<int, float>> tentative_next_edges;
+
+  for (auto i = 0; i < potential_next_edges.size(); ++i) {
+    const auto &pne = potential_next_edges[i];
+    const auto &curr_surfel = pne.from()->data();
+    const auto &curr_surfel_id = curr_surfel.surfel_id;
+
+    const auto &next_surfel = pne.to()->data();
+    const auto &next_surfel_id = next_surfel.surfel_id;
+
+    // Reject edges that are used
+    if (used_edges.count({curr_surfel_id, next_surfel_id}) > 0) {
+      continue;
+    }
+
+    auto next_edge_vector = next_surfel.location - curr_surfel.location;
+    // compute triple product
+    auto triple = last_edge_vector.cross(next_edge_vector).dot(curr_surfel.normal);
+
+    // There may be multiple edges with triple product > 0
+    // So we add to a list and pick the one that is closest to 90 degrees
+    if (triple <= 0) {
+      continue;
+    }
+
+
+    // Add to list of tentative next edges.
+    auto angle = degrees_angle_between_vectors(last_edge_vector, next_edge_vector);
+    tentative_next_edges.emplace_back(make_pair(i, angle));
+  }
+
+  if(tentative_next_edges.empty()) {
+    return -1;
+  }
+
+  if( tentative_next_edges.size() == 1) {
+    return tentative_next_edges[0].first;
+  }
+
+  // Check for the best fit from the tentative next edges
+  auto best_index = tentative_next_edges[0].first;
+  auto best_angle = fabsf(90 - tentative_next_edges[0].second);
+  for( const auto & entry : tentative_next_edges) {
+    if( fabsf(90 - entry.second) < best_angle ) {
+      best_angle = fabsf(90 - entry.second);
+      best_index = entry.first;
+    }
+  }
+  return best_index;
 }
 
 void
@@ -230,13 +281,11 @@ extract_faces(const ConsensusGraphPtr &graph,
   set<pair<string, string>> used_edges;
 
   for (const auto &edge: graph->edges()) {
-    if (used_edges.count({edge.from()->data().surfel_id,edge.to()->data().surfel_id}) > 0) {
+    if (used_edges.count({edge.from()->data().surfel_id, edge.to()->data().surfel_id}) > 0) {
       continue;
     }
 
     auto starting_node = edge.from();
-
-    // Get possible next edges from 'to'
     bool found_face = false;
     vector<ConsensusGraph::Edge> face;
     face.emplace_back(edge);
@@ -248,44 +297,25 @@ extract_faces(const ConsensusGraphPtr &graph,
       auto prev_node = face.back().from();
       auto prev_surfel = prev_node->data();
       auto prev_surfel_id = prev_surfel.surfel_id;
-
       auto last_edge_vector = curr_surfel.location - prev_surfel.location;
 
       // Get next edges and see if we can make a quad from them.
       auto potential_next_edges = graph->edges_from(curr_node, prev_node);
-      bool added_edge = false;
-      for (const auto &pne: potential_next_edges) {
-        assert(pne.from() == curr_node);
-        auto next_surfel = pne.to()->data();
-        auto next_surfel_id = next_surfel.surfel_id;
-        if (used_edges.count({curr_surfel_id, next_surfel_id}) > 0) {
-          continue;
-        }
-        auto next_edge_vector = next_surfel.location - curr_surfel.location;
-        // compute triple product
-        auto triple = last_edge_vector.cross(next_edge_vector).dot(curr_surfel.normal);
-        if (triple > 0) {
-          // Add to tentative face
-          face.emplace_back(pne);
-          added_edge = true;
-          break;
-        }
-      }
-
-      // We considered all edges coming from this one and didn;t find an appropriat edge.
-      // Skip it.
-      if (!added_edge) {
+      if( potential_next_edges.empty()) {
         break;
       }
 
+      // Get the best fit for a next edge
+      auto next_edge_index = get_next_best_edge(potential_next_edges, used_edges, last_edge_vector);
+      if (next_edge_index == -1) {
+        break;
+      }
+
+      // Add the next edge
+      face.emplace_back(potential_next_edges[next_edge_index]);
+
       // If we've closed a cycle and it's the right length, found_face
-      if (face.size() == 3) {
-        // Was loop closed?
-        if (face.back().to() == starting_node) {
-          found_face = true;
-          break;
-        }
-      } else if (face.size() == 4 ) {
+      if (face.size() == 4) {
         // Was loop closed?
         if (face.back().to() == starting_node) {
           found_face = true;
@@ -293,10 +323,6 @@ extract_faces(const ConsensusGraphPtr &graph,
         break;
       }
     }
-
-
-    // TEST
-    // END TEST
 
     if (found_face) {
       // Mark all used as used.
@@ -304,97 +330,8 @@ extract_faces(const ConsensusGraphPtr &graph,
       // Mark each edge as complete
       faces.emplace_back();
       for (const auto &face_edge: face) {
-        const auto & from_surfel = face_edge.from()->data();
-        const auto & from_surfel_id = from_surfel.surfel_id;
-        used_edges.emplace(make_pair(from_surfel_id, face_edge.to()->data().surfel_id));
-        if (vertex_name_to_index.count(from_surfel_id) == 0) {
-          vertices.emplace_back(from_surfel.location);
-          vertex_normals.emplace_back(from_surfel.normal);
-          vertex_name_to_index.emplace(from_surfel_id, vertices.size());
-        }
-        faces.back().emplace_back(vertex_name_to_index[from_surfel_id]);
-      }
-    }
-  }
-
-
-  for (const auto &edge: graph->edges()) {
-    if (used_edges.count({edge.to()->data().surfel_id,edge.from()->data().surfel_id}) > 0) {
-      continue;
-    }
-
-    auto starting_node = edge.to();
-
-    // Get possible next edges from 'to'
-    bool found_face = false;
-    vector<ConsensusGraph::Edge> face;
-    face.emplace_back(ConsensusGraph::Edge(edge.to(), edge.from(), edge.data()));
-
-    while (true) {
-      auto curr_node = face.back().to();
-      auto curr_surfel = curr_node->data();
-      auto curr_surfel_id = curr_surfel.surfel_id;
-      auto prev_node = face.back().from();
-      auto prev_surfel = prev_node->data();
-      auto prev_surfel_id = prev_surfel.surfel_id;
-
-      auto last_edge_vector = curr_surfel.location - prev_surfel.location;
-
-      // Get next edges and see if we can make a quad from them.
-      auto potential_next_edges = graph->edges_from(curr_node, prev_node);
-      bool added_edge = false;
-      for (const auto &pne: potential_next_edges) {
-        assert(pne.from() == curr_node);
-        auto next_surfel = pne.to()->data();
-        auto next_surfel_id = next_surfel.surfel_id;
-        if (used_edges.count({curr_surfel_id, next_surfel_id}) > 0) {
-          continue;
-        }
-        auto next_edge_vector = next_surfel.location - curr_surfel.location;
-        // compute triple product
-        auto triple = last_edge_vector.cross(next_edge_vector).dot(curr_surfel.normal);
-        if (triple > 0) {
-          // Add to tentative face
-          face.emplace_back(pne);
-          added_edge = true;
-          break;
-        }
-      }
-
-      // We considered all edges coming from this one and didn;t find an appropriat edge.
-      // Skip it.
-      if (!added_edge) {
-        break;
-      }
-
-      // If we've closed a cycle and it's the right length, found_face
-      if (face.size() == 3) {
-        // Was loop closed?
-        if (face.back().to() == starting_node) {
-          found_face = true;
-          break;
-        }
-      } else if (face.size() == 4 ) {
-        // Was loop closed?
-        if (face.back().to() == starting_node) {
-          found_face = true;
-        }
-        break;
-      }
-    }
-
-
-    // TEST
-    // END TEST
-
-    if (found_face) {
-      // Mark all used as used.
-      // Add to faces
-      // Mark each edge as complete
-      faces.emplace_back();
-      for (const auto &face_edge: face) {
-        const auto & from_surfel = face_edge.from()->data();
-        const auto & from_surfel_id = from_surfel.surfel_id;
+        const auto &from_surfel = face_edge.from()->data();
+        const auto &from_surfel_id = from_surfel.surfel_id;
         used_edges.emplace(make_pair(from_surfel_id, face_edge.to()->data().surfel_id));
         if (vertex_name_to_index.count(from_surfel_id) == 0) {
           vertices.emplace_back(from_surfel.location);

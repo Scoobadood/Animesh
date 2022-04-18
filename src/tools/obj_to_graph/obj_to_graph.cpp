@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
       break;
 
     case 5:
-      if ((strcmp("-s", argv[1]) == 0) && (argc == 5)) {
+      if (strcmp("-s", argv[1]) == 0) {
         scale_factor = std::stof(argv[2]);
         infile_name = argv[3];
         outfile_name = argv[4];

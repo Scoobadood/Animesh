@@ -274,24 +274,33 @@ ObjFileParser::parse_file(const std::string &file_name, bool with_adjacency, boo
     vector<size_t> face_vertex_indices;
     vector<size_t> face_normal_indices;
     vector<vector<pair<size_t, size_t>>> faces;
-
     read_data(file_name, given_vertices, given_normals, face_vertex_indices, face_normal_indices, faces);
 
     vector<PointNormal::Ptr> point_normals;
     multimap<size_t, size_t> adjacency;
-
-    if (face_wise) {
+    if( given_normals.size() == given_vertices.size()) {
+      std::cout << "Normals provided. Using these for point/normal calc" << std::endl;
+      for( int i=0; i<given_normals.size(); ++i) {
+        point_normals.emplace_back(make_shared<PointNormal>(given_vertices[i], given_normals[i]));
+      }
+      if (with_adjacency) {
+        adjacency = compute_adjacency_from_vertices(faces);
+      }
+    } else {
+      if (face_wise) {
         point_normals = compute_point_normals_from_faces(given_vertices, given_normals, faces);
         if (with_adjacency) {
-            adjacency = compute_adjacency_from_faces(faces);
+          adjacency = compute_adjacency_from_faces(faces);
         }
-    } else {
+      } else {
         point_normals = compute_point_normals_from_vertices(given_vertices, given_normals, face_vertex_indices,
                                                             face_normal_indices);
         if (with_adjacency) {
-            adjacency = compute_adjacency_from_vertices(faces);
+          adjacency = compute_adjacency_from_vertices(faces);
         }
+      }
     }
+
 
     return make_pair(point_normals, adjacency);
 }
